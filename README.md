@@ -2,6 +2,7 @@
 
 ## Premissa
 
+No ano distópico de 2067, as megacorporações dominaram a terra e, após trocarem as atividades mundanas pelos serviços de bio-androides, tudo que sobrou foi o mais básico vício humano: jogos de cartas. Neles, mercenários, classes baixas e pedaços de lata servem como peças e lutam até a morte a mando dos CyberDuelistas, que só ligam para a glória. Chegou a hora de você escolher: *Vai viver como um ninguém ou arriscar a vida para virar lenda?*
 
 ## Descrição 
 
