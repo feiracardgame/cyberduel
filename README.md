@@ -6,7 +6,7 @@ No ano distópico de 2067, as megacorporações dominaram a terra e, após troca
 
 ## Descrição 
 
-Jogo de cartas com estética cyberpunk, partida com 3 turnos, melhor de 3, onde cada partida dura em média de 2-5 minutos. Focado em invocação de cartas, com custo de energia, o objetivo é ter uma soma de poder maior do que a do oponente, utilizando desde o poder base de cada carta até habilidades juntando diferentes cartas de monstro ou de efeito.
+Jogo de cartas com estética cyberpunk, partida 1x1 com 3 turnos, melhor de 3, onde cada partida dura em média de 2-5 minutos. Focado em invocação de cartas, com custo de energia, o objetivo é ter uma soma de poder maior do que a do oponente, utilizando desde o poder base de cada carta até habilidades juntando diferentes cartas de monstro ou de efeito.
 
 
 ## Gameplay
@@ -28,4 +28,7 @@ Conforme os jogadores vencem, eles ganham pontos de acordo com a score do leader
 
 Ao final de um tempo pré-definido, até agora 1h30, a leaderboard é reiniciada, premiando tijolinhos de acordo com a posição do jogador.
 
+
+## Da disposição física:
+Serão estruturados 4 monitores ou projetores com um qr code em cada lado para ser escaneado e entrar no lobby da sala. Haverão 4 salas cada um com um mapa para batalha.
 
