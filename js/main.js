@@ -25,7 +25,13 @@ class Deck {
         this.cartas.push(carta);
     }
     }
+    embaralhar() {
+        Phaser.Utils.Array.Shuffle(this.cartas);
+    }
 }
+
+
+
 
 class Mao {
     constructor() {
@@ -92,10 +98,3 @@ const robo = new Carta(1, 5, 2, "monstro");
 const drone = new Carta(2, 3, 1, "monstro");
 const tanque = new Carta(3, 10, 5, "monstro");
 const jogador = new Jogador();
-console.log(robo);
-robo.mostrar();
-robo.buff(2);
-robo.mostrar();
-jogador.criardeckteste();
-jogador.comprarCarta();
-jogador.jogarCarta(robo, 0);
