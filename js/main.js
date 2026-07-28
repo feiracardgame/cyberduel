@@ -8,10 +8,10 @@ class Carta {
         this.tipo = tipo;
     }
     mostrar() {
-    console.log(`Carta ID: ${this.id},\n Poder: ${this.poder},\n Custo: ${this.custo},\n Tipo: ${this.tipo}`);
+        console.log(`Carta ID: ${this.id}, Poder: ${this.poder}, Custo: ${this.custo}`);
     }
     buff(valor) {
-    this.poder += valor;
+        this.poder += valor;
     }
 }
 
@@ -21,17 +21,14 @@ class Deck {
         this.limite = 20;
     }
     adicionarCarta(carta) {
-    if (this.cartas.length < this.limite) {
-        this.cartas.push(carta);
-    }
+        if (this.cartas.length < this.limite) {
+            this.cartas.push(carta);
+        }
     }
     embaralhar() {
         Phaser.Utils.Array.Shuffle(this.cartas);
     }
 }
-
-
-
 
 class Mao {
     constructor() {
@@ -63,27 +60,30 @@ class Jogador {
         this.mao = new Mao();
         this.campo = new Campo();
         this.energia = 10;
+        this.vitorias = 0;
     }
+
     jogarCarta(carta, posicao) {
-        if (this.campo.temEspaco(posicao)) {
-            if (this.energia >= carta.custo) {
-                this.campo.adicionarCarta(carta, posicao);
-                this.energia -= carta.custo;
-            } else {
-                console.log(`Não há energia suficiente para jogar a carta ${carta.id}.`);
-            }
-            console.log(`Carta ${carta.id} do tipo ${carta.tipo} jogada com sucesso na posicao ${posicao}!`);
+        if (!this.campo.temEspaco(posicao)) return false;
+        if (this.energia < carta.custo) return false;
+
+        this.campo.adicionarCarta(carta, posicao);
+        this.energia -= carta.custo;
+
+        const indice = this.mao.cartas.indexOf(carta);
+        if (indice !== -1) {
+            this.mao.cartas.splice(indice, 1);
         }
-        else {
-            console.log(`Espaço insuficiente para jogar a carta ${carta.id}.`);
-        }
+        return true;
     }
+
     criardeckteste() {
         for (let i = 0; i < 20; i++) {
             const carta = new Carta(i + 1, Math.floor(Math.random() * 10) + 1, Math.floor(Math.random() * 5) + 1, "monstro");
             this.deck.adicionarCarta(carta);
         }
     }
+
     comprarCarta() {
         if (this.deck.cartas.length > 0) {
             const compra = this.deck.cartas.pop();
@@ -92,9 +92,77 @@ class Jogador {
     }
 }
 
+class Partida {
+    constructor() {
+        this.jogador = new Jogador();
+        this.inimigo = new Jogador();
 
+        this.jogador.criardeckteste();
+        this.inimigo.criardeckteste();
 
-const robo = new Carta(1, 5, 2, "monstro");
-const drone = new Carta(2, 3, 1, "monstro");
-const tanque = new Carta(3, 10, 5, "monstro");
-const jogador = new Jogador();
+        this.jogador.deck.embaralhar();
+        this.inimigo.deck.embaralhar();
+
+        for (let i = 0; i < 5; i++) {
+            this.jogador.comprarCarta();
+            this.inimigo.comprarCarta();
+        }
+
+        this.turno = 1;
+        this.cartaSelecionada = null; // Guardar seleção para jogar no slot
+    }
+
+    fimTurno() {
+        this.turnoIA();
+        this.resolverCombate();
+        this.turno++;
+        this.jogador.energia += 2;
+        this.inimigo.energia += 2;
+        this.jogador.deck.embaralhar();
+        this.inimigo.deck.embaralhar();
+        this.jogador.comprarCarta();
+        this.inimigo.comprarCarta();
+    }
+
+    turnoIA() {
+        const carta = this.inimigo.mao.cartas.find(c => c.custo <= this.inimigo.energia);
+
+        if (carta) {
+            for (let i = 0; i < 3; i++) {
+                if (this.inimigo.campo.temEspaco(i)) {
+                    this.inimigo.jogarCarta(carta, i);
+                    break;
+                }
+            }
+        }
+    }
+    calcularPoderTotal(campo) {
+        let total = 0;
+        for (let carta of campo.cartas) {
+            if (carta !== null) {
+                total += carta.poder;
+            }
+        }
+        return total;
+    }
+
+    resolverCombate() {
+        let poderJogador = this.calcularPoderTotal(this.jogador.campo);
+        let poderInimigo = this.calcularPoderTotal(this.inimigo.campo);
+
+            console.log(`Poder Jogador: ${poderJogador} | Poder Inimigo: ${poderInimigo}`);
+
+        // 2. Aplica a regra de vitória do combate
+        if (poderJogador > poderInimigo) {
+            console.log("Jogador venceu a rodada!");
+            this.jogador.vitorias++;
+        } 
+        else if (poderInimigo > poderJogador) {
+            console.log("Inimigo venceu a rodada!");
+            this.inimigo.vitorias++;
+        } 
+        else {
+            console.log("Empate!");
+        }
+    }
+    }
