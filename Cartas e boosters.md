@@ -65,10 +65,19 @@ Com aquelas paradas do lado da cabeça de androide do Detroit <img width="720" h
 
 a
 ### 1x carta lendária - RaspClay MonteCorp
-* Descrição: Outrora conhecido por outro nome, Raspclay abdicou de todo seu passado quando a oportunidade de ascender aos céus de NeoFloripa surgiu. Sua pequena empresa de tecnologia se desenvolveu na irreverente e opressora empresa de tecnologia, serviços, segurança privada e propaganda Raspcorp. Após comprar todos os setores da sociedade, seus advogados passaram a afirmar que a palavra "monopólio" carrega uma conotação desnecessariamente negativa.
+* Descrição: Raspclay trocou seu antigo nome pelo topo dos arranha-céus de NeoFloripa. Atualmente comanda a irreverente e opressora empresa de tecnologia, serviços, segurança privada e propaganda Raspcorp. Após comprar todos os setores da sociedade, seus advogados passaram a afirmar que a palavra "monopólio" carrega uma conotação desnecessariamente negativa.
 * Energia:
 * Efeito:
 * Visual:
+
+* <img width="316" height="479" alt="image" src="https://github.com/user-attachments/assets/0620feac-89ef-4bd6-a55b-1bb0e29042f5" />
+
++
+
+
+
+<img width="100" height="125" alt="image" src="https://github.com/user-attachments/assets/6050036a-a8ba-44a1-a352-27afa6514cbe" />
+
 
 
 
