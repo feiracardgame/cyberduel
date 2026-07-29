@@ -67,7 +67,9 @@ Faz o phoenix wright com uma maleta tecnológica e uma roupa tipo toda neon ou t
 
 ### 2x carta alta 1 - CryptoAcionistas
 
-* Descrição:
+* Descrição: Após a implementação das moedas digitais em escala global, os CryptoAcionistas rapidamente se tornaram a nova tendência. Defensores ferrenhos da sustentabilidade, continuam trabalhando diariamente para maximizar o ROI, elevar o valuation e garantir um futuro melhor para as próximas gerações de suas cryptowallets.
+
+* 
 * Energia:
 * Efeito:
 * Visual:
