@@ -51,12 +51,10 @@ Com aquelas paradas do lado da cabeça de androide do Detroit <img width="720" h
 * Efeito:
 * Visual:
 
-Faz uma mulher de terno com uma maleta, pique advogado padrão, mas a roupa é tipo ou toda brilhosa ou toda metalica
+Faz o phoenix wright com uma maleta tecnológica e uma roupa tipo toda neon ou toda metalica
 
 
-<img width="665" height="921" alt="image" src="https://github.com/user-attachments/assets/ca88327a-f120-45dc-805c-1fdf6fbce4c6" />
-
-
+<img width="1200" height="3952" alt="image" src="https://github.com/user-attachments/assets/63cbe85b-a597-47ab-952b-e1c2ff8c67db" />
 
 
 
@@ -67,15 +65,15 @@ Faz uma mulher de terno com uma maleta, pique advogado padrão, mas a roupa é t
 * Visual: -> eu não faço a mínima ideia de como representar isso visualmente, essa aqui vc vai ter que se virar.
 
 
-### 2x carta alta 1 -
+### 2x carta alta 1 - CryptoAcionistas
 
 * Descrição:
 * Energia:
 * Efeito:
 * Visual:
 
-### 2x carta alta 2 -
-* Descrição:
+### 2x carta alta 2 - Agente da DIPSP
+* Descrição: A Divisão de Interesses Privados na Segurança Pública
 * Energia:
 * Efeito:
 * Visual:
