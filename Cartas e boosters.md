@@ -20,44 +20,61 @@ Com aquelas paradas do lado da cabeça de androide do Detroit <img width="720" h
 
 
 
-### 2x carta baixa 2 -
+### 2x carta baixa 2 - Estagiário de Machine Learning
+
+* Descrição: As árduas horas dedicadas ao treinamento e desenvolvimento de IAs capazes de substituir o trabalho humano demonstram que, apesar de ser apenas um estagiário, seu trabalho é vital para o futuro da empresa. O RH estima que ele continuará sendo lembrado por aproximadamente três semanas após sua substituição
+* Energia:
+* Efeito:
+* Visual: é um nerdzinho de oculos mexendo no pc, só que a piada é que tem tipo um cartaz de logo da raspcorp dizendo "RaspCorp - Investindo no futuro da humanidade"
+* 
+
+* <img width="220" height="219" alt="image" src="https://github.com/user-attachments/assets/9c51381e-5ba5-4374-897b-fd0cf345e951" />
+
+
+
+### 2x carta baixa 3 - NeoAnalista de Suporte Nível Alpha
+
+* Descrição: : Treinado para lidar com situações que desafiam a lógica, a física e, ocasionalmente, a sanidade, o NeoAnalista de Suporte Nível Alpha dispõe de apenas cinco minutos para solucionar incidentes críticos. Estatisticamente, 87% deles são resolvidos com uma reinicialização do sistema.
+
+* Energia:
+* Efeito:
+* Visual: Faz que nem a imagem do robert robertson do dispatch (sem o chase la atras) que é só um mano completamente cansado, cheio de olheira no rosto, de headset e segurando a cabeça com a mão
+* 
+
+<img width="1500" height="1000" alt="image" src="https://github.com/user-attachments/assets/0ab3078b-9743-495c-84e4-99af7c3ca429" />
+
+
+
+### 2x carta media 1 - Advogado Corporativo
+* Descrição: Sua principal função é garantir que a Raspcorp permaneça em conformidade com a legislação vigente. Felizmente, ambas costumam ser atualizadas ao mesmo tempo. Ao longo de sua carreira, participou da aquisição de sete empresas, três governos e um incidente que permanece sob sigilo judicial
+* Energia:
+* Efeito:
+* Visual:
+
+Faz uma mulher de terno com uma maleta, pique advogado padrão, mas a roupa é tipo ou toda brilhosa ou toda metalica
+
+
+<img width="665" height="921" alt="image" src="https://github.com/user-attachments/assets/ca88327a-f120-45dc-805c-1fdf6fbce4c6" />
+
+
+
+
+
+### 2x carta media 2 - Gestor de Recursos Predominantemente Humanos
+* Descrição: Atualmente, funcionários humanos e máquinas compartilham os mesmos benefícios corporativos. Nenhum dos dois está particularmente satisfeito com isso. O RH garante que todas as reclamações sejam igualmente ignoradas.
+* Energia:
+* Efeito:
+* Visual: -> eu não faço a mínima ideia de como representar isso visualmente, essa aqui vc vai ter que se virar.
+
+
+### 2x carta alta 1 -
 
 * Descrição:
 * Energia:
 * Efeito:
 * Visual:
 
-
-### 2x carta baixa 3 -
-
-* Descrição:
-* Energia:
-* Efeito:
-* Visual:
-
-
-### 2x carta media 1 -
-* Descrição:
-* Energia:
-* Efeito:
-* Visual:
-
-
-### 2x carta media 2 -
-* Descrição:
-* Energia:
-* Efeito:
-* Visual:
-
-
-### 2x carta alta 1
-
-* Descrição:
-* Energia:
-* Efeito:
-* Visual:
-
-### 2x carta alta 2
+### 2x carta alta 2 -
 * Descrição:
 * Energia:
 * Efeito:
@@ -405,7 +422,7 @@ Humberto vai ser o HUMBA BRAIN, que nem o Angstrom de invencível, o criador dos
 
 ### carta baixa 2 - Montadores de Cabos
 
-* Descrição: Quem falou que as máquinas e as IAs roubariam nossos empregos não poderia estar mais errado. Na verdade, hoje trabalhamos cinco vezes mais para elas. Afinal, até mesmo as máquinas mais avançadas do planeta continuam incapazes de explicar por que todo cabo é exatamente 10 centímetros curto demais ou 20 metros longo demais.
+* Descrição: Quem falou que as máquinas e as IAs roubariam nossos empregos não poderia estar mais errado. Na verdade, hoje trabalhamos cinco vezes mais **para elas**. Afinal, até mesmo as máquinas mais avançadas do planeta continuam incapazes de explicar por que todo cabo é exatamente 10 centímetros curto demais ou 20 metros longo demais.
 
 
 * Energia:
