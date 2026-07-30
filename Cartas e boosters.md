@@ -6,6 +6,8 @@
 
 Seu departamento jurídico, composto por mais advogados do que alguns países possuem habitantes, garante que todas as suas operações permaneçam em conformidade com a lei, mesmo quando a própria definição de "lei" precisa ser atualizada. Enquanto suas forças militares asseguram a paz mundial, seus algoritmos asseguram que você receba exatamente o anúncio do produto em que estava pensando há oito segundos.
 
+Depois de transformar o mundo real em um excelente investimento de curto prazo, a Raspcorp voltou seus olhos para NeoFloripa. Afinal, até o fim da humanidade representa uma ótima oportunidade de mercado.
+
 
 ### 2x carta baixa 1  - CyberVendedor da Raspcorp
 
@@ -163,7 +165,7 @@ Adapta a beira-mar norte para um estilo cyberpunk
 
 ---
 
-## Booster 2 - AnarcoBois - deck focado em efeitos
+## Booster 2 - Echossystem - deck focado em efeitos
 
 ### 2x carta baixa 1
 
