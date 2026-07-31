@@ -3,14 +3,37 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <title>Cyberduel</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            touch-action: none;
+        }
+    </style>
 </head>
 
 <body>
 
+    <!-- 1. Phaser precisa ser o primeiro -->
     <script src="phaser.js"></script>
-    <script src="js/main.js"></script>
+
+    <!-- 2. Dados das cartas: carregue antes de main.js (é onde ficam a
+         classe Carta, os tipos de efeito e o pool de cartas de efeito) -->
+    <script src="js/cartas.js"></script>
+
+    <!-- 3. Carregue as cenas ANTES do main.js -->
     <script src="cenas/jogo.js"></script>
+
+    <!-- 4. main.js por último (ele inicia o jogo) -->
+    <script src="js/main.js"></script>
 
 </body>
 
