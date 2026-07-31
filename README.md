@@ -1,9 +1,10 @@
 
 # Cyberduel
 
-## Descrição 
+## Plataforma
 
-Jogo de cartas com estética cyberpunk, onde cada partida dura em média de 5-10 minutos. Focado em invocação de cartas, com custo de energia, o objetivo é ter uma soma de poder maior do que a do oponente, utilizando desde o poder base de cada carta até habilidades juntando diferentes cartas de monstro ou de efeito.
+- Celular
+- Híbrida, utilizando um computador como visualização do campo de batalha e celular como menu de cartas e ações.
 
 
 ## Premissa
@@ -110,51 +111,76 @@ O resto dele é livre para escolha.
 
 Regras:
 
-As partidas serão realizadas na configuração 1x1, nos jogadores A e B.
-
-Na primeira rodada, o jogador puxará 6 cartas do baralho de 20 cartas. A cada rodada, serão puxadas 3 cartas. O jogo poderá ter no total, 7 rodadas.
-
-Uma rodada consiste no turno de jogador A e no turno do jogador B.
-
-
-O turno do jogador acaba quando ele aperta o botão de passar turno ou quando estourar o tempo limite de 1 minuto e meio para fazer sua jogada.
-
-A mesa de jogo será composta por um terreno com espaço de 3x5, comportando até 15 cartas no total
-
-Cada carta influencia em algum parâmetro do jogo, mas as de personagens são as únicas que efetivamente somam pontos de audiência ao total.
-
-As cartas de personagens e terrenos ficam em campo ate serem removidas por algum efeito
-
-As cartas de efeito desaparecem do terreno após serem usadas
-
-
-Ao final da sétima rodada, ou quando todos os jogadores tiverem lançado todas as cartas do baralho, o jogo acaba e contabilizará quem tem o maior somatório de pontos, determinando que este será o vencedor.
-
-Caso o valor de pontos termine igual, o jogo resulta em empate
+- As partidas serão realizadas na configuração 1x1, nos jogadores A e B.
+- Na primeira rodada, o jogador puxará 6 cartas do baralho de 20 cartas. A cada rodada, serão puxadas 3 cartas. O jogo poderá ter no total, 7 rodadas.
+- O jogador pode devolver e recomprar até 2 cartas do baralho por rodada
+- Uma rodada consiste no turno de jogador A e no turno do jogador B.
+- O turno do jogador acaba quando ele aperta o botão de passar turno ou quando estourar o tempo limite de 1 minuto e meio para fazer sua jogada.
+- A mesa de jogo será composta por um terreno com espaço de 3x5, comportando até 15 cartas no total
+- Cada carta influencia em algum parâmetro do jogo, mas as de personagens são as únicas que efetivamente somam Pontos de Audiência ao total. 
+- As cartas de personagens e terrenos ficam em campo ate serem removidas por algum efeito
+- As cartas de personagens e terrenos só tem efeito 
+- As cartas de efeito desaparecem do terreno após serem usadas
+- As cartas de efeito tem ação instantânea e única
+- Ao final da sétima rodada, ou quando todos os jogadores tiverem lançado todas as cartas do baralho, o jogo acaba e contabilizará quem tem o maior somatório de Pontos de Audiência, determinando que este será o vencedor.
+- Caso o valor de pontos termine igual, o jogo resulta em empate
 
 
 
 
 ### Das ações do jogador
+*O jogador poderá, dentro da partida:*
+- Lançar cartas em um slot específico do campo
+- Passar o turno
+- Desistir da batalha
+- Apertar para visualizar uma carta em detalhes
+- Apertar para visualizar histórico de cartas
+- Devolver e recomprar até 2 cartas do baralho por rodada
+- Visualizar o número de PA que o inimigo tem (soma do PA de cada carta do adversário em campo)
+- Visualizar seu próprio número de PA (soma de PA de cada carta própria em campo)
+- Visualizar quantas cartas restam no seu baralho
+- Visualizar quantas cartas restam no baralho do inimigo
+- Visualizar quantas cartas o inimigo tem na mão, mas não quais
+- Visualizar quantas e quais cartas tem na sua mão
 
+*O jogador poderá, no menu:*
 
+- Ir para o menu de edição de decks, onde poderá selecionar seu baralho ou criar um próprio personalizado, além de visualizar suas cartas em datalhes e abrir Booster Packs comprados na feira
+- Ir para o menu de configurações, onde poderá mexer em parâmetros de som
+- Ir para o menu de partidas onde poderá achar um adversário aleatório, inserir o código de um adversário específico ou escanear um QR Code para entrar em uma das salas híbridas
+- Ir para o menu de leaderboard, onde poderá ver quanto tempo falta para ela ser reiniciada, qual sua posição nela e quantos pontos possui, além da tabela, organizada por pontuação da maior para menor, dos 10 jogadores com maior pontuação
+- Ir para o menu de Tutorial e Regras, onde poderá revisar as regras do jogo
+
+- 
 ### Da distribuição de pontos
 
-Dos pontos:
+*O sistema da pontuação funcionará da seguinte forma:*
+Haverá uma leaderboard que faz o ranking dos 10 jogadores com maior pontuação, da maior para o menor.
+
+- Todos começam, no início da leaderboard, com 1000 pontos.
+- O valor de pontos ganhos na partida é igual ao score do jogador derrotado dividido por 10
+- O valor de pontos perdidos é igual ao valor de pontos ganhos, mas negativo
+- Em caso de empate, não se somam ou subtraem pontos dos jogadores
+
+*o sistema de distribuição de recompensas ocorrerá da seguinte forma:*
+
+Após 1 hora, a leaderboard vai reiniciar, a leaderboard tem tamanho variável de acordo com a demanda do jogo durante a feira. (Com máximo de 10 jogadores)
+
+- O top 1 ganhará 5x tijolinhos
+- O top 2 ganhará 4x tijolinhos
+- O top 3 ganhará 3x tijolinhos
+- O top 4 ganhará 2x tijolinhos
+- O top 5 ganhará 1x tijolinhos
 
 
-O sistema da pontuação funcionará da seguinte forma:
+X = valor médio de item da feira
 
-Todos começam, no início da leaderboard, com 1000 pontos.
-
-O valor de pontos ganhos na partida é igual ao score do jogador derrotado /10
-
-o valor de pontos perdidos é igual ao valor de pontos ganhos, mas negativo
-
-em caso de empate, não se somam ou subtraem pontos dos jogadores
 
 
 ### Do matchmaking e disposição física
+- O jogo poderá ser jogado somente com o celular através da procura de um adversário aleatório para realizar a partida
+- A busca por jogador pode ocorrer de duas formas através do celular: aleatoriamente, buscando o adversário com score mais próximo do seu, ou utilizando o código de outro jogador para uma batalha direta.
+- Haverão 4 salas disponíveis (na feira) e ilimitadas (para jogar em casa) para jogar de forma híbrida, permitindo que a visualização do campo de batalha ocorra em um computador e o menu de ações e cartas seja visualizado pelo celular.
 
 
 
@@ -164,7 +190,7 @@ em caso de empate, não se somam ou subtraem pontos dos jogadores
 
 O jogo, por não se tratar de um jogo de história e progressão linear, não terá artefatos que auxiliem na história, os artefatos principais do jogo seriam as próprias cartas. 
 Cada carta teria a seguinte informação:
-- Pontos de audiência: quantos pontos ela soma para sua pontuação final, que, ao ser comparada com o adversário determinará o vencedor
+- Pontos de Audiência (PA): quantos pontos ela soma para sua pontuação final, que, ao ser comparada com o adversário determinará o vencedor
 - Tipo de carta: determina se ela é alta, média, baixa, efeito, terreno etc.
 - Efeito: o que ela causa ao ser colocada em campo ou por estar em campo
 - Arte da carta: a arte que representa a carta, caso seja lendária ela terá uma arte maior
@@ -176,7 +202,7 @@ Cada carta teria a seguinte informação:
 
 As fontes de receita seriam primariamente:
 
-- Possibilidade de comprar moeda virtual com dinheiro real para poder comprar cartas na loja do jogo, isso seria simulado através dos tijolinhos, a ideia é vender os booster packs, que são pacotes de poucas cartas de um dos decks que fornecem chance de obtê-las de acordo com sua raridade, então, por exemplo: você compra um pacote de 3 cartas de um deck que tem 11 tipos de cartas. Essas 3 cartas recebidas vão ser determinadas, pelo sistema, a serem cartas baixas (com 1/3 de chance), cartas médias (com 1/4 de chance), carta de efeitos ou terrenos (com 1/5 de chance), cartas altas (com 1/6 de chance) ou cartas lendárias (com 1/15 de chance)
+- Possibilidade de comprar moeda virtual com dinheiro real para poder comprar cartas na loja do jogo, isso seria simulado através dos tijolinhos, a ideia é vender os booster packs, que são pacotes de poucas cartas de um dos decks que fornecem chance de obtê-las de acordo com sua raridade, então, por exemplo: você compra um pacote de 3 cartas de um deck que tem 11 tipos de cartas. Essas 3 cartas recebidas vão ser determinadas, pelo sistema, a serem cartas baixas (com 1/3 de chance), cartas médias (com 1/4 de chance), carta de efeitos ou terrenos (com 1/5 de chance), cartas altas (com 1/6 de chance) ou cartas lendárias (com 1/15 de chance, apenas para jogadores com contas em que jogaram 10 partidas do jogo)
 
 - Venda de produtos reais do jogo, como quadros, camisetas etc. Mas, especialmente, cartas reais do jogo para jogar fisicamente.
 
