@@ -1,6 +1,19 @@
+
 # Cyberduel
 
-## Princípio do universo
+## Descrição 
+
+Jogo de cartas com estética cyberpunk, onde cada partida dura em média de 5-10 minutos. Focado em invocação de cartas, com custo de energia, o objetivo é ter uma soma de poder maior do que a do oponente, utilizando desde o poder base de cada carta até habilidades juntando diferentes cartas de monstro ou de efeito.
+
+
+## Premissa
+
+No ano distópico de 2067, a humanidade destruiu seu próprio mundo. Após substituir o trabalho humano pelos serviços de bio-androides, restou apenas o maior vício da espécie: os jogos de cartas. Para preencher esse vazio, nasceu CyberDuel, uma simulação baseada no Antigo Mundo, onde mercenários, classes baixas e pedaços de lata servem como peças e lutam até a morte a mando dos CyberDuelistas. Chegou a hora de escolher: vai viver como ninguém ou arriscar tudo para virar lenda?
+
+
+
+
+## Universo
 No ano de 2067, o mundo já não passa de uma lembrança inconveniente. O aumento do nível do mar engoliu cidades inteiras, as terras férteis deram lugar a desertos e a humanidade foi reduzida a algumas poucas cidades inteligentes espalhadas pelo planeta.
 
 Com o advento dos bio-androides e das inteligências artificiais, praticamente todas as funções da sociedade foram automatizadas. Pela primeira vez na história, a humanidade alcançou seu maior objetivo: não precisar mais trabalhar. Infelizmente, ninguém havia considerado o que aconteceria depois.
@@ -27,66 +40,109 @@ CyberDuelistas que permanecem nas posições inferiores do ranking são rapidame
 Os que alcançam o topo descobrem que o sucesso também cobra seu preço. Tornam-se celebridades globais, vivendo sob observação constante, pressionados por patrocinadores, perseguidos por stalkers e obrigados a atender às expectativas de milhões de pessoas que acreditam conhecê-los pessoalmente. Alguns passam a se considerar uma raça superior. Outros fundam a própria religião. Há também aqueles que preferem se tornar divas pop. Independentemente do caminho escolhido, todos compartilham do mesmo destino: perder o anonimato e acumular uma coleção crescente de admiradores e inimigos mortais que você sequer viu na vida.
 
 
-Quando o entretenimento se torna o motor da sociedade, a única coisa que realmente importa é a audiência acima da sobrevivência. Afinal, de que adianta viver para sempre se ninguém se lembrar que você existiu?
+Quando o entretenimento se torna o motor da sociedade, a audiência fica mais importante que a sobrevivência. Afinal, de que adianta viver para sempre se ninguém vai lembrar que você existiu?
 
 
+## Personagens
+
+*As cartas em específico ainda estão sendo desenvolvidas (estão em boosters e cartas.md, documento bem desorganizado...), pois precisam ser adaptadas para a mecânica, balanceamento, etc, além de ser necessário caprichar na arte delas (disponíveis em "artes"), então por causa do volume, o desenvolvimento delas precisará de um pouco mais de tempo, mas aqui tem a ideia geral das **facções** do jogo (nome ainda provisório, talvez nomear "facções" seja barrado pela diretoria...)
+
+### **Raspcorp:**  -> Almejar crescimento dentro do sistema não importa como ele está, mas, após ter o poder, manter o controle para garantir o lucro. -> Capitalismo Neoliberal
+
+RaspCorp é uma empresa quase mística, já que ninguém consegue explicar como uma simples empresa de tecnologia adquiriu metade dos satélites, um terço dos exércitos e praticamente todos os dados da humanidade de forma totalmente legal. Atualmente, seus sistemas são responsáveis por programar tanto o cérebro humano quanto o processamento dos robôs — para aqueles que ainda insistem em enxergar alguma diferença entre os dois.
+Seu departamento jurídico, composto por mais advogados do que alguns países possuem habitantes, garante que todas as suas operações permaneçam em conformidade com a lei, mesmo quando a própria definição de "lei" precisa ser atualizada. Enquanto suas forças militares asseguram a paz mundial, seus algoritmos asseguram que você receba exatamente o anúncio do produto em que estava pensando há oito segundos.
+
+Depois de ser uma das principais culpadas por transformar o mundo real em um excelente investimento de curto prazo, a Raspcorp voltou seus olhos para a expansão ao mercado virtual de NeoFloripa. Afinal, até o fim da humanidade representa uma ótima oportunidade de mercado.
+
+### **EchoSsystem** -> se opõe ao sistema, luta pela destruição do sistema vigente em busca da inovação fazendo uso de melhorias físicas -> Anarquismo e transumanismo
+
+Grupo de mercenários anarquistas que têm como objetivo destruir o estado atual da sociedade de NeoFloripa para que ela surja novamente como deveria ser e não tenha o mesmo destino da anterior
+
+
+### **O Sindicato:** -> luta de classes, busca igualdade perante o sistema -> Socialismo
+
+Para os trabalhadores, NeoFloripa é a primeira chance de viver em um mundo onde suas ações possuem peso real. Pela primeira vez, técnicos, montadores e operadores podem decidir o destino da sociedade em vez de apenas mantê-la funcionando.
+
+
+
+### **IAs e tecnologias** -> Não enxerga importância no uso do sistema, apesar de serem os criadores, mas sim ele como objeto para evolução da própria forma. -> Pós-humanismo
+
+As inteligências artificiais enxergam NeoFloripa como algo maior do que um simples jogo. Se uma simulação puder se tornar tão importante quanto a realidade, talvez seus corpos virtuais finalmente sejam capazes de experimentar aquilo que seus criadores chamavam de "ser humano".
+
+### **Nômades das Terras Desertas:** -> provar a futilidade da simulação, demonstrando que ainda há salvação para o mundo real -> primitivismo
+
+Tendo testemunhado o verdadeiro fim do mundo, os Nômades atravessam NeoFloripa movidos por uma única convicção: nenhuma simulação, por mais perfeita que seja, será capaz de superar a realidade.
 
 
 ## Objetivos
 
-Tratando-se de um jogo competitivo em larga escala, o objetivo é simplesmente jogar e subir de posição em um ranking de jogadores para ser o melhor. De acordo com a ideia do universo do jogo, essa situação é você, como CyberDuelista, fazendo tudo que pode para chegar ao topo
+Tratando-se de um jogo competitivo em larga escala, o objetivo é simplesmente jogar e subir de posição em um ranking de jogadores para ser o melhor. De acordo com a ideia do universo do jogo, essa situação é você, como CyberDuelista, lutando para chegar ao Conselho dos Dez e cumprir o trato com seus fãs, espectadores e começar a ter decisão política no mundo. Somente ao estar no top 10 você receberá gratificação pelo seu desempenho no jogo, como receber moedas dentro do jogo pra comprar cartas. Nesse caso da feira, seriam os tijolinhos. 
+
+A cada valor pré-definido de tempo, como 1 hora e meia, a leaderboard reseta e premia os jogadores do top 10 com uma alta quantidade de tijolinhos baseado na sua posição.
+
+Também há a possibilidade de ganhar moedas jogando e vencendo torneios que, em um jogo ideal, seriam em enorme quantidade e separados por servidor de jogo. No universo, seria o equivalente a torneios menores e regionais, que não pagam tanto quanto a leaderboard principal, mas podem ajudar a evoluir no jogo, além de fornecerem um troféu para amaciar o ego de quem gostar.
 
 ## Regras
+*Essas regras ainda não são totalmente definitivas, pois ainda dependerão se será necessário fazer algum balanceamento, contudo a base delas se manterá a mesma*
+
+### Tipos de cartas
+Cartas baixas -> Cartas com nível de audiência baixo e mais comuns, possuem algum efeito
+Cartas médias -> Cartas com nível de audiência média e menos comuns, possuem algum efeito
+Cartas altas -> Cartas com nível de audiência média e mais raras, possuem algum efeito
+Cartas de efeito -> Cartas que, ao serem jogadas, causam alguma ação instantânea, como eliminar uma carta inimiga, aumentar pontos de audiência, etc.
+cartas de terreno -> Cartas que possuem efeito duradouro enquanto estiverem em campo.
+cartas lendárias -> Cartas das pessoas mais marcantes da história daquele grupo, possuem elevadíssimo nível de audiência, arte diferenciada e efeitos únicos.
+
+A ideia para o nome "audiência" seria justamente a questão de impactar o público. Cartas baseadas em pessoas populares do Mundo Antigo, gravadas no imaginário popular, mesmo que elas já não estejam mais vivas fazem com que as pessoas apreciem mais o seu esquadrão e obter esse apoio popular significaria a vitória no mundo dos duelistas.
+
+
+
+### Da composição do baralho
+
+Cada baralho deve ser composto de 20 cartas e ter:
+- 6 cartas baixas
+- 4 cartas médias
+- 2 cartas altas
+
+O resto dele é livre para escolha.
+
+### Da partida
+
+
+### Da distribuição de pontos
+
+
+### Do matchmaking e disposição física
+
+
+
+
 
 ## Artefatos
 
-## Personagens
-
-**Raspcorp:** Para a Raspcorp, NeoFloripa representa a oportunidade perfeita: um mundo inteiro para monopolizar sem a inconveniência de leis, fronteiras ou órgãos reguladores. Afinal, após dominar a realidade, seria um desperdício não expandir para o mercado virtual.
-
-**O Sindicato:** Para os trabalhadores, NeoFloripa é a primeira chance de viver em um mundo onde suas ações possuem peso real. Pela primeira vez, técnicos, montadores e operadores podem decidir o destino da sociedade em vez de apenas mantê-la funcionando.
-
-**Anarcobois:** Os Anarcobois acreditam que o antigo mundo fracassou por ter sido excessivamente organizado. Seu objetivo é simples: destruir toda e qualquer estrutura de poder em NeoFloripa e observar o que surge das cinzas digitais.
-
-**Robôs:** As inteligências artificiais enxergam NeoFloripa como algo maior do que um simples jogo. Se uma simulação puder se tornar tão importante quanto a realidade, talvez seus corpos virtuais finalmente sejam capazes de experimentar aquilo que seus criadores chamavam de "ser humano".
-
-**Nômades das Terras Desertas:** Tendo testemunhado o verdadeiro fim do mundo, os Nômades atravessam NeoFloripa movidos por uma única convicção: nenhuma simulação, por mais perfeita que seja, será capaz de superar a realidade.
+O jogo, por não se tratar de um jogo de história e progressão linear, não terá artefatos que auxiliem na história, os artefatos principais do jogo seriam as próprias cartas. 
+Cada carta teria a seguinte informação:
+- Pontos de audiência: quantos pontos ela soma para sua pontuação final, que, ao ser comparada com o adversário determinará o vencedor
+- Tipo de carta: determina se ela é alta, média, baixa, efeito, terreno etc.
+- Efeito: o que ela causa ao ser colocada em campo ou por estar em campo
+- Arte da carta: a arte que representa a carta, caso seja lendária ela terá uma arte maior
+- Frase da carta: uma breve descrição que conta uma piada, história ou informação sobre o universo
+- Facção: se é da RaspCorp, Echossystem, etc.
 
 
+## Fontes de receita
+
+As fontes de receita seriam primariamente:
+
+- Possibilidade de comprar moeda virtual com dinheiro real para poder comprar cartas na loja do jogo, isso seria simulado através dos tijolinhos, a ideia é vender os booster packs, que são pacotes de poucas cartas de um dos decks que fornecem chance de obtê-las de acordo com sua raridade, então, por exemplo: você compra um pacote de 3 cartas de um deck que tem 11 tipos de cartas. Essas 3 cartas recebidas vão ser determinadas, pelo sistema, a serem cartas baixas (com 1/3 de chance), cartas médias (com 1/4 de chance), carta de efeitos ou terrenos (com 1/5 de chance), cartas altas (com 1/6 de chance) ou cartas lendárias (com 1/15 de chance)
+
+- Venda de produtos reais do jogo, como quadros, camisetas etc. Mas, especialmente, cartas reais do jogo para jogar fisicamente.
+
+- Exibição de anúncio em troca de moedas dentro do jogo a cada quantidade x de tempo (então você pode ver 3 ads no dia em troca de 100 tijolinhos, por exemplo)
+
+- Venda de skins para personalização da sua carta, então teria o Raspclay versão natal, O Boi versão praia, CyberVendedor da Rascorp de camisa do flamengo, Humba-Brain cozinheiro etc que também escalam com raridade e ocorreriam por sazonalidade (na época do natal vai ter o booster pack do natal)
 
 
-## Premissa
 
-No ano distópico de 2067, a humanidade destruiu seu próprio mundo. Após substituir o trabalho humano pelos serviços de bio-androides, restou apenas o maior vício da espécie: os jogos de cartas. Para preencher esse vazio, nasceu CyberDuel, uma simulação baseada no Antigo Mundo, onde mercenários, classes baixas e pedaços de lata servem como peças e lutam até a morte a mando dos CyberDuelistas. Chegou a hora de escolher: vai viver como ninguém ou arriscar tudo para virar lenda?
-
-
-
-
-## Descrição 
-
-Jogo de cartas com estética cyberpunk, partida 1x1 com 3 turnos, melhor de 3, onde cada partida dura em média de 2-5 minutos. Focado em invocação de cartas, com custo de energia, o objetivo é ter uma soma de poder maior do que a do oponente, utilizando desde o poder base de cada carta até habilidades juntando diferentes cartas de monstro ou de efeito.
-
-
-## Gameplay
-Cada carta de peças terá uma quantidade de pontos que vale junto de uma habilidade especial, que pode envolver ter bônus de acordo com outras cartas, bônus posicional, possibilidade de reduzir a energia de cartas inimigas etc.
-
-Cada deck teria 20 cartas, cada rodada seria disponibilizada 6 cartas e, a cada rodada, você pode escolher trocar 3 cartas da sua mão com cartas aleatórias do deck. A rodada só acaba quando ambos os players jogarem suas 6 cartas em campo. Ao final dela, vence quem tiver mais pontos somados depois
-
-## Tipos de cartas:
-
-Há 3 tipos de cartas:
-Terrenos - Cartas que ativam efeitos enquanto estiverem em campo, são como as de habilidade, porém são duradouras e valem enquanto estiverem ali.
-Efeitos -> cartas que atuam sobre pontos de energia das peças, quantidade de cartas em campo, etc, são instantâneas e valem apenas naquele momento.
-Peças -> as cartas de peças são aquelas que possuem os pontos de energia e somam pontos no valor total.
-
-
-## Mecânica de leaderboard e premiação de tijolinhos:
-
-Conforme os jogadores vencem, eles ganham pontos de acordo com a score do leaderboard do adversário. - Por enquanto seria a score/10, então caso você vença um adversário com score 100, você ganha 10 pontos.- Os pontos perdidos são o mesmo valor ganho pelo adversário.
-
-Ao final de um tempo pré-definido, até agora 1h30, a leaderboard é reiniciada, premiando tijolinhos de acordo com a posição do jogador.
-
-
-## Da disposição física:
-Serão estruturados 4 monitores ou projetores com um qr code em cada lado para ser escaneado e entrar no lobby da sala. Haverão 4 salas cada um com um mapa para batalha.
+## Referências
 
