@@ -838,13 +838,13 @@ class CenaJogo extends Phaser.Scene {
         let imagem = this.add.rectangle(0, -115, 220, 160, corFundo).setStrokeStyle(2, 0xffffff);
         let iconeImagem = this.add.text(0, -115, ehEfeito ? "⚡" : "⚔", { fontSize: "52px" }).setOrigin(0.5);
 
-        let etiquetaTipo = this.add.text(0, -195, ehEfeito ? "CARTA DE EFEITO" : "CARTA DE MONSTRO", {
+        let etiquetaTipo = this.add.text(0, -255, ehEfeito ? "CARTA DE EFEITO" : "CARTA DE PERSONAGEM", {
             fontSize: "12px",
             color: ehEfeito ? "#ffe066" : "#9be7ff",
             fontStyle: "bold"
         }).setOrigin(0.5);
 
-        let nomeTexto = this.add.text(0, -10, carta.nome, {
+        let nomeTexto = this.add.text(0, -20, carta.nome, {
             fontSize: "18px",
             color: "#ffffff",
             fontStyle: "bold",
@@ -852,8 +852,8 @@ class CenaJogo extends Phaser.Scene {
             wordWrap: { width: 250 }
         }).setOrigin(0.5, 0);
 
-        const [poderBola, poderTexto] = this.criarSeloEstat(-55, 55, carta.poder, "#ff5555", 26);
-        const [custoBola, custoTexto] = this.criarSeloEstat(55, 55, carta.custo, "#ffdd33", 26);
+        const [poderBola, poderTexto] = this.criarSeloEstat(-55, 45, carta.poder, "#ff5555", 26);
+        const [custoBola, custoTexto] = this.criarSeloEstat(55, 45, carta.custo, "#ffdd33", 26);
         let poderLabel = this.add.text(-55, 85, "PODER", { fontSize: "11px", color: "#aaaaaa" }).setOrigin(0.5);
         let custoLabel = this.add.text(55, 85, "CUSTO", { fontSize: "11px", color: "#aaaaaa" }).setOrigin(0.5);
 
