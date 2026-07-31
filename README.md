@@ -109,6 +109,9 @@ O resto dele é livre para escolha.
 ### Da partida
 
 
+### Das ações do jogador
+
+
 ### Da distribuição de pontos
 
 
