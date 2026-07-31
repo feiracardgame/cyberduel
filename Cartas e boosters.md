@@ -6,6 +6,8 @@
 
 Seu departamento jurídico, composto por mais advogados do que alguns países possuem habitantes, garante que todas as suas operações permaneçam em conformidade com a lei, mesmo quando a própria definição de "lei" precisa ser atualizada. Enquanto suas forças militares asseguram a paz mundial, seus algoritmos asseguram que você receba exatamente o anúncio do produto em que estava pensando há oito segundos.
 
+Depois de transformar o mundo real em um excelente investimento de curto prazo, a Raspcorp voltou seus olhos para NeoFloripa. Afinal, até o fim da humanidade representa uma ótima oportunidade de mercado.
+
 
 ### 2x carta baixa 1  - CyberVendedor da Raspcorp
 
@@ -54,7 +56,7 @@ Com aquelas paradas do lado da cabeça de androide do Detroit <img width="720" h
 Faz o phoenix wright com uma maleta tecnológica e uma roupa tipo toda neon ou toda metalica
 
 
-<img width="1200" height="3952" alt="image" src="https://github.com/user-attachments/assets/63cbe85b-a597-47ab-952b-e1c2ff8c67db" />
+<img width="1200" height="3952" alt="image" src="https://github.com/user-attachments/assets/63cbe85b-a597-47ab-952b-e1c2ff8c67db"/>
 
 
 
@@ -67,22 +69,35 @@ Faz o phoenix wright com uma maleta tecnológica e uma roupa tipo toda neon ou t
 
 ### 2x carta alta 1 - CryptoAcionistas
 
-* Descrição: Após a implementação das moedas digitais em escala global, os CryptoAcionistas rapidamente se tornaram a nova tendência. Defensores ferrenhos da sustentabilidade, continuam trabalhando diariamente para maximizar o ROI, elevar o valuation e garantir um futuro melhor para as próximas gerações de suas cryptowallets.
+* Descrição: Após a implementação das moedas digitais em escala global, os CryptoAcionistas rapidamente se tornaram a nova tendência. Defensores ferrenhos da sustentabilidade, continuam trabalhando diariamente para maximizar o ROI, elevar o valuation e garantir um futuro melhor para as próximas gerações de suas CryptoWallets. 
 
 * 
 * Energia:
 * Efeito:
-* Visual:
+* Visual: Faz um mano tipo assim (a cara se tu quiser faz o chico moedas...)
+
+
+<img width="1440" height="1080" alt="image" src="https://github.com/user-attachments/assets/f5e195ae-9ff8-4afc-8666-047077cc0896" />
+
+
 
 ### 2x carta alta 2 - Agente da DIPSP
-* Descrição: A Divisão de Interesses Privados na Segurança Pública
+* Descrição: A Divisão de Interesses Privados na Segurança Pública é a mais recente especialização da RaspCorp. Após dominar a mídia, as redes e, provavelmente, o cérebro de cada ser humano, a empresa passou a investir fortemente na democracia e no livre-arbítrio através de uma equipe militar privada e canhões de plasma.
+
 * Energia:
 * Efeito:
-* Visual:
+* Visual: Faz uma equipe tipo assim com "RaspCorp" e o símbolo no peito deles, eles tbm tem que segurar armas que são obviamente de plasma, não reais, pq a diretoria nao vai curtir.
+
+ <img width="424" height="1076" alt="image" src="https://github.com/user-attachments/assets/a8ba02a3-47f4-411d-96fd-c114e74dc3aa" />
+
+
+<img width="2592" height="1458" alt="image" src="https://github.com/user-attachments/assets/ea1d2ad9-e84a-4ea6-be76-ec03a16c9e2b" />
+
 
 a
 ### 1x carta lendária - RaspClay MonteCorp
 * Descrição: Raspclay trocou seu antigo nome pelo topo dos arranha-céus de NeoFloripa. Atualmente comanda a irreverente e opressora empresa de tecnologia, serviços, segurança privada e propaganda Raspcorp. Após comprar todos os setores da sociedade, seus advogados passaram a afirmar que a palavra "monopólio" carrega uma conotação desnecessariamente negativa.
+
 * Energia:
 * Efeito:
 * Visual:
@@ -98,39 +113,59 @@ a
 
 
 
-### 2x carta de efeito 1
+### 2x carta de efeito 1 -> Sugestão Algorítmica 
 
-* Descrição:
+* Descrição: Após analisar seu histórico de compras, pesquisas e sonhos recorrentes, o algoritmo preparou uma sugestão especialmente para você. Foi você que aceitou todos os cookies...
+* Energia:
+* Efeito:
+* Visual: Faz tipo a carta do dilema das redes, mas toda neon cyberpunk
+
+* <img width="621" height="489" alt="image" src="https://github.com/user-attachments/assets/e596c7a6-00a1-4549-9d50-7b79f3ce2fb2" />
+
+
+### 1x carta de terreno 1 -> Torre Montecorp
+
+* Descrição: Com mais de quatro quilômetros de altura, a Torre MonteCorp permanece como um lembrete constante de que, se a Raspcorp quisesse conquistar os céus, provavelmente encontraria uma forma de monetizá-los.
+* Energia:
+* Efeito:
+* Visual: Aquele padrão tecnológico de super torre, que nem a da Arasaka, mas tem o símbolo da RaspCorp
+
+<img width="591" height="1080" alt="image" src="https://github.com/user-attachments/assets/74966b8c-1b4b-4161-99e8-3b60a708624a" />
+
+
+
+#### 1x carta de terreno 2 - Beira-mar norte de NeoFloripa
+
+* Descrição: Depois que a verdadeira Floripa sucumbiu ao aumento do nível do mar, os nostálgicos decidiram recriá-la no mundo virtual. Ironicamente, continua sendo o jeito mais acessível de morar na ilha.
 * Energia:
 * Efeito:
 * Visual:
 
-### 1x carta de terreno 1
+Adapta a beira-mar norte para um estilo cyberpunk
 
-* Descrição:
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/7401e49f-d8c2-4808-b2e7-5fd47ab76c3a" />
+
++
+
+<img width="1024" height="767" alt="image" src="https://github.com/user-attachments/assets/46f6aadd-9110-44f6-a1db-65c6ab4d1714" />
+
+
+
+### 1x carta de terreno 3 -> Nexus de Dados Global
+
+* Descrição: Responsável pelo processamento de aproximadamente 98% dos dados da humanidade. Os outros 2% permanecem em análise pelo departamento de marketing
 * Energia:
 * Efeito:
-* Visual:
+* Visual: Faz um bgl tipo assim:
 
-#### 1x carta de terreno 2
+* <img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/c303e587-8807-4cee-89f6-f3786f07b013" />
 
-* Descrição:
-* Energia:
-* Efeito:
-* Visual:
-
-### 1x carta de terreno 3
-
-* Descrição:
-* Energia:
-* Efeito:
-* Visual:
 
 
 
 ---
 
-## Booster 2 - AnarcoBois - deck focado em efeitos
+## Booster 2 - Echossystem - deck focado em efeitos
 
 ### 2x carta baixa 1
 
