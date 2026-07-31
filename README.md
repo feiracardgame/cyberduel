@@ -1,13 +1,46 @@
 # Cyberduel
 
-## princípio do universo
+## Princípio do universo
 No ano de 2067, o mundo já não passa de uma lembrança inconveniente. O aumento do nível do mar engoliu cidades inteiras, as terras férteis deram lugar a desertos e a humanidade foi reduzida a algumas poucas cidades inteligentes espalhadas pelo planeta.
 
 Com o advento dos bio-androides e das inteligências artificiais, praticamente todas as funções da sociedade foram automatizadas. Pela primeira vez na história, a humanidade alcançou seu maior objetivo: não precisar mais trabalhar. Infelizmente, ninguém havia considerado o que aconteceria depois.
 
-Sem guerras, sem política e sem desafios, as elites passaram a viver em um estado de conforto absoluto e monotonia interminável. Foi então que um cientista, cujo nome se perdeu entre os registros da antiga internet, criou NeoFloripa: uma simulação virtual onde o controle da sociedade seria decidido através do único passatempo que ainda despertava interesse na humanidade: jogos de cartas.
+Sem guerras, sem política e sem desafios, as elites passaram a viver em um estado de conforto absoluto e monotonia interminável. Foi então que um cientista, já incapaz de distinguir uma simulação computacional da realidade, criou NeoFloripa: um mundo virtual onde o controle da sociedade seria decidido através do único passatempo que ainda despertava interesse na humanidade: jogos de cartas.
 
-Os CyberDuelistas, habitantes de NeoFloripa, utilizam cartas inspiradas no velho mundo para disputar influência, poder e o futuro da própria simulação.
+Os CyberDuelistas, habitantes de NeoFloripa, utilizam cartas inspiradas na sociedade do mundo antigo para disputar influência, poder e o futuro da própria simulação.
+
+NeoFloripa não foi concebida como um simples entretenimento. Com o passar das décadas, tornou-se algo muito maior: uma segunda oportunidade para uma humanidade que já havia perdido seu primeiro mundo, ou simplesmente não tinha mais interesse neles.
+
+Construída para replicar a sociedade anterior em todos os seus aspectos, a simulação abriga milhões de habitantes que decidiram abandonar a monotonia das cidades inteligentes em troca de uma vida com significado. Em NeoFloripa, as pessoas trabalham para obter criptomoedas, sentem fome, adoecem, experimentam dor, precisam lidar com a violência e enfrentam os mesmos desafios que acompanharam a humanidade por milênios. Afinal, uma vida sem sofrimento dificilmente pode ser chamada de humana.
+
+A morte, no entanto, continua sendo uma realidade, já que, segundo o desenvolvedor da simulação, viver sem medo da morte deixaria as pessoas muito acomodadas... Morrer em NeoFloripa significa perder permanentemente o acesso à simulação e nunca mais retornar; morrer no mundo real significa, para aqueles não religiosos, a mesma coisa. Para a maioria dos habitantes, a distinção entre as duas consequências deixou de ser relevante há muito tempo.
+
+Apesar de reproduzir as estruturas econômicas e políticas do mundo antigo, NeoFloripa introduziu uma nova forma de governo. O destino de milhões não é decidido por presidentes, parlamentos ou conselhos corporativos, mas pelos dez CyberDuelistas mais bem colocados no ranking global. São eles que definem leis, conflitos, investimentos e o futuro da própria simulação. Todos os demais permanecem exatamente onde a humanidade sempre esteve: trabalhando, sobrevivendo e assistindo outras pessoas decidirem o rumo de suas vidas.
+
+Os duelos são transmitidos para toda NeoFloripa, acompanhados diariamente por milhões de espectadores. Para uma sociedade que já conquistou tudo, assistir pessoas lutando por glória e poder continua sendo uma das poucas formas de entretenimento capazes de despertar emoção.
+
+Tornar-se um CyberDuelista significa abrir mão da própria privacidade, submeter-se ao julgamento constante das massas e colocar sua existência em jogo. Aqueles que não possuem vocação para o CyberDuel escolhem representantes para defender seus interesses. Em troca de criptomoedas, equipamentos, informações privilegiadas, campanhas de propaganda, proteção e lealdade irrestrita, os duelistas prometem utilizar sua influência para recompensá-los quando alcançarem o Conselho dos Dez. Pela primeira vez na história, a humanidade conseguiu transformar política, entretenimento e culto à personalidade em uma única instituição.
+
+
+CyberDuelistas que permanecem nas posições inferiores do ranking são rapidamente esquecidos pela sociedade. Sem influência, sem audiência e sem relevância política, muitos passam o restante de suas vidas tentando convencer estranhos de que já estiveram a apenas algumas vitórias de mudar o mundo. Com o tempo, deixam de ser convidados para eventos, perdem patrocinadores, veem seus apoiadores migrarem para nomes mais promissores e, eventualmente, são reduzidos a pouco mais do que uma curiosidade histórica. Não é incomum encontrar antigos duelistas trabalhando em empregos comuns, observando silenciosamente os telões de NeoFloripa enquanto alguém ocupa o lugar que um dia acreditaram ser seu. Em uma sociedade obcecada por vencedores, ser esquecido é um destino consideravelmente pior do que morrer. Já que em NeoFloripa, a humanidade de um indivíduo é diretamente proporcional ao seu número de vitórias.
+
+Os que alcançam o topo descobrem que o sucesso também cobra seu preço. Tornam-se celebridades globais, vivendo sob observação constante, pressionados por patrocinadores, perseguidos por stalkers e obrigados a atender às expectativas de milhões de pessoas que acreditam conhecê-los pessoalmente. Alguns passam a se considerar uma raça superior. Outros fundam a própria religião. Há também aqueles que preferem se tornar divas pop. Independentemente do caminho escolhido, todos compartilham do mesmo destino: perder o anonimato e acumular uma coleção crescente de admiradores e inimigos mortais que você sequer viu na vida.
+
+
+Quando o entretenimento se torna o motor da sociedade, a única coisa que realmente importa é a audiência acima da sobrevivência. Afinal, de que adianta viver para sempre se ninguém se lembrar que você existiu?
+
+
+
+
+## Objetivos
+
+Tratando-se de um jogo competitivo em larga escala, o objetivo é simplesmente jogar e subir de posição em um ranking de jogadores para ser o melhor. De acordo com a ideia do universo do jogo, essa situação é você, como CyberDuelista, fazendo tudo que pode para chegar ao topo
+
+## Regras
+
+## Artefatos
+
+## Personagens
 
 **Raspcorp:** Para a Raspcorp, NeoFloripa representa a oportunidade perfeita: um mundo inteiro para monopolizar sem a inconveniência de leis, fronteiras ou órgãos reguladores. Afinal, após dominar a realidade, seria um desperdício não expandir para o mercado virtual.
 
@@ -18,6 +51,7 @@ Os CyberDuelistas, habitantes de NeoFloripa, utilizam cartas inspiradas no velho
 **Robôs:** As inteligências artificiais enxergam NeoFloripa como algo maior do que um simples jogo. Se uma simulação puder se tornar tão importante quanto a realidade, talvez seus corpos virtuais finalmente sejam capazes de experimentar aquilo que seus criadores chamavam de "ser humano".
 
 **Nômades das Terras Desertas:** Tendo testemunhado o verdadeiro fim do mundo, os Nômades atravessam NeoFloripa movidos por uma única convicção: nenhuma simulação, por mais perfeita que seja, será capaz de superar a realidade.
+
 
 
 
