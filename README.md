@@ -108,11 +108,50 @@ O resto dele é livre para escolha.
 
 ### Da partida
 
+Regras:
+
+As partidas serão realizadas na configuração 1x1, nos jogadores A e B.
+
+Na primeira rodada, o jogador puxará 6 cartas do baralho de 20 cartas. A cada rodada, serão puxadas 3 cartas. O jogo poderá ter no total, 7 rodadas.
+
+Uma rodada consiste no turno de jogador A e no turno do jogador B.
+
+
+O turno do jogador acaba quando ele aperta o botão de passar turno ou quando estourar o tempo limite de 1 minuto e meio para fazer sua jogada.
+
+A mesa de jogo será composta por um terreno com espaço de 3x5, comportando até 15 cartas no total
+
+Cada carta influencia em algum parâmetro do jogo, mas as de personagens são as únicas que efetivamente somam pontos de audiência ao total.
+
+As cartas de personagens e terrenos ficam em campo ate serem removidas por algum efeito
+
+As cartas de efeito desaparecem do terreno após serem usadas
+
+
+Ao final da sétima rodada, ou quando todos os jogadores tiverem lançado todas as cartas do baralho, o jogo acaba e contabilizará quem tem o maior somatório de pontos, determinando que este será o vencedor.
+
+Caso o valor de pontos termine igual, o jogo resulta em empate
+
+
+
 
 ### Das ações do jogador
 
 
 ### Da distribuição de pontos
+
+Dos pontos:
+
+
+O sistema da pontuação funcionará da seguinte forma:
+
+Todos começam, no início da leaderboard, com 1000 pontos.
+
+O valor de pontos ganhos na partida é igual ao score do jogador derrotado /10
+
+o valor de pontos perdidos é igual ao valor de pontos ganhos, mas negativo
+
+em caso de empate, não se somam ou subtraem pontos dos jogadores
 
 
 ### Do matchmaking e disposição física
