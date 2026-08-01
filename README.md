@@ -108,9 +108,9 @@ Naturalmente, alguns detalhes ficaram de fora. Necessidades básicas como fome, 
 
 Como toda grande obra de software, NeoFloripa também apresenta falhas ocasionais. A diferença é que, neste caso, os bugs no lançamento não impactam tanto na sua popularidade.
 
-### **Nômades das Terras Desertas:** -> provar a futilidade da simulação, demonstrando que ainda há salvação para o mundo real -> primitivismo
+### **Os Remanescentes:** -> provar a futilidade da simulação, demonstrando que ainda há salvação para o mundo real -> primitivismo
 
-Tendo testemunhado o verdadeiro fim do mundo, os Nômades das Terras Desertas atravessam NeoFloripa movidos por uma única convicção: nenhuma simulação, por mais perfeita que seja, será capaz de superar a realidade. Para eles, o mundo virtual não passa de um confortável adiamento daquilo que a humanidade se recusa a enfrentar. Seu objetivo é conquistar o controle de NeoFloripa para encerrá-la de uma vez por todas, obrigando a humanidade a retornar ao mundo real e reconstruí-lo com as próprias mãos.
+Tendo testemunhado o verdadeiro fim do mundo, os Nômades das Terras Desertas, conhecidos como Os Remanescentes, atravessam NeoFloripa movidos por uma única convicção: nenhuma simulação, por mais perfeita que seja, será capaz de superar a realidade. Para eles, o mundo virtual não passa de um confortável adiamento daquilo que a humanidade se recusa a enfrentar. Seu objetivo é conquistar o controle de NeoFloripa para encerrá-la de uma vez por todas, obrigando a humanidade a retornar ao mundo real e reconstruí-lo com as próprias mãos.
 
 Misteriosos e quase sempre silenciosos, são tratados como figuras folclóricas pelos habitantes de NeoFloripa. A estranheza, porém, é apenas parte da explicação. Suas habilidades de combate, improvisação e, principalmente, adaptação superam as de qualquer outro grupo. Se Charles Darwin ainda estivesse vivo, provavelmente os consideraria o ápice da evolução... embora talvez revisasse essa opinião depois de ser atacado por um deles para provar o ponto.
 
@@ -122,9 +122,7 @@ Seus anciãos costumam repetir um ensinamento que resume sua filosofia:
 
 "Os velhos protegem o presente. O presente faz a terra florescer para que o novo possa nascer."
 
-A lealdade entre os Nômades é absoluta. Depois do colapso, compreenderam que um povo sobrevive apenas enquanto protege aqueles que caminham ao seu lado. Estranhos, no entanto, raramente recebem a mesma hospitalidade, sendo alvo de sua elevadíssima brutalidade. Invadir território nômade é amplamente considerado o pior presságio possível, perdendo apenas para clicar em "Aceitar Cookies" e descobrir que a RaspCorp agora possui a escritura da sua casa.
-
-Para os Nômades, a realidade pode ser cruel, injusta e impiedosa. Ainda assim, continuam acreditando que nenhuma mentira confortável será capaz de substituí-la.
+A lealdade entre os Nômades é absoluta. Depois do colapso, compreenderam que um povo sobrevive apenas enquanto protege aqueles que caminham ao seu lado. Estranhos, no entanto, raramente recebem a mesma hospitalidade, sendo alvo de sua elevadíssima brutalidade. Invadir território nômade é amplamente considerado o pior presságio possível.
 
 
 ## Objetivos
