@@ -19,7 +19,7 @@ Com aquelas paradas do lado da cabeça de androide do Detroit <img width="720" h
 
 ### 2x carta baixa 2 - Estagiário de Machine Learning
 
-* Descrição: As árduas horas dedicadas ao treinamento e desenvolvimento de IAs capazes de substituir o trabalho humano demonstram que, apesar de ser apenas um estagiário, seu trabalho é vital para o futuro da empresa. O RH estima que ele continuará sendo lembrado por aproximadamente três semanas após sua substituição
+* Descrição: As árduas horas dedicadas ao treinamento e desenvolvimento de IAs capazes de substituir o trabalho humano demonstram que, apesar de ser apenas um estagiário, seu trabalho é vital para o futuro da empresa. O RPH estima que ele continuará sendo lembrado por aproximadamente três semanas após sua substituição
 * Energia:
 * Efeito:
 * Visual: é um nerdzinho de oculos mexendo no pc, só que a piada é que tem tipo um cartaz de logo da raspcorp dizendo "RaspCorp - Investindo no futuro da humanidade"
