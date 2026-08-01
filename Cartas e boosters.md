@@ -2,11 +2,6 @@
 
 ## Deck 1 - Raspcorp - Deck focado em controle de terreno e personagens 
 
-* Descrição: A RaspCorp é uma empresa quase mística, já que ninguém consegue explicar como uma simples empresa de tecnologia adquiriu metade dos satélites, um terço dos exércitos e praticamente todos os dados da humanidade de forma totalmente legal. Atualmente, seus sistemas são responsáveis por programar tanto o cérebro humano quanto o processamento dos robôs — para aqueles que ainda insistem em enxergar alguma diferença entre os dois.
-
-Seu departamento jurídico, composto por mais advogados do que alguns países possuem habitantes, garante que todas as suas operações permaneçam em conformidade com a lei, mesmo quando a própria definição de "lei" precisa ser atualizada. Enquanto suas forças militares asseguram a paz mundial, seus algoritmos asseguram que você receba exatamente o anúncio do produto em que estava pensando há oito segundos.
-
-Depois de transformar o mundo real em um excelente investimento de curto prazo, a Raspcorp voltou seus olhos para NeoFloripa. Afinal, até o fim da humanidade representa uma ótima oportunidade de mercado.
 
 
 ### 2x carta baixa 1  - CyberVendedor da Raspcorp
