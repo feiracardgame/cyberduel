@@ -127,7 +127,7 @@ A lealdade entre os Nômades é absoluta. Depois do colapso, compreenderam que u
 
 ## Objetivos
 
-Tratando-se de um jogo competitivo em larga escala, o objetivo é simplesmente jogar e subir de posição em um ranking de jogadores para ser o melhor. De acordo com a ideia do universo do jogo, essa situação é você, como CyberDuelista, lutando para chegar ao topo do ranking e integrar o Conselho cumprir o trato com seus fãs, espectadores e começar a ter decisão política no mundo. Somente ao estar no top 10 você receberá gratificação pelo seu desempenho no jogo, como receber moedas dentro do jogo pra comprar cartas. Nesse caso da feira, seriam os tijolinhos. 
+Tratando-se de um jogo competitivo em larga escala, o objetivo é simplesmente jogar e subir de posição em um ranking de jogadores para ser o melhor. De acordo com a ideia do universo do jogo, essa situação é você, como CyberDuelista, lutando para chegar ao topo do ranking, integrar o Conselho, cumprir o trato com seus fãs, espectadores e começar a ter decisão política no mundo. Somente ao estar no top 10 você receberá gratificação pelo seu desempenho no jogo, como receber moedas dentro do jogo pra comprar cartas. Nesse caso da feira, seriam os tijolinhos. 
 
 A cada valor pré-definido de tempo, como 1 hora e meia, a leaderboard reseta e premia os jogadores do ranking com uma alta quantidade de tijolinhos baseado na sua posição.
 
@@ -287,8 +287,9 @@ As fontes de receita seriam primariamente:
 - Star Wars
 - Cowboy Bebop
 - Exterminador do futuro
+- Revolução dos bichos
 
-### * Das mecânicas*
+### *Das mecânicas*
 - Gwent: The Witcher Card Game
 - Yugioh Duel Links
 - Pokémon TCG
@@ -298,11 +299,10 @@ As fontes de receita seriam primariamente:
 
 - Cyberpunk 2077
 - Matrix
-- Blade Runner 2077
+- Blade Runner 2049
 - Akira
-- Invencívela
+- Invencível
 - Detroit Become Human
-- Ace Attorney
 - Homem-Aranha
 - Batman
 - Ace attorney
