@@ -137,12 +137,12 @@ Também há a possibilidade de ganhar moedas jogando e vencendo torneios que, em
 *Essas regras ainda não são totalmente definitivas, pois ainda dependerão se será necessário fazer algum balanceamento, contudo a base delas se manterá a mesma*
 
 ### Tipos de cartas
-Cartas baixas -> Cartas com nível de audiência baixo e mais comuns, possuem algum efeito
-Cartas médias -> Cartas com nível de audiência média e menos comuns, possuem algum efeito
-Cartas altas -> Cartas com nível de audiência média e mais raras, possuem algum efeito
-Cartas de efeito -> Cartas que, ao serem jogadas, causam alguma ação instantânea, como eliminar uma carta inimiga, aumentar pontos de audiência, etc.
-cartas de terreno -> Cartas que possuem efeito duradouro enquanto estiverem em campo.
-cartas lendárias -> Cartas das pessoas mais marcantes da história daquele grupo, possuem elevadíssimo nível de audiência, arte diferenciada e efeitos únicos.
+- Cartas baixas -> Cartas com nível de audiência baixo e mais comuns, possuem algum efeito
+- Cartas médias -> Cartas com nível de audiência média e menos comuns, possuem algum efeito
+- Cartas altas -> Cartas com nível de audiência média e mais raras, possuem algum efeito
+- Cartas de efeito -> Cartas que, ao serem jogadas, causam alguma ação instantânea, como eliminar uma carta inimiga, aumentar pontos de audiência, etc.
+- cartas de terreno -> Cartas que possuem efeito duradouro enquanto estiverem em campo.
+- cartas lendárias -> Cartas das pessoas mais marcantes da história daquele grupo, possuem elevadíssimo nível de audiência, arte diferenciada e efeitos únicos.
 
 -> Como ideia adicional também pensamos em fazer um sistema de raridade de cartas junto ao mercado de cartas, em que certas cartas teriam brilho diferente, cores diferentes ou algo nesse sentido para aumentar seu preço e se tornar colecionável.
 
