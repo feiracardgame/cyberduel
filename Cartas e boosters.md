@@ -147,7 +147,7 @@ Adapta a beira-mar norte para um estilo cyberpunk
 * PA:
 * Efeito:
 * Arte:
- <img alt="image" src="Artes/Torre_MonteCorp.png" />
+ <img alt="image" src="Artes/NexusNeoFloripa.png" />
 
 ---
 
