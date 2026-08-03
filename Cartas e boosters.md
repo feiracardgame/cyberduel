@@ -83,13 +83,6 @@ a
 * Efeito:
 * Arte:
  <img alt="image" src="Artes/RaspClay_MonteCorp.png" />
-+
-
-
-
-<img width="100" height="125" alt="image" src="https://github.com/user-attachments/assets/6050036a-a8ba-44a1-a352-27afa6514cbe" />
-
-
 
 
 ### 2x carta de efeito 1 -> Sugestão Algorítmica 
@@ -106,7 +99,6 @@ a
 * Energia:
 * Efeito:
 * Visual: Aquele padrão tecnológico de super torre, que nem a da Arasaka, mas tem o símbolo da RaspCorp
-
 <img width="591" height="1080" alt="image" src="https://github.com/user-attachments/assets/74966b8c-1b4b-4161-99e8-3b60a708624a" />
 
 
@@ -122,8 +114,6 @@ Adapta a beira-mar norte para um estilo cyberpunk
 
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/7401e49f-d8c2-4808-b2e7-5fd47ab76c3a" />
 
-+
-
 <img width="1024" height="767" alt="image" src="https://github.com/user-attachments/assets/46f6aadd-9110-44f6-a1db-65c6ab4d1714" />
 
 
@@ -136,8 +126,6 @@ Adapta a beira-mar norte para um estilo cyberpunk
 * Visual: Faz um bgl tipo assim:
 
 * <img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/c303e587-8807-4cee-89f6-f3786f07b013" />
-
-
 
 
 ---
