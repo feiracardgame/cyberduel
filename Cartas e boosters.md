@@ -14,7 +14,7 @@
 
 Com aquelas paradas do lado da cabeça de androide do Detroit <img width="720" height="720" alt="image" src="https://github.com/user-attachments/assets/cc782971-2083-47e5-8dff-d68ddc3abc65" />
 *Modelo final:
- <img width="1200" height="856" alt="image" src="Artes/CyberVendedor_Da_RaspCorp.png" />
+ <img alt="image" src="Artes/CyberVendedor_Da_RaspCorp.png" />
 
 
 
