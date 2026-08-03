@@ -13,7 +13,8 @@
 <img width="395" height="523" alt="Vivi" src="https://github.com/user-attachments/assets/783eca8d-eeb7-4a39-9533-c55ea65f844a" />
 
 Com aquelas paradas do lado da cabeça de androide do Detroit <img width="720" height="720" alt="image" src="https://github.com/user-attachments/assets/cc782971-2083-47e5-8dff-d68ddc3abc65" />
-
+*Modelo final:
+ <img width="1200" height="856" alt="image" src="Artes/CyberVendedor_Da_RaspCorp.png" />
 
 
 
@@ -26,7 +27,6 @@ Com aquelas paradas do lado da cabeça de androide do Detroit <img width="720" h
 * 
 
 * <img width="220" height="219" alt="image" src="https://github.com/user-attachments/assets/9c51381e-5ba5-4374-897b-fd0cf345e951" />
- <img width="220" height="219" alt="image" src="Artes/CyberVendedor_Da_RaspCorp.png" />
 
 
 ### 2x carta baixa 3 - NeoAnalista de Suporte Nível Alpha
