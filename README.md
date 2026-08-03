@@ -167,13 +167,13 @@ Regras:
 - Na primeira rodada, o jogador puxará 6 cartas do baralho de 20 cartas. A cada rodada, serão puxadas 3 cartas. O jogo poderá ter no total, 7 rodadas.
 - O jogador pode devolver e recomprar até 2 cartas do baralho por rodada
 - Uma rodada consiste no turno de jogador A e no turno do jogador B.
-- O turno do jogador acaba quando ele aperta o botão de passar turno ou quando estourar o tempo limite de 1 minuto e meio para fazer sua jogada.
-- A mesa de jogo será composta por um terreno com espaço de 3x5, comportando até 15 cartas no total
-- Cada carta influencia em algum parâmetro do jogo, mas as de personagens são as únicas que efetivamente somam Pontos de Audiência ao total. 
-- As cartas de personagens e terrenos ficam em campo ate serem removidas por algum efeito
-- As cartas de personagens e terrenos só tem efeito 
-- As cartas de efeito desaparecem do terreno após serem usadas
-- As cartas de efeito tem ação instantânea e única
+- O turno do jogador acaba quando ele aperta o botão de passar turno ou quando estourar o tempo limite de 1 minuto para fazer sua jogada.
+- A mesa de jogo será composta por um terreno de cada jogador com espaço de 2x5, comportando até 10 cartas invocadas em cada lado simultaneamente. 
+- Cada carta influencia em algum parâmetro do jogo, mas as de personagens são as únicas que efetivamente somam Pontos de Audiência ao total.
+- Cada carta de personagem inicia com uma quantidade de PA, que podem ser reduzidos ou aumentados por terrenos, efeitos ou outras cartas de personagens. 
+- As cartas de personagens e terrenos ficam em campo ate serem removidas por algum efeito ou, no caso dos personagens, terem seus Pontos de Audiência reduzidos a 0.
+- As cartas de personagens e terrenos tem efeito enquanto estão em campo e só podem ser invocadas caso haja espaço no campo
+- As cartas de efeito tem ação instantânea e única, mas não requerem espaço no campo para ser invocados
 - Ao final da sétima rodada, ou quando todos os jogadores tiverem lançado todas as cartas do baralho, o jogo acaba e contabilizará quem tem o maior somatório de Pontos de Audiência, determinando que este será o vencedor.
 - Caso o valor de pontos termine igual, o jogo resulta em empate
 
