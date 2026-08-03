@@ -146,10 +146,8 @@ Adapta a beira-mar norte para um estilo cyberpunk
 * Descrição: Responsável pelo processamento de aproximadamente 98% dos dados da humanidade. Os outros 2% permanecem em análise pelo departamento de marketing
 * PA:
 * Efeito:
-* Visual: Faz um bgl tipo assim:
-
-* <img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/c303e587-8807-4cee-89f6-f3786f07b013" />
-
+* Arte:
+ <img alt="image" src="Artes/Torre_MonteCorp.png" />
 
 ---
 
