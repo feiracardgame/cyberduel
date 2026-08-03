@@ -9,11 +9,8 @@
 * Descrição: Quando surgiram os primeiros bio-androides, foi-se percebido que seria possível criar um funcionário que juntaria a capacidade de convencimento de um ser humano e a não necessidade de descanso de um robô, resultando em um vendedor duplamente capacitado, com duas vezes menos salário e três vezes menos alma.
 * PA: 3
 * Efeito:
-* Visual: Faz tipo o Vivi (homenagem pro nosso querido amigo) 
-<img width="395" height="523" alt="Vivi" src="https://github.com/user-attachments/assets/783eca8d-eeb7-4a39-9533-c55ea65f844a" />
-
-Com aquelas paradas do lado da cabeça de androide do Detroit <img width="720" height="720" alt="image" src="https://github.com/user-attachments/assets/cc782971-2083-47e5-8dff-d68ddc3abc65" />
-
+* Arte:
+ <img alt="image" src="Artes/CyberVendedor_Da_RaspCorp.png" />
 
 
 
@@ -26,7 +23,6 @@ Com aquelas paradas do lado da cabeça de androide do Detroit <img width="720" h
 * 
 
 * <img width="220" height="219" alt="image" src="https://github.com/user-attachments/assets/9c51381e-5ba5-4374-897b-fd0cf345e951" />
-
 
 
 ### 2x carta baixa 3 - NeoAnalista de Suporte Nível Alpha
@@ -42,18 +38,16 @@ Com aquelas paradas do lado da cabeça de androide do Detroit <img width="720" h
 
 <img width="1500" height="1000" alt="image" src="https://github.com/user-attachments/assets/0ab3078b-9743-495c-84e4-99af7c3ca429" />
 
+* Arte:
+ <img alt="image" src="Artes/NeoAnalista_de_Suporte_Nivel_Alpha.png" />
 
 
 ### 2x carta media 1 - Advogado Corporativo
 * Descrição: Sua principal função é garantir que a Raspcorp permaneça em conformidade com a legislação vigente. Felizmente, ambas costumam ser atualizadas ao mesmo tempo. Ao longo de sua carreira, participou da aquisição de sete empresas, três governos e um incidente que permanece sob sigilo judicial
 * PA: 5
 * Efeito:
-* Visual:
-
-Faz o phoenix wright com uma maleta tecnológica e uma roupa tipo toda neon ou toda metalica
-
-
-<img width="1200" height="3952" alt="image" src="https://github.com/user-attachments/assets/63cbe85b-a597-47ab-952b-e1c2ff8c67db"/>
+* Arte:
+ <img alt="image" src="Artes/AdvogadoDaRaspCorp.png" />
 
 
 
@@ -80,6 +74,8 @@ Faz o phoenix wright com uma maleta tecnológica e uma roupa tipo toda neon ou t
 
 <img width="1440" height="1080" alt="image" src="https://github.com/user-attachments/assets/f5e195ae-9ff8-4afc-8666-047077cc0896" />
 
+* Arte:
+ <img alt="image" src="Artes/CryptoAcionista.png" />
 
 
 ### 2x carta alta 2 - Agente da DIPSP
@@ -104,17 +100,8 @@ a
 
 * PA: 10
 * Efeito:
-* Visual:
-
-* <img width="316" height="479" alt="image" src="https://github.com/user-attachments/assets/0620feac-89ef-4bd6-a55b-1bb0e29042f5" />
-
-+
-
-
-
-<img width="100" height="125" alt="image" src="https://github.com/user-attachments/assets/6050036a-a8ba-44a1-a352-27afa6514cbe" />
-
-
+* Arte:
+ <img alt="image" src="Artes/RaspClay_MonteCorp.png" />
 
 
 ### 2x carta de efeito 1 -> Sugestão Algorítmica 
@@ -122,10 +109,8 @@ a
 * Descrição: Após analisar seu histórico de compras, pesquisas e sonhos recorrentes, o algoritmo preparou uma sugestão especialmente para você. Foi você que aceitou todos os cookies...
 * PA:
 * Efeito:
-* Visual: Faz tipo a carta do dilema das redes, mas toda neon cyberpunk
-
-* <img width="621" height="489" alt="image" src="https://github.com/user-attachments/assets/e596c7a6-00a1-4549-9d50-7b79f3ce2fb2" />
-
+* Arte:
+ <img alt="image" src="Artes/Sugestão_algoritmica.png" />
 
 ### 1x carta de terreno 1 -> Torre Montecorp
 
@@ -133,7 +118,6 @@ a
 * PA:
 * Efeito:
 * Visual: Aquele padrão tecnológico de super torre, que nem a da Arasaka, mas tem o símbolo da RaspCorp
-
 <img width="591" height="1080" alt="image" src="https://github.com/user-attachments/assets/74966b8c-1b4b-4161-99e8-3b60a708624a" />
 
 
@@ -149,8 +133,6 @@ Adapta a beira-mar norte para um estilo cyberpunk
 
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/7401e49f-d8c2-4808-b2e7-5fd47ab76c3a" />
 
-+
-
 <img width="1024" height="767" alt="image" src="https://github.com/user-attachments/assets/46f6aadd-9110-44f6-a1db-65c6ab4d1714" />
 
 
@@ -163,8 +145,6 @@ Adapta a beira-mar norte para um estilo cyberpunk
 * Visual: Faz um bgl tipo assim:
 
 * <img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/c303e587-8807-4cee-89f6-f3786f07b013" />
-
-
 
 
 ---
