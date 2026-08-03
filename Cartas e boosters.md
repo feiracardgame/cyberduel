@@ -105,10 +105,8 @@ a
 * Descrição: Com mais de quatro quilômetros de altura, a Torre MonteCorp permanece como um lembrete constante de que, se a Raspcorp quisesse conquistar os céus, provavelmente encontraria uma forma de monetizá-los.
 * Energia:
 * Efeito:
-* Visual: Aquele padrão tecnológico de super torre, que nem a da Arasaka, mas tem o símbolo da RaspCorp
-
-<img width="591" height="1080" alt="image" src="https://github.com/user-attachments/assets/74966b8c-1b4b-4161-99e8-3b60a708624a" />
-
+* Arte:
+ <img alt="image" src="Artes/Torre_MonteCorp.png" />
 
 
 #### 1x carta de terreno 2 - Beira-mar norte de NeoFloripa
