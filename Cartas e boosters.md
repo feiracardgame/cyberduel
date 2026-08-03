@@ -26,7 +26,7 @@ Com aquelas paradas do lado da cabeça de androide do Detroit <img width="720" h
 * 
 
 * <img width="220" height="219" alt="image" src="https://github.com/user-attachments/assets/9c51381e-5ba5-4374-897b-fd0cf345e951" />
-
+ <img width="220" height="219" alt="image" src="Artes/CyberVendedor_Da_RaspCorp.png" />
 
 
 ### 2x carta baixa 3 - NeoAnalista de Suporte Nível Alpha
