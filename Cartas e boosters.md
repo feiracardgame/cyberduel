@@ -42,12 +42,8 @@
 * Descrição: Sua principal função é garantir que a Raspcorp permaneça em conformidade com a legislação vigente. Felizmente, ambas costumam ser atualizadas ao mesmo tempo. Ao longo de sua carreira, participou da aquisição de sete empresas, três governos e um incidente que permanece sob sigilo judicial
 * Energia:
 * Efeito:
-* Visual:
-
-Faz o phoenix wright com uma maleta tecnológica e uma roupa tipo toda neon ou toda metalica
-
-
-<img width="1200" height="3952" alt="image" src="https://github.com/user-attachments/assets/63cbe85b-a597-47ab-952b-e1c2ff8c67db"/>
+* Arte:
+ <img alt="image" src="Artes/AdvogadoDaRaspCorp.png" />
 
 
 
