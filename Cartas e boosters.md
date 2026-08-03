@@ -9,12 +9,7 @@
 * Descrição: Quando surgiram os primeiros bio-androides, foi-se percebido que seria possível criar um funcionário que juntaria a capacidade de convencimento de um ser humano e a não necessidade de descanso de um robô, resultando em um vendedor duplamente capacitado, com duas vezes menos salário e três vezes menos alma.
 * Energia:
 * Efeito:
-* Visual: Faz tipo o Vivi (homenagem pro nosso querido amigo) 
-<img width="395" height="523" alt="Vivi" src="https://github.com/user-attachments/assets/783eca8d-eeb7-4a39-9533-c55ea65f844a" />
-
-Com aquelas paradas do lado da cabeça de androide do Detroit <img width="720" height="720" alt="image" src="https://github.com/user-attachments/assets/cc782971-2083-47e5-8dff-d68ddc3abc65" />
-
-* Efeito:
+* Arte:
  <img alt="image" src="Artes/CyberVendedor_Da_RaspCorp.png" />
 
 
