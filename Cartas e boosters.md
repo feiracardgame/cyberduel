@@ -31,11 +31,8 @@
 
 * Energia:
 * Efeito:
-* Visual: Faz que nem a imagem do robert robertson do dispatch (sem o chase la atras) que é só um mano completamente cansado, cheio de olheira no rosto, de headset e segurando a cabeça com a mão
-* 
-
-<img width="1500" height="1000" alt="image" src="https://github.com/user-attachments/assets/0ab3078b-9743-495c-84e4-99af7c3ca429" />
-
+* Arte:
+ <img alt="image" src="Artes/NeoAnalista_de_Suporte_Nivel_Alpha.png" />
 
 
 ### 2x carta media 1 - Advogado Corporativo
@@ -61,11 +58,8 @@
 * 
 * Energia:
 * Efeito:
-* Visual: Faz um mano tipo assim (a cara se tu quiser faz o chico moedas...)
-
-
-<img width="1440" height="1080" alt="image" src="https://github.com/user-attachments/assets/f5e195ae-9ff8-4afc-8666-047077cc0896" />
-
+* Arte:
+ <img alt="image" src="Artes/CryptoAcionista.png" />
 
 
 ### 2x carta alta 2 - Agente da DIPSP
@@ -87,10 +81,8 @@ a
 
 * Energia:
 * Efeito:
-* Visual:
-
-* <img width="316" height="479" alt="image" src="https://github.com/user-attachments/assets/0620feac-89ef-4bd6-a55b-1bb0e29042f5" />
-
+* Arte:
+ <img alt="image" src="Artes/RaspClay_MonteCorp.png" />
 +
 
 
@@ -105,10 +97,8 @@ a
 * Descrição: Após analisar seu histórico de compras, pesquisas e sonhos recorrentes, o algoritmo preparou uma sugestão especialmente para você. Foi você que aceitou todos os cookies...
 * Energia:
 * Efeito:
-* Visual: Faz tipo a carta do dilema das redes, mas toda neon cyberpunk
-
-* <img width="621" height="489" alt="image" src="https://github.com/user-attachments/assets/e596c7a6-00a1-4549-9d50-7b79f3ce2fb2" />
-
+* Arte:
+ <img alt="image" src="Artes/Sugestão_algoritmica.png" />
 
 ### 1x carta de terreno 1 -> Torre Montecorp
 
