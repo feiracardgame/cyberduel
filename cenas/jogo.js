@@ -1,3 +1,51 @@
+// ============================================================================
+// CONSTANTES DE LAYOUT
+// ============================================================================
+// A resolução interna do jogo foi elevada para 1080x2160 (ver main.js), 3x a
+// resolução original de 360x720, para ficar nítido em telas de alta
+// densidade. Todas as posições e tamanhos abaixo já estão nessa escala.
+//
+// O campo de batalha segue o layout 2x5 POR JOGADOR: cada lado (inimigo e
+// jogador) tem 2 fileiras de 5 slots (10 cartas por lado, 20 no total).
+// O inimigo ocupa as duas fileiras de cima, o jogador as duas de baixo.
+// O layout tem duas variações (normal e ampliada, com a mão escondida — ver
+// LAYOUT_CAMPO_NORMAL/AMPLIADO abaixo). x guarda o centro X de cada uma das
+// 5 colunas (compartilhado pelas 4 fileiras); y* guarda o centro Y de cada
+// fileira individual.
+// ============================================================================
+const GW = 1080; // largura interna do jogo
+const GH = 2160; // altura interna do jogo
+
+// Gera o layout completo do campo (posições X/Y de cada uma das 4 fileiras
+// e das 5 colunas) a partir de um punhado de medidas base. Usado para gerar
+// dois layouts: um normal (com a mão visível) e um ampliado (mão escondida,
+// cartas maiores ocupando o espaço que a mão deixou livre).
+function calcularLayoutCampo(slotW, slotH, gapFileira, gapTimes, yInimigoTras) {
+    const yInimigoFrente = yInimigoTras + slotH + gapFileira;
+    const yJogadorFrente = yInimigoFrente + slotH + gapTimes;
+    const yJogadorTras = yJogadorFrente + slotH + gapFileira;
+
+    const gapCol = Math.min(20, Math.max(10, (GW - slotW * 5) / 4));
+    const larguraTotal = 5 * slotW + 4 * gapCol;
+    const margem = (GW - larguraTotal) / 2;
+    const primeiro = margem + slotW / 2;
+    const xs = [0, 1, 2, 3, 4].map(i => primeiro + i * (slotW + gapCol));
+
+    return {
+        slotW, slotH,
+        yInimigoTras, yInimigoFrente, yJogadorFrente, yJogadorTras,
+        yInimigo: [yInimigoTras, yInimigoFrente],
+        yJogador: [yJogadorTras, yJogadorFrente],
+        x: xs
+    };
+}
+
+// Layout normal: mão visível embaixo, campo com tamanho padrão.
+const LAYOUT_CAMPO_NORMAL = calcularLayoutCampo(190, 210, 20, 150, 440);
+
+// Layout ampliado: mão escondida, cartas maiores ocupando o espaço extra.
+const LAYOUT_CAMPO_AMPLIADO = calcularLayoutCampo(210, 275, 24, 180, 650);
+
 class CenaJogo extends Phaser.Scene {
     constructor() {
         super("CenaJogo");
@@ -5,6 +53,21 @@ class CenaJogo extends Phaser.Scene {
 
     create() {
         this.partida = new Partida();
+
+        // Traçado preto padrão em TODOS os textos da cena: sobrescreve
+        // this.add.text para injetar stroke preto sempre que a chamada não
+        // definir um estilo de traçado próprio. Assim não precisamos repetir
+        // { stroke: '#000000', strokeThickness: N } em cada this.add.text().
+        const criarTextoOriginal = this.add.text.bind(this.add);
+        this.add.text = (x, y, texto, estilo = {}) => {
+            const estiloComTraco = Object.assign({ stroke: "#000000", strokeThickness: 4 }, estilo);
+            return criarTextoOriginal(x, y, texto, estiloComTraco);
+        };
+
+        // Controla se a mão está escondida (para dar mais espaço/destaque
+        // ao campo). Começa visível.
+        this.maoEscondida = false;
+        this.layout = LAYOUT_CAMPO_NORMAL;
 
         // Trava a interação enquanto uma animação de "resposta" está rolando
         // (jogar carta, conjurar efeito, devolver carta, passar turno) ou
@@ -79,7 +142,7 @@ class CenaJogo extends Phaser.Scene {
         return texto.slice(0, maximo - 1) + "…";
     }
 
-    // Selo circular usado para mostrar poder/custo (e também os números
+    // Selo circular usado para mostrar poder (e também os números
     // maiores da visualização detalhada): bola preta, contorno branco e
     // texto colorido no meio.
     criarSeloEstat(x, y, valor, corTexto, raio) {
@@ -117,11 +180,14 @@ class CenaJogo extends Phaser.Scene {
         this.btnAnteriorHistorico = null;
         this.btnProximaHistorico = null;
 
+        this.layout = this.maoEscondida ? LAYOUT_CAMPO_AMPLIADO : LAYOUT_CAMPO_NORMAL;
+
         this.desenharStatus();
         this.desenharCampoInimigo();
         this.desenharCampoJogador();
-        this.desenharMaoEmLeque();
+        if (!this.maoEscondida) this.desenharMaoEmLeque();
         this.desenharBotaoPassarTurno();
+        this.desenharBotaoToggleMao();
     }
 
     // ---------- LÓGICA DE ARRASTAR E SOLTAR ----------
@@ -132,8 +198,12 @@ class CenaJogo extends Phaser.Scene {
         let slots = this.children.list.filter(child => child.isSlot);
         let slotAtingido = null;
 
+        // Usa o centro da carta arrastada (não a caixa inteira) para achar o
+        // slot: com 5 slots lado a lado a carta é mais larga que o espaço
+        // entre eles, então testar a bounding box inteira faria o mesmo
+        // arraste "bater" em dois slots vizinhos ao mesmo tempo.
         slots.forEach((slot, index) => {
-            if (Phaser.Geom.Intersects.RectangleToRectangle(gameObject.getBounds(), slot.getBounds())) {
+            if (Phaser.Geom.Rectangle.Contains(slot.getBounds(), gameObject.x, gameObject.y)) {
                 slotAtingido = index;
             }
         });
@@ -144,17 +214,9 @@ class CenaJogo extends Phaser.Scene {
             return;
         }
 
-        const temEnergia = this.partida.jogador.energia >= carta.custo;
-
-        // --- Cartas de efeito: nunca vão para o campo. Só precisam de
-        // energia; ao serem soltas, são conjuradas no meio da tela e
-        // consumidas na hora. ---
+        // --- Cartas de efeito: nunca vão para o campo. Ao serem soltas,
+        // são conjuradas no meio da tela e consumidas na hora. ---
         if (carta.tipo === "efeito") {
-            if (!temEnergia) {
-                this.animarRetornoAoLeque(gameObject, true);
-                this.cameras.main.shake(150, 0.002);
-                return;
-            }
             this.conjurarCartaDeEfeitoJogador(gameObject, carta);
             return;
         }
@@ -162,7 +224,7 @@ class CenaJogo extends Phaser.Scene {
         // --- Cartas de monstro: comportamento original, vão para o campo ---
         const temEspaco = this.partida.jogador.campo.temEspaco(slotAtingido);
 
-        if (!temEspaco || !temEnergia) {
+        if (!temEspaco) {
             this.animarRetornoAoLeque(gameObject, true);
             this.cameras.main.shake(150, 0.002);
             return;
@@ -227,8 +289,8 @@ class CenaJogo extends Phaser.Scene {
 
         this.tweens.add({
             targets: gameObject,
-            x: 180,
-            y: 360,
+            x: GW / 2,
+            y: GH / 2,
             angle: 0,
             scaleX: 1.6,
             scaleY: 1.6,
@@ -273,24 +335,24 @@ class CenaJogo extends Phaser.Scene {
     conjurarCartaDeEfeitoInimigo(carta, aoConcluir) {
         const corFundo = this.obterCorPorId(carta.id);
 
-        let rotulo = this.add.text(0, -95, "O inimigo conjurou:", {
-            fontSize: "13px",
+        let rotulo = this.add.text(0, -285, "O inimigo conjurou:", {
+            fontSize: "26px",
             color: "#ff8888",
             fontStyle: "bold"
         }).setOrigin(0.5);
 
-        let sombra = this.add.rectangle(4, 6, 100, 135, 0x000000, 0.4);
-        let fundo = this.add.rectangle(0, 0, 100, 135, corFundo).setStrokeStyle(3, 0xff4444);
-        let nomeTexto = this.add.text(0, -35, carta.nome, {
-            fontSize: "14px",
+        let sombra = this.add.rectangle(8, 10, 260, 340, 0x000000, 0.4);
+        let fundo = this.add.rectangle(0, 0, 260, 340, corFundo).setStrokeStyle(6, 0xff4444);
+        let nomeTexto = this.add.text(0, -95, carta.nome, {
+            fontSize: "26px",
             color: "#ffffff",
             fontStyle: "bold",
             align: "center",
-            wordWrap: { width: 85 }
+            wordWrap: { width: 220 }
         }).setOrigin(0.5);
-        let iconeTexto = this.add.text(0, 25, "⚡", { fontSize: "30px" }).setOrigin(0.5);
+        let iconeTexto = this.add.text(0, 60, "⚡", { fontSize: "70px" }).setOrigin(0.5);
 
-        let container = this.add.container(180, 360, [rotulo, sombra, fundo, nomeTexto, iconeTexto]);
+        let container = this.add.container(GW / 2, GH / 2, [rotulo, sombra, fundo, nomeTexto, iconeTexto]);
         container.setDepth(3500);
         container.setScale(0.3);
         container.setAlpha(0);
@@ -362,18 +424,18 @@ class CenaJogo extends Phaser.Scene {
         const positivo = delta >= 0;
         const cor = positivo ? "#66ff99" : "#ff6666";
 
-        let texto = this.add.text(containerCampo.x, containerCampo.y - 60, `${positivo ? "+" : ""}${delta}`, {
-            fontSize: "22px",
+        let texto = this.add.text(containerCampo.x, containerCampo.y - 180, `${positivo ? "+" : ""}${delta}`, {
+            fontSize: "40px",
             color: cor,
             fontStyle: "bold",
             stroke: "#000000",
-            strokeThickness: 3
+            strokeThickness: 6
         }).setOrigin(0.5).setDepth(3600).setAlpha(0);
 
         this.tweens.add({
             targets: texto,
             alpha: 1,
-            y: containerCampo.y - 90,
+            y: containerCampo.y - 270,
             duration: 700,
             ease: 'Cubic.Out',
             onComplete: () => texto.destroy()
@@ -399,63 +461,99 @@ class CenaJogo extends Phaser.Scene {
     // ---------- DESENHO DO CAMPO ----------
 
     desenharCampoInimigo() {
-        for (let i = 0; i < 3; i++) {
-            const xPos = 60 + i * 120;
-            this.add.rectangle(xPos, 180, 100, 120, 0x332222);
+        const L = this.layout;
+        this.add.text(GW / 2, L.yInimigoTras - L.slotH / 2 - 26, "INIMIGO", {
+            fontSize: "24px",
+            color: "#ff8888",
+            fontStyle: "bold"
+        }).setOrigin(0.5);
+
+        for (let i = 0; i < 10; i++) {
+            const col = i % 5;
+            const fileira = Math.floor(i / 5); // 0 = fileira de trás, 1 = de frente
+            const xPos = L.x[col];
+            const yPos = L.yInimigo[fileira];
+
+            let slotInimigo = this.add.rectangle(xPos, yPos, L.slotW, L.slotH, 0x332222)
+                .setStrokeStyle(2, 0x552222)
+                .setAlpha(0);
+            this.tweens.add({ targets: slotInimigo, alpha: 1, duration: 260, delay: i * 18, ease: 'Sine.easeOut' });
 
             let carta = this.partida.inimigo.campo.cartas[i];
             if (carta) {
-                this.criarCartaDeCampo(xPos, 180, carta);
+                this.criarCartaDeCampo(xPos, yPos, carta, L);
             }
         }
     }
 
     desenharCampoJogador() {
-        for (let i = 0; i < 3; i++) {
-            const xPos = 60 + i * 120;
-            let slot = this.add.rectangle(xPos, 340, 100, 120, 0x224422);
+        const L = this.layout;
+        this.add.text(GW / 2, L.yJogadorTras + L.slotH / 2 + 26, "VOCÊ", {
+            fontSize: "24px",
+            color: "#88ff99",
+            fontStyle: "bold"
+        }).setOrigin(0.5);
+
+        for (let i = 0; i < 10; i++) {
+            const col = i % 5;
+            const fileira = Math.floor(i / 5); // 0 = fileira de trás, 1 = de frente
+            const xPos = L.x[col];
+            const yPos = L.yJogador[fileira];
+
+            let slot = this.add.rectangle(xPos, yPos, L.slotW, L.slotH, 0x224422)
+                .setStrokeStyle(2, 0x225522)
+                .setAlpha(0);
             slot.isSlot = true; // Identificador para a colisão do Drag & Drop
+            this.tweens.add({ targets: slot, alpha: 1, duration: 260, delay: i * 18, ease: 'Sine.easeOut' });
 
             let carta = this.partida.jogador.campo.cartas[i];
             if (carta) {
-                this.criarCartaDeCampo(xPos, 340, carta);
+                this.criarCartaDeCampo(xPos, yPos, carta, L);
             }
         }
     }
 
     // Carta do campo com pequena sombra e animação de "pop" ao aparecer.
-    // Poder fica no canto inferior esquerdo e custo no canto inferior
-    // direito, cada um dentro de um selo circular. Também é clicável: um
-    // toque abre a visualização detalhada da carta.
-    criarCartaDeCampo(xPos, yPos, carta) {
+    // O poder fica centralizado embaixo, dentro de um selo circular.
+    // Também é clicável: um toque abre a visualização detalhada da carta.
+    criarCartaDeCampo(xPos, yPos, carta, layout) {
+        const L = layout || this.layout;
+        const escala = L.slotH / 210; // 210 = altura base do slot no layout normal
         let corFundo = this.obterCorPorId(carta.id);
+        const CW = Math.round(L.slotW * 0.926), CH = Math.round(L.slotH * 0.914); // um pouco menor que o slot, com respiro
 
-        let sombra = this.add.rectangle(3, 4, 90, 110, 0x000000, 0.35);
-        let fundo = this.add.rectangle(0, 0, 90, 110, corFundo);
+        let sombra = this.add.rectangle(6, 8, CW, CH, 0x000000, 0.35);
+        let fundo = this.add.rectangle(0, 0, CW, CH, corFundo);
+        let brilho = this.add.rectangle(0, -CH / 2 + 3, CW - 10, 4, 0xffffff, 0.35);
         let nomeCurto = this.truncarTexto(carta.nome, 14);
-        let nomeTexto = this.add.text(0, -38, nomeCurto, {
-            fontSize: "13px",
+        let nomeTexto = this.add.text(0, Math.round(-58 * escala), nomeCurto, {
+            fontSize: `${Math.round(20 * escala)}px`,
             color: "#fff",
             align: "center",
-            wordWrap: { width: 78 }
+            wordWrap: { width: Math.round(150 * escala) }
         }).setOrigin(0.5, 0);
 
-        const [poderBola, poderTexto] = this.criarSeloEstat(-33, 42, carta.poder, "#ff5555", 13);
-        const [custoBola, custoTexto] = this.criarSeloEstat(33, 42, carta.custo, "#ffdd33", 13);
+        const [poderBola, poderTexto] = this.criarSeloEstat(0, Math.round(66 * escala), carta.poder, "#ff5555", Math.round(24 * escala));
 
-        const filhos = [sombra, fundo, nomeTexto, poderBola, poderTexto, custoBola, custoTexto];
+        const filhos = [sombra, fundo, brilho, nomeTexto, poderBola, poderTexto];
 
         // Selo indicando que é uma carta de efeito (a passiva já foi
         // disparada ao entrar em campo — este selo é só um lembrete visual)
         if (carta.tipo === "efeito") {
-            let selo = this.add.circle(38, -48, 11, 0x1a1a1a).setStrokeStyle(1, 0xffffff);
-            let iconeSelo = this.add.text(38, -48, "⚡", { fontSize: "12px" }).setOrigin(0.5);
+            let selo = this.add.circle(Math.round(66 * escala), Math.round(-72 * escala), Math.round(17 * escala), 0x1a1a1a).setStrokeStyle(2, 0xffffff);
+            let iconeSelo = this.add.text(Math.round(66 * escala), Math.round(-72 * escala), "⚡", { fontSize: `${Math.round(18 * escala)}px` }).setOrigin(0.5);
             filhos.push(selo, iconeSelo);
         }
 
+        // Anel de impacto: some rapidinho, dá um "pop" visual no instante
+        // em que a carta assenta no slot.
+        let anel = this.add.circle(xPos, yPos, 10, corFundo, 0)
+            .setStrokeStyle(6, 0xffffff, 0.9)
+            .setDepth(500);
+
         let container = this.add.container(xPos, yPos, filhos);
         container.setScale(0);
-        container.setSize(90, 110);
+        container.setSize(CW, CH);
         container.setInteractive({ useHandCursor: true });
 
         // Referência à carta de dados, usada para localizar esta carta na
@@ -470,8 +568,18 @@ class CenaJogo extends Phaser.Scene {
         this.tweens.add({
             targets: container,
             scale: 1,
-            duration: 260,
+            duration: 300,
             ease: 'Back.Out'
+        });
+
+        // Anel se expandindo e sumindo — o "pop" visual de entrada
+        this.tweens.add({
+            targets: anel,
+            radius: 110,
+            alpha: 0,
+            duration: 380,
+            ease: 'Cubic.Out',
+            onComplete: () => anel.destroy()
         });
     }
 
@@ -482,11 +590,11 @@ class CenaJogo extends Phaser.Scene {
         let totalCartas = cartasMao.length;
         if (totalCartas === 0) return;
 
-        const centroX = 180;        // Centro da tela (360 / 2)
-        const centroY = 550;        // Altura base da mão
-        const espacamentoX = 35;    // Distância horizontal entre cartas
-        const anguloPasso = 7;      // Inclinação por carta
-        const curvaturaY = 5;       // Curvatura da parábola
+        const centroX = GW / 2;      // Centro da tela
+        const centroY = 1650;       // Altura base da mão
+        const espacamentoX = 105;   // Distância horizontal entre cartas
+        const anguloPasso = 7;       // Inclinação por carta
+        const curvaturaY = 15;      // Curvatura da parábola
 
         cartasMao.forEach((carta, indice) => {
             let offset = indice - (totalCartas - 1) / 2;
@@ -496,31 +604,35 @@ class CenaJogo extends Phaser.Scene {
             let angulo = offset * anguloPasso;
 
             let corFundo = this.obterCorPorId(carta.id);
-            let sombra = this.add.rectangle(3, 5, 75, 105, 0x000000, 0.35);
-            let fundoCarta = this.add.rectangle(0, 0, 75, 105, corFundo);
-            let borda = this.add.rectangle(0, 0, 75, 105).setStrokeStyle(2, 0xffffff);
+            let sombra = this.add.rectangle(9, 15, 225, 315, 0x000000, 0.35);
+            let fundoCarta = this.add.rectangle(0, 0, 225, 315, corFundo);
+            let borda = this.add.rectangle(0, 0, 225, 315).setStrokeStyle(5, 0xffffff);
             let nomeCurto = this.truncarTexto(carta.nome, 12);
-            let nomeTexto = this.add.text(0, -40, nomeCurto, {
-                fontSize: "12px",
+            let nomeTexto = this.add.text(0, -120, nomeCurto, {
+                fontSize: "34px",
                 color: "#ffffff",
                 align: "center",
-                wordWrap: { width: 65 }
+                wordWrap: { width: 195 }
             }).setOrigin(0.5, 0);
 
-            const [poderBola, poderTexto] = this.criarSeloEstat(-27, 40, carta.poder, "#ff5555", 11);
-            const [custoBola, custoTexto] = this.criarSeloEstat(27, 40, carta.custo, "#ffdd33", 11);
+            const ehEfeitoLeque = carta.tipo === "efeito";
+            const filhos = [sombra, fundoCarta, borda, nomeTexto];
 
-            const filhos = [sombra, fundoCarta, borda, nomeTexto, poderBola, poderTexto, custoBola, custoTexto];
+            if (!ehEfeitoLeque) {
+                const [poderBola, poderTexto] = this.criarSeloEstat(0, 120, carta.poder, "#ff5555", 40);
+                filhos.push(poderBola, poderTexto);
+            }
 
             // Selo de carta de efeito, para diferenciar visualmente das cartas de monstro
-            if (carta.tipo === "efeito") {
-                let selo = this.add.circle(30, -42, 10, 0x1a1a1a).setStrokeStyle(1, 0xffffff);
-                let iconeSelo = this.add.text(30, -42, "⚡", { fontSize: "11px" }).setOrigin(0.5);
-                filhos.push(selo, iconeSelo);
+            if (ehEfeitoLeque) {
+                let iconeGrande = this.add.text(0, 90, "⚡", { fontSize: "90px" }).setOrigin(0.5);
+                let selo = this.add.circle(90, -126, 28, 0x1a1a1a).setStrokeStyle(2, 0xffffff);
+                let iconeSelo = this.add.text(90, -126, "⚡", { fontSize: "30px" }).setOrigin(0.5);
+                filhos.push(iconeGrande, selo, iconeSelo);
             }
 
             let containerCarta = this.add.container(posX, posY, filhos);
-            containerCarta.setSize(75, 105);
+            containerCarta.setSize(225, 315);
             containerCarta.setAngle(angulo);
             containerCarta.setInteractive({ useHandCursor: true });
 
@@ -559,7 +671,7 @@ class CenaJogo extends Phaser.Scene {
                 this.tweens.killTweensOf(containerCarta);
                 this.tweens.add({
                     targets: containerCarta,
-                    y: centroY - 35,
+                    y: centroY - 105,
                     angle: 0,
                     scaleX: 1.15,
                     scaleY: 1.15,
@@ -608,44 +720,44 @@ class CenaJogo extends Phaser.Scene {
         this.travado = true;
         this.historicoPagina = 0;
 
-        let overlay = this.add.rectangle(180, 360, 360, 720, 0x000000, 0.78);
+        let overlay = this.add.rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.78);
         overlay.setDepth(4000);
         overlay.setInteractive();
         overlay.on('pointerup', () => this.fecharHistorico());
 
-        let painelBg = this.add.rectangle(0, 0, 320, 480, 0x14141c).setStrokeStyle(3, 0xffffff);
+        let painelBg = this.add.rectangle(0, 0, 960, 1440, 0x14141c).setStrokeStyle(9, 0xffffff);
         painelBg.setInteractive();
         painelBg.on('pointerup', () => {});
 
-        let titulo = this.add.text(0, -215, "Histórico de Cartas", {
-            fontSize: "18px",
+        let titulo = this.add.text(0, -645, "Histórico de Cartas", {
+            fontSize: "54px",
             color: "#ffffff",
             fontStyle: "bold"
         }).setOrigin(0.5);
 
-        let fecharBg = this.add.circle(140, -215, 14, 0x2a2a2a).setStrokeStyle(1, 0xffffff);
-        let fecharTexto = this.add.text(140, -215, "✕", { fontSize: "16px", color: "#ffffff" }).setOrigin(0.5);
+        let fecharBg = this.add.circle(420, -645, 42, 0x2a2a2a).setStrokeStyle(3, 0xffffff);
+        let fecharTexto = this.add.text(420, -645, "✕", { fontSize: "48px", color: "#ffffff" }).setOrigin(0.5);
         let fecharBtn = this.add.container(0, 0, [fecharBg, fecharTexto]);
-        fecharBtn.setSize(28, 28);
+        fecharBtn.setSize(84, 84);
         fecharBtn.setInteractive({ useHandCursor: true });
         fecharBtn.on('pointerup', () => this.fecharHistorico());
 
         const totalCartas = this.partida.historico.length;
         let subtitulo = this.add.text(
-            0, -188,
+            0, -564,
             `${totalCartas} carta${totalCartas === 1 ? "" : "s"} jogada${totalCartas === 1 ? "" : "s"}`,
-            { fontSize: "12px", color: "#999999" }
+            { fontSize: "36px", color: "#999999" }
         ).setOrigin(0.5);
 
         // Container que guarda só as linhas da página atual: fica fácil
         // recriar apenas ele quando o usuário troca de página.
         let listaContainer = this.add.container(0, 0, []);
 
-        let btnAnterior = this.criarBotaoPaginacaoHistorico(-60, 195, "‹", () => this.mudarPaginaHistorico(-1));
-        let labelPagina = this.add.text(0, 195, "", { fontSize: "13px", color: "#cccccc" }).setOrigin(0.5);
-        let btnProxima = this.criarBotaoPaginacaoHistorico(60, 195, "›", () => this.mudarPaginaHistorico(1));
+        let btnAnterior = this.criarBotaoPaginacaoHistorico(-180, 585, "‹", () => this.mudarPaginaHistorico(-1));
+        let labelPagina = this.add.text(0, 585, "", { fontSize: "39px", color: "#cccccc" }).setOrigin(0.5);
+        let btnProxima = this.criarBotaoPaginacaoHistorico(180, 585, "›", () => this.mudarPaginaHistorico(1));
 
-        let painel = this.add.container(180, 360, [
+        let painel = this.add.container(GW / 2, GH / 2, [
             painelBg, titulo, fecharBtn, subtitulo, listaContainer, btnAnterior, labelPagina, btnProxima
         ]);
         painel.setDepth(4001);
@@ -671,10 +783,10 @@ class CenaJogo extends Phaser.Scene {
     }
 
     criarBotaoPaginacaoHistorico(x, y, texto, aoClicar) {
-        let bg = this.add.circle(x, y, 16, 0x2a2a2a).setStrokeStyle(1, 0xffffff);
-        let label = this.add.text(x, y, texto, { fontSize: "18px", color: "#ffffff", fontStyle: "bold" }).setOrigin(0.5);
+        let bg = this.add.circle(x, y, 48, 0x2a2a2a).setStrokeStyle(3, 0xffffff);
+        let label = this.add.text(x, y, texto, { fontSize: "54px", color: "#ffffff", fontStyle: "bold" }).setOrigin(0.5);
         let btn = this.add.container(0, 0, [bg, label]);
-        btn.setSize(32, 32);
+        btn.setSize(96, 96);
         btn.setInteractive({ useHandCursor: true });
         btn.on('pointerup', aoClicar);
         return btn;
@@ -693,11 +805,11 @@ class CenaJogo extends Phaser.Scene {
         this.historicoPagina = Phaser.Math.Clamp(this.historicoPagina, 0, totalPaginas - 1);
 
         if (historico.length === 0) {
-            let vazio = this.add.text(0, -20, "Nenhuma carta jogada ainda.", {
-                fontSize: "14px",
+            let vazio = this.add.text(0, -60, "Nenhuma carta jogada ainda.", {
+                fontSize: "38px",
                 color: "#aaaaaa",
                 align: "center",
-                wordWrap: { width: 260 }
+                wordWrap: { width: 780 }
             }).setOrigin(0.5);
             this.listaHistoricoContainer.add(vazio);
         } else {
@@ -705,7 +817,7 @@ class CenaJogo extends Phaser.Scene {
             const pagina = historico.slice(inicio, inicio + TAMANHO_PAGINA);
 
             pagina.forEach((entrada, indice) => {
-                const y = -150 + indice * 54;
+                const y = -450 + indice * 162;
                 this.listaHistoricoContainer.add(this.criarLinhaHistorico(entrada, y));
             });
         }
@@ -733,32 +845,32 @@ class CenaJogo extends Phaser.Scene {
         const labelDono = entrada.quem === "jogador" ? "Você" : "Inimigo";
         const corLabelDono = entrada.quem === "jogador" ? "#66ff99" : "#ff8888";
 
-        let fundo = this.add.rectangle(0, 0, 280, 46, 0x1e1e28).setStrokeStyle(1, 0x333344);
-        let barra = this.add.rectangle(-134, 0, 6, 46, corDono);
+        let fundo = this.add.rectangle(0, 0, 840, 138, 0x1e1e28).setStrokeStyle(3, 0x333344);
+        let barra = this.add.rectangle(-402, 0, 18, 138, corDono);
 
-        let turnoTexto = this.add.text(-118, -11, `Turno ${entrada.turno}`, {
-            fontSize: "11px",
+        let turnoTexto = this.add.text(-354, -33, `Turno ${entrada.turno}`, {
+            fontSize: "30px",
             color: "#999999",
             fontStyle: "bold"
         }).setOrigin(0, 0.5);
 
-        let donoTexto = this.add.text(-118, 11, labelDono, {
-            fontSize: "11px",
+        let donoTexto = this.add.text(-354, 33, labelDono, {
+            fontSize: "30px",
             color: corLabelDono
         }).setOrigin(0, 0.5);
 
-        let nomeTexto = this.add.text(-20, 0, this.truncarTexto(entrada.carta.nome, 18), {
-            fontSize: "14px",
+        let nomeTexto = this.add.text(-60, 0, this.truncarTexto(entrada.carta.nome, 18), {
+            fontSize: "38px",
             color: "#ffffff",
             fontStyle: "bold",
             align: "center",
-            wordWrap: { width: 130 }
+            wordWrap: { width: 390 }
         }).setOrigin(0.5);
 
-        let seta = this.add.text(128, 0, "›", { fontSize: "18px", color: "#888888" }).setOrigin(0.5);
+        let seta = this.add.text(384, 0, "›", { fontSize: "48px", color: "#888888" }).setOrigin(0.5);
 
         let linha = this.add.container(0, y, [fundo, barra, turnoTexto, donoTexto, nomeTexto, seta]);
-        linha.setSize(280, 46);
+        linha.setSize(840, 138);
         linha.setInteractive({ useHandCursor: true });
         linha.on('pointerover', () => fundo.setFillStyle(0x28283a));
         linha.on('pointerout', () => fundo.setFillStyle(0x1e1e28));
@@ -813,15 +925,15 @@ class CenaJogo extends Phaser.Scene {
     // ---------- VISUALIZAÇÃO DETALHADA DA CARTA ----------
 
     // Mostra um painel grande com a "arte" (placeholder colorido), nome,
-    // poder, custo (nos mesmos selos circulares usados nas cartas) e a
-    // descrição completa (flavor text + efeito passivo).
+    // poder (no mesmo selo circular usado nas cartas) e a descrição
+    // completa (flavor text + efeito passivo).
     mostrarDetalheCarta(carta) {
         if (this.modalAberto) return;
         this.modalAberto = true;
         this.travado = true;
 
         // Fundo escurecido cobrindo a tela toda; tocar nele fecha o painel
-        let overlay = this.add.rectangle(180, 360, 360, 720, 0x000000, 0.78);
+        let overlay = this.add.rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.78);
         overlay.setDepth(4000);
         overlay.setInteractive();
         overlay.on('pointerup', () => this.fecharDetalheCarta());
@@ -829,54 +941,57 @@ class CenaJogo extends Phaser.Scene {
         const corFundo = this.obterCorPorId(carta.id);
         const ehEfeito = carta.tipo === "efeito";
 
-        let painelBg = this.add.rectangle(0, 0, 280, 440, 0x14141c).setStrokeStyle(3, 0xffffff);
+        let painelBg = this.add.rectangle(0, 0, 840, 1320, 0x14141c).setStrokeStyle(9, 0xffffff);
         // Impede que o toque no painel "vaze" para o overlay e feche o modal
         painelBg.setInteractive();
         painelBg.on('pointerup', () => {});
 
         // "Imagem" da carta: placeholder colorido baseado no id, sem nenhum asset
-        let imagem = this.add.rectangle(0, -115, 220, 160, corFundo).setStrokeStyle(2, 0xffffff);
-        let iconeImagem = this.add.text(0, -115, ehEfeito ? "⚡" : "⚔", { fontSize: "52px" }).setOrigin(0.5);
+        let imagem = this.add.rectangle(0, -345, 660, 480, corFundo).setStrokeStyle(6, 0xffffff);
+        let iconeImagem = this.add.text(0, -345, ehEfeito ? "⚡" : "⚔", { fontSize: "156px" }).setOrigin(0.5);
 
-        let etiquetaTipo = this.add.text(0, -255, ehEfeito ? "CARTA DE EFEITO" : "CARTA DE PERSONAGEM", {
-            fontSize: "12px",
+        let etiquetaTipo = this.add.text(0, -765, ehEfeito ? "CARTA DE EFEITO" : "CARTA DE PERSONAGEM", {
+            fontSize: "36px",
             color: ehEfeito ? "#ffe066" : "#9be7ff",
             fontStyle: "bold"
         }).setOrigin(0.5);
 
-        let nomeTexto = this.add.text(0, -20, carta.nome, {
-            fontSize: "18px",
+        let nomeTexto = this.add.text(0, -60, carta.nome, {
+            fontSize: "54px",
             color: "#ffffff",
             fontStyle: "bold",
             align: "center",
-            wordWrap: { width: 250 }
+            wordWrap: { width: 750 }
         }).setOrigin(0.5, 0);
 
-        const [poderBola, poderTexto] = this.criarSeloEstat(-55, 45, carta.poder, "#ff5555", 26);
-        const [custoBola, custoTexto] = this.criarSeloEstat(55, 45, carta.custo, "#ffdd33", 26);
-        let poderLabel = this.add.text(-55, 85, "PODER", { fontSize: "11px", color: "#aaaaaa" }).setOrigin(0.5);
-        let custoLabel = this.add.text(55, 85, "CUSTO", { fontSize: "11px", color: "#aaaaaa" }).setOrigin(0.5);
+        const filhosPainel = [painelBg, imagem, iconeImagem, etiquetaTipo, nomeTexto];
 
-        let descTexto = this.add.text(0, 110, carta.descricaoCompleta(), {
-            fontSize: "13px",
+        let descY = 160;
+        if (!ehEfeito) {
+            const [poderBola, poderTexto] = this.criarSeloEstat(0, 135, carta.poder, "#ff5555", 90);
+            let poderLabel = this.add.text(0, 255, "PODER", { fontSize: "33px", color: "#aaaaaa" }).setOrigin(0.5);
+            filhosPainel.push(poderBola, poderTexto, poderLabel);
+            descY = 330;
+        }
+
+        let descTexto = this.add.text(0, descY, carta.descricaoCompleta(), {
+            fontSize: "30px",
             color: "#dddddd",
             align: "center",
-            wordWrap: { width: 240 },
-            lineSpacing: 4
+            wordWrap: { width: 720 },
+            lineSpacing: 10
         }).setOrigin(0.5, 0);
 
-        let fecharBg = this.add.circle(120, -205, 14, 0x2a2a2a).setStrokeStyle(1, 0xffffff);
-        let fecharTexto = this.add.text(120, -205, "✕", { fontSize: "16px", color: "#ffffff" }).setOrigin(0.5);
+        let fecharBg = this.add.circle(360, -615, 42, 0x2a2a2a).setStrokeStyle(3, 0xffffff);
+        let fecharTexto = this.add.text(360, -615, "✕", { fontSize: "48px", color: "#ffffff" }).setOrigin(0.5);
         let fecharBtn = this.add.container(0, 0, [fecharBg, fecharTexto]);
-        fecharBtn.setSize(28, 28);
+        fecharBtn.setSize(84, 84);
         fecharBtn.setInteractive({ useHandCursor: true });
         fecharBtn.on('pointerup', () => this.fecharDetalheCarta());
 
-        let painel = this.add.container(180, 360, [
-            painelBg, imagem, iconeImagem, etiquetaTipo, nomeTexto,
-            poderBola, poderTexto, custoBola, custoTexto, poderLabel, custoLabel,
-            descTexto, fecharBtn
-        ]);
+        filhosPainel.push(descTexto, fecharBtn);
+
+        let painel = this.add.container(GW / 2, GH / 2, filhosPainel);
         painel.setDepth(4001);
         painel.setScale(0.8);
         painel.setAlpha(0);
@@ -916,19 +1031,18 @@ class CenaJogo extends Phaser.Scene {
     // ---------- STATUS / UI ----------
 
     desenharStatus() {
-        this.add.text(15, 15, `Turno: ${this.partida.turno}`, { fontSize: "16px", color: "#ffffff" });
-        this.add.text(15, 40, `Vitórias: ${this.partida.jogador.vitorias}`, { fontSize: "16px", color: "#ff0000" });
-        this.desenharEnergiaJogador();
+        this.add.text(45, 45, `Turno: ${this.partida.turno}`, { fontSize: "36px", color: "#ffffff" });
+        this.add.text(45, 100, `Vitórias: ${this.partida.jogador.vitorias}`, { fontSize: "36px", color: "#ff0000" });
         this.desenharBotaoHistorico();
     }
 
     // Botão que abre o modal com o histórico de cartas jogadas na partida.
     desenharBotaoHistorico() {
-        let bg = this.add.rectangle(0, 0, 110, 30, 0x2255aa).setStrokeStyle(2, 0xffffff);
-        let texto = this.add.text(0, 0, "📜 Histórico", { fontSize: "12px", color: "#ffffff" }).setOrigin(0.5);
+        let bg = this.add.rectangle(0, 0, 300, 80, 0x2255aa).setStrokeStyle(4, 0xffffff);
+        let texto = this.add.text(0, 0, "📜 Histórico", { fontSize: "28px", color: "#ffffff" }).setOrigin(0.5);
 
-        let btn = this.add.container(70, 75, [bg, texto]);
-        btn.setSize(110, 30);
+        let btn = this.add.container(200, 220, [bg, texto]);
+        btn.setSize(300, 80);
         btn.setInteractive({ useHandCursor: true });
 
         btn.on('pointerover', () => {
@@ -947,37 +1061,76 @@ class CenaJogo extends Phaser.Scene {
         });
     }
 
-    // Energia total do jogador: bola com fundo amarelo, texto branco com
-    // contorno preto, no canto direito da tela, logo abaixo do campo.
-    desenharEnergiaJogador() {
-        const x = 325;
-        const y = 420;
+    // Botão flutuante, sempre no rodapé, para esconder/mostrar a mão e dar
+    // mais espaço/destaque ao campo. Some/reaparece com uma animação da
+    // própria mão, não só um corte seco.
+    desenharBotaoToggleMao() {
+        const qtd = this.partida.jogador.mao.cartas.length;
+        const rotulo = this.maoEscondida ? `▲ Mostrar Mão (${qtd})` : "▼ Esconder Mão";
+        const corBg = this.maoEscondida ? 0x225533 : 0x333333;
 
-        this.add.text(x, y - 36, "Energia", { fontSize: "12px", color: "#ffffff" }).setOrigin(0.5);
+        let bg = this.add.rectangle(0, 0, 340, 72, corBg).setStrokeStyle(3, 0xffffff, 0.7);
+        let texto = this.add.text(0, 0, rotulo, { fontSize: "26px", color: "#ffffff" }).setOrigin(0.5);
 
-        let bola = this.add.circle(x, y, 24, 0xffdd00);
-        let texto = this.add.text(x, y, `${this.partida.jogador.energia}`, {
-            fontSize: "20px",
-            color: "#ffffff",
-            fontStyle: "bold",
-            stroke: "#000000",
-            strokeThickness: 4
-        }).setOrigin(0.5);
+        let btn = this.add.container(GW / 2, GH - 50, [bg, texto]);
+        btn.setSize(340, 72);
+        btn.setDepth(50);
+        btn.setInteractive({ useHandCursor: true });
 
-        if (this.energiaAnterior !== undefined && this.partida.jogador.energia !== this.energiaAnterior) {
-            bola.setScale(1.4);
-            texto.setScale(1.4);
-            this.tweens.add({ targets: [bola, texto], scale: 1, duration: 300, ease: 'Back.Out' });
+        btn.on('pointerover', () => {
+            if (this.travado) return;
+            this.tweens.add({ targets: btn, scale: 1.05, duration: 100 });
+        });
+
+        btn.on('pointerout', () => {
+            if (this.travado) return;
+            this.tweens.add({ targets: btn, scale: 1, duration: 100 });
+        });
+
+        btn.on('pointerup', () => {
+            if (this.travado) return;
+            this.alternarMao();
+        });
+    }
+
+    // Alterna a visibilidade da mão. Ao esconder, as cartas na tela deslizam
+    // para baixo e somem antes do campo ser redesenhado (maior); ao mostrar
+    // de novo, a própria entrada animada do leque já cuida da transição.
+    alternarMao() {
+        if (this.maoEscondida) {
+            this.maoEscondida = false;
+            this.desenharInterface();
+            return;
         }
-        this.energiaAnterior = this.partida.jogador.energia;
+
+        const cartasNaTela = this.children.list.filter(c => c.dadosCarta);
+        if (cartasNaTela.length === 0) {
+            this.maoEscondida = true;
+            this.desenharInterface();
+            return;
+        }
+
+        this.travado = true;
+        this.tweens.add({
+            targets: cartasNaTela,
+            y: '+=420',
+            alpha: 0,
+            duration: 260,
+            ease: 'Cubic.In',
+            onComplete: () => {
+                this.maoEscondida = true;
+                this.desenharInterface();
+                this.travado = false;
+            }
+        });
     }
 
     desenharBotaoPassarTurno() {
-        let bg = this.add.rectangle(0, 0, 130, 40, 0xff5500).setStrokeStyle(2, 0xffffff);
-        let texto = this.add.text(0, 0, "Passar Turno", { fontSize: "14px", color: "#fff" }).setOrigin(0.5);
+        let bg = this.add.rectangle(0, 0, 340, 100, 0xff5500).setStrokeStyle(4, 0xffffff);
+        let texto = this.add.text(0, 0, "Passar Turno", { fontSize: "32px", color: "#fff" }).setOrigin(0.5);
 
-        let btn = this.add.container(295, 30, [bg, texto]);
-        btn.setSize(130, 40);
+        let btn = this.add.container(GW - 210, 90, [bg, texto]);
+        btn.setSize(340, 100);
         btn.setInteractive({ useHandCursor: true });
 
         btn.on('pointerover', () => {
@@ -1035,12 +1188,12 @@ class CenaJogo extends Phaser.Scene {
 
         this.cameras.main.flash(400, info.cor[0], info.cor[1], info.cor[2]);
 
-        let texto = this.add.text(180, 250, info.texto, {
-            fontSize: "20px",
+        let texto = this.add.text(GW / 2, 750, info.texto, {
+            fontSize: "44px",
             color: info.corTexto,
             fontStyle: "bold",
             align: "center",
-            wordWrap: { width: 300 }
+            wordWrap: { width: 850 }
         }).setOrigin(0.5).setDepth(3000).setAlpha(0);
 
         this.textoResultadoAtual = texto;
@@ -1048,14 +1201,14 @@ class CenaJogo extends Phaser.Scene {
         this.tweens.add({
             targets: texto,
             alpha: 1,
-            y: 220,
+            y: 660,
             duration: 300,
             ease: 'Back.Out',
             onComplete: () => {
                 this.tweens.add({
                     targets: texto,
                     alpha: 0,
-                    y: 190,
+                    y: 570,
                     delay: 700,
                     duration: 400,
                     onComplete: () => {

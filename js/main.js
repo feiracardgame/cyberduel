@@ -30,8 +30,12 @@ class Mao {
 
 class Campo {
     constructor() {
-        this.cartas = [null, null, null];
-        this.limite = 3;
+        // 10 posições por jogador (layout 2x5: 2 fileiras de 5 slots cada,
+        // por jogador — ou seja, 4 fileiras no total: 2 do inimigo em cima,
+        // 2 do jogador embaixo). Índices 0-4 = fileira de trás, 5-9 =
+        // fileira da frente (ver CenaJogo.desenharCampoInimigo/Jogador).
+        this.cartas = new Array(10).fill(null);
+        this.limite = 10;
     }
     adicionarCarta(carta, posicao) {
         if (this.cartas[posicao] === null) {
@@ -48,16 +52,13 @@ class Jogador {
         this.deck = new Deck();
         this.mao = new Mao();
         this.campo = new Campo();
-        this.energia = 10;
         this.vitorias = 0;
     }
 
     jogarCarta(carta, posicao) {
         if (!this.campo.temEspaco(posicao)) return false;
-        if (this.energia < carta.custo) return false;
 
         this.campo.adicionarCarta(carta, posicao);
-        this.energia -= carta.custo;
 
         const indice = this.mao.cartas.indexOf(carta);
         if (indice !== -1) {
@@ -67,12 +68,8 @@ class Jogador {
     }
 
     // Cartas de efeito nunca ocupam o campo: são consumidas na hora,
-    // aplicam sua passiva e vão descartadas. Só a energia é verificada.
+    // aplicam sua passiva e vão descartadas.
     jogarCartaEfeito(carta) {
-        if (this.energia < carta.custo) return false;
-
-        this.energia -= carta.custo;
-
         const indice = this.mao.cartas.indexOf(carta);
         if (indice !== -1) {
             this.mao.cartas.splice(indice, 1);
@@ -87,7 +84,7 @@ class Jogador {
 
         for (let i = 0; i < quantidadeEfeitos; i++) {
             const base = efeitosEmbaralhados[i % efeitosEmbaralhados.length];
-            const carta = new Carta(1000 + i, base.poder, base.custo, "efeito", {
+            const carta = new Carta(1000 + i, base.poder, "efeito", {
                 nome: base.nome,
                 descricao: base.descricao,
                 efeito: base.efeito
@@ -101,7 +98,6 @@ class Jogador {
             const carta = new Carta(
                 i + 1,
                 Math.floor(Math.random() * 10) + 1,
-                Math.floor(Math.random() * 5) + 1,
                 "monstro",
                 { nome: `Unidade ${i + 1}`, descricao: "Uma unidade de combate padrão, confiável em qualquer formação." }
             );
@@ -128,7 +124,8 @@ class Partida {
         this.jogador.deck.embaralhar();
         this.inimigo.deck.embaralhar();
 
-        for (let i = 0; i < 5; i++) {
+        // Compra inicial: 5 + 3 cartas adicionais
+        for (let i = 0; i < 8; i++) {
             this.jogador.comprarCarta();
             this.inimigo.comprarCarta();
         }
@@ -195,11 +192,14 @@ class Partida {
                     }
                 });
                 break;
-            case TIPOS_EFEITO.GANHO_ENERGIA:
-                dono.energia += valor;
+            case TIPOS_EFEITO.COMPRAR_CARTA:
+                for (let i = 0; i < valor; i++) dono.comprarCarta();
                 break;
-            case TIPOS_EFEITO.DRENAR_ENERGIA:
-                oponente.energia = Math.max(0, oponente.energia - valor);
+            case TIPOS_EFEITO.DESCARTAR_CARTA:
+                for (let i = 0; i < valor && oponente.mao.cartas.length > 0; i++) {
+                    const idx = Math.floor(Math.random() * oponente.mao.cartas.length);
+                    oponente.mao.cartas.splice(idx, 1);
+                }
                 break;
         }
 
@@ -210,8 +210,6 @@ class Partida {
         this.turnoIA();
         const resultadoCombate = this.resolverCombate();
         this.turno++;
-        this.jogador.energia += 2;
-        this.inimigo.energia += 2;
         this.jogador.deck.embaralhar();
         this.inimigo.deck.embaralhar();
         this.jogador.comprarCarta();
@@ -222,7 +220,7 @@ class Partida {
     turnoIA() {
         this.efeitoInimigoTurno = null;
 
-        const carta = this.inimigo.mao.cartas.find(c => c.custo <= this.inimigo.energia);
+        const carta = this.inimigo.mao.cartas[0];
         if (!carta) return;
 
         // Cartas de efeito nunca vão para o campo: são conjuradas e consumidas
@@ -236,7 +234,7 @@ class Partida {
             return;
         }
 
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < 10; i++) {
             if (this.inimigo.campo.temEspaco(i)) {
                 const sucesso = this.inimigo.jogarCarta(carta, i);
                 if (sucesso) this.registrarHistorico(carta, "inimigo");
@@ -280,14 +278,23 @@ class Partida {
     }
 }
 
-// Configuração Phaser 3 para celulares na vertical (360x720)
+// Configuração Phaser para celulares na vertical.
+// Resolução interna elevada para 1080x2160 (mantendo a proporção 1:2
+// original de 360x720) para tirar proveito das telas de alta densidade
+// (Retina/AMOLED) mais comuns em celulares atuais. O modo FIT + CENTER_BOTH
+// garante que o jogo continue se ajustando a qualquer tamanho de tela sem
+// distorcer, só que agora renderizando com muito mais nitidez.
 const config = {
     type: Phaser.AUTO,
-    width: 360,
-    height: 720,
+    width: 1080,
+    height: 2160,
     scale: {
         mode: Phaser.Scale.FIT,
         autoCenter: Phaser.Scale.CENTER_BOTH
+    },
+    render: {
+        antialias: true,
+        roundPixels: false
     },
     scene: [ CenaJogo ]
 };
