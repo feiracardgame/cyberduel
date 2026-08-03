@@ -9,6 +9,8 @@
 * Descrição: Quando surgiram os primeiros bio-androides, foi-se percebido que seria possível criar um funcionário que juntaria a capacidade de convencimento de um ser humano e a não necessidade de descanso de um robô, resultando em um vendedor duplamente capacitado, com duas vezes menos salário e três vezes menos alma.
 * PA: 3
 * Efeito:
+
+ 
 * Arte:
  <img alt="image" src="Artes/CyberVendedor_Da_RaspCorp.png" />
 
@@ -18,9 +20,10 @@
 
 * Descrição: As árduas horas dedicadas ao treinamento e desenvolvimento de IAs capazes de substituir o trabalho humano demonstram que, apesar de ser apenas um estagiário, seu trabalho é vital para o futuro da empresa. O RPH estima que ele continuará sendo lembrado por aproximadamente três semanas após sua substituição
 * PA: 2
-* Efeito:
+* Efeito: o código
+ 
 * Visual: é um nerdzinho de oculos mexendo no pc, só que a piada é que tem tipo um cartaz de logo da raspcorp dizendo "RaspCorp - Investindo no futuro da humanidade"
-* 
+ 
 
 * <img width="220" height="219" alt="image" src="https://github.com/user-attachments/assets/9c51381e-5ba5-4374-897b-fd0cf345e951" />
 
@@ -31,7 +34,8 @@
 
 * PA: 4
 * Efeito:
-* SLA de 1º Retorno: Para cada NeoAnalista em campo, o tempo de turno do oponente é reduzido em 10 segundos, não podendo ficar abaixo de 20 segundos.
+
+ SLA de 1º Retorno: Para cada NeoAnalista em campo, o tempo de turno do oponente é reduzido em 10 segundos, não podendo ficar abaixo de 20 segundos.
 
 * Visual: Faz que nem a imagem do robert robertson do dispatch (sem o chase la atras) que é só um mano completamente cansado, cheio de olheira no rosto, de headset e segurando a cabeça com a mão
 * 
@@ -46,6 +50,8 @@
 * Descrição: Sua principal função é garantir que a Raspcorp permaneça em conformidade com a legislação vigente. Felizmente, ambas costumam ser atualizadas ao mesmo tempo. Ao longo de sua carreira, participou da aquisição de sete empresas, três governos e um incidente que permanece sob sigilo judicial
 * PA: 5
 * Efeito:
+
+ Cessar e desistir -> O advogado da RascpCorp garante que a única parte livre do mercado seja o caminho para o crescimento da empresa. O último terreno invocado no campo inimigo sofre uma ação judicial que o obriga a fechar
 * Arte:
  <img alt="image" src="Artes/AdvogadoDaRaspCorp.png" />
 
