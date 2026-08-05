@@ -92,15 +92,10 @@
 
  Missão de Paz - a DIPSP realiza uma investida para assegurar a paz (e recursos valiosos) no inimigo, Reduzindo 3 PA em uma linha de 2 à sua frente
  
-* Visual: Faz uma equipe tipo assim com "RaspCorp" e o símbolo no peito deles, eles tbm tem que segurar armas que são obviamente de plasma, não reais, pq a diretoria nao vai curtir.
-
- <img width="424" height="1076" alt="image" src="https://github.com/user-attachments/assets/a8ba02a3-47f4-411d-96fd-c114e74dc3aa" />
-
-
-<img width="2592" height="1458" alt="image" src="https://github.com/user-attachments/assets/ea1d2ad9-e84a-4ea6-be76-ec03a16c9e2b" />
+* Arte:
+ <img alt="image" src="Artes/AgenteDIPSP.png
 
 
-a
 ### 1x carta lendária - RaspClay MonteCorp
 * Descrição: Raspclay trocou seu antigo nome pelo topo dos arranha-céus de NeoFloripa. Atualmente comanda a irreverente e opressora empresa de tecnologia, serviços, segurança privada e propaganda Raspcorp. Após comprar todos os setores da sociedade, seus advogados passaram a afirmar que a palavra "monopólio" carrega uma conotação desnecessariamente negativa.
 
