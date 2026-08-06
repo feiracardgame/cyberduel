@@ -37,11 +37,6 @@
 
  SLA de 1º Retorno: Para cada NeoAnalista em campo, o tempo de turno do oponente é reduzido em 10 segundos, não podendo ficar abaixo de 20 segundos.
 
-* Visual: Faz que nem a imagem do robert robertson do dispatch (sem o chase la atras) que é só um mano completamente cansado, cheio de olheira no rosto, de headset e segurando a cabeça com a mão
-* 
-
-<img width="1500" height="1000" alt="image" src="https://github.com/user-attachments/assets/0ab3078b-9743-495c-84e4-99af7c3ca429" />
-
 * Arte:
  <img alt="image" src="Artes/NeoAnalista_de_Suporte_Nivel_Alpha.png" />
 
@@ -73,12 +68,6 @@
 * Efeito:
 * 
  Investimento de alto risco - Os rendimentos dos investimentos começam a dar fruto, o CryptoAcionista tem 20% de chance de aumentar 1 de PA a cada turno
-
- 
-* Visual: Faz um mano tipo assim (a cara se tu quiser faz o chico moedas...)
-
-
-<img width="1440" height="1080" alt="image" src="https://github.com/user-attachments/assets/f5e195ae-9ff8-4afc-8666-047077cc0896" />
 
 * Arte:
  <img alt="image" src="Artes/CryptoAcionista.png" />
