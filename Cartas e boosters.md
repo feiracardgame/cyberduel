@@ -115,15 +115,8 @@
 * Descrição: Depois que a verdadeira Floripa sucumbiu ao aumento do nível do mar, os nostálgicos decidiram recriá-la no mundo virtual. Ironicamente, continua sendo o jeito mais acessível de morar na ilha.
 * PA:
 * Efeito:
-* Visual:
-
-Adapta a beira-mar norte para um estilo cyberpunk
-
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/7401e49f-d8c2-4808-b2e7-5fd47ab76c3a" />
-
-<img width="1024" height="767" alt="image" src="https://github.com/user-attachments/assets/46f6aadd-9110-44f6-a1db-65c6ab4d1714" />
-
-
+* Arte:
+ <img alt="image" src="Artes/Beiramar_Neofloripa.png" />
 
 ### 1x carta de terreno 3 -> Nexus de Dados Global
 
