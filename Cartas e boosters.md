@@ -142,41 +142,41 @@ Aprendizado Supervisionado → Depois de milhões de horas marcando "Resposta B"
 
 ## Booster 2 - Echossystem - deck focado em efeitos
 
-### 2x carta baixa 1
+### 2x carta baixa 1 -> O Rato
 
 * Descrição:
 * PA:
 * Efeito:
 * Visual:
-### 2x carta baixa 2
-
-* Descrição:
-* PA:
-* Efeito:
-* Visual:
-
-### 2x carta baixa 3
+### 2x carta baixa 2 -> A Vespa
 
 * Descrição:
 * PA:
 * Efeito:
 * Visual:
 
-### 2x carta media 1
+### 2x carta baixa 3 -> O Meca Camaleão
 
 * Descrição:
 * PA:
 * Efeito:
 * Visual:
-* 
-### 2x carta media 2
+
+### 2x carta media 1 -> A Coruja
 
 * Descrição:
 * PA:
 * Efeito:
 * Visual:
 * 
-### 2x carta alta 1
+### 2x carta media 2 -> A Serpente
+
+* Descrição:
+* PA:
+* Efeito:
+* Visual:
+* 
+### 2x carta alta 1 -> O Tigre
 
 * Descrição:
 * PA:
@@ -184,7 +184,7 @@ Aprendizado Supervisionado → Depois de milhões de horas marcando "Resposta B"
 * Visual:
 
 
-### 1x carta alta 2
+### 1x carta alta 2 -> A Aranha
 
 * Descrição:
 * PA:
@@ -192,7 +192,7 @@ Aprendizado Supervisionado → Depois de milhões de horas marcando "Resposta B"
 * Visual:
 
 
-### 1x carta lendária
+### 1x carta lendária -> O Lobo
 
 * Descrição:
 * PA:
@@ -441,7 +441,7 @@ Humberto vai ser o HUMBA BRAIN, que nem o Angstrom de invencível, o criador dos
 
 
 
-### carta baixa 3
+### carta baixa 3 -> estudante
 
 * Descrição:
 * Energia:
@@ -482,14 +482,14 @@ Humberto vai ser o HUMBA BRAIN, que nem o Angstrom de invencível, o criador dos
 * Visual
 
 
-### 1x carta média 4
+### 1x carta média 4 -> influenciador
 
 * Descrição:
 * Energia:
 * Efeito:
 * Visual
 
-### 1x carta alta 1
+### 1x carta alta 1 -> Político
 
 * Descrição:
 * Energia:
@@ -497,7 +497,7 @@ Humberto vai ser o HUMBA BRAIN, que nem o Angstrom de invencível, o criador dos
 * Visual
 
 
-### 1x carta lendária
+### 1x carta lendária -> professor
 
 * Descrição:
 * Energia:
