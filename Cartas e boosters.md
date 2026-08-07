@@ -110,31 +110,36 @@ Aprendizado Supervisionado → Depois de milhões de horas marcando "Resposta B"
 ### 2x carta de efeito 1 -> Sugestão Algorítmica 
 
 * Descrição: Após analisar seu histórico de compras, pesquisas e sonhos recorrentes, o algoritmo preparou uma sugestão especialmente para você. Foi você que aceitou todos os cookies...
-* Efeito:
+* Efeito: Escolha uma carta do seu baralho para puxar diretamente para sua mão.
 * Arte:
  <img alt="image" src="assets/cartas/Sugestão_algoritmica.png" />
 
 ### 1x carta de terreno 1 -> Torre Montecorp
 
 * Descrição: Recriada no mundo virtual com mais de quatro quilômetros de altura, a Torre MonteCorp permanece como um lembrete constante de que, se a Raspcorp quisesse conquistar os céus, provavelmente encontraria uma forma de monetizá-los.
-* PA:
 * Efeito:
+
+Jogando em casa -> O ambiente de trabalho competitivo e supostamente confortável aumenta a produtividade de toda a equipe. Todas as cartas da RaspCorp em campo recebem +2 PA.
+ 
 * Arte:
  <img alt="image" src="assets/cartas/Torre_MonteCorp.png" />
 
 #### 1x carta de terreno 2 - Beira-mar norte de NeoFloripa
 
 * Descrição: Depois que a verdadeira Floripa sucumbiu ao aumento do nível do mar, os nostálgicos decidiram recriá-la no mundo virtual. Ironicamente, continua sendo o jeito mais acessível de morar na ilha.
-* PA:
 * Efeito:
+
+Rolê na Beira-Mar → A ida à beira-mar é um momento de descanso para as classes baixas, que finalmente podem contemplar a vista dos apartamentos que jamais conseguirão financiar. As cartas do Sindicato recebem +3 PA.
+
 * Arte:
  <img alt="image" src="assets/cartas/Beiramar_Neofloripa.png" />
 
 ### 1x carta de terreno 3 -> Nexus de Dados Global
 
 * Descrição: Responsável por armazenar aproximadamente 99% dos dados da humanidade. Sua destruição foi comparada à queima da Biblioteca de Alexandria, caso ela armazenasse apenas informações pessoais obtidas por meios semilegais. Ainda bem que tudo é salvo na nuvem atualmente.
-* PA:
 * Efeito:
+Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhecê-la melhor do que você. As cartas na mão do adversário permanecem reveladas enquanto este terreno estiver em campo.
+
 * Arte:
  <img alt="image" src="assets/cartas/NexusNeoFloripa.png" />
 
