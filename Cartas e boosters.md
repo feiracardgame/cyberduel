@@ -176,7 +176,7 @@ Aprendizado Supervisionado → Depois de milhões de horas marcando "Resposta B"
 * Efeito:
 * Visual:
 * 
-### 2x carta alta 1 -> O Tigre
+### 2x carta alta 1 -> O Lobo
 
 * Descrição:
 * PA:
@@ -192,7 +192,7 @@ Aprendizado Supervisionado → Depois de milhões de horas marcando "Resposta B"
 * Visual:
 
 
-### 1x carta lendária -> O Lobo
+### 1x carta lendária -> O Boi
 
 * Descrição:
 * PA:
