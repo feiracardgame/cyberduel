@@ -10,6 +10,8 @@
 * PA: 3
 * Efeito:
 
+Venda Casada → Ao ser colocado em campo, o CyberVendedor faz questão de garantir a venda de um dos seus 65.732 combos, em vez do produto que você realmente queria. Escolha uma carta aliada ou esta para ganhar +1 PA.
+
  
 * Arte:
  <img alt="image" src="Artes/CyberVendedor_Da_RaspCorp.png" />
@@ -20,7 +22,9 @@
 
 * Descrição: As árduas horas dedicadas ao treinamento e desenvolvimento de IAs capazes de substituir o trabalho humano demonstram que, apesar de ser apenas um estagiário, seu trabalho é vital para o futuro da empresa. O RPH estima que ele continuará sendo lembrado por aproximadamente três semanas após sua substituição
 * PA: 2
-* Efeito: o código
+* Efeito:
+
+Aprendizado Supervisionado → Depois de milhões de horas marcando "Resposta B" como ligeiramente melhor que a "Resposta A", as IAs finalmente entenderam a humanidade. Escolha duas cartas da HumbaNet para ganharem +2 PA.
  
 * Visual: é um nerdzinho de oculos mexendo no pc, só que a piada é que tem tipo um cartaz de logo da raspcorp dizendo "RaspCorp - Investindo no futuro da humanidade"
  
@@ -35,7 +39,7 @@
 * PA: 4
 * Efeito:
 
- SLA de 1º Retorno: Para cada NeoAnalista em campo, o tempo de turno do oponente é reduzido em 10 segundos, não podendo ficar abaixo de 20 segundos.
+ SLA de 1º Retorno -> Para cada NeoAnalista de Suporte Nível Alpha em campo, o tempo de turno do oponente é reduzido em 10 segundos, até um mínimo de 20 segundos.
 
 * Arte:
  <img alt="image" src="Artes/NeoAnalista_de_Suporte_Nivel_Alpha.png" />
@@ -46,7 +50,9 @@
 * PA: 5
 * Efeito:
 
- Cessar e desistir -> O advogado da RascpCorp garante que a única parte livre do mercado seja o caminho para o crescimento da empresa. O último terreno invocado no campo inimigo sofre uma ação judicial que o obriga a fechar
+ Cessar e Desistir → Após uma longa análise jurídica de aproximadamente três minutos, concluiu-se que o terreno inimigo infringe ao menos dezessete patentes da RaspCorp. O último terreno invocado pelo adversário é destruído.
+
+ 
 * Arte:
  <img alt="image" src="Artes/AdvogadoDaRaspCorp.png" />
 
@@ -56,6 +62,10 @@
 * Descrição: Atualmente, funcionários humanos e máquinas compartilham os mesmos benefícios corporativos. Nenhum dos dois está particularmente satisfeito com isso. O RH garante que todas as reclamações sejam igualmente ignoradas.
 * PA: 5
 * Efeito:
+
+* Reestruturação Interna → A empresa agradece pelos anos de dedicação do colaborador e informa que sua vaga continuará existindo, porém com salário menor. Escolha uma carta aliada para perder 2 PA. Outra carta aliada ganha 4 PA.
+
+ 
 * Visual: -> eu não faço a mínima ideia de como representar isso visualmente, essa aqui vc vai ter que se virar.
 
 
@@ -67,7 +77,7 @@
 * PA: 6
 * Efeito:
 * 
- Investimento de alto risco - Os rendimentos dos investimentos começam a dar fruto, o CryptoAcionista tem 20% de chance de aumentar 1 de PA a cada turno
+  Investimento de Alto Risco → Os investimentos finalmente começaram a render. No início de cada turno, o CryptoAcionista tem 20% de chance de ganhar +1 PA.
 
 * Arte:
  <img alt="image" src="Artes/CryptoAcionista.png" />
@@ -79,17 +89,20 @@
 * PA: 9
 * Efeito:
 
- Missão de Paz - a DIPSP realiza uma investida para assegurar a paz (e recursos valiosos) no inimigo, Reduzindo 3 PA em uma linha de 2 à sua frente
+ Missão de Paz - A DIPSP conduz uma operação humanitária para proteger a população local de seus próprios recursos naturais. A cada turno, escolha até 2 cartas inimigas em alcance médio à frente, à esquerda ou à direita da carta. Os alvos atingidos perdem 3 de PA.
  
 * Arte:
  <img alt="image" src="Artes/AgenteDIPSP.png
 
 
 ### 1x carta lendária - RaspClay MonteCorp
-* Descrição: Raspclay trocou seu antigo nome pelo topo dos arranha-céus de NeoFloripa. Atualmente comanda a irreverente e opressora empresa de tecnologia, serviços, segurança privada e propaganda Raspcorp. Após comprar todos os setores da sociedade, seus advogados passaram a afirmar que a palavra "monopólio" carrega uma conotação desnecessariamente negativa.
+* Descrição: Raspclay trocou seu antigo nome pelo topo dos arranha-céus de Floripa. Atualmente, comanda a irreverente e opressora empresa de tecnologia, serviços, segurança privada e propaganda Raspcorp. Após comprar todos os setores da sociedade, seus advogados passaram a afirmar que a palavra "monopólio" carrega uma conotação desnecessariamente negativa.
 
 * PA: 10
 * Efeito:
+
+ Potencialização de Capital -> Escolha até 3 cartas aliadas de nível baixo ou médio em campo. RaspClay absorve a produtividade delas, removendo-as do campo e aumentando seu PA pela soma dos seus valores de PA.
+ 
 * Arte:
  <img alt="image" src="Artes/RaspClay_MonteCorp.png" />
 
@@ -97,14 +110,13 @@
 ### 2x carta de efeito 1 -> Sugestão Algorítmica 
 
 * Descrição: Após analisar seu histórico de compras, pesquisas e sonhos recorrentes, o algoritmo preparou uma sugestão especialmente para você. Foi você que aceitou todos os cookies...
-* PA:
 * Efeito:
 * Arte:
  <img alt="image" src="Artes/Sugestão_algoritmica.png" />
 
 ### 1x carta de terreno 1 -> Torre Montecorp
 
-* Descrição: Com mais de quatro quilômetros de altura, a Torre MonteCorp permanece como um lembrete constante de que, se a Raspcorp quisesse conquistar os céus, provavelmente encontraria uma forma de monetizá-los.
+* Descrição: Recriada no mundo virtual com mais de quatro quilômetros de altura, a Torre MonteCorp permanece como um lembrete constante de que, se a Raspcorp quisesse conquistar os céus, provavelmente encontraria uma forma de monetizá-los.
 * PA:
 * Efeito:
 * Arte:
@@ -120,7 +132,7 @@
 
 ### 1x carta de terreno 3 -> Nexus de Dados Global
 
-* Descrição: Responsável pelo processamento de aproximadamente 98% dos dados da humanidade. Os outros 2% permanecem em análise pelo departamento de marketing
+* Descrição: Responsável por armazenar aproximadamente 99% dos dados da humanidade. Sua destruição foi comparada à queima da Biblioteca de Alexandria, caso ela armazenasse apenas informações pessoais obtidas por meios semilegais. Ainda bem que tudo é salvo na nuvem atualmente.
 * PA:
 * Efeito:
 * Arte:
