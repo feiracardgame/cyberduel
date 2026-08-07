@@ -160,7 +160,7 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 * Efeito:
 * Visual:
 
-### 2x carta baixa 3 -> O Meca Camaleão
+### 2x carta baixa 3 -> 
 
 * Descrição:
 * PA:
@@ -205,7 +205,7 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 * Visual:
 
 
-### 2x carta de efeito 1
+### 2x carta de efeito 1 -> Hack
 
 * Descrição:
 * PA:
@@ -220,7 +220,7 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 * Visual:
 
   
-#### 1x carta de efeito 3
+#### 1x carta de efeito 3 -> 
 
 * Descrição:
 * PA:
@@ -228,7 +228,7 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 * Visual:
 
 
-### 1x carta de terreno 1
+### 1x carta de terreno 1 ->  O Esconderijo do Meca Camaleão
 
 * Descrição:
 * PA:
