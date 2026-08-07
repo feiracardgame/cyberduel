@@ -14,7 +14,7 @@ Venda Casada → Ao ser colocado em campo, o CyberVendedor faz questão de garan
 
  
 * Arte:
- <img alt="image" src="Artes/CyberVendedor_Da_RaspCorp.png" />
+ <img alt="image" src="assets/cartas/CyberVendedor_Da_RaspCorp.png" />
 
 
 
@@ -29,7 +29,7 @@ Aprendizado Supervisionado → Depois de milhões de horas marcando "Resposta B"
 * Visual: é um nerdzinho de oculos mexendo no pc, só que a piada é que tem tipo um cartaz de logo da raspcorp dizendo "RaspCorp - Investindo no futuro da humanidade"
  
 
-* <img width="220" height="219" alt="image" src="https://github.com/user-attachments/assets/9c51381e-5ba5-4374-897b-fd0cf345e951" />
+* <img width="220" height="219" alt="image" src="assets/cartas/EstagiarioMachineLearning.png" />
 
 
 ### 2x carta baixa 3 - NeoAnalista de Suporte Nível Alpha
@@ -42,7 +42,7 @@ Aprendizado Supervisionado → Depois de milhões de horas marcando "Resposta B"
  SLA de 1º Retorno -> Para cada NeoAnalista de Suporte Nível Alpha em campo, o tempo de turno do oponente é reduzido em 10 segundos, até um mínimo de 20 segundos.
 
 * Arte:
- <img alt="image" src="Artes/NeoAnalista_de_Suporte_Nivel_Alpha.png" />
+ <img alt="image" src="assets/cartas/NeoAnalista_de_Suporte_Nivel_Alpha.png" />
 
 
 ### 2x carta media 1 - Advogado Corporativo
@@ -54,7 +54,7 @@ Aprendizado Supervisionado → Depois de milhões de horas marcando "Resposta B"
 
  
 * Arte:
- <img alt="image" src="Artes/AdvogadoDaRaspCorp.png" />
+ <img alt="image" src="assets/cartas/AdvogadoDaRaspCorp.png" />
 
 
 
@@ -80,7 +80,7 @@ Aprendizado Supervisionado → Depois de milhões de horas marcando "Resposta B"
   Investimento de Alto Risco → Os investimentos finalmente começaram a render. No início de cada turno, o CryptoAcionista tem 20% de chance de ganhar +1 PA.
 
 * Arte:
- <img alt="image" src="Artes/CryptoAcionista.png" />
+ <img alt="image" src="assets/cartas/CryptoAcionista.png" />
 
 
 ### 2x carta alta 2 - Agente da DIPSP
@@ -92,7 +92,7 @@ Aprendizado Supervisionado → Depois de milhões de horas marcando "Resposta B"
  Missão de Paz - A DIPSP conduz uma operação humanitária para proteger a população local de seus próprios recursos naturais. A cada turno, escolha até 2 cartas inimigas em alcance médio à frente, à esquerda ou à direita da carta. Os alvos atingidos perdem 3 de PA.
  
 * Arte:
- <img alt="image" src="Artes/AgenteDIPSP.png
+ <img alt="image" src="assets/cartas/AgenteDIPSP.png" />
 
 
 ### 1x carta lendária - RaspClay MonteCorp
@@ -104,7 +104,7 @@ Aprendizado Supervisionado → Depois de milhões de horas marcando "Resposta B"
  Potencialização de Capital -> Escolha até 3 cartas aliadas de nível baixo ou médio em campo. RaspClay absorve a produtividade delas, removendo-as do campo e aumentando seu PA pela soma dos seus valores de PA.
  
 * Arte:
- <img alt="image" src="Artes/RaspClay_MonteCorp.png" />
+ <img alt="image" src="assets/cartas/RaspClay_MonteCorp.png" />
 
 
 ### 2x carta de efeito 1 -> Sugestão Algorítmica 
@@ -112,7 +112,7 @@ Aprendizado Supervisionado → Depois de milhões de horas marcando "Resposta B"
 * Descrição: Após analisar seu histórico de compras, pesquisas e sonhos recorrentes, o algoritmo preparou uma sugestão especialmente para você. Foi você que aceitou todos os cookies...
 * Efeito:
 * Arte:
- <img alt="image" src="Artes/Sugestão_algoritmica.png" />
+ <img alt="image" src="assets/cartas/Sugestão_algoritmica.png" />
 
 ### 1x carta de terreno 1 -> Torre Montecorp
 
@@ -120,7 +120,7 @@ Aprendizado Supervisionado → Depois de milhões de horas marcando "Resposta B"
 * PA:
 * Efeito:
 * Arte:
- <img alt="image" src="Artes/Torre_MonteCorp.png" />
+ <img alt="image" src="assets/cartas/Torre_MonteCorp.png" />
 
 #### 1x carta de terreno 2 - Beira-mar norte de NeoFloripa
 
@@ -128,7 +128,7 @@ Aprendizado Supervisionado → Depois de milhões de horas marcando "Resposta B"
 * PA:
 * Efeito:
 * Arte:
- <img alt="image" src="Artes/Beiramar_Neofloripa.png" />
+ <img alt="image" src="assets/cartas/Beiramar_Neofloripa.png" />
 
 ### 1x carta de terreno 3 -> Nexus de Dados Global
 
@@ -136,7 +136,7 @@ Aprendizado Supervisionado → Depois de milhões de horas marcando "Resposta B"
 * PA:
 * Efeito:
 * Arte:
- <img alt="image" src="Artes/NexusNeoFloripa.png" />
+ <img alt="image" src="assets/cartas/NexusNeoFloripa.png" />
 
 ---
 
@@ -426,7 +426,6 @@ Humberto vai ser o HUMBA BRAIN, que nem o Angstrom de invencível, o criador dos
 * Efeito:
 * Visual:  Faz um cara completamente normal dentro de um servidor super futurista cheio de neon mexendo num ar-condicionado, sistema de refrigeração ou qualquer coisa assim:
 
-<img width="860" height="410" alt="image" src="https://github.com/user-attachments/assets/797c01b4-4e10-413e-b8e8-3ac6aecd811e" />
 
 
 
@@ -439,7 +438,6 @@ Humberto vai ser o HUMBA BRAIN, que nem o Angstrom de invencível, o criador dos
 * Efeito:
 * Visual: Faz só um cara completamente normal dentro de um servidor super futurista cheio de neon mexendo em um cabo nessa vibe aqui:
 
-<img width="1470" height="980" alt="image" src="https://github.com/user-attachments/assets/b4f3487c-b639-4831-8580-83debe47faca" />
 
 
 
@@ -505,5 +503,3 @@ Humberto vai ser o HUMBA BRAIN, que nem o Angstrom de invencível, o criador dos
 * Energia:
 * Efeito:
 * Visual
-
-
