@@ -70,7 +70,7 @@ A EchoSsystem é formada por mercenários anarquistas que acreditam que NeoFlori
 
 Na luta contra esse domínio, seus membros substituem partes do próprio corpo por implantes cibernéticos. Cada prótese representa mais do que uma melhoria física: é uma rejeição consciente às limitações impostas por um sistema construído para manter seus opositores sempre em desvantagem. Se as corporações usam tecnologia para controlar a população, a EchoSsystem acredita que a única resposta possível é usar tecnologia para enfrentá-las.
 
-Ao ingressar na organização, cada integrante abandona definitivamente seu antigo nome e adota o de um animal que represente sua aparência, personalidade ou forma de lutar. A identidade anterior é considerada apenas mais uma etiqueta produzida pela sociedade que desejam destruir. O bando vem antes do indivíduo.
+Ao ingressar na organização, cada integrante abandona definitivamente seu antigo nome e adota o de um animal que represente sua aparência, personalidade ou forma de lutar. A identidade anterior é considerada apenas mais uma etiqueta produzida pela sociedade que desejam destruir. O bando vem antes do indivíduo. Os 12 membros originais optaram por escolher os 12 animais do horóscopo chinês, para simbolizar o novo começo que viria após a destruição.
 
 Apesar da fama de anarquistas, a EchoSsystem está longe de ser desorganizada. Seu código interno é rígido, sua hierarquia é respeitada e seus membros seguem regras que poucos ousam questionar. Eles não lutam pelo caos em si, mas pela destruição de uma ordem que acreditam ser irreformável, para que seus próprios habitantes possam construir outra em seu lugar.
 
