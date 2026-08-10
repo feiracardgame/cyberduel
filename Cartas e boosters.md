@@ -220,7 +220,7 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 * Visual:
 
   
-#### 1x carta de efeito 3 -> A travessura do Macaco
+#### 1x carta de efeito 3 -> A Travessura do Macaco
 
 * Descrição:
 * PA:
