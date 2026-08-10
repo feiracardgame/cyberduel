@@ -153,35 +153,35 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 * PA:
 * Efeito:
 * Visual:
-### 2x carta baixa 2 -> A Vespa
+### 2x carta baixa 2 -> O Porco
 
 * Descrição:
 * PA:
 * Efeito:
 * Visual:
 
-### 2x carta baixa 3 -> 
+### 2x carta baixa 3 -> O Cão
 
 * Descrição:
 * PA:
 * Efeito:
 * Visual:
 
-### 2x carta media 1 -> A Coruja
-
-* Descrição:
-* PA:
-* Efeito:
-* Visual:
-* 
-### 2x carta media 2 -> A Serpente
+### 2x carta media 1 -> A Cabra
 
 * Descrição:
 * PA:
 * Efeito:
 * Visual:
 * 
-### 2x carta alta 1 -> O Lobo
+### 2x carta media 2 -> A Cobra
+
+* Descrição:
+* PA:
+* Efeito:
+* Visual:
+* 
+### 2x carta alta 1 -> O Tigre
 
 * Descrição:
 * PA:
@@ -205,14 +205,14 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 * Visual:
 
 
-### 2x carta de efeito 1 -> Hack
+### 2x carta de efeito 1 -> O Trotar do Cavalo
 
 * Descrição:
 * PA:
 * Efeito:
 * Visual:
 
-### 2x carta de efeito 2
+### 2x carta de efeito 2 -> O Canto do Galo
 
 * Descrição:
 * PA:
@@ -220,7 +220,7 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 * Visual:
 
   
-#### 1x carta de efeito 3 -> 
+#### 1x carta de efeito 3 -> A Travessura do Macaco
 
 * Descrição:
 * PA:
@@ -228,7 +228,7 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 * Visual:
 
 
-### 1x carta de terreno 1 ->  O Esconderijo do Meca Camaleão
+### 1x carta de terreno 1 ->  A Toca do Coelho
 
 * Descrição:
 * PA:
