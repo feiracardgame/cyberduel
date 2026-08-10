@@ -94,7 +94,7 @@ const POOL_CARTAS_MONSTRO = [
     foco: { x: 0.5, y: 0.15 },
     efeitoTurno: {
       tipo: TIPOS_EFEITO_TURNO.CHANCE_GANHAR_PODER,
-      chance: 0.2,
+      chance: 0.5,
       valor: 1,
     },
   },

@@ -150,12 +150,16 @@ class Partida {
     this.inimigo.deck.embaralhar();
 
     // Compra inicial: 5 + 3 cartas adicionais
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 3; i++) {
       this.jogador.comprarCarta();
       this.inimigo.comprarCarta();
     }
 
     this.turno = 1;
+    // Duração fixa da partida: o combate só é resolvido depois que esse
+    // turno é fechado (ver fimTurno / partidaEncerrada).
+    this.maxTurnos = 7;
+    this.partidaEncerrada = false;
     this.cartaSelecionada = null;
 
     // Cartas afetadas por efeitos de turno (ex: CryptoAcionistas) no
@@ -239,18 +243,41 @@ class Partida {
     return afetadas;
   }
 
+  // Fecha o turno atual. O combate só é calculado (resolverCombate) quando
+  // o turno que está sendo fechado é o último (this.turno === this.maxTurnos);
+  // nos turnos anteriores só a IA joga e os efeitos de turno são resolvidos,
+  // sem ninguém "vencer" ainda. Depois do 7º turno a partida trava
+  // (this.partidaEncerrada = true) e fimTurno() não faz mais nada.
   fimTurno() {
+    if (this.partidaEncerrada) {
+      return { resultadoCombate: null, fimDeJogo: true };
+    }
+
     this.turnoIA();
     // Cartas que a IA acabou de jogar neste turno também entram no sorteio
     // de efeitos de turno abaixo (mesma regra pro jogador e pro inimigo).
     this.efeitosDeTurno = this.resolverEfeitosDeTurno();
-    const resultadoCombate = this.resolverCombate();
-    this.turno++;
-    this.jogador.deck.embaralhar();
-    this.inimigo.deck.embaralhar();
-    this.jogador.comprarCarta();
-    this.inimigo.comprarCarta();
-    return resultadoCombate;
+
+    const eraUltimoTurno = this.turno >= this.maxTurnos;
+    let resultadoCombate = null;
+
+    if (eraUltimoTurno) {
+      // Combate só é resolvido aqui, no fechamento do último turno.
+      resultadoCombate = this.resolverCombate();
+      this.partidaEncerrada = true;
+    } else {
+      this.turno++;
+      this.jogador.deck.embaralhar();
+      this.inimigo.deck.embaralhar();
+      for (let i = 0; i < 2; i++) {
+        this.jogador.comprarCarta();
+        this.inimigo.comprarCarta();
+      }
+    }
+
+    // fimDeJogo avisa a cena que é hora de mostrar a tela de
+    // VOCÊ VENCEU / VOCÊ PERDEU em vez do fluxo normal de próximo turno.
+    return { resultadoCombate, fimDeJogo: eraUltimoTurno };
   }
 
   // Percorre o campo dos dois jogadores e reavalia o efeitoTurno de cada
@@ -320,6 +347,19 @@ class Partida {
     return total;
   }
 
+  // Retorna a carta com maior poder (PA) presente num campo, ou null se
+  // o campo estiver vazio. Usada pela tela de fim de jogo para mostrar a
+  // carta "MVP" embaixo do texto de VOCÊ VENCEU / VOCÊ PERDEU.
+  obterCartaComMaiorPoder(campo) {
+    let maior = null;
+    for (const carta of campo.cartas) {
+      if (carta && (!maior || carta.poder > maior.poder)) {
+        maior = carta;
+      }
+    }
+    return maior;
+  }
+
   resolverCombate() {
     let poderJogador = this.calcularPoderTotal(this.jogador.campo);
     let poderInimigo = this.calcularPoderTotal(this.inimigo.campo);
@@ -335,13 +375,30 @@ class Partida {
       resultado = "empate";
     }
 
+    // Carta de maior poder do lado vencedor, para a tela de fim de jogo.
+    // Em caso de empate, mostra a maior carta entre os dois campos.
+    let cartaDestaque = null;
+    if (resultado === "jogador") {
+      cartaDestaque = this.obterCartaComMaiorPoder(this.jogador.campo);
+    } else if (resultado === "inimigo") {
+      cartaDestaque = this.obterCartaComMaiorPoder(this.inimigo.campo);
+    } else {
+      const maiorJogador = this.obterCartaComMaiorPoder(this.jogador.campo);
+      const maiorInimigo = this.obterCartaComMaiorPoder(this.inimigo.campo);
+      cartaDestaque =
+        maiorJogador &&
+        (!maiorInimigo || maiorJogador.poder >= maiorInimigo.poder)
+          ? maiorJogador
+          : maiorInimigo;
+    }
+
     console.log(
       `Poder Jogador: ${poderJogador} | Poder Inimigo: ${poderInimigo} | Resultado: ${resultado}`,
     );
 
     // Retorna o resultado em vez de só logar, para a cena (jogo.js)
     // poder mostrar feedback visual (texto, flash de câmera etc.)
-    return { poderJogador, poderInimigo, resultado };
+    return { poderJogador, poderInimigo, resultado, cartaDestaque };
   }
 }
 

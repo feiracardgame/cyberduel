@@ -44,11 +44,25 @@ function calcularLayoutCampo(slotW, slotH, gapFileira, gapTimes, yInimigoTras) {
   };
 }
 
-// Layout normal: mão visível embaixo, campo com tamanho padrão.
-const LAYOUT_CAMPO_NORMAL = calcularLayoutCampo(190, 210, 20, 150, 440);
+// Layout normal: mão visível embaixo.
+// Cartas maiores e menor distância entre o campo inimigo e o jogador.
+const LAYOUT_CAMPO_NORMAL = calcularLayoutCampo(
+  195, // slotW: largura da carta
+  255, // slotH: altura da carta
+  12,  // gapFileira: espaço entre as duas fileiras
+  30,  // gapTimes: espaço entre inimigo e jogador
+  440  // yInimigoTras
+);
 
-// Layout ampliado: mão escondida, cartas maiores ocupando o espaço extra.
-const LAYOUT_CAMPO_AMPLIADO = calcularLayoutCampo(210, 275, 24, 180, 650);
+// Layout ampliado: mão escondida.
+// Cartas ainda maiores, aproveitando o espaço liberado pela mão.
+const LAYOUT_CAMPO_AMPLIADO = calcularLayoutCampo(
+  195, // slotW: largura da carta
+  280, // slotH: altura da carta
+  16,  // gapFileira: espaço entre as duas fileiras
+  120, // gapTimes: espaço entre inimigo e jogador
+  505  // yInimigoTras
+);
 
 class CenaJogo extends Phaser.Scene {
   constructor() {
@@ -300,6 +314,7 @@ class CenaJogo extends Phaser.Scene {
     this.desenharStatus();
     this.desenharCampoInimigo();
     this.desenharCampoJogador();
+    this.desenharIndicadoresPoder();
     if (!this.maoEscondida) this.desenharMaoEmLeque();
     this.desenharBotaoPassarTurno();
     this.desenharBotaoToggleMao();
@@ -689,15 +704,18 @@ class CenaJogo extends Phaser.Scene {
 
     let sombra = this.add.rectangle(6, 8, CW, CH, 0x000000, 0.35);
     let brilho = this.add.rectangle(0, -CH / 2 + 3, CW - 10, 4, 0xffffff, 0.35);
-    let nomeCurto = this.truncarTexto(carta.nome, 14);
-    let nomeTexto = this.add
-      .text(0, Math.round(-58 * escala), nomeCurto, {
-        fontSize: `${Math.round(20 * escala)}px`,
-        color: "#fff",
-        align: "center",
-        wordWrap: { width: Math.round(150 * escala) },
-      })
-      .setOrigin(0.5, 0);
+    let nomeTexto = null;
+    if (!carta.imagem) {
+      let nomeCurto = this.truncarTexto(carta.nome, 14);
+      nomeTexto = this.add
+        .text(0, Math.round(-58 * escala), nomeCurto, {
+          fontSize: `${Math.round(20 * escala)}px`,
+          color: "#fff",
+          align: "center",
+          wordWrap: { width: Math.round(150 * escala) },
+        })
+        .setOrigin(0.5, 0);
+    }
 
     const [poderBola, poderTexto] = this.criarSeloEstat(
       0,
@@ -709,7 +727,14 @@ class CenaJogo extends Phaser.Scene {
     let fundo = carta.imagem
       ? this.add.image(0, 0, carta.imagem).setDisplaySize(CW, CH)
       : this.add.rectangle(0, 0, CW, CH, corFundo);
-    const filhos = [sombra, fundo, brilho, nomeTexto, poderBola, poderTexto];
+    const filhos = [
+      sombra,
+      fundo,
+      brilho,
+      nomeTexto,
+      poderBola,
+      poderTexto,
+    ].filter(Boolean);
 
     // Selo indicando que é uma carta de efeito (a passiva já foi
     // disparada ao entrar em campo — este selo é só um lembrete visual)
@@ -785,9 +810,19 @@ class CenaJogo extends Phaser.Scene {
     if (totalCartas === 0) return;
 
     const centroX = GW / 2; // Centro da tela
-    const centroY = 1650; // Altura base da mão
-    const espacamentoX = 105; // Distância horizontal entre cartas
-    const anguloPasso = 7; // Inclinação por carta
+    const centroY = 1650; // Altura base da mão2
+
+    // Espaçamento dinâmico: com poucas cartas, o leque fica bem aberto;
+    // conforme a mão enche, as cartas vão se juntando pra não estourar a
+    // tela (nunca menor que um mínimo, pra continuar dando pra clicar).
+    const espacamentoMax = 105;
+    const espacamentoMin = 44;
+    const espacamentoX =
+      totalCartas <= 6
+        ? espacamentoMax
+        : Math.max(espacamentoMin, espacamentoMax - (totalCartas - 6) * 9);
+
+    const anguloPasso = 1; // Inclinação por carta
     const curvaturaY = 9; // Curvatura da parábola
 
     cartasMao.forEach((carta, indice) => {
@@ -1683,11 +1718,85 @@ class CenaJogo extends Phaser.Scene {
   // ---------- STATUS / UI ----------
 
   desenharStatus() {
-    this.add.text(45, 45, `Turno: ${this.partida.turno}`, {
-      fontSize: "90px",
-      color: "#ffffff",
-    });
+    this.add.text(
+      45,
+      45,
+      `Turno: ${this.partida.turno}/${this.partida.maxTurnos}`,
+      {
+        fontSize: "90px",
+        color: "#ffffff",
+      },
+    );
     this.desenharBotaoHistorico();
+  }
+
+  // Dois ícones de "poder total" (soma do poder de todas as cartas em
+  // campo), um pro oponente (topo, lado direito) e um pro jogador
+  // (embaixo, lado direito). O tamanho de cada ícone é relativo ao do
+  // outro: quem tem mais poder no campo fica com o ícone maior, quem tem
+  // menos fica com o ícone menor — dá pra ver de relance quem tá na
+  // frente sem precisar somar nada na mão.
+  desenharIndicadoresPoder() {
+    const L = this.layout;
+    const poderJogador = this.partida.calcularPoderTotal(
+      this.partida.jogador.campo,
+    );
+    const poderInimigo = this.partida.calcularPoderTotal(
+      this.partida.inimigo.campo,
+    );
+
+    const TAM_MIN = 46;
+    const TAM_MAX = 116;
+    const total = poderJogador + poderInimigo;
+    let tamJogador = 80;
+    let tamInimigo = 80;
+    if (total > 0) {
+      tamJogador = Phaser.Math.Linear(TAM_MIN, TAM_MAX, poderJogador / total);
+      tamInimigo = Phaser.Math.Linear(TAM_MIN, TAM_MAX, poderInimigo / total);
+    }
+
+    // Lado do oponente: no canto superior direito, acima do campo dele.
+    this.criarIndicadorPoder(GW - 90, 210, poderInimigo, tamInimigo, "#ff6666");
+
+    // Lado do jogador: perto de você, também na direita, entre o campo e
+    // a mão (ou perto do rodapé, se a mão estiver escondida).
+    const yJogadorIcone = L.yJogadorTras + L.slotH / 2 + 100;
+    this.criarIndicadorPoder(
+      GW - 90,
+      yJogadorIcone,
+      poderJogador,
+      tamJogador,
+      "#66ff88",
+    );
+  }
+
+  // Ícone individual: um selo com "⚔" (representando o poder somado) e o
+  // número embaixo, entrando com fade + pop.
+  criarIndicadorPoder(x, y, valor, tamanho, cor) {
+    let fundo = this.add
+      .circle(0, 0, tamanho / 2, 0xffffff, 0.55)
+      .setStrokeStyle(4, cor);
+    let icone = this.add
+      .text(0, -6, "⚔", {
+        fontSize: `${Math.round(tamanho * 0.6)}px`,
+      })
+      .setOrigin(0.5);
+    let numero = this.add
+      .text(0, tamanho / 2 + 24, `${valor}`, {
+        fontSize: "30px",
+        color: cor,
+        fontStyle: "bold",
+      })
+      .setOrigin(0.5);
+
+    let container = this.add.container(x, y, [fundo, icone, numero]);
+    container.setScale(0);
+    this.tweens.add({
+      targets: container,
+      scale: 1,
+      duration: 320,
+      ease: "Back.Out",
+    });
   }
 
   // Botão que abre o modal com o histórico de cartas jogadas na partida.
@@ -1822,7 +1931,7 @@ class CenaJogo extends Phaser.Scene {
         yoyo: true,
         ease: "Sine.easeInOut",
         onComplete: () => {
-          const resultado = this.partida.fimTurno();
+          const { resultadoCombate, fimDeJogo } = this.partida.fimTurno();
           const efeitoInimigo = this.partida.efeitoInimigoTurno;
           const efeitosDeTurno = this.partida.efeitosDeTurno;
 
@@ -1832,8 +1941,15 @@ class CenaJogo extends Phaser.Scene {
               this.animarCartasAfetadas(efeitoInimigo.afetadas);
             }
             this.animarCartasAfetadas(efeitosDeTurno);
-            this.mostrarResultadoCombate(resultado);
-            this.travado = false;
+
+            if (fimDeJogo) {
+              // Combate só é revelado agora, no fechamento do último
+              // turno — this.travado continua true de propósito, pra
+              // travar a interação depois que a partida acaba.
+              this.mostrarTelaFimDeJogo(resultadoCombate);
+            } else {
+              this.travado = false;
+            }
           };
 
           if (efeitoInimigo) {
@@ -1849,65 +1965,139 @@ class CenaJogo extends Phaser.Scene {
     });
   }
 
-  // Feedback visual do resultado da rodada: flash de câmera (nativo do
-  // Phaser, sem asset nenhum) + texto flutuante que some sozinho.
-  mostrarResultadoCombate(resultado) {
-    const config = {
-      jogador: {
-        cor: [0, 255, 136],
-        texto: "Você venceu a rodada!",
-        corTexto: "#00ff88",
-      },
-      inimigo: {
-        cor: [255, 68, 68],
-        texto: "O inimigo venceu a rodada!",
-        corTexto: "#ff4444",
-      },
-      empate: {
-        cor: [200, 200, 200],
-        texto: "Rodada empatada!",
-        corTexto: "#ffffff",
-      },
-    };
-    const info = config[resultado.resultado];
+  // Tela final da partida (chamada só uma vez, ao fechar o 7º turno):
+  // fundo desfocado + camada verde/vermelha translúcida cobrindo a tela,
+  // texto gigante "VOCÊ VENCEU"/"VOCÊ PERDEU" (verde ou vermelho, com
+  // traçado branco) e, embaixo, a carta de maior poder (PA) do lado
+  // vencedor. Não é mais destruída/redesenhada por desenharInterface(),
+  // já que a partida acaba aqui — fica por cima de tudo até o jogador
+  // recarregar a página.
+  mostrarTelaFimDeJogo(resultadoCombate) {
+    if (!resultadoCombate) return;
 
-    this.cameras.main.flash(400, info.cor[0], info.cor[1], info.cor[2]);
+    const vitoria = resultadoCombate.resultado === "jogador";
+    const derrota = resultadoCombate.resultado === "inimigo";
 
-    let texto = this.add
-      .text(GW / 2, 750, info.texto, {
-        fontSize: "44px",
-        color: info.corTexto,
+    const corFundo = vitoria ? 0x1fd67a : derrota ? 0xff3b3b : 0xbbbbbb;
+    const corTexto = vitoria ? "#1fd67a" : derrota ? "#ff3b3b" : "#eeeeee";
+    const textoPrincipal = vitoria
+      ? "VOCÊ VENCEU"
+      : derrota
+        ? "VOCÊ PERDEU"
+        : "EMPATE";
+
+    this.cameras.main.flash(
+      400,
+      vitoria ? 0 : 255,
+      vitoria ? 255 : derrota ? 59 : 200,
+      vitoria ? 136 : derrota ? 59 : 200,
+    );
+
+    // Desfoca o campo de batalha por trás do overlay. postFX.addBlur só
+    // existe em Phaser 3.60+ rodando em WebGL; se não estiver disponível
+    // (ex: fallback Canvas), a tela de fim de jogo continua funcionando
+    // normalmente, só sem o desfoque.
+    if (this.cameras.main.postFX && this.cameras.main.postFX.addBlur) {
+      this.cameras.main.postFX.addBlur(0, 2, 2, 0.15, 0xffffff, 6);
+    }
+
+    // Camada escura por baixo da cor, pra garantir contraste do texto
+    // não importa o fundo do campo naquele momento.
+    let escurecido = this.add.rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.55);
+    escurecido.setDepth(5000);
+
+    // Camada colorida translúcida (verde na vitória, vermelha na derrota)
+    let corCamada = this.add.rectangle(GW / 2, GH / 2, GW, GH, corFundo, 0.22);
+    corCamada.setDepth(5001);
+
+    const filhos = [];
+
+    let textoGrande = this.add
+      .text(0, -140, textoPrincipal, {
+        fontSize: "126px",
         fontStyle: "bold",
+        color: corTexto,
+        stroke: "#ffffff",
+        strokeThickness: 16,
         align: "center",
-        wordWrap: { width: 850 },
       })
-      .setOrigin(0.5)
-      .setDepth(3000)
-      .setAlpha(0);
+      .setOrigin(0.5);
+    filhos.push(textoGrande);
 
-    this.textoResultadoAtual = texto;
+    // Carta de maior PA do lado vencedor, embaixo do texto
+    const cartaDestaque = resultadoCombate.cartaDestaque;
+    if (cartaDestaque) {
+      const corFundoCarta = this.obterCorPorId(cartaDestaque.id);
+      const CW = 320;
+      const CH = 448;
+
+      let sombraCarta = this.add.rectangle(8, 10, CW, CH, 0x000000, 0.45);
+      let fundoCarta = cartaDestaque.imagem
+        ? this.add.image(0, 0, cartaDestaque.imagem).setDisplaySize(CW, CH)
+        : this.add.rectangle(0, 0, CW, CH, corFundoCarta);
+      let bordaCarta = this.add
+        .rectangle(0, 0, CW, CH)
+        .setStrokeStyle(7, 0xffffff);
+      let nomeCarta = this.add
+        .text(0, -CH / 2 + 30, this.truncarTexto(cartaDestaque.nome, 16), {
+          fontSize: "30px",
+          color: "#ffffff",
+          fontStyle: "bold",
+          align: "center",
+          wordWrap: { width: CW - 30 },
+        })
+        .setOrigin(0.5, 0);
+      const [poderBola, poderTexto] = this.criarSeloEstat(
+        0,
+        CH / 2 - 46,
+        cartaDestaque.poder,
+        "#ff5555",
+        36,
+      );
+
+      let containerCarta = this.add.container(0, 300, [
+        sombraCarta,
+        fundoCarta,
+        bordaCarta,
+        nomeCarta,
+        poderBola,
+        poderTexto,
+      ]);
+      filhos.push(containerCarta);
+    }
+
+    let subtitulo = this.add
+      .text(
+        0,
+        cartaDestaque ? 570 : 120,
+        `Poder final — Você: ${resultadoCombate.poderJogador}  ×  Inimigo: ${resultadoCombate.poderInimigo}`,
+        {
+          fontSize: "34px",
+          color: "#ffffff",
+          fontStyle: "bold",
+          stroke: "#000000",
+          strokeThickness: 6,
+          align: "center",
+        },
+      )
+      .setOrigin(0.5);
+    filhos.push(subtitulo);
+
+    // GH / 2 - 220: sobe o conjunto (texto + carta + subtítulo) em
+    // relação ao centro da tela. Aumenta esse valor pra subir mais,
+    // diminui (ou zera) pra centralizar de novo.
+    let container = this.add.container(GW / 2, GH / 2 - 220, filhos);
+    container.setDepth(5002);
+    container.setScale(0.7);
+    container.setAlpha(0);
 
     this.tweens.add({
-      targets: texto,
+      targets: container,
+      scale: 1,
       alpha: 1,
-      y: 660,
-      duration: 300,
+      duration: 500,
+      delay: 150,
       ease: "Back.Out",
-      onComplete: () => {
-        this.tweens.add({
-          targets: texto,
-          alpha: 0,
-          y: 570,
-          delay: 700,
-          duration: 400,
-          onComplete: () => {
-            texto.destroy();
-            if (this.textoResultadoAtual === texto) {
-              this.textoResultadoAtual = null;
-            }
-          },
-        });
-      },
     });
   }
 }
