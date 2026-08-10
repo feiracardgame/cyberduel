@@ -164,7 +164,7 @@ O resto dele é livre para escolha.
 Regras:
 
 - As partidas serão realizadas na configuração 1x1, nos jogadores A e B.
-- Na primeira rodada, o jogador puxará 6 cartas do baralho de 20 cartas. A cada rodada, serão puxadas 3 cartas. O jogo poderá ter no total, 7 rodadas.
+- Na primeira rodada, o jogador puxará 3 cartas do baralho de 20 cartas. A cada rodada, serão puxadas 2 cartas. O jogo poderá ter no total, 7 rodadas.
 - O jogador pode devolver e recomprar até 2 cartas do baralho por rodada
 - Uma rodada consiste no turno de jogador A e no turno do jogador B.
 - O turno do jogador acaba quando ele aperta o botão de passar turno ou quando estourar o tempo limite de 1 minuto para fazer sua jogada.
@@ -308,5 +308,5 @@ As fontes de receita seriam primariamente:
 - Ace attorney
 - Star Wars
 - Cowboy Bebop
-
+-> O visual deste jogo foi feito com auxílio de IA
 
