@@ -24,8 +24,9 @@ Venda Casada → Ao ser colocado em campo, o CyberVendedor faz questão de garan
 * PA: 2
 * Efeito:
 
-Aprendizado Supervisionado → Depois de milhões de horas marcando "Resposta B" como ligeiramente melhor que a "Resposta A", as IAs finalmente entenderam a humanidade. Escolha duas cartas da HumbaNet para ganharem +2 PA.
- 
+Machine learning -> Escolha uma carta aliada. Ela recebe +2 PA. O Estagiário perde 1 PA.
+
+
 * Visual: é um nerdzinho de oculos mexendo no pc, só que a piada é que tem tipo um cartaz de logo da raspcorp dizendo "RaspCorp - Investindo no futuro da humanidade"
  
 
@@ -63,7 +64,7 @@ Aprendizado Supervisionado → Depois de milhões de horas marcando "Resposta B"
 * PA: 5
 * Efeito:
 
-* Reestruturação Interna → A empresa agradece pelos anos de dedicação do colaborador e informa que sua vaga continuará existindo, porém com salário menor. Escolha uma carta aliada para perder 2 PA. Outra carta aliada ganha 4 PA.
+* Reestruturação Interna → A empresa agradece pelos anos de dedicação do colaborador e informa que sua vaga continuará existindo, porém com salário menor. Escolha uma carta aliada para perder 2 PA. Outra carta aliada ganha 3 PA.
 
  
 * Visual: -> eu não faço a mínima ideia de como representar isso visualmente, essa aqui vc vai ter que se virar.
@@ -77,7 +78,7 @@ Aprendizado Supervisionado → Depois de milhões de horas marcando "Resposta B"
 * PA: 6
 * Efeito:
 * 
-  Investimento de Alto Risco → Os investimentos finalmente começaram a render. No início de cada turno, o CryptoAcionista tem 20% de chance de ganhar +1 PA.
+  Investimento de Alto Risco → Os investimentos finalmente começaram a render. No início de cada turno, o CryptoAcionista tem 50% de chance de ganhar +1 PA.
 
 * Arte:
  <img alt="image" src="assets/cartas/CryptoAcionista.png" />
@@ -89,7 +90,7 @@ Aprendizado Supervisionado → Depois de milhões de horas marcando "Resposta B"
 * PA: 9
 * Efeito:
 
- Missão de Paz - A DIPSP conduz uma operação humanitária para proteger a população local de seus próprios recursos naturais. A cada turno, escolha até 2 cartas inimigas em alcance médio à frente, à esquerda ou à direita da carta. Os alvos atingidos perdem 3 de PA.
+ Missão de Paz - A DIPSP conduz uma operação humanitária para proteger a população local de seus próprios recursos naturais. A cada turno, escolha até 2 cartas inimigas até alcance longo à frente ou adjacente. Os alvos atingidos perdem 3 de PA.
  
 * Arte:
  <img alt="image" src="assets/cartas/AgenteDIPSP.png" />
@@ -114,7 +115,7 @@ Aprendizado Supervisionado → Depois de milhões de horas marcando "Resposta B"
 * Arte:
  <img alt="image" src="assets/cartas/Sugestão_algoritmica.png" />
 
-### 1x carta de terreno 1 -> Torre Montecorp
+### 1x carta de terreno 1 -> Torre MonteCorp
 
 * Descrição: Recriada no mundo virtual com mais de quatro quilômetros de altura, a Torre MonteCorp permanece como um lembrete constante de que, se a Raspcorp quisesse conquistar os céus, provavelmente encontraria uma forma de monetizá-los.
 * Efeito:
@@ -129,7 +130,7 @@ Jogando em casa -> O ambiente de trabalho competitivo e supostamente confortáve
 * Descrição: Depois que a verdadeira Floripa sucumbiu ao aumento do nível do mar, os nostálgicos decidiram recriá-la no mundo virtual. Ironicamente, continua sendo o jeito mais acessível de morar na ilha.
 * Efeito:
 
-Rolê na Beira-Mar → A ida à beira-mar é um momento de descanso para as classes baixas, que finalmente podem contemplar a vista dos apartamentos que jamais conseguirão financiar. As cartas do Sindicato recebem +3 PA.
+Rolê na Beira-Mar: A ida à Beira-Mar é um momento de descanso no meio desse mundo louco. Enquanto este terreno estiver em campo, toda carta aliada que tiver sofrido dano recupera 1 PA ao final de cada turno.
 
 * Arte:
  <img alt="image" src="assets/cartas/Beiramar_Neofloripa.png" />
@@ -149,57 +150,93 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
 ### 2x carta baixa 1 -> O Rato
 
-* Descrição:
-* PA:
-* Efeito:
-* Visual:
-### 2x carta baixa 2 -> O Porco
+* Descrição: O Rato é o membro mais jovem da EchoSsystem. Sua habilidade de infiltração é tão impressionante que poucos acreditam que ele de fato exista. O mesmo não pode ser dito sobre as piadas envolvendo seu nome, que aparecem em praticamente todas as reuniões do grupo.
+* PA: 1
+* Efeito: Mãos Leves → Escolha, a cada turno, uma carta inimiga em qualquer lugar do campo. O Rato rouba 1 PA dela, adicionando esse valor ao seu próprio PA.
 
-* Descrição:
-* PA:
-* Efeito:
+* Visual: -> Faz algo na vibe de um Cyber Ladino, e faz nele a ideia de um cara se camuflando/ficando invisível
+
+  <img width="646" height="800" alt="image" src="https://github.com/user-attachments/assets/abe6f7ec-1313-4de9-932c-97b7e167c445" />
+
+só que claramente da de ver que é tipo um mlk aleatorio jovem de bigode, tipo o Campos Neto
+
+### 2x carta baixa 2 -> A Cabra
+
+* Descrição: A Cabra era ginasta olímpica antes da humanidade decidir que esportes tradicionais deixaram de ser uma profissão. Hoje, ela continua escalando estruturas gigantescas, mas finalmente encontrou um público que realmente valoriza seu trabalho: a equipe de segurança do último andar da torre MonteCorp.
+* PA: 3
+* Efeito: Escalada -> A Cabra, devido à sua alta mobilidade, pode, a cada turno, reposicionar-se no campo aliado, trocando de lugar com outra carta ou espaço livre disponível.
 * Visual:
+
+Faz tipo a Jewel da Marvel, só que mais cyberpunk e mete umas prótese de perna com detalhe vermelho nela
+
+<img width="250" height="287" alt="image" src="https://github.com/user-attachments/assets/79259985-8ea7-48ed-ad9a-7dfe7a93f410" />
+
 
 ### 2x carta baixa 3 -> O Cão
 
-* Descrição:
-* PA:
-* Efeito:
+* Descrição: Descrição: Antes mesmo de entrar para o grupo anarquista, o Cão já era um mercenário especializado em rastrear alvos. Seus implantes cibernéticos de olfato permitem encontrar praticamente qualquer pessoa pelo menor dos rastros. O único problema é que a idade já está afetando seus sentidos: recentemente, ele passou três horas seguindo o próprio cheiro.
+* PA: 3
+* Efeito: Faro -> O Cão consegue rastrear o cheiro do inimigo, apesar de não tão bem quanto sua época. Ao ser invocado, o Cão te informa de até 3 cartas que o inimigo tenha na mão ou no baralho.
 * Visual:
 
-### 2x carta media 1 -> A Cabra
+Faz um detetive noir com uns implantes tipo assim só que preto com vermelho e ele tem que ser velho
 
-* Descrição:
-* PA:
-* Efeito:
-* Visual:
-* 
+<img width="450" height="500" alt="image" src="https://github.com/user-attachments/assets/b3658a75-e25f-4c6c-a9c9-e14bb6cc9a49" />
+
+
+### 2x carta media 1 -> O porco
+
+* Descrição: O Porco acredita que nenhum trabalho é nojento demais. Entre esgotos, lixões industriais e montanhas de sucata, tornou-se especialista em encontrar recursos onde ninguém mais pisaria. Anos de exposição aos ambientes mais inóspitos de NeoFloripa fizeram seu corpo desenvolver uma resistência impressionante. Felizmente, o olfato também foi perdido no processo.
+* PA: 6
+* Efeito: Casca Grossa → Os PA do Porco não podem ser reduzidos por efeitos de outras cartas.
+
+* Visual: Faz tipo o RoadHog, só que cyberpunk. Ele tem que ter uma armadura metálica, brilho em vermelho. etc.
+* <img width="1200" height="1239" alt="image" src="https://github.com/user-attachments/assets/06c690ce-5e1a-4a22-9c06-aa3a293c6918" />
+
+
 ### 2x carta media 2 -> A Cobra
 
-* Descrição:
-* PA:
-* Efeito:
-* Visual:
+* Descrição: A Cobra é uma lendária produtora de venenos que nunca perguntou quem era o cliente, desde que ele pagasse o suficiente. Quando seus próprios compradores decidiram eliminá-la, ela finalmente percebeu que talvez fosse hora de escolher melhor seus parceiros. Agora, ao lado da EchoSsystem, pretende fazer cada um deles provar do próprio veneno.
+ 
+* PA: 4
+* Efeito: Dose Letal → A Cobra injeta uma de suas substâncias em um inimigo em alcance curto à sua frente ou em um espaço adjacente. O inimigo perde 1 PA por turno enquanto estiver envenenado.
+
+ 
+* Visual: Ela é pique a Viper de Valorant, basicamente, só que vermelha. 
+
+* <img width="2048" height="1860" alt="image" src="https://github.com/user-attachments/assets/d0b4b90c-7ebb-4008-b272-c3edcbbe1bcd" />
+
+
+
 * 
 ### 2x carta alta 1 -> O Tigre
 
-* Descrição:
-* PA:
-* Efeito:
-* Visual:
+* Descrição: Repleto de orgulho, o Tigre era o campeão das arenas ilegais do antigo mundo e, nas horas vagas, um mercenário. Quando o velho mundo começou a ser destruído, perdeu sua principal fonte de renda e, principalmente, seu público. Agora, encontrou na EchoSsystem a oportunidade perfeita para construir um novo mundo onde todos possam finalmente reconhecer sua superioridade.
+
+ 
+* PA: 8
+* Efeito: Garra de aço -> O Tigre é um mestre de combate corpo a corpo. Escolha qualquer carta de alcance curto, o Tigre reduz seus PA em 3.
+
+ 
+* Visual: Faz tipo o wolverine vermelho com umas garras cibernéticas bem longas
+
+<img width="1600" height="900" alt="image" src="https://github.com/user-attachments/assets/0a2301cf-0309-415a-919f-79c5faa8b660" />
+
 
 
 ### 1x carta alta 2 -> A Aranha
 
-* Descrição:
-* PA:
-* Efeito:
-* Visual:
+* Descrição: A Aranha é filha do finado fundador da EchoSsystem, “O Dragão”. Proibida pelo pai de participar das missões, foi treinada para invadir sistemas e fornecer suporte tecnológico. Agora, em um mundo virtual, estar atrás de uma tela significa estar em todos os lugares ao mesmo tempo.
+* PA: 5
+* Efeito: Override -> Escolha uma carta inimiga com PA atual menor que os da Aranha. A carta passa a contar pontos para sua equipe. Este efeito não pode ser mantido em duas cartas simultaneamente.
+
+ 
+* Visual: -> já tá fazendo
 
 
 ### 1x carta lendária -> O Boi
 
-* Descrição:
+* Descrição: Outrora um trabalhador comum, o Boi perdeu a visão e o emprego em um acidente e foi obrigado a usar um visor vermelho para enxergar. Consumido pelas perdas e pelo vermelho que agora domina seus olhos, reuniu, sob a tutela do mercenário “O Dragão”, outros 10 indivíduos com um objetivo: destruir o mundo e reconstruí-lo da maneira certa, não importa quantas vezes seja necessário.
 * PA:
 * Efeito:
 * Visual:
@@ -214,9 +251,9 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
 ### 2x carta de efeito 2 -> O Canto do Galo
 
-* Descrição:
+* Descrição: 
 * PA:
-* Efeito:
+* Efeito: 
 * Visual:
 
   
