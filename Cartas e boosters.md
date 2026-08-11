@@ -314,7 +314,7 @@ Faz tipo um cara desses num salão de ópera cibernético, mas ele tem um cabelo
 
 ### 1x carta baixa
 
-* Descrição:
+* Descrição: 
 * PA:
 * Efeito:
 * Visual:
