@@ -1,0 +1,10 @@
+services:
+  nginx:
+    image: nginx:latest
+    container_name: cyberduel
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./:/usr/share/nginx/html:ro
+    restart: unless-stopped
