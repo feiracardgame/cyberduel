@@ -1,6 +1,6 @@
 # Boosters
 
-## Deck 1 - Raspcorp - Deck focado em controle de terreno e personagens 
+## Deck 1 - Raspcorp - Deck focado em construir PA
 
 
 
@@ -146,7 +146,7 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
 ---
 
-## Booster 2 - Echossystem - deck focado em efeitos
+## Booster 2 - Echossystem - deck focado em reduzir PA
 
 ### 2x carta baixa 1 -> O Rato
 
@@ -175,7 +175,7 @@ Faz tipo a Jewel da Marvel, só que mais cyberpunk e mete umas prótese de perna
 ### 2x carta baixa 3 -> O Cão
 
 * Descrição: Descrição: Antes mesmo de entrar para o grupo anarquista, o Cão já era um mercenário especializado em rastrear alvos. Seus implantes cibernéticos de olfato permitem encontrar praticamente qualquer pessoa pelo menor dos rastros. O único problema é que a idade já está afetando seus sentidos: recentemente, ele passou três horas seguindo o próprio cheiro.
-* PA: 3
+* PA: 4
 * Efeito: Faro -> O Cão consegue rastrear o cheiro do inimigo, apesar de não tão bem quanto sua época. Ao ser invocado, o Cão te informa de até 3 cartas que o inimigo tenha na mão ou no baralho.
 * Visual:
 
@@ -198,7 +198,7 @@ Faz um detetive noir com uns implantes tipo assim só que preto com vermelho e e
 
 * Descrição: A Cobra é uma lendária produtora de venenos que nunca perguntou quem era o cliente, desde que ele pagasse o suficiente. Quando seus próprios compradores decidiram eliminá-la, ela finalmente percebeu que talvez fosse hora de escolher melhor seus parceiros. Agora, ao lado da EchoSsystem, pretende fazer cada um deles provar do próprio veneno.
  
-* PA: 4
+* PA: 5
 * Efeito: Dose Letal → A Cobra injeta uma de suas substâncias em um inimigo em alcance curto à sua frente ou em um espaço adjacente. O inimigo perde 1 PA por turno enquanto estiver envenenado.
 
  
@@ -237,9 +237,11 @@ Faz um detetive noir com uns implantes tipo assim só que preto com vermelho e e
 ### 1x carta lendária -> O Boi
 
 * Descrição: Outrora um trabalhador comum, o Boi perdeu a visão e o emprego em um acidente e foi obrigado a usar um visor vermelho para enxergar. Consumido pelas perdas e pelo vermelho que agora domina seus olhos, reuniu, sob a tutela do mercenário “O Dragão”, outros 10 indivíduos com um objetivo: destruir o mundo e reconstruí-lo da maneira certa, não importa quantas vezes seja necessário.
-* PA:
-* Efeito:
+* PA: 9
+* Efeito: Novo Começo → Uma vez por turno, escolha uma carta em campo. Ela retorna ao seu PA original, perdendo todos os aumentos e reduções de PA sofridos.
 * Visual:
+
+<img alt="image" src="assets/cartas/Anarcoboi.png" />
 
 
 ### 2x carta de efeito 1 -> O Trotar do Cavalo
