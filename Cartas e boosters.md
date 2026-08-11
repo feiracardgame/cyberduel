@@ -87,7 +87,7 @@ Machine learning -> Escolha uma carta aliada. Ela recebe +2 PA. O Estagiário pe
 ### 2x carta alta 2 - Agente da DIPSP
 * Descrição: A Divisão de Interesses Privados na Segurança Pública é a mais recente especialização da RaspCorp. Após dominar a mídia, as redes e, provavelmente, o cérebro de cada ser humano, a empresa passou a investir fortemente na democracia e no livre-arbítrio através de uma equipe militar privada e canhões de plasma.
 
-* PA: 9
+* PA: 8
 * Efeito:
 
  Missão de Paz - A DIPSP conduz uma operação humanitária para proteger a população local de seus próprios recursos naturais. A cada turno, escolha até 2 cartas inimigas até alcance longo à frente ou adjacente. Os alvos atingidos perdem 3 de PA.
@@ -184,7 +184,7 @@ Faz um detetive noir com uns implantes tipo assim só que preto com vermelho e e
 <img width="450" height="500" alt="image" src="https://github.com/user-attachments/assets/b3658a75-e25f-4c6c-a9c9-e14bb6cc9a49" />
 
 
-### 2x carta media 1 -> O porco
+### 2x carta media 1 -> O Porco
 
 * Descrição: O Porco acredita que nenhum trabalho é nojento demais. Entre esgotos, lixões industriais e montanhas de sucata, tornou-se especialista em encontrar recursos onde ninguém mais pisaria. Anos de exposição aos ambientes mais inóspitos de NeoFloripa fizeram seu corpo desenvolver uma resistência impressionante. Felizmente, o olfato também foi perdido no processo.
 * PA: 6
@@ -214,7 +214,7 @@ Faz um detetive noir com uns implantes tipo assim só que preto com vermelho e e
 * Descrição: Repleto de orgulho, o Tigre era o campeão das arenas ilegais do antigo mundo e, nas horas vagas, um mercenário. Quando o velho mundo começou a ser destruído, perdeu sua principal fonte de renda e, principalmente, seu público. Agora, encontrou na EchoSsystem a oportunidade perfeita para construir um novo mundo onde todos possam finalmente reconhecer sua superioridade.
 
  
-* PA: 8
+* PA: 9
 * Efeito: Garra de aço -> O Tigre é um mestre de combate corpo a corpo. Escolha qualquer carta de alcance curto, o Tigre reduz seus PA em 3.
 
  
@@ -237,8 +237,10 @@ Faz um detetive noir com uns implantes tipo assim só que preto com vermelho e e
 ### 1x carta lendária -> O Boi
 
 * Descrição: Outrora um trabalhador comum, o Boi perdeu a visão e o emprego em um acidente e foi obrigado a usar um visor vermelho para enxergar. Consumido pelas perdas e pelo vermelho que agora domina seus olhos, reuniu, sob a tutela do mercenário “O Dragão”, outros 10 indivíduos com um objetivo: destruir o mundo e reconstruí-lo da maneira certa, não importa quantas vezes seja necessário.
-* PA: 9
+* PA: 10
 * Efeito: Novo Começo → Uma vez por turno, escolha uma carta em campo. Ela retorna ao seu PA original, perdendo todos os aumentos e reduções de PA sofridos.
+
+ 
 * Visual:
 
 <img alt="image" src="assets/cartas/Anarcoboi.png" />
@@ -246,44 +248,73 @@ Faz um detetive noir com uns implantes tipo assim só que preto com vermelho e e
 
 ### 2x carta de efeito 1 -> O Trotar do Cavalo
 
-* Descrição:
-* PA:
-* Efeito:
-* Visual:
+* Descrição: Há muito tempo, a humanidade admirava seus maiores atletas. Depois descobriu que podia construir robôs mais rápidos. Assim, os humanos desapareceram das pistas. Um deles foi O Cavalo. Tricampeão olímpico, hoje presta serviços à EchoSsystem realizando entregas, causando distrações e se arremessando contra ciborgues. Felizmente, a concussão cerebral deixou de ser um problema depois que metade do seu crânio foi substituída por titânio.
+
+* Efeito: O Cavalo atravessa uma coluna do campo inimigo, causando 2 PA de dano a todas as cartas presentes nela.
+
+ 
+* Visual: faz tipo o ciborgue (mas só o rosto metade metal) mas correndo rápido pique aquelas imagens do flash
+
+<img width="446" height="688" alt="image" src="https://github.com/user-attachments/assets/599f177f-fb0f-47b0-a4d3-57e32e2a5c24" />
+
 
 ### 2x carta de efeito 2 -> O Canto do Galo
 
-* Descrição: 
-* PA:
-* Efeito: 
+* Em um passado distante, casas de ópera lotavam para ouvir vozes capazes de emocionar multidões. Hoje, foram substituídas por CyberBaladas que reproduzem as mesmas três notas eletrônicas em ritmos diferentes. Felizmente, a EchoSsystem ainda desperta todas as manhãs ao som do outrora prestigiado Canto do Galo, lembrando que ainda vale a pena lutar por mais um dia.
+ 
+* Efeito: A inspiradora voz do Galo fortalece seus companheiros. Escolha duas cartas aliadas. A primeira recebe +2 PA e a segunda +1 PA. 
 * Visual:
+
+Faz tipo um cara desses num salão de ópera cibernético, mas ele tem um cabelo de moicano vermelho também e tem algum tipo de implante cibernético na boca que parece aquelas parada q o galo tem no queixo pra fazer som
+
+ <img width="429" height="340" alt="image" src="https://github.com/user-attachments/assets/1cdd210b-e28d-4bf5-b3fd-4f96cfc96b12" />
+
+
+* <img width="415" height="612" alt="image" src="https://github.com/user-attachments/assets/b3d5802e-e369-4d67-a11c-e38e6c67a5ba" />
+
 
   
 #### 1x carta de efeito 3 -> A Travessura do Macaco
 
-* Descrição:
-* PA:
-* Efeito:
+* Descrição: O Macaco nunca foi muito fã da companhia de outras pessoas. Isolado desde a infância, passava os dias pregando peças em qualquer um que cruzasse seu caminho. Com o tempo, descobriu que armar emboscadas para figuras importantes pagava surpreendentemente bem. Na EchoSsystem, finalmente encontrou um grupo disposto a financiar suas travessuras e, mais importante, capaz de sobreviver a elas.
+  
+* Efeito: O Macaco planta uma armadilha em um espaço de carta do campo adversário. A próxima carta invocada nesse espaço entra em campo com -2 PA.
+
+ 
 * Visual:
+
+é o junkrat, mas ele tem um rabo de macaco cibernético, ele tem mais detalhes vermelhos e as bombas sao mais tecnologicas futuristas.
+
+<img width="610" height="1080" alt="image" src="https://github.com/user-attachments/assets/e595906d-f358-45ec-b2ac-55020c78edf1" />
+
 
 
 ### 1x carta de terreno 1 ->  A Toca do Coelho
 
-* Descrição:
-* PA:
-* Efeito:
-* Visual:
+* Descrição:  O Coelho é a principal fonte de renda da EchoSsystem. Ninguém sabe exatamente de onde vem seu dinheiro, porque, além de ter um talento incomum para fazer as coisas acontecerem, ele possui um talento ainda maior para garantir que ninguém descubra como elas aconteceram. Quem quiser respostas pode tentar visitar seu clube e descobrir até onde vai a Toca do Coelho...
+
+
+* Efeito: A Toca do Coelho -> Enquanto este terreno estiver em campo, todas as cartas aliadas permanecem viradas para baixo. Ao sofrerem dano ou ativarem seus efeitos, são reveladas.
+
+
+ 
+* Visual: Pode fazer aquela ideia do clube futurista cibernético com um guarda na frente, e escrito "Toca do coelho" atrás e faz um logo de coelho (NÃO PODE SER O DA PLAYBOY)
+
+
+<img width="1130" height="643" alt="image" src="https://github.com/user-attachments/assets/3b6b2584-665a-477f-8bf8-3d67e44906c8" />
+
+
 
 
 
 ---
 
-## Booster 3 - Robôs - Deck 
+## Booster 3 - Humbanet - Deck 
 
 
 ### 1x carta baixa
 
-* Descrição:
+* Descrição: 
 * PA:
 * Efeito:
 * Visual:
@@ -353,7 +384,7 @@ Faz um detetive noir com uns implantes tipo assim só que preto com vermelho e e
 * Efeito:
 * Visual:
 
-### 1x carta de terreno 3
+### 1x carta de efeito 1
 
 * Descrição:
 * PA:
@@ -370,7 +401,7 @@ Humberto vai ser o HUMBA BRAIN, que nem o Angstrom de invencível, o criador dos
 
 ---
 
-## Booster 4 - Nômades das terras desertas -> Sem nada de terreno, deck baseado em personagens e efeitos, imune a efeitos de terreno
+## Booster 4 - Os Remanescentes -> Sem nada de terreno, deck baseado em personagens e efeitos, imune a efeitos de terreno
 
 
 ### 1x carta baixa 1
@@ -440,7 +471,7 @@ Humberto vai ser o HUMBA BRAIN, que nem o Angstrom de invencível, o criador dos
 * Visual:
 
 
-#### 1x carta de efeito 3
+#### 1x carta de  terreno 1
 
 * Descrição:
 * PA:
@@ -448,7 +479,7 @@ Humberto vai ser o HUMBA BRAIN, que nem o Angstrom de invencível, o criador dos
 * Visual:
 
 
-#### 1x carta de efeito 4
+#### 1x carta de terreno 2
 
 * Descrição:
 * PA:
