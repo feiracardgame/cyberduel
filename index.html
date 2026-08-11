@@ -17,8 +17,14 @@
          classe Carta, os tipos de efeito e o pool de cartas de efeito) -->
     <script src="js/cartas.js"></script>
 
-    <!-- 3. Carregue as cenas ANTES do main.js -->
+    <!-- 3. Carregue as cenas ANTES do main.js. A ordem entre elas não
+         importa pro Phaser em si (quem decide a ordem de execução é o
+         array "scene" em main.js), mas jogo.js precisa vir antes de
+         preload.js/titulo.js porque é lá que ficam as constantes GW/GH
+         usadas nas outras duas. -->
     <script src="js/cenas/jogo.js"></script>
+    <script src="js/cenas/preload.js"></script>
+    <script src="js/cenas/titulo.js"></script>
 
     <!-- 4. main.js por último (ele inicia o jogo) -->
     <script src="js/main.js"></script>

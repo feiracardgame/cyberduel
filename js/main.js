@@ -53,6 +53,13 @@ class Jogador {
     this.mao = new Mao();
     this.campo = new Campo();
     this.vitorias = 0;
+
+    // Cartas compradas desde a última vez que a cena consumiu essa
+    // lista (ver CenaJogo.desenharMaoEmLeque, em jogo.js). Serve só
+    // pra cena saber QUAIS cartas da mão são "novas" e por isso devem
+    // receber a animação de compra (voar do monte até o leque) em vez
+    // de simplesmente entrar com o fade padrão.
+    this.cartasRecemCompradas = [];
   }
 
   jogarCarta(carta, posicao) {
@@ -134,6 +141,10 @@ class Jogador {
     if (this.deck.cartas.length > 0) {
       const compra = this.deck.cartas.pop();
       this.mao.adicionarCarta(compra);
+      // Registrada aqui pra cena poder animar essa carta especificamente
+      // como uma "compra" (voando do monte até o leque) na próxima
+      // renderização — ver CenaJogo.desenharMaoEmLeque, em jogo.js.
+      this.cartasRecemCompradas.push(compra);
     }
   }
 }
@@ -289,15 +300,36 @@ class Partida {
     const afetadas = [];
 
     [this.jogador, this.inimigo].forEach((dono) => {
+      // Agrupa as cartas em campo por TIPO de efeito de turno. Antes, cada
+      // cópia da carta rolava a chance separadamente — com 2 CryptoAcionistas
+      // em campo o buff total virava +2 (uma rolagem por cópia), com 3 virava
+      // +3, etc. Agora existe UMA rolagem só por tipo de efeito, então o
+      // ganho total continua sendo +1 (o valor configurado na carta) não
+      // importa quantas cópias estejam em campo.
+      const porTipo = {};
       dono.campo.cartas.forEach((carta) => {
         if (!carta || !carta.efeitoTurno) return;
-        const { tipo, chance, valor } = carta.efeitoTurno;
+        const tipo = carta.efeitoTurno.tipo;
+        if (!porTipo[tipo]) porTipo[tipo] = [];
+        porTipo[tipo].push(carta);
+      });
+
+      Object.values(porTipo).forEach((cartasDoGrupo) => {
+        // Todas as cópias de uma mesma carta compartilham a mesma
+        // config (chance/valor), então pega da primeira do grupo.
+        const { tipo, chance, valor } = cartasDoGrupo[0].efeitoTurno;
 
         switch (tipo) {
           case TIPOS_EFEITO_TURNO.CHANCE_GANHAR_PODER:
             if (Math.random() < chance) {
-              carta.buff(valor);
-              afetadas.push({ carta, delta: valor });
+              // Só uma carta do grupo recebe o buff (sorteada entre as
+              // cópias em campo), mantendo o ganho total em +valor.
+              const alvo =
+                cartasDoGrupo[
+                  Math.floor(Math.random() * cartasDoGrupo.length)
+                ];
+              alvo.buff(valor);
+              afetadas.push({ carta: alvo, delta: valor });
             }
             break;
         }
@@ -420,7 +452,7 @@ const config = {
     antialias: true,
     roundPixels: false,
   },
-  scene: [CenaJogo],
+  scene: [CenaPreload, CenaTitulo, CenaJogo],
 };
 
 const game = new Phaser.Game(config);

@@ -49,9 +49,9 @@ function calcularLayoutCampo(slotW, slotH, gapFileira, gapTimes, yInimigoTras) {
 const LAYOUT_CAMPO_NORMAL = calcularLayoutCampo(
   195, // slotW: largura da carta
   255, // slotH: altura da carta
-  12,  // gapFileira: espaço entre as duas fileiras
-  30,  // gapTimes: espaço entre inimigo e jogador
-  440  // yInimigoTras
+  12, // gapFileira: espaço entre as duas fileiras
+  30, // gapTimes: espaço entre inimigo e jogador
+  440, // yInimigoTras
 );
 
 // Layout ampliado: mão escondida.
@@ -59,9 +59,9 @@ const LAYOUT_CAMPO_NORMAL = calcularLayoutCampo(
 const LAYOUT_CAMPO_AMPLIADO = calcularLayoutCampo(
   195, // slotW: largura da carta
   280, // slotH: altura da carta
-  16,  // gapFileira: espaço entre as duas fileiras
+  16, // gapFileira: espaço entre as duas fileiras
   120, // gapTimes: espaço entre inimigo e jogador
-  505  // yInimigoTras
+  505, // yInimigoTras
 );
 
 class CenaJogo extends Phaser.Scene {
@@ -69,12 +69,44 @@ class CenaJogo extends Phaser.Scene {
     super("CenaJogo");
   }
 
-  preload() {
-    this.load.image("cryptoacionistas", "assets/cartas/cryptoacionistas.png");
-  }
+  // Sem preload() aqui de propósito: todos os assets (imagens e sons)
+  // já foram carregados antes, pela CenaPreload (ver js/cenas/preload.js)
+  // — que roda primeiro e mostra a barra de carregamento — e ficam
+  // disponíveis no cache do Phaser em qualquer cena depois dela,
+  // incluindo esta.
 
   create() {
     this.partida = new Partida();
+    this.musicaFundo = this.sound.add("musicaFundo", {
+      loop: true,
+      volume: 0.3,
+    });
+    this.somTorcida = this.sound.add("somTorcida", {
+      loop: true,
+      volume: 0.03,
+    });
+    this.somJogarCarta = this.sound.add("somJogarCarta", {
+      loop: false,
+      volume: 0.3,
+    });
+    this.somPop = this.sound.add("somPop", {
+      loop: false,
+      volume: 0.3,
+    });
+    this.somComprarCarta = this.sound.add("somComprarCarta", {
+      loop: false,
+      volume: 0.3,
+    });
+    this.somBuff = this.sound.add("somBuff", {
+      loop: false,
+      volume: 0.3,
+    });
+    this.somHover = this.sound.add("somHover", {
+      loop: false,
+      volume: 0.15,
+    });
+    this.musicaFundo.play();
+    this.somTorcida.play();
 
     // Traçado preto padrão em TODOS os textos da cena: sobrescreve
     // this.add.text para injetar stroke preto sempre que a chamada não
@@ -149,9 +181,107 @@ class CenaJogo extends Phaser.Scene {
     // dragstart/dragend e nunca chegaríamos a um "tap" limpo.
     this.input.dragDistanceThreshold = 8;
 
+    // ---------- COMANDOS DE DEBUG (console do navegador) ----------
+    // window.puxarCarta("nome ou pedaço do nome") -> tira essa carta do
+    //   SEU deck (procura por nome, sem diferenciar maiúscula/minúscula
+    //   nem exigir o nome completo) e coloca na sua mão, redesenhando a
+    //   tela na hora. Ex: puxarCarta("cryptoacionistas") ou puxarCarta("vírus")
+    // window.listarDeck() -> mostra (console.table) todas as cartas que
+    //   ainda estão no seu deck, pra saber o nome exato de cada uma.
+    // window.listarMao() -> mesma coisa, mas pra mão.
+    window.partida = this.partida;
+    window.cena = this;
+
+    window.listarDeck = () => {
+      console.table(
+        this.partida.jogador.deck.cartas.map((c) => ({
+          id: c.id,
+          nome: c.nome,
+          tipo: c.tipo,
+          poder: c.poder,
+        })),
+      );
+    };
+
+    window.listarMao = () => {
+      console.table(
+        this.partida.jogador.mao.cartas.map((c) => ({
+          id: c.id,
+          nome: c.nome,
+          tipo: c.tipo,
+          poder: c.poder,
+        })),
+      );
+    };
+
+    window.puxarCarta = (busca) => {
+      const termo = (busca || "").toString().toLowerCase();
+      const deck = this.partida.jogador.deck.cartas;
+      const indice = deck.findIndex((c) =>
+        c.nome.toLowerCase().includes(termo),
+      );
+
+      let carta;
+      if (indice !== -1) {
+        [carta] = deck.splice(indice, 1);
+      } else {
+        // Não achou no deck: procura nos pools e cria a carta na hora,
+        // mesmo que ela nunca tenha entrado no deck desta partida.
+        const baseEfeito = POOL_CARTAS_EFEITO.find((c) =>
+          c.nome.toLowerCase().includes(termo),
+        );
+        const baseMonstro = POOL_CARTAS_MONSTRO.find((c) =>
+          c.nome.toLowerCase().includes(termo),
+        );
+
+        if (baseEfeito) {
+          carta = new Carta(
+            9000 + Math.floor(Math.random() * 1000),
+            baseEfeito.poder,
+            "efeito",
+            {
+              nome: baseEfeito.nome,
+              descricao: baseEfeito.descricao,
+              efeito: baseEfeito.efeito,
+            },
+          );
+        } else if (baseMonstro) {
+          carta = new Carta(
+            9000 + Math.floor(Math.random() * 1000),
+            baseMonstro.poder,
+            "monstro",
+            {
+              nome: baseMonstro.nome,
+              descricao: baseMonstro.descricao,
+              efeitoTurno: baseMonstro.efeitoTurno,
+              imagem: baseMonstro.imagem,
+              foco: baseMonstro.foco,
+            },
+          );
+        } else {
+          console.warn(
+            `puxarCarta: nada encontrado com "${busca}". Use listarDeck() ou confira os nomes nos pools.`,
+          );
+          return null;
+        }
+      }
+
+      this.partida.jogador.mao.adicionarCarta(carta);
+      this.partida.jogador.cartasRecemCompradas.push(carta);
+
+      if (!this.travado) this.desenharInterface();
+      console.log(`puxarCarta: "${carta.nome}" foi pra sua mão.`);
+      return carta;
+    };
+
     // --- Drag and Drop das cartas da mão ---
     this.input.on("dragstart", (pointer, gameObject) => {
       if (this.travado || !gameObject.dadosCarta) return;
+      // Mesma defesa de tratarSoltarCarta: se a carta deste objeto não
+      // está mais na mão, nem deixa o arraste começar.
+      if (!this.partida.jogador.mao.cartas.includes(gameObject.dadosCarta)) {
+        return;
+      }
       this.tweens.killTweensOf(gameObject);
       gameObject.setDepth(2000); // sempre por cima de tudo durante o arraste
       this.tweens.add({
@@ -273,7 +403,15 @@ class CenaJogo extends Phaser.Scene {
       this.textoResultadoAtual = null;
     }
 
-    this.children.removeAll();
+    // IMPORTANTE: removeAll(true) — o "true" manda destruir de verdade os
+    // objetos antigos, não só tirá-los da tela. Sem isso (removeAll()
+    // sozinho só desanexa, não destrói) as cartas da mão de uma
+    // renderização anterior continuavam "fantasmas": invisíveis, mas
+    // ainda registradas como interativas/arrastáveis no input do Phaser
+    // — daí dava pra arrastar no local onde a mão costumava estar e o
+    // jogo aceitava como se aquela carta (já jogada, e não mais na mão)
+    // ainda existisse.
+    this.children.removeAll(true);
 
     // Se a interface for redesenhada, qualquer modal antigo perde a
     // validade (os objetos já foram destruídos por removeAll acima)
@@ -325,6 +463,20 @@ class CenaJogo extends Phaser.Scene {
   tratarSoltarCarta(gameObject) {
     const carta = gameObject.dadosCarta;
 
+    // Defesa extra (além do removeAll(true) em desenharInterface()): se
+    // por qualquer motivo este objeto ainda estiver na tela depois da
+    // carta já ter saído da mão — por exemplo jogada, descartada, ou uma
+    // renderização antiga que sobrou por uma condição de corrida — a
+    // carta não vai mais estar em jogador.mao.cartas. Aqui a gente
+    // confirma isso nos DADOS antes de aceitar a jogada, não só
+    // confiando que o objeto visual está correto. Sem essa checagem, um
+    // objeto "fantasma" nessa situação ainda seria arrastável e o jogo
+    // aceitaria a jogada como se a carta estivesse na mão.
+    if (!carta || !this.partida.jogador.mao.cartas.includes(carta)) {
+      gameObject.destroy();
+      return;
+    }
+
     let slots = this.children.list.filter((child) => child.isSlot);
     let slotAtingido = null;
 
@@ -354,16 +506,19 @@ class CenaJogo extends Phaser.Scene {
     // são conjuradas no meio da tela e consumidas na hora. ---
     if (carta.tipo === "efeito") {
       this.conjurarCartaDeEfeitoJogador(gameObject, carta);
+      this.somPop.play();
       return;
     }
 
     // --- Cartas de monstro: comportamento original, vão para o campo ---
     const temEspaco = this.partida.jogador.campo.temEspaco(slotAtingido);
+    this.somJogarCarta.play();
 
     if (!temEspaco) {
       this.animarRetornoAoLeque(gameObject, true);
       this.cameras.main.shake(150, 0.002);
       return;
+      this.somJogarCarta.play();
     }
 
     this.travado = true;
@@ -617,6 +772,7 @@ class CenaJogo extends Phaser.Scene {
       yoyo: true,
       ease: "Sine.easeInOut",
     });
+    this.somBuff.play();
   }
 
   // ---------- DESENHO DO CAMPO ----------
@@ -804,10 +960,26 @@ class CenaJogo extends Phaser.Scene {
 
   // ---------- DESENHO DA MÃO (LEQUE) ----------
 
+  // Posição de onde as cartas recém-compradas "saem" (o monte de compra)
+  // até chegarem na posição delas no leque — ver animarCompraCarta().
+  // Fica acima da mão, no centro, simulando o baralho entregando as
+  // cartas uma a uma para a mão do jogador.
+  obterPosicaoMonteCompra() {
+    return { x: GW / 2, y: 1230 };
+  }
+
   desenharMaoEmLeque() {
     let cartasMao = this.partida.jogador.mao.cartas;
     let totalCartas = cartasMao.length;
     if (totalCartas === 0) return;
+
+    // Cartas que acabaram de ser compradas desde a última renderização
+    // (ver Jogador.comprarCarta em main.js) recebem a animação de compra
+    // — voam do monte até a posição delas no leque, uma de cada vez. As
+    // demais cartas (que já estavam na mão) só recebem a entrada padrão
+    // (fade + pop) de sempre. A lista é consumida (e esvaziada) aqui.
+    const recemCompradas = this.partida.jogador.cartasRecemCompradas || [];
+    this.partida.jogador.cartasRecemCompradas = [];
 
     const centroX = GW / 2; // Centro da tela
     const centroY = 1650; // Altura base da mão2
@@ -898,18 +1070,30 @@ class CenaJogo extends Phaser.Scene {
 
       this.input.setDraggable(containerCarta);
 
-      // Entrada animada e escalonada (fade + scale) sempre que o
-      // leque é redesenhado
-      containerCarta.setAlpha(0);
-      containerCarta.setScale(0.6);
-      this.tweens.add({
-        targets: containerCarta,
-        alpha: 1,
-        scale: 1,
-        duration: 220,
-        delay: indice * 35,
-        ease: "Back.Out",
-      });
+      // Entrada animada: cartas recém-compradas voam do monte até aqui,
+      // uma de cada vez (ver animarCompraCarta); as demais só recebem o
+      // fade + pop de sempre, na posição final.
+      const indiceCompra = recemCompradas.indexOf(carta);
+      if (indiceCompra !== -1) {
+        this.animarCompraCarta(
+          containerCarta,
+          posX,
+          posY,
+          angulo,
+          indiceCompra,
+        );
+      } else {
+        containerCarta.setAlpha(0);
+        containerCarta.setScale(0.6);
+        this.tweens.add({
+          targets: containerCarta,
+          alpha: 1,
+          scale: 1,
+          duration: 220,
+          delay: indice * 35,
+          ease: "Back.Out",
+        });
+      }
 
       // Efeito de destaque no Hover / Toque
       containerCarta.on("pointerover", (pointer) => {
@@ -924,6 +1108,9 @@ class CenaJogo extends Phaser.Scene {
           scaleY: 1.15,
           duration: 150,
           ease: "Back.Out",
+          onComplete: () => {
+            this.somHover.play();
+          }
         });
 
         // No desktop, o hover do mouse já abre a visualização grande
@@ -931,6 +1118,7 @@ class CenaJogo extends Phaser.Scene {
         // verdade, então lá continua sendo o pointerup abaixo que abre.
         if (pointer.pointerType === "mouse") {
           this.mostrarDetalheCarta(carta);
+          
         }
       });
 
@@ -956,6 +1144,58 @@ class CenaJogo extends Phaser.Scene {
       containerCarta.on("pointerup", () => {
         if (this.travado) return;
         this.mostrarDetalheCarta(carta);
+      });
+    });
+  }
+
+  // Anima uma carta recém-comprada: sai do monte de compra (ver
+  // obterPosicaoMonteCompra) e "pousa" na posição dela no leque. Cada
+  // carta da leva de compras espera sua vez (atraso = indiceCompra *
+  // ATRASO_ENTRE_CARTAS), pra chegarem uma de cada vez, não todas juntas.
+  // Toca o som de compra bem no instante em que cada carta começa a
+  // voar — por enquanto o whoosh de "somComprarCarta" (ver preload()).
+  animarCompraCarta(
+    containerCarta,
+    destinoX,
+    destinoY,
+    anguloFinal,
+    indiceCompra,
+  ) {
+    const origem = this.obterPosicaoMonteCompra();
+    const ATRASO_ENTRE_CARTAS = 220; // ms entre a saída de uma carta e a da próxima
+    const atraso = indiceCompra * ATRASO_ENTRE_CARTAS;
+
+    containerCarta.setPosition(origem.x, origem.y);
+    containerCarta.setAngle(0);
+    containerCarta.setScale(0.35);
+    containerCarta.setAlpha(0);
+    // Fica por cima de tudo enquanto está "voando", pra não passar por
+    // baixo de outras cartas do leque no meio do caminho.
+    containerCarta.setDepth(3000 + indiceCompra);
+    // Evita que o jogador consiga arrastar/clicar a carta enquanto ela
+    // ainda está em pleno voo, vindo do monte.
+    containerCarta.disableInteractive();
+
+    this.time.delayedCall(atraso, () => {
+      if (!containerCarta.active) return;
+
+      containerCarta.setAlpha(1);
+      if (this.somComprarCarta) this.somComprarCarta.play();
+
+      this.tweens.add({
+        targets: containerCarta,
+        x: destinoX,
+        y: destinoY,
+        angle: anguloFinal,
+        scaleX: 1,
+        scaleY: 1,
+        duration: 380,
+        ease: "Back.Out",
+        onComplete: () => {
+          if (!containerCarta.active) return;
+          containerCarta.setDepth(containerCarta.depthBase);
+          containerCarta.setInteractive({ useHandCursor: true });
+        },
       });
     });
   }
@@ -1058,6 +1298,7 @@ class CenaJogo extends Phaser.Scene {
     });
 
     this.atualizarListaHistorico();
+    this.somPop.play();
   }
 
   criarBotaoPaginacaoHistorico(x, y, texto, aoClicar) {
@@ -1189,7 +1430,7 @@ class CenaJogo extends Phaser.Scene {
     linha.on("pointerover", () => fundo.setFillStyle(0x28283a));
     linha.on("pointerout", () => fundo.setFillStyle(0x1e1e28));
     linha.on("pointerup", () => this.abrirDetalheDoHistorico(entrada.carta));
-
+  
     return linha;
   }
 
@@ -1350,6 +1591,7 @@ class CenaJogo extends Phaser.Scene {
         .setOrigin(0.5);
       filhosPainel.push(poderBola, poderTexto, poderLabel);
       descY = 330;
+      this.somPop.play();
     }
 
     // ---- Descrição: janela de tamanho fixo, com scroll se o texto não couber ----
@@ -1637,6 +1879,7 @@ class CenaJogo extends Phaser.Scene {
 
     this.input.on("pointermove", handlerTiltZoom);
     this.handlerTiltZoomAtual = handlerTiltZoom;
+    this.somJogarCarta.play();
   }
 
   fecharZoomCarta() {
@@ -1663,6 +1906,7 @@ class CenaJogo extends Phaser.Scene {
         this.painelZoomAtual = null;
         this.overlayZoomAtual = null;
         this.zoomAberto = false;
+        this.somJogarCarta.play();
       },
     });
   }
@@ -1711,6 +1955,7 @@ class CenaJogo extends Phaser.Scene {
         this.mascaraDetalheAtual = null;
         this.modalAberto = false;
         this.travado = false;
+        this.somJogarCarta.play();
       },
     });
   }
@@ -2099,5 +2344,6 @@ class CenaJogo extends Phaser.Scene {
       delay: 150,
       ease: "Back.Out",
     });
+    this.somBuff.play();
+    };
   }
-}
