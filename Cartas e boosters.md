@@ -184,7 +184,7 @@ Faz um detetive noir com uns implantes tipo assim só que preto com vermelho e e
 <img width="450" height="500" alt="image" src="https://github.com/user-attachments/assets/b3658a75-e25f-4c6c-a9c9-e14bb6cc9a49" />
 
 
-### 2x carta media 1 -> O porco
+### 2x carta media 1 -> O Porco
 
 * Descrição: O Porco acredita que nenhum trabalho é nojento demais. Entre esgotos, lixões industriais e montanhas de sucata, tornou-se especialista em encontrar recursos onde ninguém mais pisaria. Anos de exposição aos ambientes mais inóspitos de NeoFloripa fizeram seu corpo desenvolver uma resistência impressionante. Felizmente, o olfato também foi perdido no processo.
 * PA: 6
@@ -294,7 +294,7 @@ Faz tipo um cara desses num salão de ópera cibernético, mas ele tem um cabelo
 * Descrição:  O Coelho é a principal fonte de renda da EchoSsystem. Ninguém sabe exatamente de onde vem seu dinheiro, porque, além de ter um talento incomum para fazer as coisas acontecerem, ele possui um talento ainda maior para garantir que ninguém descubra como elas aconteceram. Quem quiser respostas pode tentar visitar seu clube e descobrir até onde vai a Toca do Coelho...
 
 
-* Efeito: A Toca do Coelho -> Enquanto este terreno estiver em campo, todas as cartas aliadas permanecem viradas para baixo. Ao sofrerem dano, são reveladas.
+* Efeito: A Toca do Coelho -> Enquanto este terreno estiver em campo, todas as cartas aliadas permanecem viradas para baixo. Ao sofrerem dano ou ativarem seus efeitos, são reveladas.
 
 
  
