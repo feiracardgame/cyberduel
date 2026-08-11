@@ -384,7 +384,7 @@ Faz tipo um cara desses num salão de ópera cibernético, mas ele tem um cabelo
 * Efeito:
 * Visual:
 
-### 1x carta de terreno 3
+### 1x carta de efeito 1
 
 * Descrição:
 * PA:
@@ -471,7 +471,7 @@ Humberto vai ser o HUMBA BRAIN, que nem o Angstrom de invencível, o criador dos
 * Visual:
 
 
-#### 1x carta de efeito 3
+#### 1x carta de  terreno 1
 
 * Descrição:
 * PA:
@@ -479,7 +479,7 @@ Humberto vai ser o HUMBA BRAIN, que nem o Angstrom de invencível, o criador dos
 * Visual:
 
 
-#### 1x carta de efeito 4
+#### 1x carta de terreno 2
 
 * Descrição:
 * PA:
