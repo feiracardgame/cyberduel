@@ -165,6 +165,10 @@ class CenaJogo extends Phaser.Scene {
     // com descrição rolável é aberta.
     this.handlersScrollDescAtual = null;
 
+    // Objetos do modo de mira (anéis + zonas de toque) do botão "Ativar
+    // Habilidade" do modal de detalhe — ver iniciarAtivacaoHabilidade().
+    this.objetosSelecaoAlvo = null;
+
     // Controle do modal de histórico de cartas jogadas
     this.historicoAberto = false;
     this.painelHistoricoAtual = null;
@@ -1110,7 +1114,7 @@ class CenaJogo extends Phaser.Scene {
           ease: "Back.Out",
           onComplete: () => {
             this.somHover.play();
-          }
+          },
         });
 
         // No desktop, o hover do mouse já abre a visualização grande
@@ -1118,7 +1122,6 @@ class CenaJogo extends Phaser.Scene {
         // verdade, então lá continua sendo o pointerup abaixo que abre.
         if (pointer.pointerType === "mouse") {
           this.mostrarDetalheCarta(carta);
-          
         }
       });
 
@@ -1430,7 +1433,7 @@ class CenaJogo extends Phaser.Scene {
     linha.on("pointerover", () => fundo.setFillStyle(0x28283a));
     linha.on("pointerout", () => fundo.setFillStyle(0x1e1e28));
     linha.on("pointerup", () => this.abrirDetalheDoHistorico(entrada.carta));
-  
+
     return linha;
   }
 
@@ -1501,6 +1504,19 @@ class CenaJogo extends Phaser.Scene {
 
     const corFundo = this.obterCorPorId(carta.id);
     const ehEfeito = carta.tipo === "efeito";
+
+    // A carta tem uma habilidade ativa (ex: Atirador de Elite) e está no
+    // SEU campo? Se sim, e ela ainda não foi usada neste turno, mostramos
+    // um botão "Ativar Habilidade" no rodapé do painel (ver mais abaixo,
+    // logo depois da janela de descrição).
+    const podeMostrarBotaoHabilidade =
+      !this.partida.partidaEncerrada &&
+      !!carta.habilidadeAtiva &&
+      carta.efeito &&
+      carta.efeito.tipo === TIPOS_EFEITO.ATACAR &&
+      this.partida.jogador.campo.cartas.includes(carta);
+    const habilidadeJaUsada =
+      podeMostrarBotaoHabilidade && carta.usadaEsteTurno;
 
     let painelBg = this.add
       .rectangle(0, 0, 840, 1320, 0x14141c)
@@ -1602,7 +1618,11 @@ class CenaJogo extends Phaser.Scene {
     // que essa janela, dá pra arrastar (dedo ou mouse) ou usar a rodinha
     // do mouse pra rolar, com uma barrinha indicando a posição.
     const DESC_LARGURA = 720;
-    const DESC_ALTURA = 620 - descY;
+    // Reserva espaço embaixo da descrição pro botão de ativar habilidade,
+    // quando ele vai aparecer (ver podeMostrarBotaoHabilidade acima).
+    const ALTURA_BOTAO_HABILIDADE = 130;
+    const DESC_ALTURA =
+      620 - descY - (podeMostrarBotaoHabilidade ? ALTURA_BOTAO_HABILIDADE : 0);
 
     let descTexto = this.add
       .text(0, 0, carta.descricaoCompleta(), {
@@ -1702,6 +1722,55 @@ class CenaJogo extends Phaser.Scene {
     fecharBtn.on("pointerup", () => this.fecharDetalheCarta());
 
     filhosPainel.push(containerDescricao, fecharBtn);
+
+    // ---- Botão "Ativar Habilidade" ----
+    // Só aparece pra cartas com habilidade ativa que estejam no campo do
+    // jogador (ver podeMostrarBotaoHabilidade, no topo da função). Fica
+    // cinza e travado se a habilidade já foi usada neste turno.
+    if (podeMostrarBotaoHabilidade) {
+      const botaoY = descY + DESC_ALTURA + ALTURA_BOTAO_HABILIDADE / 2 + 10;
+      const corBotao = habilidadeJaUsada ? 0x333333 : 0xff5500;
+      const corBorda = habilidadeJaUsada ? 0x666666 : 0xffffff;
+      const textoBotao = habilidadeJaUsada
+        ? "Habilidade já usada"
+        : "⚡ Ativar Habilidade";
+
+      let habBg = this.add
+        .rectangle(0, botaoY, 660, 96, corBotao)
+        .setStrokeStyle(4, corBorda);
+      let habTexto = this.add
+        .text(0, botaoY, textoBotao, {
+          fontSize: "36px",
+          color: habilidadeJaUsada ? "#999999" : "#ffffff",
+          fontStyle: "bold",
+        })
+        .setOrigin(0.5);
+      filhosPainel.push(habBg, habTexto);
+
+      if (!habilidadeJaUsada) {
+        habBg.setInteractive({ useHandCursor: true });
+        habBg.on("pointerover", () => {
+          this.tweens.add({
+            targets: [habBg, habTexto],
+            scale: 1.03,
+            duration: 100,
+          });
+        });
+        habBg.on("pointerout", () => {
+          this.tweens.add({
+            targets: [habBg, habTexto],
+            scale: 1,
+            duration: 100,
+          });
+        });
+        habBg.on("pointerup", () => {
+          this.fecharDetalheCarta();
+          this.time.delayedCall(180, () =>
+            this.iniciarAtivacaoHabilidade(carta),
+          );
+        });
+      }
+    }
 
     let painel = this.add.container(GW / 2, GH / 2, filhosPainel);
     painel.setDepth(4001);
@@ -1958,6 +2027,176 @@ class CenaJogo extends Phaser.Scene {
         this.somJogarCarta.play();
       },
     });
+  }
+
+  // ---------- HABILIDADE ATIVA (ex: Atirador de Elite) ----------
+
+  // Chamada pelo botão "Ativar Habilidade" do modal de detalhe. Descobre
+  // quais alvos a habilidade alcançaria agora e decide se dá pra disparar
+  // direto (atinge todos, ou só existe 0/1 alvo possível) ou se precisa
+  // abrir o modo de seleção de alvo (ver iniciarSelecaoDeAlvo).
+  iniciarAtivacaoHabilidade(carta) {
+    if (this.partida.partidaEncerrada) return;
+
+    const dono = this.partida.jogador;
+    const oponente = this.partida.inimigo;
+    const alvos = this.partida.alvosParaHabilidadeEmCampo(
+      carta,
+      dono,
+      oponente,
+    );
+    const atingeTodos = !!(carta.efeito && carta.efeito.atingeTodos);
+
+    this.travado = true;
+
+    // "Atinge todos" não precisa de escolha (acerta o range inteiro de
+    // uma vez). Sem nenhum alvo em alcance também não há o que escolher.
+    if (atingeTodos) {
+      this.executarHabilidade(carta, null);
+      return;
+    }
+    if (alvos.length === 0) {
+      this.avisarSemAlvo();
+      return;
+    }
+
+    // Mesmo com um único alvo possível, o jogador escolhe ativamente
+    // tocando nele — assim ele sempre confirma o ataque, em vez do jogo
+    // disparar sozinho.
+    this.iniciarSelecaoDeAlvo(carta, alvos);
+  }
+
+  // Mostra um avisinho rápido de "nenhum alvo em alcance" quando o
+  // jogador tenta ativar uma habilidade sem ter nenhum inimigo dentro do
+  // range dela, e destrava a interação sem gastar o turno da habilidade.
+  avisarSemAlvo() {
+    let texto = this.add
+      .text(GW / 2, 140, "Nenhum alvo em alcance", {
+        fontSize: "36px",
+        color: "#ff8888",
+        fontStyle: "bold",
+        stroke: "#000000",
+        strokeThickness: 6,
+      })
+      .setOrigin(0.5)
+      .setDepth(3900)
+      .setAlpha(0);
+
+    this.tweens.add({
+      targets: texto,
+      alpha: 1,
+      duration: 150,
+      yoyo: true,
+      hold: 900,
+      onComplete: () => texto.destroy(),
+    });
+
+    this.travado = false;
+  }
+
+  // Modo de mira: destaca (com um anel pulsante amarelo) cada slot inimigo
+  // dentro do alcance da habilidade e espera o jogador tocar num deles.
+  // Tocar fora dos alvos destacados cancela a ativação sem gastar o turno
+  // da habilidade.
+  iniciarSelecaoDeAlvo(carta, alvos) {
+    const L = this.layout;
+    const objetos = [];
+
+    // Fundo escurecido (bem sutil) só pra dar contraste ao texto e aos
+    // anéis, sem esconder o campo por trás — o jogador precisa continuar
+    // vendo as cartas pra escolher o alvo.
+    let overlay = this.add
+      .rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.35)
+      .setDepth(3700)
+      .setInteractive();
+    overlay.on("pointerup", () => this.cancelarSelecaoDeAlvo());
+    objetos.push(overlay);
+
+    let textoInstr = this.add
+      .text(GW / 2, 140, "Escolha um alvo para atacar", {
+        fontSize: "40px",
+        color: "#ffcc00",
+        fontStyle: "bold",
+        stroke: "#000000",
+        strokeThickness: 6,
+      })
+      .setOrigin(0.5)
+      .setDepth(3900);
+    objetos.push(textoInstr);
+
+    let textoCancelar = this.add
+      .text(GW / 2, 195, "(toque fora para cancelar)", {
+        fontSize: "26px",
+        color: "#dddddd",
+      })
+      .setOrigin(0.5)
+      .setDepth(3900);
+    objetos.push(textoCancelar);
+
+    alvos.forEach((indice) => {
+      const col = indice % 5;
+      const fileira = Math.floor(indice / 5);
+      const xPos = L.x[col];
+      const yPos = L.yInimigo[fileira];
+      const raio = Math.max(L.slotW, L.slotH) / 2 + 16;
+
+      let anel = this.add
+        .circle(xPos, yPos, raio, 0xffcc00, 0)
+        .setStrokeStyle(8, 0xffcc00, 1)
+        .setDepth(3800);
+      this.tweens.add({
+        targets: anel,
+        scaleX: 1.08,
+        scaleY: 1.08,
+        alpha: 0.6,
+        duration: 550,
+        yoyo: true,
+        repeat: -1,
+        ease: "Sine.easeInOut",
+      });
+
+      let zonaToque = this.add
+        .rectangle(xPos, yPos, L.slotW, L.slotH, 0xffffff, 0.001)
+        .setDepth(3801)
+        .setInteractive({ useHandCursor: true });
+      zonaToque.on("pointerup", () => this.executarHabilidade(carta, indice));
+
+      objetos.push(anel, zonaToque);
+    });
+
+    this.objetosSelecaoAlvo = objetos;
+  }
+
+  cancelarSelecaoDeAlvo() {
+    if (this.objetosSelecaoAlvo) {
+      this.objetosSelecaoAlvo.forEach((o) => o.destroy());
+      this.objetosSelecaoAlvo = null;
+    }
+    this.travado = false;
+  }
+
+  // Resolve de fato a ativação (via Partida.ativarHabilidade) e anima as
+  // cartas inimigas afetadas, reaproveitando animarCartasAfetadas — o
+  // mesmo efeito visual usado pelos buffs/debuffs de invocação.
+  executarHabilidade(carta, alvoEscolhido) {
+    if (this.objetosSelecaoAlvo) {
+      this.objetosSelecaoAlvo.forEach((o) => o.destroy());
+      this.objetosSelecaoAlvo = null;
+    }
+
+    const resultado = this.partida.ativarHabilidade(
+      carta,
+      this.partida.jogador,
+      this.partida.inimigo,
+      alvoEscolhido,
+    );
+
+    if (resultado.sucesso) {
+      this.desenharInterface();
+      this.animarCartasAfetadas(resultado.afetadas);
+    }
+
+    this.travado = false;
   }
 
   // ---------- STATUS / UI ----------
@@ -2345,5 +2584,5 @@ class CenaJogo extends Phaser.Scene {
       ease: "Back.Out",
     });
     this.somBuff.play();
-    };
   }
+}

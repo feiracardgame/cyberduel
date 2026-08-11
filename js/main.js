@@ -45,6 +45,35 @@ class Campo {
   temEspaco(posicao) {
     return this.cartas[posicao] === null;
   }
+  // Tira cartas com poder 0 do campo (deixa o slot null de novo).
+  removerMortas() {
+    for (let i = 0; i < this.cartas.length; i++) {
+      if (this.cartas[i] && this.cartas[i].poder <= 0) this.cartas[i] = null;
+    }
+  }
+}
+
+// Profundidade da linha dentro do campo do dono (1 = fileira da frente,
+// mais perto do inimigo; 2 = fileira de trás, mais longe).
+function profundidadeLinha(posicao) {
+  return posicao < 5 ? 2 : 1;
+}
+
+// Acha os alvos possíveis no campo do oponente pra uma carta atacante numa
+// posição, respeitando rangeH (colunas) e rangeV (linhas, olha as duas
+// fileiras dos dois lados). Retorna índices do campo do oponente.
+function alvosEmRange(posicaoAtacante, rangeH, rangeV, campoOponente) {
+  const colAtk = posicaoAtacante % 5;
+  const profAtk = profundidadeLinha(posicaoAtacante);
+  const alvos = [];
+  for (let i = 0; i < campoOponente.cartas.length; i++) {
+    const carta = campoOponente.cartas[i];
+    if (!carta) continue;
+    const colDiff = Math.abs((i % 5) - colAtk);
+    const dist = profAtk + profundidadeLinha(i) - 1;
+    if (colDiff <= rangeH - 1 && dist <= rangeV) alvos.push(i);
+  }
+  return alvos;
 }
 
 class Jogador {
@@ -97,6 +126,7 @@ class Jogador {
         nome: base.nome,
         descricao: base.descricao,
         efeito: base.efeito,
+        somAtaque: base.somAtaque,
       });
       this.deck.adicionarCarta(carta);
     }
@@ -105,7 +135,7 @@ class Jogador {
     // POOL_CARTAS_MONSTRO. Hoje isso é só 2x CryptoAcionistas.
     const copiasMonstroEspecial = [
       POOL_CARTAS_MONSTRO[0],
-      POOL_CARTAS_MONSTRO[0],
+      POOL_CARTAS_MONSTRO[1],
     ];
     const quantidadeMonstrosEspeciais = copiasMonstroEspecial.length;
     copiasMonstroEspecial.forEach((base, i) => {
@@ -115,6 +145,9 @@ class Jogador {
         efeitoTurno: base.efeitoTurno,
         imagem: base.imagem,
         foco: base.foco,
+        efeito: base.efeito,
+        habilidadeAtiva: base.habilidadeAtiva,
+        somAtaque: base.somAtaque,
       });
       this.deck.adicionarCarta(carta);
     });
@@ -194,13 +227,90 @@ class Partida {
 
   // Ponto único de entrada para o jogador jogar uma carta de monstro: garante
   // que o efeito passivo de invocação seja aplicado sempre que a jogada for válida.
-  jogarCartaDoJogador(carta, posicao) {
+  jogarCartaDoJogador(carta, posicao, alvoEscolhido = null) {
     const sucesso = this.jogador.jogarCarta(carta, posicao);
     const afetadas = sucesso
-      ? this.aplicarEfeitoInvocacao(carta, this.jogador, this.inimigo)
+      ? this.aplicarEfeitoInvocacao(
+          carta,
+          this.jogador,
+          this.inimigo,
+          posicao,
+          alvoEscolhido,
+        )
       : [];
     if (sucesso) this.registrarHistorico(carta, "jogador");
     return { sucesso, afetadas };
+  }
+
+  // Lista os índices do campo inimigo que uma carta ATACAR alcançaria se
+  // fosse jogada em "posicao" agora — pra UI mostrar o range antes de
+  // confirmar e deixar escolher o alvo (quando atingeTodos for false).
+  previsualizarAlvosAtaque(carta, posicao) {
+    if (!carta.efeito || carta.efeito.tipo !== TIPOS_EFEITO.ATACAR) return [];
+    return alvosEmRange(
+      posicao,
+      carta.efeito.rangeH,
+      carta.efeito.rangeV,
+      this.inimigo.campo,
+    );
+  }
+
+  // Ativa a habilidade de ataque de uma carta que JÁ ESTÁ em campo. Só
+  // funciona pra cartas com efeito ATACAR + habilidadeAtiva=true, uma vez
+  // por turno por carta. dono/oponente são os Jogador donos dos campos.
+  ativarHabilidade(carta, dono, oponente, alvoEscolhido = null) {
+    if (!carta.efeito || carta.efeito.tipo !== TIPOS_EFEITO.ATACAR)
+      return { sucesso: false, afetadas: [] };
+    if (!carta.habilidadeAtiva || carta.usadaEsteTurno)
+      return { sucesso: false, afetadas: [] };
+
+    const posicao = dono.campo.cartas.indexOf(carta);
+    if (posicao === -1) return { sucesso: false, afetadas: [] };
+
+    const { valor, rangeH, rangeV, atingeTodos } = carta.efeito;
+    const possiveis = alvosEmRange(posicao, rangeH, rangeV, oponente.campo);
+    const indices = atingeTodos
+      ? possiveis
+      : possiveis.includes(alvoEscolhido)
+        ? [alvoEscolhido]
+        : possiveis.length
+          ? [possiveis[Math.floor(Math.random() * possiveis.length)]]
+          : [];
+
+    const afetadas = [];
+    indices.forEach((i) => {
+      const c = oponente.campo.cartas[i];
+      c.buff(-valor);
+      afetadas.push({ carta: c, delta: -valor });
+    });
+    oponente.campo.removerMortas();
+
+    carta.usadaEsteTurno = true;
+    if (carta.somAtaque && typeof window !== "undefined" && window.cena) {
+      const s =
+        window.cena.sound.get(carta.somAtaque) ||
+        window.cena.sound.add(carta.somAtaque);
+      if (s) s.play();
+    }
+
+    return { sucesso: indices.length > 0, afetadas };
+  }
+
+  // Lista os índices do campo do oponente que ativarHabilidade() atingiria
+  // agora, para a UI poder destacar os alvos possíveis e deixar o jogador
+  // escolher antes de confirmar (mesma lógica de previsualizarAlvosAtaque,
+  // mas para uma carta que já está em campo, e não na mão).
+  alvosParaHabilidadeEmCampo(carta, dono, oponente) {
+    if (!carta.efeito || carta.efeito.tipo !== TIPOS_EFEITO.ATACAR) return [];
+    if (!carta.habilidadeAtiva) return [];
+    const posicao = dono.campo.cartas.indexOf(carta);
+    if (posicao === -1) return [];
+    return alvosEmRange(
+      posicao,
+      carta.efeito.rangeH,
+      carta.efeito.rangeV,
+      oponente.campo,
+    );
   }
 
   // Ponto único de entrada para o jogador conjurar uma carta de efeito:
@@ -218,10 +328,18 @@ class Partida {
   // "dono" é quem jogou a carta, "oponente" é o outro jogador.
   // Retorna a lista de cartas de campo afetadas (com o delta de poder
   // aplicado), para que a cena possa animar exatamente essas cartas.
-  aplicarEfeitoInvocacao(carta, dono, oponente) {
+  aplicarEfeitoInvocacao(
+    carta,
+    dono,
+    oponente,
+    posicao = null,
+    alvoEscolhido = null,
+  ) {
     if (!carta.efeito) return [];
     const { tipo, valor } = carta.efeito;
     const afetadas = [];
+
+    if (tipo === TIPOS_EFEITO.ATACAR) return []; // habilidade ativa: não dispara ao invocar, ver ativarHabilidade()
 
     switch (tipo) {
       case TIPOS_EFEITO.BUFF_ALIADOS:
@@ -239,6 +357,7 @@ class Partida {
             afetadas.push({ carta: c, delta: -valor });
           }
         });
+        oponente.campo.removerMortas();
         break;
       case TIPOS_EFEITO.COMPRAR_CARTA:
         for (let i = 0; i < valor; i++) dono.comprarCarta();
@@ -263,6 +382,13 @@ class Partida {
     if (this.partidaEncerrada) {
       return { resultadoCombate: null, fimDeJogo: true };
     }
+
+    // Libera de novo as habilidades ativas (1x por turno) dos dois lados.
+    [...this.jogador.campo.cartas, ...this.inimigo.campo.cartas].forEach(
+      (c) => {
+        if (c) c.usadaEsteTurno = false;
+      },
+    );
 
     this.turnoIA();
     // Cartas que a IA acabou de jogar neste turno também entram no sorteio
@@ -325,9 +451,7 @@ class Partida {
               // Só uma carta do grupo recebe o buff (sorteada entre as
               // cópias em campo), mantendo o ganho total em +valor.
               const alvo =
-                cartasDoGrupo[
-                  Math.floor(Math.random() * cartasDoGrupo.length)
-                ];
+                cartasDoGrupo[Math.floor(Math.random() * cartasDoGrupo.length)];
               alvo.buff(valor);
               afetadas.push({ carta: alvo, delta: valor });
             }
@@ -336,6 +460,8 @@ class Partida {
       });
     });
 
+    this.jogador.campo.removerMortas();
+    this.inimigo.campo.removerMortas();
     return afetadas;
   }
 
@@ -367,6 +493,13 @@ class Partida {
         break;
       }
     }
+
+    // IA também ativa habilidades de ataque disponíveis em campo (1x cada).
+    this.inimigo.campo.cartas.forEach((c) => {
+      if (c && c.habilidadeAtiva && !c.usadaEsteTurno) {
+        this.ativarHabilidade(c, this.inimigo, this.jogador);
+      }
+    });
   }
 
   calcularPoderTotal(campo) {

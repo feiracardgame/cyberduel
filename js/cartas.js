@@ -23,6 +23,7 @@ const TIPOS_EFEITO = {
   DEBUFF_INIMIGOS: "debuff_inimigos", // enfraquece as cartas inimigas em campo
   COMPRAR_CARTA: "comprar_carta", // dono compra carta(s) extra do deck
   DESCARTAR_CARTA: "descartar_carta", // oponente descarta carta(s) aleatória(s) da mão
+  ATACAR: "atacar", // dano em alvo(s) inimigo(s) dentro de um range H/V a partir da posição
 };
 
 // Gera a frase descritiva de um efeito, usada na visualização detalhada da carta
@@ -37,6 +38,8 @@ function descreverEfeito(efeito) {
       return `Ao ser invocada: você compra ${efeito.valor} carta${efeito.valor > 1 ? "s" : ""} do deck.`;
     case TIPOS_EFEITO.DESCARTAR_CARTA:
       return `Ao ser invocada: o oponente descarta ${efeito.valor} carta${efeito.valor > 1 ? "s" : ""} aleatória${efeito.valor > 1 ? "s" : ""} da mão.`;
+    case TIPOS_EFEITO.ATACAR:
+      return `Habilidade ativa (1x por turno, em campo): causa ${efeito.valor} de dano ${efeito.atingeTodos ? "a todos os alvos" : "a um alvo"} em range (H${efeito.rangeH}/V${efeito.rangeV}).`;
     default:
       return "";
   }
@@ -97,6 +100,23 @@ const POOL_CARTAS_MONSTRO = [
       chance: 0.5,
       valor: 1,
     },
+  },
+
+  {
+    nome: "Agente da DIPSP",
+    poder: 3,
+    descricao:
+      "Uma carta de campo com habilidade ativa: mira e dispara num alvo à sua escolha.",
+    imagem: "dipsp",
+    efeito: {
+      tipo: TIPOS_EFEITO.ATACAR,
+      valor: 3,
+      rangeH: 2,
+      rangeV: 2,
+      atingeTodos: false,
+    },
+    habilidadeAtiva: true, // NÃO dispara ao invocar — precisa ser ativada em campo
+    somAtaque: "somTiro",
   },
 
   // Adicione novas cartas de monstro especiais aqui, seguindo o mesmo
@@ -177,6 +197,9 @@ class Carta {
     this.efeitoTurno = opcoes.efeitoTurno || null; // efeito passivo, reavaliado a cada fim de turno em campo
     this.imagem = opcoes.imagem || null; // chave da textura carregada no preload (ver CenaJogo)
     this.foco = opcoes.foco || { x: 0.5, y: 0.5 }; // ponto da imagem centralizado no recorte (ver POOL_CARTAS_MONSTRO)
+    this.somAtaque = opcoes.somAtaque || null; // chave do som (preload) tocado quando esta carta ataca
+    this.habilidadeAtiva = !!opcoes.habilidadeAtiva; // true = ataque é ativado manualmente em campo, não ao invocar
+    this.usadaEsteTurno = false; // trava a habilidade ativa até o próximo turno
   }
 
   mostrar() {
