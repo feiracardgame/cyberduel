@@ -260,6 +260,9 @@ class CenaJogo extends Phaser.Scene {
               efeitoTurno: baseMonstro.efeitoTurno,
               imagem: baseMonstro.imagem,
               foco: baseMonstro.foco,
+              efeito: baseMonstro.efeito, // <- adicionado
+              habilidadeAtiva: baseMonstro.habilidadeAtiva, // <- adicionado
+              somAtaque: baseMonstro.somAtaque,
             },
           );
         } else {
@@ -457,6 +460,7 @@ class CenaJogo extends Phaser.Scene {
     this.desenharCampoInimigo();
     this.desenharCampoJogador();
     this.desenharIndicadoresPoder();
+    this.desenharFundoJogo()
     if (!this.maoEscondida) this.desenharMaoEmLeque();
     this.desenharBotaoPassarTurno();
     this.desenharBotaoToggleMao();
@@ -613,9 +617,10 @@ class CenaJogo extends Phaser.Scene {
               ease: "Sine.easeIn",
               onComplete: () => {
                 gameObject.destroy();
-                this.desenharInterface();
-                this.animarCartasAfetadas(resultado.afetadas);
-                this.travado = false;
+                this.processarCartasAfetadas(resultado.afetadas, () => {
+                  this.desenharInterface();
+                  this.travado = false;
+                });
               },
             });
           },
@@ -719,11 +724,740 @@ class CenaJogo extends Phaser.Scene {
         const alvo = this.children.list.find(
           (c) => c.dadosCartaCampo === cartaAfetada,
         );
-        if (alvo) this.animarBuffCarta(alvo, delta);
+        if (!alvo) return;
+        // delta negativo = dano de verdade (rasgo vermelho); delta
+        // positivo/zero = fortalecimento (pulso verde) — ver
+        // animarDanoCarta/animarBuffCarta logo abaixo.
+        if (delta < 0) this.animarDanoCarta(alvo, delta);
+        else this.animarBuffCarta(alvo, delta);
       });
     });
   }
 
+  // Ponto único de entrada para tratar cartas afetadas por um efeito quando
+  // ALGUMAS delas podem ter morrido (poder chegou a 0). Diferente de
+  // animarCartasAfetadas (que assume que a interface já foi redesenhada e
+  // a carta morta já sumiu do campo), esta função roda ANTES do redesenho:
+  // toca a animação de morte em cima do container que ainda está na tela,
+  // e só chama redesenharFn() (o desenharInterface() de sempre — a carta
+  // já foi removida do array pelo removerMortas() lá em main.js, só falta
+  // a interface refletir isso) depois que a animação de morte termina.
+  // Cartas que só foram feridas (mas sobreviveram) recebem a animação
+  // normal de dano/buff depois do redesenho, como sempre.
+  processarCartasAfetadas(afetadas, redesenharFn) {
+    if (!afetadas || afetadas.length === 0) {
+      redesenharFn();
+      return;
+    }
+
+    const mortas = afetadas.filter(({ carta }) => carta.poder <= 0);
+    const vivas = afetadas.filter(({ carta }) => carta.poder > 0);
+
+    if (mortas.length === 0) {
+      redesenharFn();
+      this.animarCartasAfetadas(vivas);
+      return;
+    }
+
+    let pendentes = mortas.length;
+    const prosseguir = () => {
+      pendentes--;
+      if (pendentes > 0) return;
+      redesenharFn();
+      this.animarCartasAfetadas(vivas);
+    };
+
+    mortas.forEach(({ carta }) => {
+      const alvo = this.children.list.find((c) => c.dadosCartaCampo === carta);
+      if (alvo) this.animarMorteCarta(alvo, prosseguir);
+      else prosseguir();
+    });
+  }
+
+  // Animação de dano "de verdade" (carta sobreviveu, mas perdeu poder):
+  // um rasgo vermelho corta o card e o número do dano sobe em vermelho,
+  // com um tremor mais brusco que o pulso suave do buff — pra ficar claro
+  // que é um golpe, não um reforço.
+  animarDanoCarta(containerCampo, delta) {
+    if (!containerCampo || !containerCampo.active) return;
+    this.tweens.killTweensOf(containerCampo);
+    containerCampo.setScale(1);
+    containerCampo.setAngle(0);
+
+    const rasgo = this.add.graphics().setDepth(3599);
+    rasgo.setPosition(containerCampo.x, containerCampo.y);
+    rasgo.lineStyle(10, 0xff2222, 0.95);
+    rasgo.beginPath();
+    rasgo.moveTo(-95, -125);
+    rasgo.lineTo(95, 125);
+    rasgo.strokePath();
+    rasgo.lineStyle(5, 0xffcccc, 0.8);
+    rasgo.beginPath();
+    rasgo.moveTo(-95, -125);
+    rasgo.lineTo(95, 125);
+    rasgo.strokePath();
+    rasgo.setAlpha(0);
+    rasgo.setScale(0.55, 0.55);
+
+    this.tweens.add({
+      targets: rasgo,
+      alpha: 1,
+      scaleX: 1.05,
+      scaleY: 1.05,
+      duration: 80,
+      ease: "Cubic.Out",
+      onComplete: () => {
+        this.tweens.add({
+          targets: rasgo,
+          alpha: 0,
+          duration: 220,
+          delay: 70,
+          onComplete: () => rasgo.destroy(),
+        });
+      },
+    });
+
+    let texto = this.add
+      .text(containerCampo.x, containerCampo.y - 170, `${delta}`, {
+        fontSize: "46px",
+        color: "#ff2222",
+        fontStyle: "bold",
+        stroke: "#000000",
+        strokeThickness: 7,
+      })
+      .setOrigin(0.5)
+      .setDepth(3600)
+      .setAlpha(0)
+      .setScale(1.4)
+      .setAngle(-8);
+
+    this.tweens.add({
+      targets: texto,
+      alpha: 1,
+      scale: 1,
+      angle: 0,
+      y: containerCampo.y - 260,
+      duration: 550,
+      ease: "Cubic.Out",
+      onComplete: () => texto.destroy(),
+    });
+    this.tweens.add({ targets: texto, alpha: 0, delay: 320, duration: 230 });
+
+    // Tremor brusco (bem diferente do pulso suave do buff)
+    this.tweens.add({
+      targets: containerCampo,
+      x: containerCampo.x - 10,
+      duration: 45,
+      yoyo: true,
+      repeat: 3,
+      ease: "Sine.easeInOut",
+    });
+    this.tweens.add({
+      targets: containerCampo,
+      scaleX: 0.9,
+      scaleY: 1.06,
+      duration: 90,
+      yoyo: true,
+      ease: "Sine.easeInOut",
+    });
+
+    if (this.somBuff) this.somBuff.play();
+    this.cameras.main.shake(90, 0.004);
+  }
+
+  // Animação de morte: a carta treme, racha e se despedaça (colapsa de
+  // escala com rotação) enquanto uma caveira sobe e se dissolve. Roda
+  // sobre o container que ESTÁ na tela agora, antes do redesenho tirar a
+  // carta morta do campo — ver processarCartasAfetadas().
+  // Animação de morte: treme, racha ao meio na mesma diagonal do rasgo de
+  // dano, e então a carta literalmente se despedaça — as duas metades
+  // voam pra lados opostos e um punhado de cacos menores explode entre
+  // elas, tudo girando, tingido de vermelho e sumindo num fade. Roda
+  // sobre o container que ESTÁ na tela agora, antes do redesenho tirar a
+  // carta morta do campo — ver processarCartasAfetadas().
+  // ============================================================================
+  // ANIMAÇÃO DE MORTE DA CARTA
+  // ============================================================================
+  // Fluxo:
+  // 1. Captura a carta atual numa RenderTexture.
+  // 2. Mostra a rachadura.
+  // 3. Esconde a carta original.
+  // 4. Divide a captura em duas metades + cacos.
+  // 5. Faz tudo voar, girar, diminuir e desaparecer.
+  // 6. Só depois destrói a carta original e libera o redraw.
+  //
+  // CORREÇÃO IMPORTANTE:
+  // A RenderTexture é criada em 0,0, mas a carta está em coordenadas de mundo
+  // (cx, cy). Então o draw() precisa compensar cx/cy. Sem isso a captura pode
+  // ficar fora da área da textura e os pedaços aparecem transparentes.
+  // ============================================================================
+
+  // ============================================================================
+  // ANIMAÇÃO DE MORTE DA CARTA
+  // ============================================================================
+  // Versão robusta:
+  // - NÃO usa RenderTexture
+  // - NÃO usa textura temporária
+  // - NÃO usa crop
+  // - NÃO usa GeometryMask
+  //
+  // A carta original é animada diretamente e, no momento da explosão,
+  // são criados cacos gráficos independentes.
+  // ============================================================================
+
+  animarMorteCarta(containerCampo, aoConcluir) {
+    if (!containerCampo || !containerCampo.active) {
+      if (aoConcluir) aoConcluir();
+      return;
+    }
+
+    // Cancela qualquer tween antigo que ainda esteja controlando a carta.
+    this.tweens.killTweensOf(containerCampo);
+
+    // Garante um estado visual válido.
+    containerCampo.setVisible(true);
+    containerCampo.setActive(true);
+    containerCampo.setAlpha(1);
+    containerCampo.setScale(1);
+    containerCampo.setAngle(0);
+
+    const cx = containerCampo.x;
+    const cy = containerCampo.y;
+
+    const CW = Math.max(1, containerCampo.width || 225);
+    const CH = Math.max(1, containerCampo.height || 315);
+
+    // --------------------------------------------------------------------------
+    // IMPACTO
+    // --------------------------------------------------------------------------
+
+    this.cameras.main.shake(180, 0.008);
+
+    if (this.somBuff) {
+      try {
+        this.somBuff.play();
+      } catch (e) {
+        console.warn("Erro ao tocar som de morte:", e);
+      }
+    }
+
+    // --------------------------------------------------------------------------
+    // FLASH VERMELHO
+    // --------------------------------------------------------------------------
+
+    const flash = this.add
+      .rectangle(cx, cy, CW + 20, CH + 20, 0xff2222, 0.65)
+      .setDepth(3900)
+      .setAlpha(0);
+
+    this.tweens.add({
+      targets: flash,
+      alpha: 0.65,
+      duration: 50,
+      yoyo: true,
+      hold: 40,
+      onComplete: () => {
+        if (flash && flash.active) {
+          flash.destroy();
+        }
+      },
+    });
+
+    // --------------------------------------------------------------------------
+    // RACHADURA
+    // --------------------------------------------------------------------------
+
+    const rachadura = this.add.graphics().setDepth(3901);
+
+    rachadura.setPosition(cx, cy);
+
+    // Linha vermelha grossa.
+    rachadura.lineStyle(12, 0xff2222, 1);
+
+    rachadura.beginPath();
+
+    rachadura.moveTo(-CW / 2, -CH / 2);
+
+    rachadura.lineTo(CW / 2, CH / 2);
+
+    rachadura.strokePath();
+
+    // Linha branca interna.
+    rachadura.lineStyle(4, 0xffffff, 0.95);
+
+    rachadura.beginPath();
+
+    rachadura.moveTo(-CW / 2, -CH / 2);
+
+    rachadura.lineTo(CW / 2, CH / 2);
+
+    rachadura.strokePath();
+
+    rachadura.setAlpha(0);
+    rachadura.setScale(0.65);
+
+    this.tweens.add({
+      targets: rachadura,
+      alpha: 1,
+      scaleX: 1,
+      scaleY: 1,
+      duration: 90,
+      ease: "Back.Out",
+    });
+
+    // --------------------------------------------------------------------------
+    // TREME A CARTA
+    // --------------------------------------------------------------------------
+
+    this.tweens.add({
+      targets: containerCampo,
+
+      x: cx + 10,
+
+      duration: 35,
+
+      yoyo: true,
+
+      repeat: 5,
+
+      ease: "Sine.easeInOut",
+
+      onComplete: () => {
+        this._explodirCartaMorta(
+          containerCampo,
+          rachadura,
+          cx,
+          cy,
+          CW,
+          CH,
+          aoConcluir,
+        );
+      },
+    });
+  }
+
+  // ============================================================================
+  // EXPLOSÃO / DESPEDAÇAMENTO
+  // ============================================================================
+  // Essa função NÃO depende de nenhuma textura.
+  // Os cacos são Graphics independentes e, portanto, continuam sendo
+  // renderizados mesmo se a carta original tiver imagem, máscara, etc.
+  // ============================================================================
+
+  _explodirCartaMorta(
+    containerOriginal,
+    rachadura,
+    cx,
+    cy,
+    CW,
+    CH,
+    aoConcluir,
+  ) {
+    // Remove a rachadura.
+    if (rachadura && rachadura.active) {
+      rachadura.destroy();
+    }
+
+    // --------------------------------------------------------------------------
+    // ESCONDE A CARTA ORIGINAL
+    // --------------------------------------------------------------------------
+
+    containerOriginal.setVisible(false);
+    containerOriginal.disableInteractive();
+
+    // --------------------------------------------------------------------------
+    // CRIA OS CACOS
+    // --------------------------------------------------------------------------
+
+    const pedacos = [];
+
+    // Cores dos cacos.
+    const cores = [0xff2222, 0xff4444, 0xff5555, 0xcc1111, 0xff7777];
+
+    // --------------------------------------------------------------------------
+    // DUAS GRANDES METADES
+    // --------------------------------------------------------------------------
+
+    const metadeA = this.add.graphics().setDepth(3700);
+
+    metadeA.fillStyle(0xff4444, 1);
+
+    metadeA.beginPath();
+
+    metadeA.moveTo(cx - CW / 2, cy - CH / 2);
+
+    metadeA.lineTo(cx + CW / 2, cy - CH / 2);
+
+    metadeA.lineTo(cx + CW / 2, cy + CH / 2);
+
+    metadeA.closePath();
+    metadeA.fillPath();
+
+    pedacos.push({
+      obj: metadeA,
+      dir: {
+        x: 1,
+        y: -0.35,
+      },
+      distancia: 220,
+      giro: Phaser.Math.Between(35, 70),
+      escala: 0.7,
+    });
+
+    const metadeB = this.add.graphics().setDepth(3700);
+
+    metadeB.fillStyle(0xcc2222, 1);
+
+    metadeB.beginPath();
+
+    metadeB.moveTo(cx - CW / 2, cy - CH / 2);
+
+    metadeB.lineTo(cx + CW / 2, cy + CH / 2);
+
+    metadeB.lineTo(cx - CW / 2, cy + CH / 2);
+
+    metadeB.closePath();
+    metadeB.fillPath();
+
+    pedacos.push({
+      obj: metadeB,
+      dir: {
+        x: -1,
+        y: 0.45,
+      },
+      distancia: 220,
+      giro: Phaser.Math.Between(-70, -35),
+      escala: 0.7,
+    });
+
+    // --------------------------------------------------------------------------
+    // 12 CACOS MENORES
+    // --------------------------------------------------------------------------
+
+    const COLS = 4;
+    const LINHAS = 3;
+
+    const pecaW = CW / COLS;
+    const pecaH = CH / LINHAS;
+
+    for (let linha = 0; linha < LINHAS; linha++) {
+      for (let coluna = 0; coluna < COLS; coluna++) {
+        const centroX = cx - CW / 2 + pecaW * (coluna + 0.5);
+
+        const centroY = cy - CH / 2 + pecaH * (linha + 0.5);
+
+        const caco = this.add.graphics().setDepth(3701);
+
+        const cor = cores[Phaser.Math.Between(0, cores.length - 1)];
+
+        caco.fillStyle(cor, Phaser.Math.FloatBetween(0.75, 1));
+
+        // Pequeno quadrado/retângulo irregular.
+        const margemX = pecaW * 0.12;
+        const margemY = pecaH * 0.12;
+
+        caco.fillRect(
+          centroX - pecaW / 2 + margemX,
+          centroY - pecaH / 2 + margemY,
+          pecaW - margemX * 2,
+          pecaH - margemY * 2,
+        );
+
+        // Direção baseada na distância do centro.
+        const dx = centroX - cx;
+        const dy = centroY - cy;
+
+        const distanciaCentro = Math.hypot(dx, dy) || 1;
+
+        pedacos.push({
+          obj: caco,
+
+          dir: {
+            x: dx / distanciaCentro,
+            y: dy / distanciaCentro,
+          },
+
+          distancia: Phaser.Math.Between(120, 260),
+
+          giro: Phaser.Math.Between(-220, 220),
+
+          escala: Phaser.Math.FloatBetween(0.25, 0.65),
+        });
+      }
+    }
+
+    // --------------------------------------------------------------------------
+    // EXPLOSÃO
+    // --------------------------------------------------------------------------
+
+    let pendentes = pedacos.length;
+
+    if (pendentes === 0) {
+      if (containerOriginal && containerOriginal.active) {
+        containerOriginal.destroy();
+      }
+
+      if (aoConcluir) {
+        aoConcluir();
+      }
+
+      return;
+    }
+
+    pedacos.forEach(({ obj, dir, distancia, giro, escala }) => {
+      if (!obj || !obj.active) {
+        pendentes--;
+
+        return;
+      }
+
+      const destinoX = obj.x + dir.x * distancia;
+
+      const destinoY = obj.y + dir.y * distancia + Phaser.Math.Between(30, 100);
+
+      this.tweens.add({
+        targets: obj,
+
+        x: destinoX,
+
+        y: destinoY,
+
+        angle: giro,
+
+        alpha: 0,
+
+        scaleX: escala,
+
+        scaleY: escala,
+
+        duration: Phaser.Math.Between(420, 620),
+
+        delay: Phaser.Math.Between(0, 100),
+
+        ease: "Cubic.In",
+
+        onComplete: () => {
+          if (obj && obj.active) {
+            obj.destroy();
+          }
+
+          pendentes--;
+
+          if (pendentes <= 0) {
+            // Finalmente destrói a carta original.
+            if (containerOriginal && containerOriginal.active) {
+              containerOriginal.destroy();
+            }
+
+            // Continua o fluxo do combate.
+            if (aoConcluir) {
+              aoConcluir();
+            }
+          }
+        },
+      });
+    });
+  }
+  desenharFundoJogo() {
+    const fundo = this.add
+      .image(GW / 2, GH / 2, "jogoFundo")
+      .setOrigin(0.5)
+      .setDisplaySize(GW, GH)
+      .setAlpha(0.3)
+      .setDepth(-100);
+
+    fundo.setScrollFactor(0);
+
+    return fundo;
+  }
+
+  despedacarCarta(chaveTextura, cx, cy, CW, CH, containerOriginal, aoConcluir) {
+    const pedacos = [];
+
+    // --------------------------------------------------------------------------
+    // 1) DUAS METADES GRANDES
+    // --------------------------------------------------------------------------
+
+    const metades = [
+      {
+        // Triângulo superior/direito.
+        pontos: [-CW / 2, -CH / 2, CW / 2, -CH / 2, CW / 2, CH / 2],
+
+        dir: {
+          x: 1,
+          y: -0.4,
+        },
+      },
+
+      {
+        // Triângulo inferior/esquerdo.
+        pontos: [-CW / 2, -CH / 2, CW / 2, CH / 2, -CW / 2, CH / 2],
+
+        dir: {
+          x: -1,
+          y: 0.4,
+        },
+      },
+    ];
+
+    metades.forEach(({ pontos, dir }) => {
+      let imagem = this.add.image(cx, cy, chaveTextura).setOrigin(0.5);
+
+      imagem.setDepth(3700);
+      imagem.setTint(0xff5555);
+
+      // Máscara triangular.
+      let mascaraG = this.add.graphics();
+
+      mascaraG.fillStyle(0xffffff);
+
+      mascaraG.beginPath();
+
+      mascaraG.moveTo(cx + pontos[0], cy + pontos[1]);
+
+      mascaraG.lineTo(cx + pontos[2], cy + pontos[3]);
+
+      mascaraG.lineTo(cx + pontos[4], cy + pontos[5]);
+
+      mascaraG.closePath();
+      mascaraG.fillPath();
+
+      mascaraG.setVisible(false);
+
+      imagem.setMask(mascaraG.createGeometryMask());
+
+      // Guardamos pra destruir junto depois.
+      imagem._mascaraGraphics = mascaraG;
+
+      pedacos.push({
+        obj: imagem,
+        dir,
+        giro: Phaser.Math.Between(20, 60) * (dir.x >= 0 ? 1 : -1),
+      });
+    });
+
+    // --------------------------------------------------------------------------
+    // 2) CACOS MENORES
+    // --------------------------------------------------------------------------
+
+    const COLS = 3;
+    const LINS = 3;
+
+    const pecaW = CW / COLS;
+    const pecaH = CH / LINS;
+
+    for (let l = 0; l < LINS; l++) {
+      for (let c = 0; c < COLS; c++) {
+        let caco = this.add.image(cx, cy, chaveTextura).setOrigin(0.5);
+
+        // Recorta um pedaço da textura.
+        caco.setCrop(c * pecaW, l * pecaH, pecaW, pecaH);
+
+        caco.setTint(0xff6666);
+        caco.setDepth(3701);
+
+        // Posição original desse caco dentro da carta.
+        const offX = -CW / 2 + pecaW * (c + 0.5);
+
+        const offY = -CH / 2 + pecaH * (l + 0.5);
+
+        const dist = Math.hypot(offX, offY) || 1;
+
+        pedacos.push({
+          obj: caco,
+
+          dir: {
+            x: offX / dist,
+            y: offY / dist,
+          },
+
+          giro: Phaser.Math.Between(-180, 180),
+
+          pequeno: true,
+        });
+      }
+    }
+
+    // --------------------------------------------------------------------------
+    // 3) ANIMA TODOS OS PEDAÇOS
+    // --------------------------------------------------------------------------
+
+    let pendentes = pedacos.length;
+
+    // Segurança extrema: se por algum motivo não houver pedaços,
+    // não deixa a partida travada para sempre.
+    if (pendentes === 0) {
+      this.textures.remove(chaveTextura);
+
+      if (containerOriginal && containerOriginal.active) {
+        containerOriginal.destroy();
+      }
+
+      aoConcluir();
+      return;
+    }
+
+    pedacos.forEach(({ obj, dir, giro, pequeno }) => {
+      const distancia = pequeno
+        ? Phaser.Math.Between(90, 220)
+        : Phaser.Math.Between(160, 260);
+
+      const atraso = pequeno ? Phaser.Math.Between(0, 90) : 0;
+
+      // Salva posição inicial antes do tween.
+      const destinoX = obj.x + dir.x * distancia;
+
+      const destinoY = obj.y + dir.y * distancia + 60;
+
+      this.tweens.add({
+        targets: obj,
+
+        x: destinoX,
+        y: destinoY,
+
+        angle: giro,
+
+        alpha: 0,
+
+        scaleX: pequeno ? 0.4 : 0.75,
+        scaleY: pequeno ? 0.4 : 0.75,
+
+        duration: pequeno ? 480 : 560,
+
+        delay: atraso,
+
+        ease: "Cubic.In",
+
+        onComplete: () => {
+          // Destrói a máscara específica das metades.
+          if (obj._mascaraGraphics && obj._mascaraGraphics.active) {
+            obj._mascaraGraphics.destroy();
+          }
+
+          // Destrói o pedaço.
+          if (obj && obj.active) {
+            obj.destroy();
+          }
+
+          pendentes--;
+
+          // Quando TODOS os pedaços terminaram:
+          if (pendentes === 0) {
+            // Libera a textura temporária.
+            this.textures.remove(chaveTextura);
+
+            // Agora sim destrói a carta original.
+            if (containerOriginal && containerOriginal.active) {
+              containerOriginal.destroy();
+            }
+
+            // Libera o fluxo para o redraw.
+            aoConcluir();
+          }
+        },
+      });
+    });
+  }
   animarBuffCarta(containerCampo, delta) {
     // Defesa extra: garante que não haja nenhuma tween antiga ainda
     // mexendo na escala desta carta, e parte de um estado conhecido
@@ -798,12 +1532,12 @@ class CenaJogo extends Phaser.Scene {
       const yPos = L.yInimigo[fileira];
 
       let slotInimigo = this.add
-        .rectangle(xPos, yPos, L.slotW, L.slotH, 0x332222)
+        .rectangle(xPos, yPos, L.slotW, L.slotH, 0x552222)
         .setStrokeStyle(2, 0x552222)
         .setAlpha(0);
       this.tweens.add({
         targets: slotInimigo,
-        alpha: 1,
+        alpha: 0.4,
         duration: 260,
         delay: i * 18,
         ease: "Sine.easeOut",
@@ -839,7 +1573,7 @@ class CenaJogo extends Phaser.Scene {
       slot.isSlot = true; // Identificador para a colisão do Drag & Drop
       this.tweens.add({
         targets: slot,
-        alpha: 1,
+        alpha: 0.4,
         duration: 260,
         delay: i * 18,
         ease: "Sine.easeOut",
@@ -2141,14 +2875,14 @@ class CenaJogo extends Phaser.Scene {
       const raio = Math.max(L.slotW, L.slotH) / 2 + 16;
 
       let anel = this.add
-        .circle(xPos, yPos, raio, 0xffcc00, 0)
+        .rectangle(xPos, yPos, L.slotW, L.slotH, 0xffcc00, 0)
         .setStrokeStyle(8, 0xffcc00, 1)
         .setDepth(3800);
       this.tweens.add({
         targets: anel,
         scaleX: 1.08,
         scaleY: 1.08,
-        alpha: 0.6,
+        alpha: 0.2,
         duration: 550,
         yoyo: true,
         repeat: -1,
@@ -2192,11 +2926,13 @@ class CenaJogo extends Phaser.Scene {
     );
 
     if (resultado.sucesso) {
-      this.desenharInterface();
-      this.animarCartasAfetadas(resultado.afetadas);
+      this.processarCartasAfetadas(resultado.afetadas, () => {
+        this.desenharInterface();
+        this.travado = false;
+      });
+    } else {
+      this.travado = false;
     }
-
-    this.travado = false;
   }
 
   // ---------- STATUS / UI ----------
@@ -2420,20 +3156,22 @@ class CenaJogo extends Phaser.Scene {
           const efeitosDeTurno = this.partida.efeitosDeTurno;
 
           const finalizarTurno = () => {
-            this.desenharInterface();
-            if (efeitoInimigo) {
-              this.animarCartasAfetadas(efeitoInimigo.afetadas);
-            }
-            this.animarCartasAfetadas(efeitosDeTurno);
+            const todasAfetadas = [
+              ...(efeitoInimigo ? efeitoInimigo.afetadas : []),
+              ...(efeitosDeTurno || []),
+            ];
+            this.processarCartasAfetadas(todasAfetadas, () => {
+              this.desenharInterface();
 
-            if (fimDeJogo) {
-              // Combate só é revelado agora, no fechamento do último
-              // turno — this.travado continua true de propósito, pra
-              // travar a interação depois que a partida acaba.
-              this.mostrarTelaFimDeJogo(resultadoCombate);
-            } else {
-              this.travado = false;
-            }
+              if (fimDeJogo) {
+                // Combate só é revelado agora, no fechamento do último
+                // turno — this.travado continua true de propósito, pra
+                // travar a interação depois que a partida acaba.
+                this.mostrarTelaFimDeJogo(resultadoCombate);
+              } else {
+                this.travado = false;
+              }
+            });
           };
 
           if (efeitoInimigo) {

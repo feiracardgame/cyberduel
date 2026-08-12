@@ -20,6 +20,7 @@ class CenaPreload extends Phaser.Scene {
     // ---------- ASSETS DO JOGO ----------
     this.load.image("cryptoacionistas", "assets/cartas/cryptoacionistas.png");
     this.load.image("dipsp", "assets/cartas/AgenteDIPSP.png");
+    this.load.image("jogoFundo", "assets/fundo/jogo-fundo.png");
 
     this.load.audio("musicaFundo", "assets/sons/jogo-musica.wav");
     this.load.audio("somJogarCarta", "assets/sons/jogo-cartawhoosh.wav");
