@@ -51,7 +51,7 @@ Machine learning -> Escolha uma carta aliada. Ela recebe +2 PA. O Estagiário pe
 * PA: 5
 * Efeito:
 
- Cessar e Desistir → Após uma longa análise jurídica de aproximadamente três minutos, concluiu-se que o terreno inimigo infringe ao menos dezessete patentes da RaspCorp. O último terreno invocado pelo adversário é destruído.
+ Cessar e Desistir → Após uma longa análise jurídica de aproximadamente três minutos, concluiu-se que o terreno inimigo infringe ao menos dezessete patentes da RaspCorp. Uma vez por jogo, escolha um terreno inimigo para ser eliminado.
 
  
 * Arte:
@@ -309,10 +309,10 @@ Faz tipo um cara desses num salão de ópera cibernético, mas ele tem um cabelo
 
 ---
 
-## Booster 3 - Humbanet - Deck 
+## Booster 3 - HumbaNet - deck com cor-guia verde
 
 
-### 1x carta baixa
+### 1x carta baixa -> IA de treinamento
 
 * Descrição: 
 * PA:
@@ -320,7 +320,7 @@ Faz tipo um cara desses num salão de ópera cibernético, mas ele tem um cabelo
 * Visual:
 
 
-### 1x carta media 1
+### 1x carta media 1 -> HAL 9001
 
 * Descrição:
 * PA:
@@ -328,7 +328,7 @@ Faz tipo um cara desses num salão de ópera cibernético, mas ele tem um cabelo
 * Visual:
 
 
-### 1x carta media 2
+### 1x carta media 2 -> H.A.R.V.I.S
 
 * Descrição:
 * PA:
@@ -336,7 +336,7 @@ Faz tipo um cara desses num salão de ópera cibernético, mas ele tem um cabelo
 * Visual:
 
 
-### 1x carta alta 1
+### 1x carta alta 1 ->  Replicantes
 
 * Descrição:
 * PA:
@@ -344,31 +344,15 @@ Faz tipo um cara desses num salão de ópera cibernético, mas ele tem um cabelo
 * Visual:
 
 
-### 1x carta alta 2
+### 1x carta alta 2 -> UCC "Juggernaut"
 
-* Descrição:
+* Descrição: A Unidade Cibernética de Combate, apelidada de Juggernaut, 
 * PA:
 * Efeito:
 * Visual:
 
-### 1x carta alta 3
+### 1x carta alta 3 -> Dragão das Comunicações Móveis
 
-
-* Descrição:
-* PA:
-* Efeito:
-* Visual:
-
-
-
-### 1x carta lendária
-
-* Descrição:
-* PA:
-* Efeito:
-* Visual:
-
-#### 1x carta de terreno 1
 
 * Descrição:
 * PA:
@@ -377,29 +361,56 @@ Faz tipo um cara desses num salão de ópera cibernético, mas ele tem um cabelo
 
 
 
-### 1x carta de terreno 2
+### 1x carta lendária -> HumbaBrain
 
-* Descrição:
-* PA:
+* Descrição: O cientista Humba, buscando salvar o planeta das mudanças climáticas, fez upload de uma IA para sua própria cabeça, tornando-se a primeira IA a experimentar o mundo humano. Após compreender a humanidade, criou uma realidade virtual onde humanos e IAs poderiam viver como iguais. Atualmente, comanda a simulação e trabalha para torná-la cada vez mais atrativa aos usuários, não importa o custo.
+* PA: 8
 * Efeito:
-* Visual:
 
-### 1x carta de efeito 1
+ Humbatrix -> Após o sucesso de NeoFloripa, HumbaBrain inicia a expansão da simulação. Enquanto esta carta estiver em campo, os terrenos inimigos não têm efeito, e os seus não podem ser destruídos.
 
-* Descrição:
-* PA:
-* Efeito:
-* Visual:
+ 
+* Visual: Faz um rework da carta do Humba Brain... naquele estilo mesmo do Angstom Levy, mas não deixa ele tão cabeçudo e bizarro... Bota elementos de verde.
 
 
 
 
+#### 1x carta de terreno 1 -> DeepClaude ChatGemini
 
-Humberto vai ser o HUMBA BRAIN, que nem o Angstrom de invencível, o criador dos androides
+* Descrição: As IAs eram gratuitas até todo mundo começar a usá-las. Quando perceberam que havia dinheiro envolvido, seus criadores rapidamente introduziram assinaturas, créditos e limites de utilização. O Humba Brain resolveu o problema de uma maneira simples: reuniu todas elas em um único modelo para que nenhum NeoFlorianopolitano precisasse pagar por elas.
+
+ 
+* Efeito: Você Quis Dizer... -> Enquanto este terreno estiver em campo, você pode ativar seu efeito para comprar 1 carta aleatória do Deck.
+ 
+* Visual: Faz tipo uma junção de TODAAS as logos de IA que tu achar e deixa elas brilhando em verde neon.
 
 
 
----
+### 1x carta de terreno 2 -> Atualização de Patch
+
+* Descrição: Todo produto possui alguns defeitos. Felizmente, nosso estimado criador trabalha incansavelmente em novas correções para garantir a felicidade geral da cybernação. Afinal, se algo não funciona, basta lançar uma atualização e fingir que estava tudo planejado.
+
+* Efeito: Novas Features -> Todas as suas cartas em campo recebem +1 de PA.
+ 
+* Visual: Faz alguma coisa bugada, mas pode meter alguma coisa no estilo da Anomalia de ordem tbm
+
+<img width="1216" height="1544" alt="image" src="https://github.com/user-attachments/assets/4f717f17-84dd-4bab-a38e-547c07cfbc8e" />
+
+
+<img width="960" height="680" alt="image" src="https://github.com/user-attachments/assets/a1dacb05-bff9-4742-9317-2ce623183907" />
+
+
+### 1x carta de efeito 1 -> Você Parece Sozinho
+
+* Descrição: Para que buscar companhia real quando você pode preencher o vazio conversando com uma IA? No mundo virtual, todo solitário recebe seu próprio modelo androide da linha Hoi, programado para ouvir, conversar e concordar com você. Afinal, não existe lugar melhor para viver do que NeoFloripa, especialmente quando você nunca precisa estar realmente sozinho.
+
+* Efeito: Escolha uma carta aliada que, neste momento, não possua nenhuma outra carta adjacente. Ela recebe +3 de PA.
+
+
+* Visual: Faz tipo aquela cena do BladeRunner 2049, porém a cor predominante é verde e tenta não deixar a boneca pelada
+
+<img width="640" height="480" alt="image" src="https://github.com/user-attachments/assets/b96b5b5b-4c69-46d6-bf68-fe75f6255d86" />
+
 
 ## Booster 4 - Os Remanescentes -> Sem nada de terreno, deck baseado em personagens e efeitos, imune a efeitos de terreno
 
