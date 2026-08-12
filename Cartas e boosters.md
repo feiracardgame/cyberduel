@@ -404,7 +404,7 @@ Faz tipo um cara desses num salão de ópera cibernético, mas ele tem um cabelo
 
 * Descrição: Para que buscar companhia real quando você pode preencher o vazio conversando com uma IA? No mundo virtual, todo solitário recebe seu próprio modelo androide da linha Hoi, programado para ouvir, conversar e concordar com você. Afinal, não existe lugar melhor para viver do que NeoFloripa, especialmente quando você nunca precisa estar realmente sozinho.
 
-* Efeito: Escolha uma carta aliada que não possua nenhuma outra carta adjacente. Ela recebe +3 de PA.
+* Efeito: Escolha uma carta aliada que, neste momento, não possua nenhuma outra carta adjacente. Ela recebe +3 de PA.
 
 
 * Visual: Faz tipo aquela cena do BladeRunner 2049, porém a cor predominante é verde e tenta não deixar a boneca pelada
