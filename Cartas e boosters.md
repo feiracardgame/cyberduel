@@ -547,19 +547,27 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 ### 1x carta de efeito 1 -> Vento dos ermos
 
 
-* Descrição:
-* PA:
-* Efeito:
+* Descrição: A forte ventania nas terras destruídas ajuda a acelerar a desertificação no local. De acordo com os anciões remanescentes "o vento tudo leva, menos as lembranças daqueles que passaram"
+* Efeito: Escolha um terreno inimigo. Ele será removido.
 * Visual:
+Faz aqueles arbusto seco que voa pelo deserto com alguns riscos indicando vento, mas o arbusto seco faz ele meio metalico tlg, como se fosse resto de sucata
+
+<img width="1280" height="714" alt="image" src="https://github.com/user-attachments/assets/11702792-2b6a-4165-8729-dd0042ab5b39" />
+
+<img width="753" height="435" alt="image" src="https://github.com/user-attachments/assets/22f57126-5657-4a08-b06e-5e29cba3b4d4" />
 
 
 ### 1x carta de efeito 2 -> Reciclagem
 
 
-* Descrição:
-* PA:
-* Efeito:
-* Visual:
+* Descrição: Restos de plástico, eletrônicos antigos, robôs destruído. Nas mãos dos Remanescentes, tudo pode ganhar uma nova utilidade. Com a escassez dos recursos naturais, foi necessário aprender a aproveitar aquilo que ainda existia em abundância. O lixo de uns é o tesouro dos outros.
+* Efeito: Escolha 1 terreno removido, efeito já utilizado ou personagem destruído. Coloque-o novamente em sua mão.
+
+ 
+* Visual: Pode fazer uma pilha de recursos aí jogados em um deserto e o povo da areia catando eles.
+
+
+<img width="640" height="360" alt="image" src="https://github.com/user-attachments/assets/078b8da3-7b3d-449b-8b0d-ec72fba1a5d3" />
 
 
 #### 1x carta de  terreno 1 -> Saloon
