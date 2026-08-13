@@ -538,10 +538,12 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 
 ### 1x carta lendária -> Dieh'Go, o Xerife
 
-* Descrição:
-* PA:
-* Efeito:
+* Descrição: Dentre os Remanescentes, a lei não é um código escrito. A lei é Dieh'Go. Nunca foi eleito nem nomeado xerife, simplesmente assumiu o posto quando o povo mais precisou. Sua autoridade não vem apenas da força, mas da confiança conquistada por anos protegendo o Povo da Areia. Até os maiores foras da lei respeitam seu julgamento. Para os forasteiros ele é a última pessoa que se deseja encontrar no deserto.
+* PA: 9
+* Efeito: Eu Sou a Lei -> A cada turno, distribua 6 pontos de dano de PA entre as cartas inimigas como desejar. Além disso, a carta aliada diretamente atrás de Dieh'Go recebe +2 de PA enquanto ele permanecer em campo.
 * Visual:
+
+ <img alt="image" src="assets/cartas/Di_Ego_caçador_de_recompensas.png"/>
 
 
 ### 1x carta de efeito 1 -> Vento dos ermos
@@ -561,6 +563,8 @@ Faz aqueles arbusto seco que voa pelo deserto com alguns riscos indicando vento,
 
 
 * Descrição: Restos de plástico, eletrônicos antigos, robôs destruído. Nas mãos dos Remanescentes, tudo pode ganhar uma nova utilidade. Com a escassez dos recursos naturais, foi necessário aprender a aproveitar aquilo que ainda existia em abundância. O lixo de uns é o tesouro dos outros.
+
+ 
 * Efeito: Escolha 1 terreno removido, efeito já utilizado ou personagem destruído. Coloque-o novamente em sua mão.
 
  
