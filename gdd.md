@@ -3,46 +3,6 @@
 Revision: 0.0.1
 
 
-> GDD Template Written by: Benjamin “HeadClot” Stanley
-
-
-- Overview
-  - Theme / Setting / Genre
-  - Core Gameplay Mechanics Brief
-  - Targeted platforms
-  - Monetization model (Brief/Document)
-  - Project Scope
-  - Influences (Brief)
-    - <Influence #1>
-    - <Influence #2>
-    - <Influence #3>
-    - <Influence #4>
-  - The elevator Pitch
-  - Project Description (Brief):
-  - Project Description (Detailed)
-- What sets this project apart?
-  - Core Gameplay Mechanics (Detailed)
-    - <Core Gameplay Mechanic #1>
-    - <Core Gameplay Mechanic #2>
-    - <Core Gameplay Mechanic #3>
-    - <Core Gameplay Mechanic #4>
-- Story and Gameplay
-  - Story (Brief)
-  - Story (Detailed)
-  - Gameplay (Brief)
-  - Gameplay (Detailed)
-- Assets Needed
-  - 2D
-  - 3D
-  - Sound
-  - Code
-  - Animation
-- Schedule
-  - <Object #1>
-  - <Object #2>
-  - <Object #3>
-  - <Object #4>
-
 
 # Overview
 
@@ -319,85 +279,51 @@ Após o término da partida, o vencedor recebe pontos proporcionais ao ranking d
 # Assets Needed
 
 ## 2D
-  - Textures
-    - Environment Textures
-  - Heightmap data (If applicable)
-    - List required data required - Example: DEM data of the entire UK.
-  - Etc.
+- Artes para cada carta, todas disponíveis em assets/cartas
+- 4 mapas diferentes, todas disponíveis em assets/fundo
+- Arte para parte de trás da carta
 
-## 3D
-  - Characters List
-    - Character #1
-    - Character #2
-    - Character #3
-    - etc.
-  - Environmental Art Lists
-    - Example #1
-    - Example #2 
-    - Example #3
-    - etc.
+
+
 
 ## Sound
-  - Sound List (Ambient)
-    - Outside
-      - Level 1
-      - Level 2 
-      - Level 3
-      - etc.
-    - Inside
-      - Level 1
-      - Level 2
-      - Level 3
-      - etc.
-  - Sound List (Player)
-    - Character Movement Sound List
-      - Example 1
-      - Example 2
-      - etc. 
-    - Character Hit / Collision Sound list
-      - Example 1
-      - Example 2
-      - etc.
-    - Character on Injured / Death sound list
-      - Example 1
-      - Example 2
-      - etc.
+ -> Trilha sonora para menu inicial e leaderboard
+ -> Trilha sonora para menu de deck e compra de cartas
+ -> Trilha sonora para cada um dos 4 mapas
+ -> Trilha sonora para tutorial
+ -> Efeito sonoro para cada carta de efeito e para ativação de efeito de cada carta de personagem
+ -> Efeito sonoro de destruição de carta
+ -> Efeito sonoro de posicionar carta
+ -> Efeito sonoro de puxar carta
+ -> Efeito sonoro de aumentar PA
+
+ 
 
 ## Code
-  - Character Scripts (Player Pawn/Player Controller)
-    - Example
-  - Ambient Scripts (Runs in the background)
-    - Example
-  - NPC Scripts
-    - Example
+  Disponível na pasta js
 
 ## Animation
-  - Environment Animations 
-    - Example
-  - Character Animations 
-    - Player
-      - Example 
-    - NPC
-      - Example
+  - animação de destruição de carta
+  - animação de carta virando
+  - animação de efeito de cartas específicas
+
 
 # Schedule
-  - <Object #1>
-    - Time Scale
-      - Milestone 1
-      - Milestone 2
-      - Etc.
-  - <Object #2>
-    - Time Scale
-      - Milestone 1
-      - Milestone 2
-      - Etc.
-  - <Object #3>
-    - Time Scale
-      - Milestone 1
-      - Milestone 2
-      - Etc.
-  - <Object #4>
-    - Time Scale
-      - Milestone 1
-      - Milestone 2
-      - Etc.
+  - Implementar todas as cartas da RaspCorp e EchoSSystem e ter os campos de batalha - 31/08
+
+  - Ter todas as cartas no jogo, assim como versão inicial dos menus -> 18/09
+
+  - Finalizar os menus e ter o sistema de leaderboard e booster packs 30/09
+
+  - Versão mobile beta do jogo finalizada - 15/10
+
+  - Terminar de implementar o modo híbrido -> 31/10
+
+  - Finalizar sistema de mercado de cartas 7/11
+
+  
+  - Versão beta do jogo 12/11
+
+  - Lançamento oficial 19/11
+
+
