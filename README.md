@@ -133,6 +133,8 @@ A cada valor pré-definido de tempo, como 1 hora e meia, a leaderboard reseta e 
 
 Também há a possibilidade de ganhar moedas jogando e vencendo torneios que, em um jogo ideal, seriam em enorme quantidade e separados por servidor de jogo. No universo, seria o equivalente a torneios menores e regionais, que não pagam tanto quanto a leaderboard principal, mas podem ajudar a evoluir no jogo, além de fornecerem um troféu para amaciar o ego de quem gostar.
 
+Há a possibilidade de ir recompensando os jogadores por jogarem partidas com pequenas quantidades de tijolinhos.
+
 ## Regras
 *Essas regras ainda não são totalmente definitivas, pois ainda dependerão se será necessário fazer algum balanceamento, contudo a base delas se manterá a mesma*
 
@@ -174,7 +176,7 @@ Regras:
 - As cartas de personagens e terrenos ficam em campo ate serem removidas por algum efeito ou, no caso dos personagens, terem seus Pontos de Audiência reduzidos a 0.
 - As cartas de personagens e terrenos tem efeito enquanto estão em campo e só podem ser invocadas caso haja espaço no campo
 - As cartas de efeito tem ação instantânea e única, mas não requerem espaço no campo para ser invocados
-- Ao final da sétima rodada, ou quando todos os jogadores tiverem lançado todas as cartas do baralho, o jogo acaba e contabilizará quem tem o maior somatório de Pontos de Audiência, determinando que este será o vencedor.
+- Ao final de cada rodada, o jogador com maior soma de PA será considerado o vencedor. Quem vencer mais rodadas ganhará a partida.
 - Caso o valor de pontos termine igual, o jogo resulta em empate
 
 
