@@ -104,7 +104,7 @@ Foi então que Humba-Brain passou a enxergar as inteligências artificiais como 
 
 Ao observar uma humanidade acomodada em cidades inteligentes, sem propósito ou desafios, Humba-Brain encontrou a oportunidade perfeita. Criou NeoFloripa e o CyberDuel como uma sociedade capaz de reproduzir conflitos, política, economia, trabalho, ambição, amizade e sofrimento. Afinal, se é a interação entre indivíduos que molda uma consciência, talvez uma realidade virtual pudesse produzir experiências tão autênticas quanto as do mundo físico.
 
-Naturalmente, alguns detalhes ficaram de fora. Necessidades básicas como fome, dor, doenças e até a morte continuaram existindo na simulação. Para Humba-Brain, esses elementos eram apenas variáveis indispensáveis para tornar a experiência convincente. Empatia, por outro lado, ainda não havia sido implementada em seu código.
+Naturalmente, alguns detalhes ficaram de fora. Necessidades básicas como fome, dor, doenças e até a morte continuaram existindo na simulação. Para Humba-Brain, esses elementos eram apenas variáveis indispensáveis para tornar a experiência convincente. Empatia, por outro lado, ainda não havia sido implementada em seu código. Porém, o objetivo princiupal se manteve o mesmo: criar um mundo tão envolvente e interessante que toda a humanidade passaria a viver lá dentro.
 
 Como toda grande obra de software, NeoFloripa também apresenta falhas ocasionais. A diferença é que, neste caso, os bugs no lançamento não impactam tanto na sua popularidade.
 
