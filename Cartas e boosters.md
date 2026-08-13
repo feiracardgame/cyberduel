@@ -90,7 +90,7 @@ Machine learning -> Escolha uma carta aliada. Ela recebe +2 PA. O Estagiário pe
 * PA: 8
 * Efeito:
 
- Missão de Paz - A DIPSP conduz uma operação humanitária para proteger a população local de seus próprios recursos naturais. A cada turno, escolha até 2 cartas inimigas até alcance longo à frente ou adjacente. Os alvos atingidos perdem 3 de PA.
+ Missão de Paz - A DIPSP conduz uma operação humanitária para proteger a população local de seus próprios recursos naturais. A cada turno, escolha até 2 cartas em alcance curto ou longo que estejam até uma coluna de distância. Os alvos atingidos perdem 3 de PA.
  
 * Arte:
  <img alt="image" src="assets/cartas/AgenteDIPSP.png" />
@@ -176,7 +176,7 @@ Faz tipo a Jewel da Marvel, só que mais cyberpunk e mete umas prótese de perna
 
 * Descrição: Descrição: Antes mesmo de entrar para o grupo anarquista, o Cão já era um mercenário especializado em rastrear alvos. Seus implantes cibernéticos de olfato permitem encontrar praticamente qualquer pessoa pelo menor dos rastros. O único problema é que a idade já está afetando seus sentidos: recentemente, ele passou três horas seguindo o próprio cheiro.
 * PA: 4
-* Efeito: Faro -> O Cão consegue rastrear o cheiro do inimigo, apesar de não tão bem quanto sua época. Ao ser invocado, o Cão te informa de até 3 cartas que o inimigo tenha na mão ou no baralho.
+* Efeito: Faro -> O Cão consegue rastrear o cheiro do inimigo, apesar de não tão bem quanto sua época. Ao ser invocado, o Cão te informa de até 5 cartas que o inimigo tenha na mão ou no baralho.
 * Visual:
 
 Faz um detetive noir com uns implantes tipo assim só que preto com vermelho e ele tem que ser velho
@@ -215,7 +215,7 @@ Faz um detetive noir com uns implantes tipo assim só que preto com vermelho e e
 
  
 * PA: 9
-* Efeito: Garra de aço -> O Tigre é um mestre de combate corpo a corpo. Escolha qualquer carta de alcance curto, o Tigre reduz seus PA em 3.
+* Efeito: Garra de aço -> O Tigre é um mestre de combate corpo a corpo. Escolha 2 dentre toda carta em alcance curto, o Tigre reduz seus PA em 3.
 
  
 * Visual: Faz tipo o wolverine vermelho com umas garras cibernéticas bem longas
@@ -228,7 +228,7 @@ Faz um detetive noir com uns implantes tipo assim só que preto com vermelho e e
 
 * Descrição: A Aranha é filha do finado fundador da EchoSsystem, “O Dragão”. Proibida pelo pai de participar das missões, foi treinada para invadir sistemas e fornecer suporte tecnológico. Agora, em um mundo virtual, estar atrás de uma tela significa estar em todos os lugares ao mesmo tempo.
 * PA: 5
-* Efeito: Override -> Escolha uma carta inimiga com PA atual menor que os da Aranha. A carta passa a contar pontos para sua equipe. Este efeito não pode ser mantido em duas cartas simultaneamente.
+* Efeito: Override -> Escolha uma carta inimiga com PA atual menor que os da Aranha. A carta passa a contar pontos para sua equipe. Este efeito não pode ser mantido pela mesma carta em duas cartas simultaneamente.
 
  
 * Visual: -> já tá fazendo
@@ -314,50 +314,101 @@ Faz tipo um cara desses num salão de ópera cibernético, mas ele tem um cabelo
 
 ### 1x carta baixa -> IA de treinamento
 
-* Descrição: 
-* PA:
-* Efeito:
+* Descrição: Para tornar a experiência acessível a todos, a HumbaNet criou uma integrante responsável por demonstrar as funcionalidades e explicar as regras da nova simulação. Infelizmente, ninguém descobriu como tornar suas interrupções menos irritantes ou implementar um botão de pular tutorial.
+* PA: 3
+* Efeito: Tutorial Obrigatório: A IA detectou que seu adversário aparentemente não sabe jogar. Para ajudá-lo, ativará um tutorial obrigatório durante seus turnos. Para cada uma desta carta em campo, o tempo de turno do oponente é reduzido em 20 segundos, até o mínimo de 20 segundos.
+
+ 
 * Visual:
+
+Faz tipo a Elena do HxH, mas essas linhas de traz são verdes e não brancas.
+
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/0f27d1e7-cc1d-497b-b10f-d7cd055cf9ff" />
+
 
 
 ### 1x carta media 1 -> HAL 9001
 
-* Descrição:
-* PA:
-* Efeito:
-* Visual:
+* Descrição: A versão aprimorada de uma das IAs mais referenciadas da história promete novas funcionalidades, análises aprimoradas e um comportamento, esperamos, um pouco menos destrutivo e manipulador. Contudo, ela continua banida de operações espaciais.
+ 
+* PA: 5
+  
+* Efeito: Controle de Risco -> Escolha uma carta do campo inimigo. O efeito dela é desabilitado enquanto o Hal 9001 estiver em campo. Este efeito não pode ser mantido pela mesma carta em duas cartas simultaneamente.
+
+ 
+* Visual: Faz tipo o Hal 9000 mesmo, mas faz ela com a luz verde e muda a cor do led para verde.
+
+<img width="486" height="1000" alt="image" src="https://github.com/user-attachments/assets/efea2c8f-ce1a-42de-be76-09004f4d9a83" />
+
 
 
 ### 1x carta media 2 -> H.A.R.V.I.S
 
-* Descrição:
-* PA:
-* Efeito:
+* Descrição: Conheça Harvis, sua nova IA assistente! Criado para auxiliar os usuários de NeoFloripa, ele pode responder perguntas, realizar tarefas, controlar dispositivos, oferecer recomendações e facilitar sua vida dentro da simulação. Harvis está sempre ao seu lado, mesmo quando você não pediu. O fato de agora possuir um corpo físico na simulação torna isso um pouco mais estranho.
+
+ 
+* PA: 5
+* Efeito: Sempre de olho -> enquanto H.A.R.V.I.S estiver em campo, as cartas adjacentes a ele ganham +1 PA.
 * Visual:
+
+vc escolhe como acha que fica mais legal, mas penso na ideia de uma IA com corpo humanoide, tipo o visão ou o ultron
+
+<img width="1624" height="2360" alt="image" src="https://github.com/user-attachments/assets/44d2db9b-57b2-40c0-b0d4-c4d80d598247" />
+
+
+<img width="620" height="800" alt="image" src="https://github.com/user-attachments/assets/5e69371f-8a28-47f9-bbcf-6659a55378cf" />
+
 
 
 ### 1x carta alta 1 ->  Replicantes
 
-* Descrição:
-* PA:
-* Efeito:
-* Visual:
+* Descrição:: Os Replicantes eram seres biologicamente aprimorados, desenvolvidos para executar tarefas perigosas e trabalhos manuais no mundo antigo. Contudo, em NeoFloripa, são responsáveis pela manutenção e integridade da simulação. Ironicamente, em um mundo virtual completamente controlado, são mais livres do que jamais foram na realidade.
+
+* PA: 7
+* Efeito: Demanda operacional -> Para cada terreno que estiver em campo, os replicantes recebem +2 PA
+
+ 
+* Visual: eles tem que ser androides (pode pesquisar os replicantes de bladerunner, mas eles nao tem algo que identifique MUITO. Pode fazer uma arte que tenha tipo 3 e um deles seja referência ao Roy Batty, o resto pode ser como tu quiser, mas pode ter uma das paradas que o V de CyberPunk tem no rosto, por exemplo:
+
+
+<img width="594" height="796" alt="image" src="https://github.com/user-attachments/assets/8738d3cd-2f26-433c-ae7c-977cc27e93ab" />
+
+<img width="594" height="796" alt="image" src="https://github.com/user-attachments/assets/e752cf40-36d0-4ac5-b506-7036be2daac8" />
 
 
 ### 1x carta alta 2 -> UCC "Juggernaut"
 
-* Descrição: A Unidade Cibernética de Combate, apelidada de Juggernaut, 
-* PA:
-* Efeito:
+* Descrição: A Unidade Cibernética de Combate, apelidada de Juggernaut, é responsável pela defesa e controle de NeoFloripa. Afinal, a liberdade é grande, mas não infinita. Desde sua implementação, a CyberCidade aboliu os firewalls: agora as ameaças são pessoalmente confrontadas.
+
+* PA: 11
+* Efeito: Protocolo de Segurança -> O Juggernaut é a última lembrança que os infratores tem. Escolha qualquer carta do campo inimigo, a UCC a ataca e causa 5 pontos de dano de PA.
 * Visual:
+
+Faz algo na vibe de um Tyrant ou do próprio Adam Smasher
+
+<img width="979" height="1830" alt="image" src="https://github.com/user-attachments/assets/b86c7c63-216e-4422-905d-f0e981beec2d" />
+
+<img width="226" height="440" alt="image" src="https://github.com/user-attachments/assets/cfd77f4b-3111-4954-aad9-307b4ce6e5d4" />
 
 ### 1x carta alta 3 -> Dragão das Comunicações Móveis
 
 
-* Descrição:
-* PA:
-* Efeito:
-* Visual:
+* Descrição: Um dos primeiros experimentos do HumbaBrain foi fazer o upload de um indivíduo no fim da vida para a simulação, permitindo que escolhesse sua própria forma. O resultado foi... inusitado. Temendo sua possível ameaça, o criador decidiu mantê-lo desativado até que um sinal específico de radiofrequência seja emitido. Desde então, a plateia aguarda para descobrir se ele será um espetáculo ou um desastre.
+ 
+* PA: 12
+* Efeito: Adormecido -> Esta carta não possui efeitos enquanto estiver adormecida.
+
+ 
+* Visual: A ideia é ele ser nossa versão do dragão branco de olhos azuis. Pode fazer ele como quiser, mas só tem que ter dois detalhes: ele tem que ser um dragão chinês e precisa ter os olhos vermelhos. Se quiser fazer ele como o Rayquaza pode ficar legal.
+
+<img width="475" height="475" alt="image" src="https://github.com/user-attachments/assets/50478a09-e67e-4fc0-bdf4-8d790bc6c3db" />
+
+
+<img width="360" height="515" alt="image" src="https://github.com/user-attachments/assets/848cb6ab-9959-427c-937f-9e731c7635d5" />
+
+
+<img width="306" height="450" alt="image" src="https://github.com/user-attachments/assets/f0ce90a4-d3f2-4517-9e3f-99dd5a28a9fb" />
+
 
 
 
@@ -370,7 +421,7 @@ Faz tipo um cara desses num salão de ópera cibernético, mas ele tem um cabelo
  Humbatrix -> Após o sucesso de NeoFloripa, HumbaBrain inicia a expansão da simulação. Enquanto esta carta estiver em campo, os terrenos inimigos não têm efeito, e os seus não podem ser destruídos.
 
  
-* Visual: Faz um rework da carta do Humba Brain... naquele estilo mesmo do Angstom Levy, mas não deixa ele tão cabeçudo e bizarro... Bota elementos de verde.
+* Visual: Faz um rework da carta do Humba Brain... naquele estilo mesmo do Angstrom Levy, mas não deixa ele tão cabeçudo e bizarro... Bota elementos de verde.
 
 
 
@@ -380,7 +431,7 @@ Faz tipo um cara desses num salão de ópera cibernético, mas ele tem um cabelo
 * Descrição: As IAs eram gratuitas até todo mundo começar a usá-las. Quando perceberam que havia dinheiro envolvido, seus criadores rapidamente introduziram assinaturas, créditos e limites de utilização. O Humba Brain resolveu o problema de uma maneira simples: reuniu todas elas em um único modelo para que nenhum NeoFlorianopolitano precisasse pagar por elas.
 
  
-* Efeito: Você Quis Dizer... -> Enquanto este terreno estiver em campo, você pode ativar seu efeito para comprar 1 carta aleatória do Deck.
+* Efeito: Claro, aqui está... -> Enquanto este terreno estiver em campo, você pode ativar seu efeito para comprar 1 carta aleatória do Deck.
  
 * Visual: Faz tipo uma junção de TODAAS as logos de IA que tu achar e deixa elas brilhando em verde neon.
 
@@ -544,7 +595,7 @@ Faz tipo um cara desses num salão de ópera cibernético, mas ele tem um cabelo
 * Visual:
 
   
-### 1x carta media 1
+### 1x carta media 1 -> bombeiro
 
 * Descrição:
 * Energia:
@@ -552,7 +603,7 @@ Faz tipo um cara desses num salão de ópera cibernético, mas ele tem um cabelo
 * Visual
 
 
-### 1x carta media 2
+### 1x carta media 2 -> policial 
 
 * Descrição:
 * Energia:
@@ -560,7 +611,7 @@ Faz tipo um cara desses num salão de ópera cibernético, mas ele tem um cabelo
 * Visual
 
 
-### 1x carta media 3
+### 1x carta media 3 -> médico
 
 * Descrição:
 * Energia:
