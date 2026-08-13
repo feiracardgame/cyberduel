@@ -576,18 +576,30 @@ Faz aqueles arbusto seco que voa pelo deserto com alguns riscos indicando vento,
 
 #### 1x carta de  terreno 1 -> Saloon
 
-* Descrição:
-* PA:
-* Efeito:
-* Visual:
+* Descrição: : Chão de madeira velha, dobradiças que rangem e cheiro de fumaça. Nem a destruição das terras agricultáveis nem o maior desenvolvimento tecnológico conseguiram acabar com a essência do verdadeiro Velho Oeste. A única diferença é a clientela, que agora usa próteses e monóculos feitos com tecnologia de ponta.
+
+
+* Efeito: Uma Rodada por Conta da Casa -> Enquanto esta carta estiver em campo, todas as cartas da mesma linha ganham +2 de PA.
+
+ 
+* Visual: Faz um salão de velho-oeste muito louco so que com muita gente com implante cibernetico (sem led) e monoculo tipo do diego
+
+<img width="600" height="375" alt="image" src="https://github.com/user-attachments/assets/110bc6e8-fbac-4aa3-9733-5249e148b58b" />
+
 
 
 #### 1x carta de terreno 2 -> Terras Desertas
 
-* Descrição:
-* PA:
-* Efeito:
-* Visual:
+* Descrição: As Terras Desertas são inóspitas para todos que não aprenderam a sobreviver nelas. A terra rejeita aqueles que vivem nas grandes cidades, assim como eles um dia a rejeitaram.
+
+ 
+* Efeito: Enquanto este terreno estiver em campo, todas as cartas inimigas perdem 1 de PA. Caso o inimigo seja reduzido a 0 de PA, ele é eliminado.
+
+ 
+* Visual: Faz tipo um deserto cheio de lixo tecnológico
+
+<img width="640" height="360" alt="image" src="https://github.com/user-attachments/assets/62c2cf52-f688-4e4a-ae83-e7423f65cb6c" />
+
 
 
 ---
