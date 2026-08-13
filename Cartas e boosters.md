@@ -463,10 +463,80 @@ Faz algo na vibe de um Tyrant ou do próprio Adam Smasher
 <img width="640" height="480" alt="image" src="https://github.com/user-attachments/assets/b96b5b5b-4c69-46d6-bf68-fe75f6255d86" />
 
 
-## Booster 4 - Os Remanescentes -> Sem nada de terreno, deck baseado em personagens e efeitos, imune a efeitos de terreno
+## Booster 4 Os Remanescentes -> cor-guia: tons leves de amarelo
 
 
-### 1x carta baixa 1
+### 1x carta baixa 1 -> Povo da Areia
+
+* Descrição: Os Remanescentes são conhecidos como “Povo da Areia”, famosos pela brutalidade, reciclagem e capacidade de sobreviver onde poucos conseguiriam. Entre eles, ninguém é deixado para trás: os que partem continuam vivendo através daqueles que permanecem.
+* PA: 4
+* Efeito: Por Aqueles que Ainda Virão -> Esta carta recebe +1 de PA para cada carta sua que tiver sido destruída ou removida de campo.
+
+ 
+* Visual: queria uns cara pique o tusken raider, mas pode fazer tua magica como quiser
+
+<img width="1600" height="900" alt="image" src="https://github.com/user-attachments/assets/fbbc10bb-4952-41d8-90b4-1b701ea3e874" />
+
+
+
+
+### 1x carta media 1 -> A Ferreira
+
+Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Ferreira transforma restos do velho mundo em armas, ferramentas e equipamentos capazes de manter seu povo vivo por mais um dia. Sua oficina é parada obrigatória para qualquer um que quer sobreviver no deserto.
+* PA: 5
+* Efeito: Reparo e Melhoria -> A cada turno, escolha até 2 cartas aliadas, cada uma ganha +1 de PA.
+
+
+* Visual: Faz uma mulher trabalhando numa forja, livre pra tu escolher como
+
+<img width="528" height="694" alt="image" src="https://github.com/user-attachments/assets/470e409f-fd21-4d60-809c-b3faa3b001c4" />
+
+
+
+### 1x carta media 2 -> Tuh'Coh, O Feio
+
+ 
+* Descrição: Tuh'Coh é um sobrevivente. Oscilando entre o certo e o errado, sempre tenta fazer o seu melhor, mesmo que precise recorrer a esquemas cada vez mais complexos para sobreviver. Engraçado, impulsivo e caótico, O Feio mostra que até os mais habilidosos continuam sendo humanos. A máscara que veste, porém, parece dizer o contrário — embora quem já tenha visto seu rosto diga que a verdade é ainda pior.
+* PA: 5
+* Efeito: Três Homens em Conflito -> Caso seja posto adjacente ao Bom e ao Mau, o Feio ganha +3 PA
+* Visual: Faz um cara tipo um mandaloriano, com um capacete maneiro e armadura, mas com elementos de cowboy
+
+<img width="447" height="447" alt="image" src="https://github.com/user-attachments/assets/8cceaaa0-5480-4a88-8ba0-2fd1c0e9b939" />
+
+
+
+### 1x carta alta 1 -> Sen'Tenzhah, O Mau
+
+
+* Descrição: Sen'Tenzhah ocupa uma zona cinzenta até mesmo entre os Remanescentes. Como caçador de recompensas, emprega métodos pouco ortodoxos e muda de lado sempre que a recompensa compensa. Seu apelido, “O Mau”, contrasta curiosamente com sua aparência, especialmente com seus olhos angelicais.
+* PA: 6
+* Efeito: Alvo Marcado -> Escolha uma carta inimiga. Ela perde 2 de PA. Caso seja removida do campo por este efeito, O Mau recebe +1 de PA.
+
+ 
+* Visual: Faz tipo esse personagem aqui, só que adaptado pro estilo que fez o diego, eles tem que ter tecnologias mais rudimentares. Pode dar um toque especial nele como quiser.
+
+<img width="399" height="500" alt="image" src="https://github.com/user-attachments/assets/c11160d6-a482-4398-b7cc-0e212f147bcb" />
+
+
+<img width="1484" height="1869" alt="image" src="https://github.com/user-attachments/assets/9bb7f6ca-461a-4ffe-bc6a-f740759c5f4d" />
+
+
+### 1x carta alta 2 -> O Bom
+
+* Descrição: Apesar de também ser um fora da lei, o rígido código moral do Bom faz com que ele sempre busque a justiça ética, mesmo quando ela entra em conflito com as próprias leis dos Remanescentes. Seu verdadeiro nome nunca foi descoberto, ele se recusa a revelá-lo, acreditando que uma reputação deve ser construída pelos atos, não pelo nome de quem os pratica.
+* PA: 7
+* Efeito: O Número Perfeito -> Escolha até 6 cartas no campo inimigo. Cada uma perde 1 de PA. 
+
+ 
+* Visual: Faz o Felipe versão faroeste cibernético, tem q ser alguém loiro pq esse é o apelido do personagem no filme
+
+(esse mlk nao tem uma foto normal)
+
+<img width="899" height="1599" alt="image" src="https://github.com/user-attachments/assets/57488c7b-efdd-4975-b9d3-33dfd511de8c" />
+
+
+
+### 1x carta lendária -> Dieh'Go, o Xerife
 
 * Descrição:
 * PA:
@@ -474,15 +544,7 @@ Faz algo na vibe de um Tyrant ou do próprio Adam Smasher
 * Visual:
 
 
-
-### 1x carta media 1
-
-* Descrição:
-* PA:
-* Efeito:
-* Visual:
-
-### 1x carta media 2
+### 1x carta de efeito 1 -> Vento dos ermos
 
 
 * Descrição:
@@ -491,31 +553,7 @@ Faz algo na vibe de um Tyrant ou do próprio Adam Smasher
 * Visual:
 
 
-### 1x carta alta 1
-
-* Descrição:
-* PA:
-* Efeito:
-* Visual:
-
-
-### 1x carta alta 2
-
-
-* Descrição:
-* PA:
-* Efeito:
-* Visual:
-
-### 1x carta lendária
-
-* Descrição:
-* PA:
-* Efeito:
-* Visual:
-
-
-### 1x carta de efeito 1
+### 1x carta de efeito 2 -> Reciclagem
 
 
 * Descrição:
@@ -524,16 +562,7 @@ Faz algo na vibe de um Tyrant ou do próprio Adam Smasher
 * Visual:
 
 
-### 1x carta de efeito 2
-
-
-* Descrição:
-* PA:
-* Efeito:
-* Visual:
-
-
-#### 1x carta de  terreno 1
+#### 1x carta de  terreno 1 -> Saloon
 
 * Descrição:
 * PA:
@@ -541,7 +570,7 @@ Faz algo na vibe de um Tyrant ou do próprio Adam Smasher
 * Visual:
 
 
-#### 1x carta de terreno 2
+#### 1x carta de terreno 2 -> Terras Desertas
 
 * Descrição:
 * PA:
@@ -555,7 +584,7 @@ Faz algo na vibe de um Tyrant ou do próprio Adam Smasher
 ## Booster 5 - O Sindicato -> deck com mais cartas médias e baixas, boost em conjunto
 
 
-### carta baixa 1 - Técnico em Refrigeração de DataCenter
+### carta baixa 1 - Refrigeradores de DataCenter
 
 
 * Descrição: Com a média da temperatura global já em 30°C, o processo de implementação e manutenção de sistemas de refrigeração em servidores de megacorporações tem sido cada vez frequente. Para isso, os técnicos em refrigeração precisam encontrar soluções inovadoras para a resolução desse problema, já que a criatividade é o único recurso que atualmente ainda não se encontra em escassez.
@@ -586,7 +615,7 @@ Faz algo na vibe de um Tyrant ou do próprio Adam Smasher
 * Visual:
 
 
-### carta baixa 4
+### carta baixa 4 -> Encanador
 
 
 * Descrição:
