@@ -51,7 +51,7 @@ const LAYOUT_CAMPO_NORMAL = calcularLayoutCampo(
   255, // slotH: altura da carta
   12, // gapFileira: espaço entre as duas fileiras
   30, // gapTimes: espaço entre inimigo e jogador
-  440, // yInimigoTras
+  560, // yInimigoTras (empurrado pra baixo, deixa espaço pra mão do inimigo no topo)
 );
 
 // Layout ampliado: mão escondida.
@@ -61,8 +61,13 @@ const LAYOUT_CAMPO_AMPLIADO = calcularLayoutCampo(
   280, // slotH: altura da carta
   16, // gapFileira: espaço entre as duas fileiras
   120, // gapTimes: espaço entre inimigo e jogador
-  505, // yInimigoTras
+  585, // yInimigoTras
 );
+
+// Altura Y da faixa da mão do inimigo (topo da tela) e da mão do jogador
+// (perto do rodapé) — usadas em desenharMaoInimigo() e desenharMaoEmLeque().
+const Y_MAO_INIMIGO = 230;
+const Y_MAO_JOGADOR = 1900;
 
 class CenaJogo extends Phaser.Scene {
   constructor() {
@@ -168,6 +173,17 @@ class CenaJogo extends Phaser.Scene {
     // Objetos do modo de mira (anéis + zonas de toque) do botão "Ativar
     // Habilidade" do modal de detalhe — ver iniciarAtivacaoHabilidade().
     this.objetosSelecaoAlvo = null;
+
+    // Botão de menu (☰) fixo no canto direito da tela — ver
+    // desenharRodaBotoes()/esconderRodaBotoes(). Só existe (não-null)
+    // quando está de fato visível em cena.
+    this.rodaBotoesContainer = null;
+
+    // As 3 opções (Histórico / Passar Turno / Desistir) ficam escondidas
+    // até o botão de menu ser tocado — ver abrirOpcoesDaRoda()/
+    // fecharOpcoesDaRoda(). Só existe (não-null) enquanto o menu estiver
+    // aberto na tela.
+    this.rodaOpcoesContainer = null;
 
     // Controle do modal de histórico de cartas jogadas
     this.historicoAberto = false;
@@ -420,6 +436,12 @@ class CenaJogo extends Phaser.Scene {
     // ainda existisse.
     this.children.removeAll(true);
 
+    // O botão de menu e as opções (se existiam) acabaram de ser destruídos
+    // junto com o resto — zera as referências pra não mexer num objeto
+    // morto (ver esconderRodaBotoes()).
+    this.rodaBotoesContainer = null;
+    this.rodaOpcoesContainer = null;
+
     // Se a interface for redesenhada, qualquer modal antigo perde a
     // validade (os objetos já foram destruídos por removeAll acima)
     this.modalAberto = false;
@@ -457,13 +479,115 @@ class CenaJogo extends Phaser.Scene {
       : LAYOUT_CAMPO_NORMAL;
 
     this.desenharStatus();
+    this.desenharMaoInimigo();
     this.desenharCampoInimigo();
     this.desenharCampoJogador();
     this.desenharIndicadoresPoder();
-    this.desenharFundoJogo()
+    this.desenharIndicadoresDeck();
+    this.desenharFundoJogo();
     if (!this.maoEscondida) this.desenharMaoEmLeque();
-    this.desenharBotaoPassarTurno();
-    this.desenharBotaoToggleMao();
+
+    // A roda só é (re)desenhada quando o jogador pode de fato interagir.
+    // Enquanto travado (vez do oponente resolvendo, efeito em execução,
+    // modal aberto etc.), ela fica de fora — ver esconderRodaBotoes() para
+    // quem dispara a animação de saída; aqui é só a entrada normal.
+    if (!this.travado) this.desenharRodaBotoes();
+
+    this.configurarGestosMao();
+  }
+
+  // Mostra as costas das cartas na mão do inimigo, no topo da tela — só
+  // pra dar noção visual de quantas cartas ele tem (não revela quais são).
+  desenharMaoInimigo() {
+    const cartasMao = this.partida.inimigo.mao.cartas;
+    const total = cartasMao.length;
+    if (total === 0) return;
+
+    const centroX = GW / 2;
+    const centroY = Y_MAO_INIMIGO;
+    const larguraCarta = 110;
+    const alturaCarta = 154;
+    const espacamentoMax = 60;
+    const espacamentoMin = 26;
+    const espacamento =
+      total <= 8
+        ? espacamentoMax
+        : Math.max(espacamentoMin, espacamentoMax - (total - 8) * 5);
+
+    cartasMao.forEach((_carta, indice) => {
+      const offset = indice - (total - 1) / 2;
+      const posX = centroX + offset * espacamento;
+      const posY = centroY - Math.pow(offset, 2) * 4;
+      const angulo = offset * 1.2;
+
+      let sombra = this.add.rectangle(
+        5,
+        8,
+        larguraCarta,
+        alturaCarta,
+        0x000000,
+        0.3,
+      );
+      let costas = this.add
+        .rectangle(0, 0, larguraCarta, alturaCarta, 0x772222)
+        .setStrokeStyle(3, 0xffffff);
+
+      let container = this.add.container(posX, posY, [sombra, costas]);
+      container.setAngle(angulo);
+      container.setDepth(-99);
+    });
+  }
+
+  // Indicador de quantas cartas restam em cada deck (o do jogador, perto
+  // da mão dele embaixo; o do inimigo, perto da mão dele em cima).
+  desenharIndicadoresDeck() {
+    this.criarIndicadorDeck(
+      GW / 9,
+      Y_MAO_JOGADOR,
+      this.partida.jogador.deck.cartas.length,
+      "Deck",
+      "#66ff88",
+    );
+    this.criarIndicadorDeck(
+      GW / 5.4,
+      Y_MAO_INIMIGO,
+      this.partida.inimigo.deck.cartas.length,
+      "Deck",
+      "#ff6666",
+    );
+  }
+
+  criarIndicadorDeck(x, y, quantidade, label, cor) {
+    const larguraCarta = 100;
+    const alturaCarta = 140;
+
+    let sombra = this.add.rectangle(
+      6,
+      8,
+      larguraCarta,
+      alturaCarta,
+      0x000000,
+      0.35,
+    );
+    let costas = this.add
+      .rectangle(0, 0, larguraCarta, alturaCarta, 0x222233)
+      .setStrokeStyle(4, cor);
+    let numero = this.add
+      .text(0, 0, `${quantidade}`, {
+        fontSize: "48px",
+        color: "#ffffff",
+        fontStyle: "bold",
+      })
+      .setOrigin(0.5);
+    let rotulo = this.add
+      .text(0, alturaCarta / 2 + 26, label, {
+        fontSize: "24px",
+        color: cor,
+        fontStyle: "bold",
+      })
+      .setOrigin(0.5);
+
+    this.add.container(x, y, [sombra, costas, numero, rotulo]);
   }
 
   // ---------- LÓGICA DE ARRASTAR E SOLTAR ----------
@@ -544,8 +668,8 @@ class CenaJogo extends Phaser.Scene {
       ease: "Cubic.Out",
       onComplete: () => {
         this.partida.jogarCartaDoJogador(carta, slotAtingido);
-        this.desenharInterface();
         this.travado = false;
+        this.desenharInterface();
       },
     });
   }
@@ -583,6 +707,7 @@ class CenaJogo extends Phaser.Scene {
   // é redesenhada e os alvos afetados recebem a animação de buff/debuff.
   conjurarCartaDeEfeitoJogador(gameObject, carta) {
     this.travado = true;
+    this.esconderRodaBotoes();
     this.tweens.killTweensOf(gameObject);
     gameObject.setDepth(3500);
 
@@ -618,8 +743,8 @@ class CenaJogo extends Phaser.Scene {
               onComplete: () => {
                 gameObject.destroy();
                 this.processarCartasAfetadas(resultado.afetadas, () => {
-                  this.desenharInterface();
                   this.travado = false;
+                  this.desenharInterface();
                 });
               },
             });
@@ -1709,109 +1834,153 @@ class CenaJogo extends Phaser.Scene {
   desenharMaoEmLeque() {
     let cartasMao = this.partida.jogador.mao.cartas;
     let totalCartas = cartasMao.length;
+
     if (totalCartas === 0) return;
 
-    // Cartas que acabaram de ser compradas desde a última renderização
-    // (ver Jogador.comprarCarta em main.js) recebem a animação de compra
-    // — voam do monte até a posição delas no leque, uma de cada vez. As
-    // demais cartas (que já estavam na mão) só recebem a entrada padrão
-    // (fade + pop) de sempre. A lista é consumida (e esvaziada) aqui.
+    // --------------------------------------------------------------------------
+    // CARTAS RECÉM-COMPRADAS
+    // --------------------------------------------------------------------------
+
     const recemCompradas = this.partida.jogador.cartasRecemCompradas || [];
+
     this.partida.jogador.cartasRecemCompradas = [];
 
-    const centroX = GW / 2; // Centro da tela
-    const centroY = 1650; // Altura base da mão2
+    // --------------------------------------------------------------------------
+    // CONFIGURAÇÃO DO LEQUE
+    // --------------------------------------------------------------------------
 
-    // Espaçamento dinâmico: com poucas cartas, o leque fica bem aberto;
-    // conforme a mão enche, as cartas vão se juntando pra não estourar a
-    // tela (nunca menor que um mínimo, pra continuar dando pra clicar).
-    const espacamentoMax = 105;
-    const espacamentoMin = 44;
+    const centroX = GW / 2;
+    const centroY = Y_MAO_JOGADOR;
+
+    const espacamentoMax = 82;
+    const espacamentoMin = 34;
+
     const espacamentoX =
       totalCartas <= 6
         ? espacamentoMax
-        : Math.max(espacamentoMin, espacamentoMax - (totalCartas - 6) * 9);
+        : Math.max(espacamentoMin, espacamentoMax - (totalCartas - 6) * 7);
 
-    const anguloPasso = 1; // Inclinação por carta
-    const curvaturaY = 9; // Curvatura da parábola
+    const anguloPasso = 1;
+    const curvaturaY = 7;
 
     cartasMao.forEach((carta, indice) => {
       let offset = indice - (totalCartas - 1) / 2;
 
       let posX = centroX + offset * espacamentoX;
+
       let posY = centroY + Math.pow(offset, 2) * curvaturaY;
+
       let angulo = offset * anguloPasso;
 
+      // ------------------------------------------------------------------------
+      // VISUAL DA CARTA
+      // ------------------------------------------------------------------------
+
       let corFundo = this.obterCorPorId(carta.id);
-      let sombra = this.add.rectangle(9, 15, 225, 315, 0x000000, 0.35);
+
+      let sombra = this.add.rectangle(7, 12, 176, 246, 0x000000, 0.35);
+
       let fundoCarta = carta.imagem
-        ? this.add.image(0, 0, carta.imagem).setDisplaySize(225, 315)
-        : this.add.rectangle(0, 0, 225, 315, corFundo);
+        ? this.add.image(0, 0, carta.imagem).setDisplaySize(176, 246)
+        : this.add.rectangle(0, 0, 176, 246, corFundo);
+
       let borda = this.add
-        .rectangle(0, 0, 225, 315)
-        .setStrokeStyle(5, 0xffffff);
+        .rectangle(0, 0, 176, 246)
+        .setStrokeStyle(4, 0xffffff);
+
       let nomeCurto = this.truncarTexto(carta.nome, 12);
+
       let nomeTexto = this.add
-        .text(0, -120, nomeCurto, {
-          fontSize: "34px",
+        .text(0, -94, nomeCurto, {
+          fontSize: "27px",
           color: "#ffffff",
           align: "center",
-          wordWrap: { width: 195 },
+          wordWrap: {
+            width: 152,
+          },
         })
         .setOrigin(0.5, 0);
 
       const ehEfeitoLeque = carta.tipo === "efeito";
+
       const filhos = [sombra, fundoCarta, borda, nomeTexto];
+
+      // ------------------------------------------------------------------------
+      // SELO DE PODER
+      // ------------------------------------------------------------------------
 
       if (!ehEfeitoLeque) {
         const [poderBola, poderTexto] = this.criarSeloEstat(
           0,
-          120,
+          94,
           carta.poder,
           "#ff5555",
-          40,
+          31,
         );
+
         filhos.push(poderBola, poderTexto);
       }
 
-      // Selo de carta de efeito, para diferenciar visualmente das cartas de monstro
+      // ------------------------------------------------------------------------
+      // CARTA DE EFEITO
+      // ------------------------------------------------------------------------
+
       if (ehEfeitoLeque) {
         let iconeGrande = this.add
-          .text(0, 90, "⚡", { fontSize: "90px" })
+          .text(0, 70, "⚡", {
+            fontSize: "70px",
+          })
           .setOrigin(0.5);
+
         let selo = this.add
-          .circle(90, -126, 28, 0x1a1a1a)
+          .circle(70, -98, 22, 0x1a1a1a)
           .setStrokeStyle(2, 0xffffff);
+
         let iconeSelo = this.add
-          .text(90, -126, "⚡", { fontSize: "30px" })
+          .text(70, -98, "⚡", {
+            fontSize: "23px",
+          })
           .setOrigin(0.5);
+
         filhos.push(iconeGrande, selo, iconeSelo);
       }
 
+      // ------------------------------------------------------------------------
+      // CONTAINER DA CARTA
+      // ------------------------------------------------------------------------
+
       let containerCarta = this.add.container(posX, posY, filhos);
-      containerCarta.setSize(225, 315);
+
+      containerCarta.setSize(176, 246);
+
       containerCarta.setAngle(angulo);
-      containerCarta.setInteractive({ useHandCursor: true });
 
-      // Dados usados no drag/drop e na volta ao leque
+      containerCarta.setInteractive({
+        useHandCursor: true,
+      });
+
+      // Dados usados pelo drag/drop.
       containerCarta.dadosCarta = carta;
-      containerCarta.posOriginal = { x: posX, y: posY, angle: angulo };
 
-      // depthBase = profundidade "de descanso" da carta, baseada
-      // apenas no seu índice no leque. Hover e drag sobem essa
-      // profundidade temporariamente; ao sair do hover/drag ela
-      // SEMPRE volta para depthBase — nunca ficamos dependendo da
-      // ordem de inserção na lista de children (que era o que
-      // causava cartas ficarem presas atrás de outras).
+      containerCarta.posOriginal = {
+        x: posX,
+        y: posY,
+        angle: angulo,
+      };
+
+      // Profundidade normal da carta.
       containerCarta.depthBase = indice;
+
       containerCarta.setDepth(indice);
 
       this.input.setDraggable(containerCarta);
 
-      // Entrada animada: cartas recém-compradas voam do monte até aqui,
-      // uma de cada vez (ver animarCompraCarta); as demais só recebem o
-      // fade + pop de sempre, na posição final.
+      // =========================================================================
+      // ANIMAÇÃO DE ENTRADA
+      // =========================================================================
+
       const indiceCompra = recemCompradas.indexOf(carta);
+
       if (indiceCompra !== -1) {
         this.animarCompraCarta(
           containerCarta,
@@ -1822,64 +1991,169 @@ class CenaJogo extends Phaser.Scene {
         );
       } else {
         containerCarta.setAlpha(0);
+
         containerCarta.setScale(0.6);
+
         this.tweens.add({
           targets: containerCarta,
+
           alpha: 1,
+
           scale: 1,
+
           duration: 220,
+
           delay: indice * 35,
+
           ease: "Back.Out",
         });
       }
 
-      // Efeito de destaque no Hover / Toque
+      // =========================================================================
+      // HOVER
+      //
+      // REGRA:
+      // SOMENTE UMA CARTA PODE ESTAR LEVANTADA.
+      // =========================================================================
+
       containerCarta.on("pointerover", (pointer) => {
         if (this.travado) return;
-        containerCarta.setDepth(1000);
+
+        // ----------------------------------------------------------------------
+        // ABAIXA A CARTA QUE ESTAVA LEVANTADA
+        // ----------------------------------------------------------------------
+
+        const cartaAnterior = this.cartaHoverAtual;
+
+        if (
+          cartaAnterior &&
+          cartaAnterior !== containerCarta &&
+          cartaAnterior.active
+        ) {
+          this.tweens.killTweensOf(cartaAnterior);
+
+          const posAnterior = cartaAnterior.posOriginal;
+
+          this.tweens.add({
+            targets: cartaAnterior,
+
+            x: posAnterior.x,
+
+            y: posAnterior.y,
+
+            angle: posAnterior.angle,
+
+            scaleX: 1,
+
+            scaleY: 1,
+
+            duration: 120,
+
+            ease: "Sine.easeOut",
+
+            onComplete: () => {
+              if (cartaAnterior && cartaAnterior.active) {
+                cartaAnterior.setDepth(cartaAnterior.depthBase);
+              }
+            },
+          });
+        }
+
+        // ----------------------------------------------------------------------
+        // ESTA PASSA A SER A CARTA ATIVA
+        // ----------------------------------------------------------------------
+
+        this.cartaHoverAtual = containerCarta;
+
         this.tweens.killTweensOf(containerCarta);
+
+        containerCarta.setDepth(1000);
+
         this.tweens.add({
           targets: containerCarta,
-          y: centroY - 105,
+
+          y: centroY - 82,
+
           angle: 0,
+
           scaleX: 1.15,
+
           scaleY: 1.15,
+
           duration: 150,
+
           ease: "Back.Out",
+
           onComplete: () => {
-            this.somHover.play();
+            if (!this.travado && this.somHover) {
+              this.somHover.play();
+            }
           },
         });
 
-        // No desktop, o hover do mouse já abre a visualização grande
-        // (além de levantar a carta). Em touch não existe hover de
-        // verdade, então lá continua sendo o pointerup abaixo que abre.
+        // ----------------------------------------------------------------------
+        // DESKTOP:
+        // ABRE A VISUALIZAÇÃO GRANDE
+        // ----------------------------------------------------------------------
+
         if (pointer.pointerType === "mouse") {
           this.mostrarDetalheCarta(carta);
         }
       });
 
+      // =========================================================================
+      // POINTER OUT
+      // =========================================================================
+
       containerCarta.on("pointerout", () => {
         if (this.travado) return;
-        containerCarta.setDepth(containerCarta.depthBase);
+
+        // ----------------------------------------------------------------------
+        // SE OUTRA CARTA JÁ FOI SELECIONADA,
+        // NÃO ABAIXA ESTA.
+        // ----------------------------------------------------------------------
+
+        if (this.cartaHoverAtual !== containerCarta) {
+          return;
+        }
+
+        // Agora nenhuma carta está sendo apontada.
+        this.cartaHoverAtual = null;
+
         this.tweens.killTweensOf(containerCarta);
+
         this.tweens.add({
           targets: containerCarta,
+
+          x: posX,
+
           y: posY,
+
           angle: angulo,
+
           scaleX: 1,
+
           scaleY: 1,
+
           duration: 150,
+
           ease: "Sine.easeOut",
+
+          onComplete: () => {
+            if (containerCarta && containerCarta.active) {
+              containerCarta.setDepth(containerCarta.depthBase);
+            }
+          },
         });
       });
 
-      // Toque simples (sem arrastar) abre a visualização detalhada da
-      // carta. Como dragDistanceThreshold > 0, um toque que não se
-      // move o suficiente nunca chega a virar um drag, então este
-      // 'pointerup' só dispara em cliques/toques de verdade.
+      // =========================================================================
+      // TOQUE / CLIQUE
+      // =========================================================================
+
       containerCarta.on("pointerup", () => {
         if (this.travado) return;
+
         this.mostrarDetalheCarta(carta);
       });
     });
@@ -2782,6 +3056,7 @@ class CenaJogo extends Phaser.Scene {
     const atingeTodos = !!(carta.efeito && carta.efeito.atingeTodos);
 
     this.travado = true;
+    this.esconderRodaBotoes();
 
     // "Atinge todos" não precisa de escolha (acerta o range inteiro de
     // uma vez). Sem nenhum alvo em alcance também não há o que escolher.
@@ -2826,6 +3101,7 @@ class CenaJogo extends Phaser.Scene {
     });
 
     this.travado = false;
+    this.desenharRodaBotoes();
   }
 
   // Modo de mira: destaca (com um anel pulsante amarelo) cada slot inimigo
@@ -2907,6 +3183,7 @@ class CenaJogo extends Phaser.Scene {
       this.objetosSelecaoAlvo = null;
     }
     this.travado = false;
+    this.desenharRodaBotoes();
   }
 
   // Resolve de fato a ativação (via Partida.ativarHabilidade) e anima as
@@ -2927,27 +3204,53 @@ class CenaJogo extends Phaser.Scene {
 
     if (resultado.sucesso) {
       this.processarCartasAfetadas(resultado.afetadas, () => {
-        this.desenharInterface();
         this.travado = false;
+        this.desenharInterface();
       });
     } else {
       this.travado = false;
+      this.desenharRodaBotoes();
     }
   }
 
   // ---------- STATUS / UI ----------
 
+  // Turno + placar melhor-de-7. Normalmente fica compacto no canto
+  // superior esquerdo; quando a mão está escondida (this.maoEscondida),
+  // não faz sentido deixá-los ali "perdidos" embaixo do campo ampliado —
+  // então eles migram pro centro horizontal, na faixa onde a mão ficaria
+  // (Y_MAO_JOGADOR), maiores e mais fáceis de ler.
   desenharStatus() {
-    this.add.text(
-      45,
-      45,
-      `Turno: ${this.partida.turno}/${this.partida.maxTurnos}`,
-      {
-        fontSize: "90px",
-        color: "#ffffff",
-      },
-    );
-    this.desenharBotaoHistorico();
+    const centralizado = this.maoEscondida;
+    const x = centralizado ? GW / 2 : 45;
+    const yTurno = centralizado ? Y_MAO_JOGADOR - 30 : 1590;
+    const yPlacar = centralizado ? Y_MAO_JOGADOR + 30 : 1645;
+    const origin = centralizado ? 0.5 : 0;
+
+    this.add
+      .text(
+        x,
+        yTurno,
+        `Turno: ${this.partida.turno}/${this.partida.maxTurnos}`,
+        {
+          fontSize: centralizado ? "52px" : "45px",
+          color: "#ffffff",
+        },
+      )
+      .setOrigin(origin, 0.5);
+
+    this.add
+      .text(
+        x,
+        yPlacar,
+        `🏆 ${this.partida.rodadasJogador} — ${this.partida.rodadasInimigo}`,
+        {
+          fontSize: centralizado ? "40px" : "34px",
+          color: "#ffd966",
+          fontStyle: "bold",
+        },
+      )
+      .setOrigin(origin, 0.5);
   }
 
   // Dois ícones de "poder total" (soma do poder de todas as cartas em
@@ -2975,8 +3278,10 @@ class CenaJogo extends Phaser.Scene {
       tamInimigo = Phaser.Math.Linear(TAM_MIN, TAM_MAX, poderInimigo / total);
     }
 
-    // Lado do oponente: no canto superior direito, acima do campo dele.
-    this.criarIndicadorPoder(GW - 90, 210, poderInimigo, tamInimigo, "#ff6666");
+    // Lado do oponente: no canto superior ESQUERDO, acima do campo dele.
+    // (Ficava à direita, mas esse canto agora é ocupado pela roda de
+    // botões — ver desenharRodaBotoes().)
+    this.criarIndicadorPoder(90, 210, poderInimigo, tamInimigo, "#ff6666");
 
     // Lado do jogador: perto de você, também na direita, entre o campo e
     // a mão (ou perto do rodapé, se a mão estiver escondida).
@@ -3019,17 +3324,172 @@ class CenaJogo extends Phaser.Scene {
     });
   }
 
-  // Botão que abre o modal com o histórico de cartas jogadas na partida.
-  desenharBotaoHistorico() {
+  // ---------- MENU DE BOTÕES (Histórico / Passar Turno / Desistir) ----------
+  //
+  // Só o botão de menu (☰), um círculo fixo no canto direito da tela,
+  // fica sempre visível (dentro de this.rodaBotoesContainer). As 3 opções
+  // (Histórico / Passar Turno / Desistir) ficam escondidas até esse botão
+  // ser tocado — aí elas aparecem centralizadas na tela, por cima de um
+  // fundo escurecido (this.rodaOpcoesContainer) — ver abrirOpcoesDaRoda()/
+  // fecharOpcoesDaRoda(). Tocar em qualquer lugar fora dos botões (ou
+  // seja, no fundo escurecido) fecha o menu de novo.
+  //
+  // O botão de menu inteiro some (deslizando rápido pra fora, ver
+  // esconderRodaBotoes()) sempre que um efeito está sendo executado ou é a
+  // vez do oponente ser resolvida (Passar Turno), e volta a aparecer
+  // quando o controle volta pro jogador — nesse caso, via
+  // desenharInterface() chamando esta função de novo (gate em
+  // `if (!this.travado)`, lá em desenharInterface()).
+  //
+  // IMPORTANTE: em alguns fluxos (ex: nenhum alvo em alcance pra
+  // habilidade, cancelar seleção de alvo, desistir cancelado) a interação
+  // é destravada SEM que desenharInterface() seja chamado de novo — nesses
+  // pontos, chamamos desenharRodaBotoes() diretamente pra trazer o botão
+  // de volta, já que ninguém mais vai fazer isso.
+  desenharRodaBotoes() {
+    const RAIO = 46;
+    const X = GW - RAIO - 30;
+    const Y = 90;
+
     let bg = this.add
-      .rectangle(0, 0, 300, 80, 0x2255aa)
+      .circle(0, 0, RAIO, 0x222222, 0.92)
       .setStrokeStyle(4, 0xffffff);
-    let texto = this.add
-      .text(0, 0, "📜 Histórico", { fontSize: "28px", color: "#ffffff" })
+    let icone = this.add
+      .text(0, 0, "☰", { fontSize: "40px", color: "#ffffff" })
       .setOrigin(0.5);
 
-    let btn = this.add.container(200, 220, [bg, texto]);
-    btn.setSize(300, 80);
+    let botaoMenu = this.add.container(0, 0, [bg, icone]);
+    botaoMenu.setSize(RAIO * 2, RAIO * 2);
+    botaoMenu.setInteractive({ useHandCursor: true });
+
+    botaoMenu.on("pointerover", () => {
+      if (this.travado) return;
+      this.tweens.add({ targets: botaoMenu, scale: 1.05, duration: 100 });
+    });
+    botaoMenu.on("pointerout", () => {
+      if (this.travado) return;
+      this.tweens.add({ targets: botaoMenu, scale: 1, duration: 100 });
+    });
+    botaoMenu.on("pointerup", () => {
+      if (this.travado) return;
+      this.alternarOpcoesDaRoda();
+    });
+
+    const roda = this.add.container(X, Y, [botaoMenu]);
+    roda.setDepth(200);
+    this.rodaBotoesContainer = roda;
+  }
+
+  // Abre ou fecha as 3 opções, dependendo do estado atual.
+  alternarOpcoesDaRoda() {
+    if (this.rodaOpcoesContainer) {
+      this.fecharOpcoesDaRoda();
+    } else {
+      this.abrirOpcoesDaRoda();
+    }
+  }
+
+  // Revela as 3 opções (Histórico / Passar Turno / Desistir), centralizadas
+  // na tela, por cima de um fundo escurecido que cobre a tela toda. Tocar
+  // em qualquer lugar fora dos botões (ou seja, no fundo escurecido) fecha
+  // o menu de novo.
+  abrirOpcoesDaRoda() {
+    if (this.rodaOpcoesContainer) return;
+
+    const LARGURA = 340;
+    const ALTURA = 96;
+    const ESPACO = 116;
+
+    const definicoes = [
+      {
+        rotulo: "📜 Histórico",
+        cor: 0x2255aa,
+        aoClicar: () => this.mostrarHistorico(),
+      },
+      {
+        rotulo: "⏭ Passar Turno",
+        cor: 0xff5500,
+        aoClicar: () => this.aoClicarPassarTurno(),
+      },
+      {
+        rotulo: "🏳 Desistir",
+        cor: 0x883333,
+        aoClicar: () => this.aoClicarDesistir(),
+      },
+    ];
+
+    // Fundo escurecido cobrindo a tela toda — tocar nele fecha o menu.
+    // Vem primeiro na lista de filhos (mais embaixo, atrás dos botões),
+    // então um toque num botão nunca "vaza" pra ele.
+    const overlay = this.add
+      .rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.6)
+      .setInteractive();
+    overlay.on("pointerup", () => this.fecharOpcoesDaRoda());
+
+    const totalAltura = ESPACO * (definicoes.length - 1);
+    const yInicio = GH / 2 - totalAltura / 2;
+
+    const botoes = definicoes.map((def, indice) =>
+      this.criarBotaoDaRoda(
+        GW / 2,
+        yInicio + indice * ESPACO,
+        LARGURA,
+        ALTURA,
+        def.rotulo,
+        def.cor,
+        () => {
+          // Fecha o menu antes de disparar a ação escolhida, pra não
+          // deixar o fundo escurecido por cima de um modal/transição.
+          this.fecharOpcoesDaRoda();
+          def.aoClicar();
+        },
+      ),
+    );
+
+    const opcoes = this.add.container(0, 0, [overlay, ...botoes]);
+    opcoes.setDepth(250);
+    opcoes.setAlpha(0);
+    opcoes.setScale(0.9);
+    this.rodaOpcoesContainer = opcoes;
+
+    this.tweens.add({
+      targets: opcoes,
+      alpha: 1,
+      scale: 1,
+      duration: 160,
+      ease: "Back.Out",
+    });
+  }
+
+  // Esconde de novo as 3 opções e o fundo escurecido (mas mantém o botão
+  // de menu visível no canto).
+  fecharOpcoesDaRoda() {
+    if (!this.rodaOpcoesContainer) return;
+    const opcoes = this.rodaOpcoesContainer;
+    this.rodaOpcoesContainer = null;
+
+    this.tweens.add({
+      targets: opcoes,
+      alpha: 0,
+      scale: 0.9,
+      duration: 120,
+      ease: "Cubic.In",
+      onComplete: () => opcoes.destroy(),
+    });
+  }
+
+  // Cria um botão individual (fundo + texto + hover/click) já posicionado
+  // dentro do menu de opções. `x`/`y` são relativos ao container pai.
+  criarBotaoDaRoda(x, y, largura, altura, rotulo, cor, aoClicar) {
+    let bg = this.add
+      .rectangle(0, 0, largura, altura, cor)
+      .setStrokeStyle(4, 0xffffff);
+    let texto = this.add
+      .text(0, 0, rotulo, { fontSize: "27px", color: "#ffffff" })
+      .setOrigin(0.5);
+
+    let btn = this.add.container(x, y, [bg, texto]);
+    btn.setSize(largura, altura);
     btn.setInteractive({ useHandCursor: true });
 
     btn.on("pointerover", () => {
@@ -3044,8 +3504,215 @@ class CenaJogo extends Phaser.Scene {
 
     btn.on("pointerup", () => {
       if (this.travado) return;
-      this.mostrarHistorico();
+      aoClicar();
     });
+
+    return btn;
+  }
+
+  // Sumiço rápido: desliza o botão de menu pra fora da tela, pela direita,
+  // e destrói ao final; se as 3 opções estiverem abertas na hora (menu +
+  // fundo escurecido), elas são destruídas na hora, sem animação. Não-
+  // destrutivo se o botão já não existir (ex: desenharInterface() já o
+  // destruiu via removeAll(true)) — checa e sai.
+  esconderRodaBotoes() {
+    if (this.rodaOpcoesContainer) {
+      this.rodaOpcoesContainer.destroy();
+      this.rodaOpcoesContainer = null;
+    }
+
+    if (!this.rodaBotoesContainer) return;
+    const roda = this.rodaBotoesContainer;
+    this.rodaBotoesContainer = null;
+
+    this.tweens.add({
+      targets: roda,
+      x: roda.x + 420,
+      duration: 140,
+      ease: "Cubic.In",
+      onComplete: () => roda.destroy(),
+    });
+  }
+
+  // Handler do botão "Passar Turno": trava a interação, tira a roda de
+  // cena (a "vez do oponente" começa aqui) e só então resolve o turno —
+  // fim de turno do jogador, jogada da IA, efeitos de turno e, se for o
+  // último turno, o combate final.
+  aoClicarPassarTurno() {
+    this.travado = true;
+    this.esconderRodaBotoes();
+
+    const { resultadoCombate, fimDeJogo, resultadoRodada } =
+      this.partida.fimTurno();
+    const efeitoInimigo = this.partida.efeitoInimigoTurno;
+    const efeitosDeTurno = this.partida.efeitosDeTurno;
+
+    const finalizarTurno = () => {
+      const todasAfetadas = [
+        ...(efeitoInimigo ? efeitoInimigo.afetadas : []),
+        ...(efeitosDeTurno || []),
+      ];
+      this.processarCartasAfetadas(todasAfetadas, () => {
+        const prosseguir = () => {
+          // A roda só volta se a partida continua — em fim de jogo,
+          // this.travado permanece true de propósito (ver
+          // mostrarTelaFimDeJogo), então não faz sentido redesenhá-la.
+          if (!fimDeJogo) this.travado = false;
+          this.desenharInterface();
+
+          if (fimDeJogo) {
+            this.mostrarTelaFimDeJogo(resultadoCombate);
+          }
+        };
+
+        // Mostra rapidinho quem ganhou a rodada (turno) que acabou de
+        // fechar — só quando a partida ainda continua; se já era a
+        // decisiva, a tela de fim de jogo (mostrarTelaFimDeJogo) já cobre
+        // esse resultado, então não precisa duplicar.
+        if (!fimDeJogo && resultadoRodada) {
+          this.mostrarBannerRodada(resultadoRodada, prosseguir);
+        } else {
+          prosseguir();
+        }
+      });
+    };
+
+    if (efeitoInimigo) {
+      this.conjurarCartaDeEfeitoInimigo(efeitoInimigo.carta, finalizarTurno);
+    } else {
+      finalizarTurno();
+    }
+  }
+
+  // Banner central rápido (aparece e some sozinho) avisando quem venceu a
+  // rodada que acabou de fechar — VOCÊ VENCEU / VOCÊ PERDEU / EMPATE.
+  // Chama `aoTerminar` depois que ele já sumiu, pra encadear o resto do
+  // fluxo (ex: liberar a interação de novo).
+  mostrarBannerRodada(resultadoRodada, aoTerminar) {
+    const config = {
+      jogador: { texto: "VOCÊ VENCEU A RODADA", cor: "#66ff88" },
+      inimigo: { texto: "VOCÊ PERDEU A RODADA", cor: "#ff6666" },
+      empate: { texto: "RODADA EMPATADA", cor: "#ffd966" },
+    }[resultadoRodada.vencedor];
+
+    const texto = this.add
+      .text(GW / 2, GH / 2, config.texto, {
+        fontSize: "58px",
+        color: config.cor,
+        fontStyle: "bold",
+        stroke: "#000000",
+        strokeThickness: 8,
+        align: "center",
+      })
+      .setOrigin(0.5)
+      .setDepth(300)
+      .setAlpha(0)
+      .setScale(0.85);
+
+    this.tweens.add({
+      targets: texto,
+      alpha: 1,
+      scale: 1,
+      duration: 180,
+      ease: "Back.Out",
+      onComplete: () => {
+        this.time.delayedCall(650, () => {
+          this.tweens.add({
+            targets: texto,
+            alpha: 0,
+            duration: 200,
+            onComplete: () => {
+              texto.destroy();
+              aoTerminar();
+            },
+          });
+        });
+      },
+    });
+  }
+
+  // Handler do botão "Desistir": pede confirmação (ação irreversível)
+  // antes de encerrar a partida como derrota do jogador.
+  aoClicarDesistir() {
+    if (this.partida.partidaEncerrada || this.modalAberto) return;
+
+    this.modalAberto = true;
+    this.travado = true;
+    this.esconderRodaBotoes();
+
+    let overlay = this.add
+      .rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.75)
+      .setDepth(4000)
+      .setInteractive();
+
+    let titulo = this.add
+      .text(GW / 2, GH / 2 - 140, "Desistir da partida?", {
+        fontSize: "44px",
+        color: "#ffffff",
+        fontStyle: "bold",
+      })
+      .setOrigin(0.5)
+      .setDepth(4001);
+
+    let subtitulo = this.add
+      .text(GW / 2, GH / 2 - 70, "Você perde a partida imediatamente.", {
+        fontSize: "28px",
+        color: "#dddddd",
+      })
+      .setOrigin(0.5)
+      .setDepth(4001);
+
+    const fechar = () => {
+      overlay.destroy();
+      titulo.destroy();
+      subtitulo.destroy();
+      btnConfirmar.destroy();
+      btnCancelar.destroy();
+    };
+
+    let btnConfirmar = this.criarBotaoConfirmacao(
+      GW / 2 - 170,
+      GH / 2 + 60,
+      "Desistir",
+      0x883333,
+      () => {
+        fechar();
+        this.modalAberto = false;
+        const resultado = this.partida.desistir();
+        this.mostrarTelaFimDeJogo(resultado);
+      },
+    );
+
+    let btnCancelar = this.criarBotaoConfirmacao(
+      GW / 2 + 170,
+      GH / 2 + 60,
+      "Cancelar",
+      0x336633,
+      () => {
+        fechar();
+        this.modalAberto = false;
+        this.travado = false;
+        this.desenharRodaBotoes();
+      },
+    );
+  }
+
+  // Botão simples (fundo + texto + clique) usado pelo diálogo de
+  // confirmação de "Desistir". Posição em coordenadas absolutas de tela
+  // (não é relativo a nenhum container pai).
+  criarBotaoConfirmacao(x, y, rotulo, cor, aoClicar) {
+    let bg = this.add.rectangle(0, 0, 300, 90, cor).setStrokeStyle(4, 0xffffff);
+    let texto = this.add
+      .text(0, 0, rotulo, { fontSize: "30px", color: "#ffffff" })
+      .setOrigin(0.5);
+
+    let btn = this.add.container(x, y, [bg, texto]);
+    btn.setSize(300, 90);
+    btn.setDepth(4001);
+    btn.setInteractive({ useHandCursor: true });
+    btn.on("pointerup", aoClicar);
+
+    return btn;
   }
 
   // Botão flutuante, sempre no rodapé, para esconder/mostrar a mão e dar
@@ -3053,9 +3720,7 @@ class CenaJogo extends Phaser.Scene {
   // própria mão, não só um corte seco.
   desenharBotaoToggleMao() {
     const qtd = this.partida.jogador.mao.cartas.length;
-    const rotulo = this.maoEscondida
-      ? `▲ Mostrar Mão (${qtd})`
-      : "▼ Esconder Mão";
+    const rotulo = this.maoEscondida ? `▲ Mostrar Mão (${qtd})` : "▼";
     const corBg = this.maoEscondida ? 0x225533 : 0x333333;
 
     let bg = this.add
@@ -3090,97 +3755,79 @@ class CenaJogo extends Phaser.Scene {
   // para baixo e somem antes do campo ser redesenhado (maior); ao mostrar
   // de novo, a própria entrada animada do leque já cuida da transição.
   alternarMao() {
+    // ============================================================
+    // MOSTRAR A MÃO NOVAMENTE
+    // ============================================================
+
     if (this.maoEscondida) {
       this.maoEscondida = false;
       this.desenharInterface();
       return;
     }
 
+    // Pega SOMENTE as cartas da mão do jogador.
     const cartasNaTela = this.children.list.filter((c) => c.dadosCarta);
+
     if (cartasNaTela.length === 0) {
       this.maoEscondida = true;
       this.desenharInterface();
       return;
     }
 
+    // Impede clicar/jogar enquanto a animação acontece.
     this.travado = true;
-    this.tweens.add({
-      targets: cartasNaTela,
-      y: "+=420",
-      alpha: 0,
-      duration: 260,
-      ease: "Cubic.In",
-      onComplete: () => {
-        this.maoEscondida = true;
-        this.desenharInterface();
-        this.travado = false;
-      },
-    });
-  }
 
-  desenharBotaoPassarTurno() {
-    let bg = this.add
-      .rectangle(0, 0, 340, 100, 0xff5500)
-      .setStrokeStyle(4, 0xffffff);
-    let texto = this.add
-      .text(0, 0, "Passar Turno", { fontSize: "32px", color: "#fff" })
-      .setOrigin(0.5);
+    // Cancela qualquer animação anterior dessas cartas.
+    this.tweens.killTweensOf(cartasNaTela);
 
-    let btn = this.add.container(GW - 210, 90, [bg, texto]);
-    btn.setSize(340, 100);
-    btn.setInteractive({ useHandCursor: true });
+    // ============================================================
+    // ESCONDER A MÃO
+    //
+    // As cartas deslizam PARA BAIXO, saindo da tela.
+    // Elas continuam visíveis durante a maior parte do movimento
+    // e só começam a desaparecer perto do final.
+    // ============================================================
 
-    btn.on("pointerover", () => {
-      if (this.travado) return;
-      this.tweens.add({ targets: btn, scale: 1.05, duration: 100 });
-    });
+    let finalizadas = 0;
 
-    btn.on("pointerout", () => {
-      if (this.travado) return;
-      this.tweens.add({ targets: btn, scale: 1, duration: 100 });
-    });
+    cartasNaTela.forEach((carta, indice) => {
+      if (!carta || !carta.active) {
+        finalizadas++;
+        return;
+      }
 
-    btn.on("pointerdown", () => {
-      if (this.travado) return;
-      this.travado = true;
+      // Garante que a carta fique por cima durante a animação.
+      carta.setDepth(2000 + indice);
+
+      // Pequena diferença entre as cartas para dar sensação
+      // de que a mão inteira está deslizando para baixo.
+      const delay = indice * 25;
 
       this.tweens.add({
-        targets: btn,
-        scale: 0.88,
-        duration: 90,
-        yoyo: true,
-        ease: "Sine.easeInOut",
+        targets: carta,
+
+        // Sai completamente pela parte inferior da tela.
+        y: carta.y + 500,
+
+        // Continua aparecendo enquanto desce e desaparece no final.
+        alpha: 0,
+
+        duration: 380,
+
+        delay: delay,
+
+        ease: "Cubic.In",
+
         onComplete: () => {
-          const { resultadoCombate, fimDeJogo } = this.partida.fimTurno();
-          const efeitoInimigo = this.partida.efeitoInimigoTurno;
-          const efeitosDeTurno = this.partida.efeitosDeTurno;
+          finalizadas++;
 
-          const finalizarTurno = () => {
-            const todasAfetadas = [
-              ...(efeitoInimigo ? efeitoInimigo.afetadas : []),
-              ...(efeitosDeTurno || []),
-            ];
-            this.processarCartasAfetadas(todasAfetadas, () => {
-              this.desenharInterface();
+          if (finalizadas >= cartasNaTela.length) {
+            // Agora que a animação terminou, muda o layout.
+            this.maoEscondida = true;
+            this.travado = false;
 
-              if (fimDeJogo) {
-                // Combate só é revelado agora, no fechamento do último
-                // turno — this.travado continua true de propósito, pra
-                // travar a interação depois que a partida acaba.
-                this.mostrarTelaFimDeJogo(resultadoCombate);
-              } else {
-                this.travado = false;
-              }
-            });
-          };
-
-          if (efeitoInimigo) {
-            this.conjurarCartaDeEfeitoInimigo(
-              efeitoInimigo.carta,
-              finalizarTurno,
-            );
-          } else {
-            finalizarTurno();
+            // Redesenha o campo ampliado.
+            this.desenharInterface();
           }
         },
       });
@@ -3322,5 +3969,395 @@ class CenaJogo extends Phaser.Scene {
       ease: "Back.Out",
     });
     this.somBuff.play();
+  }
+  // ============================================================================
+  // GESTO DE DESLIZAR A MÃO
+  // ============================================================================
+  //
+  // MÃO VISÍVEL:
+  //   swipe para baixo -> esconde
+  //
+  // MÃO ESCONDIDA:
+  //   swipe para cima -> mostra
+  //
+  // Não existe botão.
+  // O jogador literalmente puxa a mão com o dedo.
+  // ============================================================================
+
+  configurarGestosMao() {
+    // ============================================================
+    // GESTO DE SWIPE DA MÃO
+    //
+    // Mão visível:
+    //   arrastar para baixo -> esconder
+    //
+    // Mão escondida:
+    //   arrastar para cima -> mostrar
+    //
+    // Se o gesto não atingir o limite:
+    //   volta para posição + alpha originais.
+    // ============================================================
+
+    if (this.gestosMaoConfigurados) return;
+
+    this.gestosMaoConfigurados = true;
+
+    this.gestoMaoAtivo = false;
+    this.gestoMaoX = 0;
+    this.gestoMaoY = 0;
+
+    // --------------------------------------------------------------------------
+    // COMEÇOU O TOQUE
+    // --------------------------------------------------------------------------
+
+    this.input.on("pointerdown", (pointer) => {
+      if (this.travado) return;
+
+      const LIMITE_MAO = GH - 650;
+
+      // A mão escondida não está visível, então permitimos começar
+      // o gesto na parte inferior da tela.
+      //
+      // A mão visível também pode ser agarrada diretamente em cima
+      // de qualquer carta.
+      if (!this.maoEscondida && pointer.y < LIMITE_MAO) {
+        return;
+      }
+
+      if (this.maoEscondida && pointer.y < LIMITE_MAO) {
+        return;
+      }
+
+      this.gestoMaoAtivo = true;
+
+      this.gestoMaoX = pointer.x;
+      this.gestoMaoY = pointer.y;
+
+      // ============================================================
+      // GUARDA A POSIÇÃO ORIGINAL DE TODAS AS CARTAS
+      // ============================================================
+
+      const cartas = this.children.list.filter((c) => c.dadosCarta);
+
+      cartas.forEach((carta) => {
+        if (!carta || !carta.active) return;
+
+        carta._maoSwipeYOriginal = carta.y;
+        carta._maoSwipeXOriginal = carta.x;
+        carta._maoSwipeAlphaOriginal = carta.alpha;
+      });
+    });
+
+    // --------------------------------------------------------------------------
+    // MOVIMENTO DO DEDO
+    // --------------------------------------------------------------------------
+
+    this.input.on("pointermove", (pointer) => {
+      if (!this.gestoMaoAtivo) return;
+      if (this.travado) return;
+
+      const deslocamentoY = pointer.y - this.gestoMaoY;
+
+      const deslocamentoX = Math.abs(pointer.x - this.gestoMaoX);
+
+      // Ignora movimentos predominantemente horizontais.
+      if (deslocamentoX > Math.abs(deslocamentoY) * 1.5) {
+        return;
+      }
+
+      // ============================================================
+      // IMPORTANTE:
+      //
+      // O dedo NÃO move a mão durante o gesto.
+      //
+      // Assim:
+      // 20px  -> nada muda
+      // 50px  -> nada muda
+      // 90px  -> nada muda
+      // 100px -> dispara a animação
+      //
+      // Isso evita a mão ficar transparente ou deslocada
+      // quando o jogador solta no meio.
+      // ============================================================
+    });
+
+    // --------------------------------------------------------------------------
+    // SOLTOU O DEDO
+    // --------------------------------------------------------------------------
+
+    const finalizarGesto = (pointer) => {
+      if (!this.gestoMaoAtivo) return;
+
+      this.gestoMaoAtivo = false;
+
+      if (this.travado) return;
+
+      const deslocamentoY = pointer.y - this.gestoMaoY;
+
+      const LIMITE_GESTO = 45;
+
+      // ============================================================
+      // SWIPE PARA BAIXO COMPLETO
+      // ============================================================
+
+      if (!this.maoEscondida && deslocamentoY >= LIMITE_GESTO) {
+        this.esconderMaoComSwipe();
+        return;
+      }
+
+      // ============================================================
+      // SWIPE PARA CIMA COMPLETO
+      // ============================================================
+
+      if (this.maoEscondida && deslocamentoY <= -LIMITE_GESTO) {
+        this.mostrarMaoComSwipe();
+        return;
+      }
+
+      // ============================================================
+      // SWIPE CANCELADO
+      //
+      // Não atingiu o limite.
+      //
+      // Restaura:
+      // - X
+      // - Y
+      // - alpha
+      //
+      // exatamente como estavam antes do gesto.
+      // ============================================================
+
+      this.voltarMaoParaPosicao();
+    };
+
+    this.input.on("pointerup", finalizarGesto);
+
+    this.input.on("pointerupoutside", finalizarGesto);
+  }
+
+  // ============================================================================
+  // RESTAURA A MÃO QUANDO O SWIPE NÃO FOI COMPLETO
+  // ============================================================================
+
+  voltarMaoParaPosicao() {
+    const cartas = this.children.list.filter((c) => c.dadosCarta);
+
+    cartas.forEach((carta) => {
+      if (!carta || !carta.active) return;
+
+      const yOriginal =
+        carta._maoSwipeYOriginal !== undefined
+          ? carta._maoSwipeYOriginal
+          : carta.y;
+
+      const xOriginal =
+        carta._maoSwipeXOriginal !== undefined
+          ? carta._maoSwipeXOriginal
+          : carta.x;
+
+      const alphaOriginal =
+        carta._maoSwipeAlphaOriginal !== undefined
+          ? carta._maoSwipeAlphaOriginal
+          : 1;
+
+      // Mata qualquer tween que possa ter ficado.
+      this.tweens.killTweensOf(carta);
+
+      this.tweens.add({
+        targets: carta,
+
+        x: xOriginal,
+
+        y: yOriginal,
+
+        alpha: alphaOriginal,
+
+        duration: 180,
+
+        ease: "Cubic.Out",
+
+        onComplete: () => {
+          if (!carta || !carta.active) return;
+
+          // Garante o estado EXATO.
+          carta.x = xOriginal;
+          carta.y = yOriginal;
+          carta.alpha = alphaOriginal;
+
+          // Limpa os dados temporários.
+          carta._maoSwipeYOriginal = undefined;
+
+          carta._maoSwipeXOriginal = undefined;
+
+          carta._maoSwipeAlphaOriginal = undefined;
+        },
+      });
+    });
+  }
+  // ============================================================================
+  // MOVE A MÃO JUNTO COM O DEDO
+  // ============================================================================
+
+  moverMaoDuranteGesto(deslocamentoY) {
+    const cartas = this.children.list.filter((c) => c.dadosCarta);
+
+    if (cartas.length === 0) return;
+
+    // Limita o quanto pode puxar.
+    const limite = 600;
+
+    const deslocamento = Phaser.Math.Clamp(deslocamentoY, -limite, limite);
+
+    cartas.forEach((carta) => {
+      if (!carta || !carta.active) return;
+
+      // Guarda posição original somente uma vez.
+      if (carta._maoSwipeYOriginal === undefined) {
+        carta._maoSwipeYOriginal = carta.y;
+      }
+
+      carta.y = carta._maoSwipeYOriginal + deslocamento;
+
+      // Quando descendo, começa a desaparecer.
+      // Quando subindo, reaparece.
+      const progresso = Math.min(1, Math.abs(deslocamento) / 500);
+
+      if (!this.maoEscondida) {
+        carta.alpha = 1 - progresso * 0.9;
+      } else {
+        carta.alpha = progresso;
+      }
+    });
+  }
+
+  // ============================================================================
+  // ESCONDE A MÃO
+  // ============================================================================
+
+  esconderMaoComSwipe(deslocamento) {
+    const cartas = this.children.list.filter((c) => c.dadosCarta);
+
+    if (cartas.length === 0) {
+      this.maoEscondida = true;
+      this.desenharInterface();
+      return;
+    }
+
+    this.travado = true;
+
+    cartas.forEach((carta, indice) => {
+      if (!carta || !carta.active) return;
+
+      const yInicial =
+        carta._maoSwipeYOriginal !== undefined
+          ? carta._maoSwipeYOriginal
+          : carta.y;
+
+      carta._maoSwipeYOriginal = undefined;
+
+      this.tweens.killTweensOf(carta);
+
+      this.tweens.add({
+        targets: carta,
+
+        y: GH + 300,
+
+        alpha: 0,
+
+        duration: 220,
+
+        delay: indice * 15,
+
+        ease: "Cubic.In",
+      });
+    });
+
+    // Espera a animação acabar antes de redesenhar.
+    this.time.delayedCall(260 + cartas.length * 15, () => {
+      this.maoEscondida = true;
+      this.travado = false;
+
+      this.desenharInterface();
+    });
+  }
+
+  // ============================================================================
+  // MOSTRA A MÃO
+  // ============================================================================
+
+  mostrarMaoComSwipe() {
+    // ============================================================
+    // MOSTRAR A MÃO COM SWIPE PARA CIMA
+    // ============================================================
+
+    this.travado = true;
+
+    // Muda para o layout normal.
+    this.maoEscondida = false;
+
+    // Reconstrói a interface para criar a mão na posição correta.
+    this.desenharInterface();
+
+    // Pega as cartas da mão recém-criadas.
+    const cartas = this.children.list.filter((c) => c.dadosCarta);
+
+    if (cartas.length === 0) {
+      this.travado = false;
+      return;
+    }
+
+    // ============================================================
+    // FAZ A MÃO ENTRAR DE BAIXO PARA CIMA
+    // ============================================================
+
+    cartas.forEach((carta, indice) => {
+      if (!carta || !carta.active) return;
+
+      // Guarda a posição final.
+      const yFinal = carta.y;
+
+      // Começa completamente abaixo da tela.
+      carta.y = GH + 300;
+
+      // Começa invisível.
+      carta.alpha = 0;
+
+      // Garante que a carta fique acima dos elementos do campo
+      // durante a entrada.
+      carta.setDepth(2000 + indice);
+
+      this.tweens.add({
+        targets: carta,
+
+        // Sobe até a posição normal da mão.
+        y: yFinal,
+
+        // Aparece junto com o movimento.
+        alpha: 1,
+
+        duration: 300,
+
+        // Pequeno atraso entre as cartas para dar sensação
+        // de que a mão inteira está subindo.
+        delay: indice * 18,
+
+        ease: "Cubic.Out",
+
+        onComplete: () => {
+          // Garante que terminou completamente visível.
+          carta.alpha = 1;
+          carta.y = yFinal;
+        },
+      });
+    });
+
+    // ============================================================
+    // LIBERA O JOGO DEPOIS DA ANIMAÇÃO
+    // ============================================================
+
+    this.time.delayedCall(340 + cartas.length * 18, () => {
+      this.travado = false;
+      this.desenharRodaBotoes();
+    });
   }
 }

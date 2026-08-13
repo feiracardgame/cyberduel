@@ -200,9 +200,14 @@ class Partida {
     }
 
     this.turno = 1;
-    // Duração fixa da partida: o combate só é resolvido depois que esse
-    // turno é fechado (ver fimTurno / partidaEncerrada).
+    // Duração máxima da partida em turnos — mas o confronto pode terminar
+    // antes disso: cada turno vira uma "rodada" (compara o poder total em
+    // campo dos dois lados) e quem fizer 4 rodadas primeiro vence, no
+    // estilo melhor de 7 — ver resolverRodada()/fimTurno().
     this.maxTurnos = 7;
+    this.rodadasParaVencer = 4;
+    this.rodadasJogador = 0;
+    this.rodadasInimigo = 0;
     this.partidaEncerrada = false;
     this.cartaSelecionada = null;
 
@@ -373,14 +378,15 @@ class Partida {
     return afetadas;
   }
 
-  // Fecha o turno atual. O combate só é calculado (resolverCombate) quando
-  // o turno que está sendo fechado é o último (this.turno === this.maxTurnos);
-  // nos turnos anteriores só a IA joga e os efeitos de turno são resolvidos,
-  // sem ninguém "vencer" ainda. Depois do 7º turno a partida trava
-  // (this.partidaEncerrada = true) e fimTurno() não faz mais nada.
+  // Fecha o turno atual. A cada turno fechado, uma rodada é resolvida
+  // (resolverRodada): quem tiver mais poder total em campo fatura o
+  // ponto daquela rodada. A partida termina — e fimTurno() para de fazer
+  // qualquer coisa depois disso (this.partidaEncerrada = true) — assim
+  // que um dos lados chegar a 4 rodadas vencidas (melhor de 7) ou o turno
+  // máximo (7) for atingido, o que vier primeiro.
   fimTurno() {
     if (this.partidaEncerrada) {
-      return { resultadoCombate: null, fimDeJogo: true };
+      return { resultadoCombate: null, fimDeJogo: true, resultadoRodada: null };
     }
 
     // Libera de novo as habilidades ativas (1x por turno) dos dois lados.
@@ -395,12 +401,15 @@ class Partida {
     // de efeitos de turno abaixo (mesma regra pro jogador e pro inimigo).
     this.efeitosDeTurno = this.resolverEfeitosDeTurno();
 
-    const eraUltimoTurno = this.turno >= this.maxTurnos;
-    let resultadoCombate = null;
+    const resultadoRodada = this.resolverRodada();
+    const partidaDecidida =
+      this.rodadasJogador >= this.rodadasParaVencer ||
+      this.rodadasInimigo >= this.rodadasParaVencer;
+    const fimDeJogo = partidaDecidida || this.turno >= this.maxTurnos;
 
-    if (eraUltimoTurno) {
-      // Combate só é resolvido aqui, no fechamento do último turno.
-      resultadoCombate = this.resolverCombate();
+    let resultadoCombate = null;
+    if (fimDeJogo) {
+      resultadoCombate = this.finalizarPartida();
       this.partidaEncerrada = true;
     } else {
       this.turno++;
@@ -414,7 +423,10 @@ class Partida {
 
     // fimDeJogo avisa a cena que é hora de mostrar a tela de
     // VOCÊ VENCEU / VOCÊ PERDEU em vez do fluxo normal de próximo turno.
-    return { resultadoCombate, fimDeJogo: eraUltimoTurno };
+    // resultadoRodada é o placar da rodada que acabou de fechar (quem tinha
+    // mais poder em campo), útil pra cena mostrar o placar melhor-de-7
+    // mesmo nos turnos em que a partida ainda não terminou.
+    return { resultadoCombate, fimDeJogo, resultadoRodada };
   }
 
   // Percorre o campo dos dois jogadores e reavalia o efeitoTurno de cada
@@ -525,15 +537,70 @@ class Partida {
     return maior;
   }
 
-  resolverCombate() {
-    let poderJogador = this.calcularPoderTotal(this.jogador.campo);
-    let poderInimigo = this.calcularPoderTotal(this.inimigo.campo);
+  // Encerra a partida na hora, como derrota do jogador — usado pelo botão
+  // "Desistir" da roda de botões (jogo.js). Diferente de resolverCombate(),
+  // o resultado aqui não depende do poder em campo: quem desiste perde,
+  // ponto final. Ainda assim reaproveita calcularPoderTotal/
+  // obterCartaComMaiorPoder pra preencher a mesma tela de fim de jogo.
+  desistir() {
+    if (this.partidaEncerrada) return null;
+    this.partidaEncerrada = true;
+    this.inimigo.vitorias++;
+
+    const poderJogador = this.calcularPoderTotal(this.jogador.campo);
+    const poderInimigo = this.calcularPoderTotal(this.inimigo.campo);
+    const cartaDestaque = this.obterCartaComMaiorPoder(this.inimigo.campo);
+
+    return {
+      poderJogador,
+      poderInimigo,
+      resultado: "inimigo",
+      cartaDestaque,
+      rodadasJogador: this.rodadasJogador,
+      rodadasInimigo: this.rodadasInimigo,
+    };
+  }
+
+  // Resolve UMA rodada (chamada a cada fimTurno): compara o poder total em
+  // campo dos dois lados neste instante e dá o ponto pra quem estiver na
+  // frente (empate não pontua ninguém). Isso é só o placar da rodada —
+  // quem vence a PARTIDA é decidido em finalizarPartida().
+  resolverRodada() {
+    const poderJogador = this.calcularPoderTotal(this.jogador.campo);
+    const poderInimigo = this.calcularPoderTotal(this.inimigo.campo);
+
+    let vencedor = "empate";
+    if (poderJogador > poderInimigo) {
+      this.rodadasJogador++;
+      vencedor = "jogador";
+    } else if (poderInimigo > poderJogador) {
+      this.rodadasInimigo++;
+      vencedor = "inimigo";
+    }
+
+    return {
+      poderJogador,
+      poderInimigo,
+      vencedor,
+      rodadasJogador: this.rodadasJogador,
+      rodadasInimigo: this.rodadasInimigo,
+    };
+  }
+
+  // Fecha a PARTIDA (chamada só quando fimTurno detecta que ela terminou):
+  // o lado com mais rodadas vencidas (melhor de 7) leva a vitória; se os
+  // dois turnos acabarem empatados em rodadas, é empate mesmo. Monta o
+  // mesmo formato de resultado de antes (poder final em campo + carta
+  // destaque) pra tela de fim de jogo não precisar mudar.
+  finalizarPartida() {
+    const poderJogador = this.calcularPoderTotal(this.jogador.campo);
+    const poderInimigo = this.calcularPoderTotal(this.inimigo.campo);
 
     let resultado;
-    if (poderJogador > poderInimigo) {
+    if (this.rodadasJogador > this.rodadasInimigo) {
       this.jogador.vitorias++;
       resultado = "jogador";
-    } else if (poderInimigo > poderJogador) {
+    } else if (this.rodadasInimigo > this.rodadasJogador) {
       this.inimigo.vitorias++;
       resultado = "inimigo";
     } else {
@@ -558,12 +625,19 @@ class Partida {
     }
 
     console.log(
-      `Poder Jogador: ${poderJogador} | Poder Inimigo: ${poderInimigo} | Resultado: ${resultado}`,
+      `Rodadas Jogador: ${this.rodadasJogador} | Rodadas Inimigo: ${this.rodadasInimigo} | Resultado: ${resultado}`,
     );
 
     // Retorna o resultado em vez de só logar, para a cena (jogo.js)
     // poder mostrar feedback visual (texto, flash de câmera etc.)
-    return { poderJogador, poderInimigo, resultado, cartaDestaque };
+    return {
+      poderJogador,
+      poderInimigo,
+      resultado,
+      cartaDestaque,
+      rodadasJogador: this.rodadasJogador,
+      rodadasInimigo: this.rodadasInimigo,
+    };
   }
 }
 
