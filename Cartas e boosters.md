@@ -90,7 +90,7 @@ Machine learning -> Escolha uma carta aliada. Ela recebe +2 PA. O Estagiário pe
 * PA: 8
 * Efeito:
 
- Missão de Paz - A DIPSP conduz uma operação humanitária para proteger a população local de seus próprios recursos naturais. A cada turno, escolha até 2 cartas inimigas até alcance longo à frente ou adjacente. Os alvos atingidos perdem 3 de PA.
+ Missão de Paz - A DIPSP conduz uma operação humanitária para proteger a população local de seus próprios recursos naturais. A cada turno, escolha até 2 cartas em alcance curto ou longo que estejam até uma coluna de distância. Os alvos atingidos perdem 3 de PA.
  
 * Arte:
  <img alt="image" src="assets/cartas/AgenteDIPSP.png" />
@@ -176,7 +176,7 @@ Faz tipo a Jewel da Marvel, só que mais cyberpunk e mete umas prótese de perna
 
 * Descrição: Descrição: Antes mesmo de entrar para o grupo anarquista, o Cão já era um mercenário especializado em rastrear alvos. Seus implantes cibernéticos de olfato permitem encontrar praticamente qualquer pessoa pelo menor dos rastros. O único problema é que a idade já está afetando seus sentidos: recentemente, ele passou três horas seguindo o próprio cheiro.
 * PA: 4
-* Efeito: Faro -> O Cão consegue rastrear o cheiro do inimigo, apesar de não tão bem quanto sua época. Ao ser invocado, o Cão te informa de até 3 cartas que o inimigo tenha na mão ou no baralho.
+* Efeito: Faro -> O Cão consegue rastrear o cheiro do inimigo, apesar de não tão bem quanto sua época. Ao ser invocado, o Cão te informa de até 5 cartas que o inimigo tenha na mão ou no baralho.
 * Visual:
 
 Faz um detetive noir com uns implantes tipo assim só que preto com vermelho e ele tem que ser velho
@@ -215,7 +215,7 @@ Faz um detetive noir com uns implantes tipo assim só que preto com vermelho e e
 
  
 * PA: 9
-* Efeito: Garra de aço -> O Tigre é um mestre de combate corpo a corpo. Escolha qualquer carta de alcance curto, o Tigre reduz seus PA em 3.
+* Efeito: Garra de aço -> O Tigre é um mestre de combate corpo a corpo. Escolha 2 dentre toda carta em alcance curto, o Tigre reduz seus PA em 3.
 
  
 * Visual: Faz tipo o wolverine vermelho com umas garras cibernéticas bem longas
@@ -228,7 +228,7 @@ Faz um detetive noir com uns implantes tipo assim só que preto com vermelho e e
 
 * Descrição: A Aranha é filha do finado fundador da EchoSsystem, “O Dragão”. Proibida pelo pai de participar das missões, foi treinada para invadir sistemas e fornecer suporte tecnológico. Agora, em um mundo virtual, estar atrás de uma tela significa estar em todos os lugares ao mesmo tempo.
 * PA: 5
-* Efeito: Override -> Escolha uma carta inimiga com PA atual menor que os da Aranha. A carta passa a contar pontos para sua equipe. Este efeito não pode ser mantido em duas cartas simultaneamente.
+* Efeito: Override -> Escolha uma carta inimiga com PA atual menor que os da Aranha. A carta passa a contar pontos para sua equipe. Este efeito não pode ser mantido pela mesma carta em duas cartas simultaneamente.
 
  
 * Visual: -> já tá fazendo
@@ -314,50 +314,101 @@ Faz tipo um cara desses num salão de ópera cibernético, mas ele tem um cabelo
 
 ### 1x carta baixa -> IA de treinamento
 
-* Descrição: 
-* PA:
-* Efeito:
+* Descrição: Para tornar a experiência acessível a todos, a HumbaNet criou uma integrante responsável por demonstrar as funcionalidades e explicar as regras da nova simulação. Infelizmente, ninguém descobriu como tornar suas interrupções menos irritantes ou implementar um botão de pular tutorial.
+* PA: 3
+* Efeito: Tutorial Obrigatório: A IA detectou que seu adversário aparentemente não sabe jogar. Para ajudá-lo, ativará um tutorial obrigatório durante seus turnos. Para cada uma desta carta em campo, o tempo de turno do oponente é reduzido em 20 segundos, até o mínimo de 20 segundos.
+
+ 
 * Visual:
+
+Faz tipo a Elena do HxH, mas essas linhas de traz são verdes e não brancas.
+
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/0f27d1e7-cc1d-497b-b10f-d7cd055cf9ff" />
+
 
 
 ### 1x carta media 1 -> HAL 9001
 
-* Descrição:
-* PA:
-* Efeito:
-* Visual:
+* Descrição: A versão aprimorada de uma das IAs mais referenciadas da história promete novas funcionalidades, análises aprimoradas e um comportamento, esperamos, um pouco menos destrutivo e manipulador. Contudo, ela continua banida de operações espaciais.
+ 
+* PA: 5
+  
+* Efeito: Controle de Risco -> Escolha uma carta do campo inimigo. O efeito dela é desabilitado enquanto o Hal 9001 estiver em campo. Este efeito não pode ser mantido pela mesma carta em duas cartas simultaneamente.
+
+ 
+* Visual: Faz tipo o Hal 9000 mesmo, mas faz ela com a luz verde e muda a cor do led para verde.
+
+<img width="486" height="1000" alt="image" src="https://github.com/user-attachments/assets/efea2c8f-ce1a-42de-be76-09004f4d9a83" />
+
 
 
 ### 1x carta media 2 -> H.A.R.V.I.S
 
-* Descrição:
-* PA:
-* Efeito:
+* Descrição: Conheça Harvis, sua nova IA assistente! Criado para auxiliar os usuários de NeoFloripa, ele pode responder perguntas, realizar tarefas, controlar dispositivos, oferecer recomendações e facilitar sua vida dentro da simulação. Harvis está sempre ao seu lado, mesmo quando você não pediu. O fato de agora possuir um corpo físico na simulação torna isso um pouco mais estranho.
+
+ 
+* PA: 5
+* Efeito: Sempre de olho -> enquanto H.A.R.V.I.S estiver em campo, as cartas adjacentes a ele ganham +1 PA.
 * Visual:
+
+vc escolhe como acha que fica mais legal, mas penso na ideia de uma IA com corpo humanoide, tipo o visão ou o ultron
+
+<img width="1624" height="2360" alt="image" src="https://github.com/user-attachments/assets/44d2db9b-57b2-40c0-b0d4-c4d80d598247" />
+
+
+<img width="620" height="800" alt="image" src="https://github.com/user-attachments/assets/5e69371f-8a28-47f9-bbcf-6659a55378cf" />
+
 
 
 ### 1x carta alta 1 ->  Replicantes
 
-* Descrição:
-* PA:
-* Efeito:
-* Visual:
+* Descrição:: Os Replicantes eram seres biologicamente aprimorados, desenvolvidos para executar tarefas perigosas e trabalhos manuais no mundo antigo. Contudo, em NeoFloripa, são responsáveis pela manutenção e integridade da simulação. Ironicamente, em um mundo virtual completamente controlado, são mais livres do que jamais foram na realidade.
+
+* PA: 7
+* Efeito: Demanda operacional -> Para cada terreno que estiver em campo, os replicantes recebem +2 PA
+
+ 
+* Visual: eles tem que ser androides (pode pesquisar os replicantes de bladerunner, mas eles nao tem algo que identifique MUITO. Pode fazer uma arte que tenha tipo 3 e um deles seja referência ao Roy Batty, o resto pode ser como tu quiser, mas pode ter uma das paradas que o V de CyberPunk tem no rosto, por exemplo:
+
+
+<img width="594" height="796" alt="image" src="https://github.com/user-attachments/assets/8738d3cd-2f26-433c-ae7c-977cc27e93ab" />
+
+<img width="594" height="796" alt="image" src="https://github.com/user-attachments/assets/e752cf40-36d0-4ac5-b506-7036be2daac8" />
 
 
 ### 1x carta alta 2 -> UCC "Juggernaut"
 
-* Descrição: A Unidade Cibernética de Combate, apelidada de Juggernaut, 
-* PA:
-* Efeito:
+* Descrição: A Unidade Cibernética de Combate, apelidada de Juggernaut, é responsável pela defesa e controle de NeoFloripa. Afinal, a liberdade é grande, mas não infinita. Desde sua implementação, a CyberCidade aboliu os firewalls: agora as ameaças são pessoalmente confrontadas.
+
+* PA: 11
+* Efeito: Protocolo de Segurança -> O Juggernaut é a última lembrança que os infratores tem. Escolha qualquer carta do campo inimigo, a UCC a ataca e causa 5 pontos de dano de PA.
 * Visual:
+
+Faz algo na vibe de um Tyrant ou do próprio Adam Smasher
+
+<img width="979" height="1830" alt="image" src="https://github.com/user-attachments/assets/b86c7c63-216e-4422-905d-f0e981beec2d" />
+
+<img width="226" height="440" alt="image" src="https://github.com/user-attachments/assets/cfd77f4b-3111-4954-aad9-307b4ce6e5d4" />
 
 ### 1x carta alta 3 -> Dragão das Comunicações Móveis
 
 
-* Descrição:
-* PA:
-* Efeito:
-* Visual:
+* Descrição: Um dos primeiros experimentos do HumbaBrain foi fazer o upload de um indivíduo no fim da vida para a simulação, permitindo que escolhesse sua própria forma. O resultado foi... inusitado. Temendo sua possível ameaça, o criador decidiu mantê-lo desativado até que um sinal específico de radiofrequência seja emitido. Desde então, a plateia aguarda para descobrir se ele será um espetáculo ou um desastre.
+ 
+* PA: 12
+* Efeito: Adormecido -> Esta carta não possui efeitos enquanto estiver adormecida.
+
+ 
+* Visual: A ideia é ele ser nossa versão do dragão branco de olhos azuis. Pode fazer ele como quiser, mas só tem que ter dois detalhes: ele tem que ser um dragão chinês e precisa ter os olhos vermelhos. Se quiser fazer ele como o Rayquaza pode ficar legal.
+
+<img width="475" height="475" alt="image" src="https://github.com/user-attachments/assets/50478a09-e67e-4fc0-bdf4-8d790bc6c3db" />
+
+
+<img width="360" height="515" alt="image" src="https://github.com/user-attachments/assets/848cb6ab-9959-427c-937f-9e731c7635d5" />
+
+
+<img width="306" height="450" alt="image" src="https://github.com/user-attachments/assets/f0ce90a4-d3f2-4517-9e3f-99dd5a28a9fb" />
+
 
 
 
@@ -370,7 +421,7 @@ Faz tipo um cara desses num salão de ópera cibernético, mas ele tem um cabelo
  Humbatrix -> Após o sucesso de NeoFloripa, HumbaBrain inicia a expansão da simulação. Enquanto esta carta estiver em campo, os terrenos inimigos não têm efeito, e os seus não podem ser destruídos.
 
  
-* Visual: Faz um rework da carta do Humba Brain... naquele estilo mesmo do Angstom Levy, mas não deixa ele tão cabeçudo e bizarro... Bota elementos de verde.
+* Visual: Faz um rework da carta do Humba Brain... naquele estilo mesmo do Angstrom Levy, mas não deixa ele tão cabeçudo e bizarro... Bota elementos de verde.
 
 
 
@@ -380,7 +431,7 @@ Faz tipo um cara desses num salão de ópera cibernético, mas ele tem um cabelo
 * Descrição: As IAs eram gratuitas até todo mundo começar a usá-las. Quando perceberam que havia dinheiro envolvido, seus criadores rapidamente introduziram assinaturas, créditos e limites de utilização. O Humba Brain resolveu o problema de uma maneira simples: reuniu todas elas em um único modelo para que nenhum NeoFlorianopolitano precisasse pagar por elas.
 
  
-* Efeito: Você Quis Dizer... -> Enquanto este terreno estiver em campo, você pode ativar seu efeito para comprar 1 carta aleatória do Deck.
+* Efeito: Claro, aqui está... -> Enquanto este terreno estiver em campo, você pode ativar seu efeito para comprar 1 carta aleatória do Deck.
  
 * Visual: Faz tipo uma junção de TODAAS as logos de IA que tu achar e deixa elas brilhando em verde neon.
 
@@ -412,10 +463,118 @@ Faz tipo um cara desses num salão de ópera cibernético, mas ele tem um cabelo
 <img width="640" height="480" alt="image" src="https://github.com/user-attachments/assets/b96b5b5b-4c69-46d6-bf68-fe75f6255d86" />
 
 
-## Booster 4 - Os Remanescentes -> Sem nada de terreno, deck baseado em personagens e efeitos, imune a efeitos de terreno
+## Booster 4 Os Remanescentes -> cor-guia: tons leves de amarelo
 
 
-### 1x carta baixa 1
+### 1x carta baixa 1 -> Povo da Areia
+
+* Descrição: Os Remanescentes são conhecidos como “Povo da Areia”, famosos pela brutalidade, reciclagem e capacidade de sobreviver onde poucos conseguiriam. Entre eles, ninguém é deixado para trás: os que partem continuam vivendo através daqueles que permanecem.
+* PA: 4
+* Efeito: Por Aqueles que Ainda Virão -> Esta carta recebe +1 de PA para cada carta sua que tiver sido destruída ou removida de campo.
+
+ 
+* Visual: queria uns cara pique o tusken raider, mas pode fazer tua magica como quiser
+
+<img width="1600" height="900" alt="image" src="https://github.com/user-attachments/assets/fbbc10bb-4952-41d8-90b4-1b701ea3e874" />
+
+
+
+
+### 1x carta media 1 -> A Ferreira
+
+Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Ferreira transforma restos do velho mundo em armas, ferramentas e equipamentos capazes de manter seu povo vivo por mais um dia. Sua oficina é parada obrigatória para qualquer um que quer sobreviver no deserto.
+* PA: 5
+* Efeito: Reparo e Melhoria -> A cada turno, escolha até 2 cartas aliadas, cada uma ganha +1 de PA.
+
+
+* Visual: Faz uma mulher trabalhando numa forja, livre pra tu escolher como
+
+<img width="528" height="694" alt="image" src="https://github.com/user-attachments/assets/470e409f-fd21-4d60-809c-b3faa3b001c4" />
+
+
+
+### 1x carta media 2 -> Tuh'Coh, O Feio
+
+ 
+* Descrição: Tuh'Coh é um sobrevivente. Oscilando entre o certo e o errado, sempre tenta fazer o seu melhor, mesmo que precise recorrer a esquemas cada vez mais complexos para sobreviver. Engraçado, impulsivo e caótico, O Feio mostra que até os mais habilidosos continuam sendo humanos. A máscara que veste, porém, parece dizer o contrário — embora quem já tenha visto seu rosto diga que a verdade é ainda pior.
+* PA: 5
+* Efeito: Três Homens em Conflito -> Caso seja posto adjacente ao Bom e ao Mau, o Feio ganha +3 PA
+* Visual: Faz um cara tipo um mandaloriano, com um capacete maneiro e armadura, mas com elementos de cowboy
+
+<img width="447" height="447" alt="image" src="https://github.com/user-attachments/assets/8cceaaa0-5480-4a88-8ba0-2fd1c0e9b939" />
+
+
+
+### 1x carta alta 1 -> Sen'Tenzhah, O Mau
+
+
+* Descrição: Sen'Tenzhah ocupa uma zona cinzenta até mesmo entre os Remanescentes. Como caçador de recompensas, emprega métodos pouco ortodoxos e muda de lado sempre que a recompensa compensa. Seu apelido, “O Mau”, contrasta curiosamente com sua aparência, especialmente com seus olhos angelicais.
+* PA: 6
+* Efeito: Alvo Marcado -> Escolha uma carta inimiga. Ela perde 2 de PA. Caso seja removida do campo por este efeito, O Mau recebe +1 de PA.
+
+ 
+* Visual: Faz tipo esse personagem aqui, só que adaptado pro estilo que fez o diego, eles tem que ter tecnologias mais rudimentares. Pode dar um toque especial nele como quiser.
+
+<img width="399" height="500" alt="image" src="https://github.com/user-attachments/assets/c11160d6-a482-4398-b7cc-0e212f147bcb" />
+
+
+<img width="1484" height="1869" alt="image" src="https://github.com/user-attachments/assets/9bb7f6ca-461a-4ffe-bc6a-f740759c5f4d" />
+
+
+### 1x carta alta 2 -> O Bom
+
+* Descrição: Apesar de também ser um fora da lei, o rígido código moral do Bom faz com que ele sempre busque a justiça ética, mesmo quando ela entra em conflito com as próprias leis dos Remanescentes. Seu verdadeiro nome nunca foi descoberto, ele se recusa a revelá-lo, acreditando que uma reputação deve ser construída pelos atos, não pelo nome de quem os pratica.
+* PA: 7
+* Efeito: O Número Perfeito -> Escolha até 6 cartas no campo inimigo. Cada uma perde 1 de PA. 
+
+ 
+* Visual: Faz o Felipe versão faroeste cibernético, tem q ser alguém loiro pq esse é o apelido do personagem no filme
+
+(esse mlk nao tem uma foto normal)
+
+<img width="899" height="1599" alt="image" src="https://github.com/user-attachments/assets/57488c7b-efdd-4975-b9d3-33dfd511de8c" />
+
+
+
+### 1x carta lendária -> Dieh'Go, o Xerife
+
+* Descrição: Dentre os Remanescentes, a lei não é um código escrito. A lei é Dieh'Go. Nunca foi eleito nem nomeado xerife, simplesmente assumiu o posto quando o povo mais precisou. Sua autoridade não vem apenas da força, mas da confiança conquistada por anos protegendo o Povo da Areia. Até os maiores foras da lei respeitam seu julgamento. Para os forasteiros ele é a última pessoa que se deseja encontrar no deserto.
+* PA: 9
+* Efeito: Eu Sou a Lei -> A cada turno, distribua 6 pontos de dano de PA entre as cartas inimigas como desejar. Além disso, a carta aliada diretamente atrás de Dieh'Go recebe +2 de PA enquanto ele permanecer em campo.
+* Visual:
+
+ <img alt="image" src="assets/cartas/Di_Ego_caçador_de_recompensas.png"/>
+
+
+### 1x carta de efeito 1 -> Vento dos ermos
+
+
+* Descrição: A forte ventania nas terras destruídas ajuda a acelerar a desertificação no local. De acordo com os anciões remanescentes "o vento tudo leva, menos as lembranças daqueles que passaram"
+* Efeito: Escolha um terreno inimigo. Ele será removido.
+* Visual:
+Faz aqueles arbusto seco que voa pelo deserto com alguns riscos indicando vento, mas o arbusto seco faz ele meio metalico tlg, como se fosse resto de sucata
+
+<img width="1280" height="714" alt="image" src="https://github.com/user-attachments/assets/11702792-2b6a-4165-8729-dd0042ab5b39" />
+
+<img width="753" height="435" alt="image" src="https://github.com/user-attachments/assets/22f57126-5657-4a08-b06e-5e29cba3b4d4" />
+
+
+### 1x carta de efeito 2 -> Reciclagem
+
+
+* Descrição: Restos de plástico, eletrônicos antigos, robôs destruído. Nas mãos dos Remanescentes, tudo pode ganhar uma nova utilidade. Com a escassez dos recursos naturais, foi necessário aprender a aproveitar aquilo que ainda existia em abundância. O lixo de uns é o tesouro dos outros.
+
+ 
+* Efeito: Escolha 1 terreno removido, efeito já utilizado ou personagem destruído. Coloque-o novamente em sua mão.
+
+ 
+* Visual: Pode fazer uma pilha de recursos aí jogados em um deserto e o povo da areia catando eles.
+
+
+<img width="640" height="360" alt="image" src="https://github.com/user-attachments/assets/078b8da3-7b3d-449b-8b0d-ec72fba1a5d3" />
+
+
+#### 1x carta de  terreno 1 -> Saloon
 
 * Descrição:
 * PA:
@@ -423,74 +582,7 @@ Faz tipo um cara desses num salão de ópera cibernético, mas ele tem um cabelo
 * Visual:
 
 
-
-### 1x carta media 1
-
-* Descrição:
-* PA:
-* Efeito:
-* Visual:
-
-### 1x carta media 2
-
-
-* Descrição:
-* PA:
-* Efeito:
-* Visual:
-
-
-### 1x carta alta 1
-
-* Descrição:
-* PA:
-* Efeito:
-* Visual:
-
-
-### 1x carta alta 2
-
-
-* Descrição:
-* PA:
-* Efeito:
-* Visual:
-
-### 1x carta lendária
-
-* Descrição:
-* PA:
-* Efeito:
-* Visual:
-
-
-### 1x carta de efeito 1
-
-
-* Descrição:
-* PA:
-* Efeito:
-* Visual:
-
-
-### 1x carta de efeito 2
-
-
-* Descrição:
-* PA:
-* Efeito:
-* Visual:
-
-
-#### 1x carta de  terreno 1
-
-* Descrição:
-* PA:
-* Efeito:
-* Visual:
-
-
-#### 1x carta de terreno 2
+#### 1x carta de terreno 2 -> Terras Desertas
 
 * Descrição:
 * PA:
@@ -504,7 +596,7 @@ Faz tipo um cara desses num salão de ópera cibernético, mas ele tem um cabelo
 ## Booster 5 - O Sindicato -> deck com mais cartas médias e baixas, boost em conjunto
 
 
-### carta baixa 1 - Técnico em Refrigeração de DataCenter
+### carta baixa 1 - Refrigeradores de DataCenter
 
 
 * Descrição: Com a média da temperatura global já em 30°C, o processo de implementação e manutenção de sistemas de refrigeração em servidores de megacorporações tem sido cada vez frequente. Para isso, os técnicos em refrigeração precisam encontrar soluções inovadoras para a resolução desse problema, já que a criatividade é o único recurso que atualmente ainda não se encontra em escassez.
@@ -535,7 +627,7 @@ Faz tipo um cara desses num salão de ópera cibernético, mas ele tem um cabelo
 * Visual:
 
 
-### carta baixa 4
+### carta baixa 4 -> Encanador
 
 
 * Descrição:
@@ -544,7 +636,7 @@ Faz tipo um cara desses num salão de ópera cibernético, mas ele tem um cabelo
 * Visual:
 
   
-### 1x carta media 1
+### 1x carta media 1 -> bombeiro
 
 * Descrição:
 * Energia:
@@ -552,7 +644,7 @@ Faz tipo um cara desses num salão de ópera cibernético, mas ele tem um cabelo
 * Visual
 
 
-### 1x carta media 2
+### 1x carta media 2 -> policial 
 
 * Descrição:
 * Energia:
@@ -560,7 +652,7 @@ Faz tipo um cara desses num salão de ópera cibernético, mas ele tem um cabelo
 * Visual
 
 
-### 1x carta media 3
+### 1x carta media 3 -> médico
 
 * Descrição:
 * Energia:

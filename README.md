@@ -1,4 +1,4 @@
-1
+
 # Cyberduel
 
 ## Plataforma
@@ -104,7 +104,7 @@ Foi então que Humba-Brain passou a enxergar as inteligências artificiais como 
 
 Ao observar uma humanidade acomodada em cidades inteligentes, sem propósito ou desafios, Humba-Brain encontrou a oportunidade perfeita. Criou NeoFloripa e o CyberDuel como uma sociedade capaz de reproduzir conflitos, política, economia, trabalho, ambição, amizade e sofrimento. Afinal, se é a interação entre indivíduos que molda uma consciência, talvez uma realidade virtual pudesse produzir experiências tão autênticas quanto as do mundo físico.
 
-Naturalmente, alguns detalhes ficaram de fora. Necessidades básicas como fome, dor, doenças e até a morte continuaram existindo na simulação. Para Humba-Brain, esses elementos eram apenas variáveis indispensáveis para tornar a experiência convincente. Empatia, por outro lado, ainda não havia sido implementada em seu código.
+Naturalmente, alguns detalhes ficaram de fora. Necessidades básicas como fome, dor, doenças e até a morte continuaram existindo na simulação. Para Humba-Brain, esses elementos eram apenas variáveis indispensáveis para tornar a experiência convincente. Empatia, por outro lado, ainda não havia sido implementada em seu código. Porém, o objetivo princiupal se manteve o mesmo: criar um mundo tão envolvente e interessante que toda a humanidade passaria a viver lá dentro.
 
 Como toda grande obra de software, NeoFloripa também apresenta falhas ocasionais. A diferença é que, neste caso, os bugs no lançamento não impactam tanto na sua popularidade.
 
@@ -132,6 +132,8 @@ Tratando-se de um jogo competitivo em larga escala, o objetivo é simplesmente j
 A cada valor pré-definido de tempo, como 1 hora e meia, a leaderboard reseta e premia os jogadores do ranking com uma alta quantidade de tijolinhos baseado na sua posição.
 
 Também há a possibilidade de ganhar moedas jogando e vencendo torneios que, em um jogo ideal, seriam em enorme quantidade e separados por servidor de jogo. No universo, seria o equivalente a torneios menores e regionais, que não pagam tanto quanto a leaderboard principal, mas podem ajudar a evoluir no jogo, além de fornecerem um troféu para amaciar o ego de quem gostar.
+
+Há a possibilidade de ir recompensando os jogadores por jogarem partidas com pequenas quantidades de tijolinhos.
 
 ## Regras
 *Essas regras ainda não são totalmente definitivas, pois ainda dependerão se será necessário fazer algum balanceamento, contudo a base delas se manterá a mesma*
@@ -174,7 +176,7 @@ Regras:
 - As cartas de personagens e terrenos ficam em campo ate serem removidas por algum efeito ou, no caso dos personagens, terem seus Pontos de Audiência reduzidos a 0.
 - As cartas de personagens e terrenos tem efeito enquanto estão em campo e só podem ser invocadas caso haja espaço no campo
 - As cartas de efeito tem ação instantânea e única, mas não requerem espaço no campo para ser invocados
-- Ao final da sétima rodada, ou quando todos os jogadores tiverem lançado todas as cartas do baralho, o jogo acaba e contabilizará quem tem o maior somatório de Pontos de Audiência, determinando que este será o vencedor.
+- Ao final de cada rodada, o jogador com maior soma de PA será considerado o vencedor. Quem vencer mais rodadas ganhará a partida.
 - Caso o valor de pontos termine igual, o jogo resulta em empate
 
 
