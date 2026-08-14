@@ -612,10 +612,14 @@ Faz aqueles arbusto seco que voa pelo deserto com alguns riscos indicando vento,
 
 
 * Descrição: Com a média da temperatura global já em 30°C, o processo de implementação e manutenção de sistemas de refrigeração em servidores de megacorporações tem sido cada vez frequente. Para isso, os técnicos em refrigeração precisam encontrar soluções inovadoras para a resolução desse problema, já que a criatividade é o único recurso que atualmente ainda não se encontra em escassez.
-* PA:
-* Efeito:
+* PA: 4 
+* Efeito: Manutenção Preventiva -> O técnico previne que o servidor superaqueça. Uma vez por turno, escolha uma carta aliada, ela não pode perder PA até o início do seu próximo turno.
+
+
+
 * Visual:  Faz um cara completamente normal dentro de um servidor super futurista cheio de neon mexendo num ar-condicionado, sistema de refrigeração ou qualquer coisa assim:
 
+<img width="2560" height="1703" alt="image" src="https://github.com/user-attachments/assets/f1701003-7b1b-4a1d-abef-05973435a192" />
 
 
 
@@ -624,28 +628,28 @@ Faz aqueles arbusto seco que voa pelo deserto com alguns riscos indicando vento,
 * Descrição: Quem falou que as máquinas e as IAs roubariam nossos empregos não poderia estar mais errado. Na verdade, hoje trabalhamos cinco vezes mais **para elas**. Afinal, até mesmo as máquinas mais avançadas do planeta continuam incapazes de explicar por que todo cabo é exatamente 10 centímetros curto demais ou 20 metros longo demais.
 
 
-* PA:
-* Efeito:
+* PA: 4
+* Efeito: Extensão ->Uma vez por turno, escolha uma carta aliada. Você pode movê-la para qualquer outro espaço livre em seu campo.
+ 
 * Visual: Faz só um cara completamente normal dentro de um servidor super futurista cheio de neon mexendo em um cabo nessa vibe aqui:
 
+<img width="335" height="597" alt="image" src="https://github.com/user-attachments/assets/16e804b5-8590-4583-9620-a49ebf7c5bcf" />
 
 
 
-### carta baixa 3 -> estudante
+### carta baixa 3 -> Estudante de Curso Técnico
 
-* Descrição:
-* Energia:
-* Efeito:
-* Visual:
+* Descrição: O estudante de curso técnico possui potencial infinito. Não há quase nada que ele não possa aprender a fazer, embora às vezes o preço envolva seu tempo, esforço e sanidade mental. Seu maior desafio, porém, continua sendo descobrir como fazer qualquer coisa sem pesquisar no CyberSmartPhone primeiro.
+
+* PA: 3
+* Efeito: Escolha uma carta aliada e perca 1 de PA. O Estudante aprende permanentemente a habilidade da carta escolhida. Este efeito só pode ser utilizado uma vez.
+
+ 
+* Visual: Faz um mlk com uma camisa pro IFSC todo distraído olhando pro celular enquanto o mundo ACABA atrás dele.
+
+<img width="800" height="534" alt="image" src="https://github.com/user-attachments/assets/e094e7fe-55f7-40fb-9238-28195489f620" />
 
 
-### carta baixa 4 -> Encanador
-
-
-* Descrição:
-* Energia:
-* Efeito:
-* Visual:
 
   
 ### 1x carta media 1 -> bombeiro
@@ -687,7 +691,7 @@ Faz aqueles arbusto seco que voa pelo deserto com alguns riscos indicando vento,
 * Visual
 
 
-### 1x carta lendária -> professor
+### 1x carta lendária -> Professor
 
 * Descrição:
 * Energia:
