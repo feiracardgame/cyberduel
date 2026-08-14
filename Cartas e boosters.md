@@ -606,7 +606,7 @@ Faz aqueles arbusto seco que voa pelo deserto com alguns riscos indicando vento,
 ---
 
 
-## Booster 5 - O Sindicato -> deck com mais cartas médias e baixas, boost em conjunto
+## Booster 5 - O Sindicato -> Cor-guia: Roxo
 
 
 ### carta baixa 1 - Refrigeradores de DataCenter
