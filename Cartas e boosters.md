@@ -373,7 +373,8 @@ vc escolhe como acha que fica mais legal, mas penso na ideia de uma IA com corpo
 
 <img width="594" height="796" alt="image" src="https://github.com/user-attachments/assets/8738d3cd-2f26-433c-ae7c-977cc27e93ab" />
 
-<img width="594" height="796" alt="image" src="https://github.com/user-attachments/assets/e752cf40-36d0-4ac5-b506-7036be2daac8" />
+<img width="455" height="500" alt="image" src="https://github.com/user-attachments/assets/11535df2-941c-493a-aa63-03d46d33a710" />
+
 
 
 ### 1x carta alta 2 -> UCC "Juggernaut"
@@ -642,7 +643,7 @@ Faz aqueles arbusto seco que voa pelo deserto com alguns riscos indicando vento,
 * Descrição: O estudante de curso técnico possui potencial infinito. Não há quase nada que ele não possa aprender a fazer, embora às vezes o preço envolva seu tempo, esforço e sanidade mental. Seu maior desafio, porém, continua sendo descobrir como fazer qualquer coisa sem pesquisar no CyberSmartPhone primeiro.
 
 * PA: 3
-* Efeito: Escolha uma carta aliada e perca 1 de PA. O Estudante aprende permanentemente a habilidade da carta escolhida. Este efeito só pode ser utilizado uma vez.
+* Efeito: Escolha uma carta aliada que tenha habilidade ativável e perca 2 de PA. O Estudante aprende permanentemente a habilidade da carta escolhida. Este efeito só pode ser utilizado uma vez.
 
  
 * Visual: Faz um mlk com uma camisa pro IFSC todo distraído olhando pro celular enquanto o mundo ACABA atrás dele.
@@ -654,26 +655,42 @@ Faz aqueles arbusto seco que voa pelo deserto com alguns riscos indicando vento,
   
 ### 1x carta media 1 -> bombeiro
 
-* Descrição:
-* Energia:
-* Efeito:
-* Visual
+* Descrição: Os bombeiros continuam sendo alguns dos profissionais mais importantes da sociedade, enfrentando incêndios, acidentes e desastres para salvar vidas. Ainda assim, infelizmente, a maioria das pessoas conhece melhor o elenco da série sobre bombeiros do que os valorosos profissionais que trabalham na própria cidade.
+* Efeito: Extintor -> Extintor: Uma vez por turno, escolha uma carta inimiga. Até o fim da rodada, ela não pode receber bônus de PA.
+ PA: 5
+* Visual: Faz tipo uma capa de serie de bombeiro  e escreve "NeoFloripa Fire" mas eles são bombeiros super cyberpunk apagando o fogo na cidade cyberpunk
+
+<img width="190" height="281" alt="image" src="https://github.com/user-attachments/assets/b157ef59-de08-4a46-8d72-bb7717a1b65f" />
 
 
-### 1x carta media 2 -> policial 
 
-* Descrição:
-* Energia:
-* Efeito:
-* Visual
+### 1x carta media 2 -> Policial 
+
+* Descrição: Enquanto IAs e Firewalls físicos protegem NeoFloripa de ameaças reais, os policiais mantêm a paz nas pequenas confusões do dia a dia. Nem sempre é um trabalho glorioso, mas alguém ainda precisa convencer o vizinho a abaixar o volume da música.
+* PA: 5 
+* Efeito: Advertência -> Escolha uma carta inimiga. Ela recebe uma advertência. Se utilizar seu efeito no próximo turno, perde 3 de PA.
+* Visual:
+
+Faz tipo o Will Smith com a mão no rosto como se tivesse cansado e o Macaco com 5 caixa de som brilhando um monte brigando com ele
+
+<img width="250" height="300" alt="image" src="https://github.com/user-attachments/assets/2a15540c-4db2-4bd4-8a3f-5e43b580e106" />
 
 
-### 1x carta media 3 -> médico
 
-* Descrição:
-* Energia:
-* Efeito:
-* Visual
+### 1x carta media 3 -> NeoMedicânico
+
+* Descrição: Com o avanço da medicina, envelhecer deixou de ser um dos maiores problemas da humanidade. Em compensação, implantes cibernéticos começaram a apresentar falhas cada vez mais frequentes. Por isso, as faculdades de medicina tiveram que atualizar seus currículos: além de anatomia, agora é necessário saber um pouco de engenharia eletrônica e mecânica.
+* PA: 5
+* Efeito: Uma vez por turno, escolha uma carta aliada que tenha perdido PA. Ela recupera 4 de PA.
+* Visual: Faz tipo os medicânicos do cyberpunk mesmo ou o trauma team resgatando alguem
+
+<img width="544" height="381" alt="image" src="https://github.com/user-attachments/assets/08900500-2980-4e8a-b5c0-4c7f1438f8c9" />
+
+
+<img width="3840" height="2160" alt="image" src="https://github.com/user-attachments/assets/533638b0-e701-4063-98e7-13422b0242b2" />
+
+
+
 
 
 ### 1x carta média 4 -> influenciador
