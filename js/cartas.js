@@ -24,6 +24,7 @@ const TIPOS_EFEITO = {
   COMPRAR_CARTA: "comprar_carta", // dono compra carta(s) extra do deck
   DESCARTAR_CARTA: "descartar_carta", // oponente descarta carta(s) aleatória(s) da mão
   ATACAR: "atacar", // dano em alvo(s) inimigo(s) dentro de um range H/V a partir da posição
+  BUFF_ALIADO_ESCOLHIDO: "buff_aliado_escolhido", // dono escolhe UMA carta aliada em campo (pode ser esta mesma) pra ganhar poder
 };
 
 // Gera a frase descritiva de um efeito, usada na visualização detalhada da carta
@@ -40,6 +41,10 @@ function descreverEfeito(efeito) {
       return `Ao ser invocada: o oponente descarta ${efeito.valor} carta${efeito.valor > 1 ? "s" : ""} aleatória${efeito.valor > 1 ? "s" : ""} da mão.`;
     case TIPOS_EFEITO.ATACAR:
       return `Habilidade ativa (1x por turno, em campo): causa ${efeito.valor} de dano ${efeito.atingeTodos ? "a todos os alvos" : "a um alvo"} em range (H${efeito.rangeH}/V${efeito.rangeV}).`;
+    case TIPOS_EFEITO.BUFF_ALIADO_ESCOLHIDO:
+      return efeito.custoProprio
+        ? `Habilidade ativa (1x por turno, em campo): escolha uma carta aliada em campo para ganhar +${efeito.valor} de poder. Esta carta perde ${efeito.custoProprio} de poder.`
+        : `Ao ser invocada: escolha uma carta aliada em campo (pode ser esta) para ganhar +${efeito.valor} de poder.`;
     default:
       return "";
   }
@@ -103,6 +108,21 @@ const POOL_CARTAS_MONSTRO = [
   },
 
   {
+    nome: "CyberVendedor da RaspCorp",
+    poder: 3,
+    descricao:
+      "Quando surgiram os primeiros bio-androides, foi-se percebido que seria possível criar um funcionário que juntaria a capacidade de convencimento de um ser humano e a não necessidade de descanso de um robô, resultando em um vendedor duplamente capacitado, com duas vezes menos salário e três vezes menos alma.",
+    imagem: "cybervendedor",
+    foco: { x: 0.5, y: 0.4 },
+    efeito: {
+      tipo: TIPOS_EFEITO.BUFF_ALIADO_ESCOLHIDO,
+      valor: 1,
+    },
+    // Venda Casada: efeito passivo normal (dispara ao invocar), não é
+    // habilidade ativa — segue o mesmo fluxo de BUFF_ALIADOS/DEBUFF_INIMIGOS.
+  },
+
+  {
     nome: "Agente da DIPSP",
     poder: 3,
     descricao:
@@ -117,6 +137,43 @@ const POOL_CARTAS_MONSTRO = [
     },
     habilidadeAtiva: true, // NÃO dispara ao invocar — precisa ser ativada em campo
     somAtaque: "somTiro",
+  },
+
+  {
+    nome: 'UCC "Juggernaut"',
+    poder: 11,
+    descricao:
+      "A Unidade Cibernética de Combate, apelidada de Juggernaut, é responsável pela defesa e controle de NeoFloripa. Afinal, a liberdade é grande, mas não infinita. Desde sua implementação, a CyberCidade aboliu os firewalls: agora as ameaças são pessoalmente confrontadas.",
+    imagem: "juggernaut",
+    efeito: {
+      tipo: TIPOS_EFEITO.ATACAR,
+      valor: 5,
+      // rangeH:5 e rangeV:3 cobrem o campo inimigo inteiro (5 colunas,
+      // 2 fileiras de profundidade), o que na prática implementa
+      // "escolha qualquer carta do campo inimigo" (Protocolo de
+      // Segurança) reaproveitando 100% do sistema de ATACAR existente.
+      rangeH: 5,
+      rangeV: 3,
+      atingeTodos: false,
+    },
+    habilidadeAtiva: true, // Protocolo de Segurança: não dispara ao invocar — ativa em campo, 1x por turno
+    somAtaque: "somTiro",
+  },
+
+  {
+    nome: "Estagiário de Machine Learning",
+    poder: 2,
+    descricao:
+      "As árduas horas dedicadas ao treinamento e desenvolvimento de IAs capazes de substituir o trabalho humano demonstram que, apesar de ser apenas um estagiário, seu trabalho é vital para o futuro da empresa. O RPH estima que ele continuará sendo lembrado por aproximadamente três semanas após sua substituição.",
+    imagem: "estagiarioml",
+    efeito: {
+      tipo: TIPOS_EFEITO.BUFF_ALIADO_ESCOLHIDO,
+      valor: 2,
+      custoProprio: 1, // Machine Learning: além de buffar o alvo, o próprio Estagiário perde 1 PA
+    },
+    habilidadeAtiva: true, // Machine Learning: NÃO dispara ao invocar — ativa em campo, 1x por turno, mesma
+    // família de "carta em campo com botão de habilidade" do Agente da DIPSP/Juggernaut,
+    // só que aqui alvo é ALIADO (ver ativarHabilidade() em main.js) em vez de inimigo.
   },
 
   // Adicione novas cartas de monstro especiais aqui, seguindo o mesmo

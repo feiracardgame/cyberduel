@@ -667,6 +667,37 @@ class CenaJogo extends Phaser.Scene {
       duration: 220,
       ease: "Cubic.Out",
       onComplete: () => {
+        // CyberVendedor (e qualquer outra carta BUFF_ALIADO_ESCOLHIDO no
+        // futuro): o efeito não pode ser aplicado de cara porque depende de
+        // uma escolha do jogador. Em vez de jogarCartaDoJogador() (que já
+        // resolveria o efeito sozinho), coloca a carta em campo "crua" e
+        // abre a seleção — o efeito só é aplicado quando o jogador escolhe
+        // o alvo, em confirmarEscolhaBuffAliado().
+        // IMPORTANTE: isso é só pra efeito passivo "ao invocar" (Venda
+        // Casada). Cartas com habilidadeAtiva=true (ex: Estagiário de ML)
+        // NÃO devem abrir essa seleção na invocação — o alvo delas só é
+        // escolhido depois, em campo, pelo botão "Ativar Habilidade" (ver
+        // iniciarAtivacaoHabilidade). Sem esse filtro, o Estagiário também
+        // disparava a seleção de aliado assim que entrava em campo.
+        const precisaEscolherAlvo =
+          carta.efeito &&
+          carta.efeito.tipo === TIPOS_EFEITO.BUFF_ALIADO_ESCOLHIDO &&
+          !carta.habilidadeAtiva;
+
+        if (precisaEscolherAlvo) {
+          const sucesso = this.partida.colocarCartaDoJogador(
+            carta,
+            slotAtingido,
+          );
+          this.desenharInterface();
+          if (sucesso) {
+            this.iniciarSelecaoDeAliadoParaBuff(carta, slotAtingido);
+          } else {
+            this.travado = false;
+          }
+          return;
+        }
+
         this.partida.jogarCartaDoJogador(carta, slotAtingido);
         this.travado = false;
         this.desenharInterface();
@@ -2521,7 +2552,8 @@ class CenaJogo extends Phaser.Scene {
       !this.partida.partidaEncerrada &&
       !!carta.habilidadeAtiva &&
       carta.efeito &&
-      carta.efeito.tipo === TIPOS_EFEITO.ATACAR &&
+      (carta.efeito.tipo === TIPOS_EFEITO.ATACAR ||
+        carta.efeito.tipo === TIPOS_EFEITO.BUFF_ALIADO_ESCOLHIDO) &&
       this.partida.jogador.campo.cartas.includes(carta);
     const habilidadeJaUsada =
       podeMostrarBotaoHabilidade && carta.usadaEsteTurno;
@@ -3054,6 +3086,12 @@ class CenaJogo extends Phaser.Scene {
       oponente,
     );
     const atingeTodos = !!(carta.efeito && carta.efeito.atingeTodos);
+    // Machine Learning (Estagiário): habilidade ativa cujo alvo é uma
+    // carta ALIADA em campo, não uma inimiga — usa um modo de mira
+    // diferente (iniciarSelecaoDeAliadoParaHabilidade, abaixo), que
+    // destaca o campo do próprio jogador em vez do campo inimigo.
+    const ehBuffAliado =
+      carta.efeito && carta.efeito.tipo === TIPOS_EFEITO.BUFF_ALIADO_ESCOLHIDO;
 
     this.travado = true;
     this.esconderRodaBotoes();
@@ -3070,9 +3108,13 @@ class CenaJogo extends Phaser.Scene {
     }
 
     // Mesmo com um único alvo possível, o jogador escolhe ativamente
-    // tocando nele — assim ele sempre confirma o ataque, em vez do jogo
+    // tocando nele — assim ele sempre confirma a ação, em vez do jogo
     // disparar sozinho.
-    this.iniciarSelecaoDeAlvo(carta, alvos);
+    if (ehBuffAliado) {
+      this.iniciarSelecaoDeAliadoParaHabilidade(carta, alvos);
+    } else {
+      this.iniciarSelecaoDeAlvo(carta, alvos);
+    }
   }
 
   // Mostra um avisinho rápido de "nenhum alvo em alcance" quando o
@@ -3186,6 +3228,79 @@ class CenaJogo extends Phaser.Scene {
     this.desenharRodaBotoes();
   }
 
+  // Modo de mira da habilidade ativa "Machine Learning" (Estagiário de ML):
+  // igual em espírito a iniciarSelecaoDeAlvo() (ataque), mas destaca as
+  // cartas ALIADAS em campo (anel verde, mesma cor de
+  // iniciarSelecaoDeAliadoParaBuff) em vez das inimigas, já que aqui o
+  // alvo é quem vai RECEBER o +poder. Tocar fora dos alvos cancela a
+  // ativação sem gastar o turno da habilidade (diferente da Venda Casada,
+  // que é resolvida na hora de invocar e por isso não tem cancelamento).
+  iniciarSelecaoDeAliadoParaHabilidade(carta, alvos) {
+    const L = this.layout;
+    const objetos = [];
+
+    let overlay = this.add
+      .rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.35)
+      .setDepth(3700)
+      .setInteractive();
+    overlay.on("pointerup", () => this.cancelarSelecaoDeAlvo());
+    objetos.push(overlay);
+
+    let textoInstr = this.add
+      .text(GW / 2, 140, "Escolha uma aliada para fortalecer", {
+        fontSize: "40px",
+        color: "#88ff99",
+        fontStyle: "bold",
+        stroke: "#000000",
+        strokeThickness: 6,
+      })
+      .setOrigin(0.5)
+      .setDepth(3900);
+    objetos.push(textoInstr);
+
+    let textoCancelar = this.add
+      .text(GW / 2, 195, "(toque fora para cancelar)", {
+        fontSize: "26px",
+        color: "#dddddd",
+      })
+      .setOrigin(0.5)
+      .setDepth(3900);
+    objetos.push(textoCancelar);
+
+    alvos.forEach((indice) => {
+      const col = indice % 5;
+      const fileira = Math.floor(indice / 5);
+      const xPos = L.x[col];
+      const yPos = L.yJogador[fileira];
+      const raio = Math.max(L.slotW, L.slotH) / 2 + 16;
+
+      let anel = this.add
+        .rectangle(xPos, yPos, L.slotW, L.slotH, 0x88ff99, 0)
+        .setStrokeStyle(8, 0x88ff99, 1)
+        .setDepth(3800);
+      this.tweens.add({
+        targets: anel,
+        scaleX: 1.08,
+        scaleY: 1.08,
+        alpha: 0.2,
+        duration: 550,
+        yoyo: true,
+        repeat: -1,
+        ease: "Sine.easeInOut",
+      });
+
+      let zonaToque = this.add
+        .rectangle(xPos, yPos, L.slotW, L.slotH, 0xffffff, 0.001)
+        .setDepth(3801)
+        .setInteractive({ useHandCursor: true });
+      zonaToque.on("pointerup", () => this.executarHabilidade(carta, indice));
+
+      objetos.push(anel, zonaToque);
+    });
+
+    this.objetosSelecaoAlvo = objetos;
+  }
+
   // Resolve de fato a ativação (via Partida.ativarHabilidade) e anima as
   // cartas inimigas afetadas, reaproveitando animarCartasAfetadas — o
   // mesmo efeito visual usado pelos buffs/debuffs de invocação.
@@ -3211,6 +3326,102 @@ class CenaJogo extends Phaser.Scene {
       this.travado = false;
       this.desenharRodaBotoes();
     }
+  }
+
+  // Modo de mira "Venda Casada": igual em espírito a iniciarSelecaoDeAlvo(),
+  // mas em vez de mirar no campo inimigo pra atacar, destaca (anel pulsante
+  // verde) cada carta ALIADA em campo — incluindo o CyberVendedor recém
+  // colocado — pra o jogador escolher quem ganha o +poder. A carta já está
+  // em campo nesse momento (colocarCartaDoJogador já rodou), então não tem
+  // "cancelar": tocar fora simplesmente confirma o alvo padrão (a própria
+  // carta recém-jogada), pra garantir que o efeito sempre seja resolvido.
+  iniciarSelecaoDeAliadoParaBuff(carta, posicaoPropria) {
+    const L = this.layout;
+    const objetos = [];
+
+    const indicesAliados = this.partida.jogador.campo.cartas
+      .map((c, i) => (c ? i : null))
+      .filter((i) => i !== null);
+
+    this.travado = true;
+
+    let overlay = this.add
+      .rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.35)
+      .setDepth(3700)
+      .setInteractive();
+    overlay.on("pointerup", () =>
+      this.confirmarEscolhaBuffAliado(carta, posicaoPropria, posicaoPropria),
+    );
+    objetos.push(overlay);
+
+    let textoInstr = this.add
+      .text(GW / 2, 140, "Escolha uma aliada para fortalecer", {
+        fontSize: "40px",
+        color: "#88ff99",
+        fontStyle: "bold",
+        stroke: "#000000",
+        strokeThickness: 6,
+      })
+      .setOrigin(0.5)
+      .setDepth(3900);
+    objetos.push(textoInstr);
+
+    indicesAliados.forEach((indice) => {
+      const col = indice % 5;
+      const fileira = Math.floor(indice / 5);
+      const xPos = L.x[col];
+      const yPos = L.yJogador[fileira];
+
+      let anel = this.add
+        .rectangle(xPos, yPos, L.slotW, L.slotH, 0x88ff99, 0)
+        .setStrokeStyle(8, 0x88ff99, 1)
+        .setDepth(3800);
+      this.tweens.add({
+        targets: anel,
+        scaleX: 1.08,
+        scaleY: 1.08,
+        alpha: 0.2,
+        duration: 550,
+        yoyo: true,
+        repeat: -1,
+        ease: "Sine.easeInOut",
+      });
+
+      let zonaToque = this.add
+        .rectangle(xPos, yPos, L.slotW, L.slotH, 0xffffff, 0.001)
+        .setDepth(3801)
+        .setInteractive({ useHandCursor: true });
+      zonaToque.on("pointerup", () =>
+        this.confirmarEscolhaBuffAliado(carta, posicaoPropria, indice),
+      );
+
+      objetos.push(anel, zonaToque);
+    });
+
+    this.objetosSelecaoAlvo = objetos;
+  }
+
+  // Resolve de fato o efeito (via Partida.aplicarEfeitoInvocacao) e anima a
+  // carta aliada escolhida, reaproveitando processarCartasAfetadas — mesmo
+  // efeito visual usado pelos outros buffs/debuffs de invocação.
+  confirmarEscolhaBuffAliado(carta, posicaoPropria, alvoEscolhido) {
+    if (this.objetosSelecaoAlvo) {
+      this.objetosSelecaoAlvo.forEach((o) => o.destroy());
+      this.objetosSelecaoAlvo = null;
+    }
+
+    const afetadas = this.partida.aplicarEfeitoInvocacao(
+      carta,
+      this.partida.jogador,
+      this.partida.inimigo,
+      posicaoPropria,
+      alvoEscolhido,
+    );
+
+    this.processarCartasAfetadas(afetadas, () => {
+      this.travado = false;
+      this.desenharInterface();
+    });
   }
 
   // ---------- STATUS / UI ----------
@@ -3553,12 +3764,29 @@ class CenaJogo extends Phaser.Scene {
         ...(efeitosDeTurno || []),
       ];
       this.processarCartasAfetadas(todasAfetadas, () => {
+        // Redesenha o campo AGORA — é isso que faz a jogada da IA (a
+        // carta de monstro/efeito que ela acabou de colocar em campo)
+        // aparecer na tela. Precisa acontecer ANTES do banner de rodada:
+        // do contrário o jogador só vê a jogada do inimigo depois de ver
+        // o resultado da rodada, o que fica com a ordem trocada.
+        // Como this.travado ainda está true aqui, desenharRodaBotoes()
+        // não roda junto (de propósito — ver prosseguir() abaixo, que
+        // traz o botão de volta manualmente quando destrava).
+        this.desenharInterface();
+
         const prosseguir = () => {
           // A roda só volta se a partida continua — em fim de jogo,
           // this.travado permanece true de propósito (ver
           // mostrarTelaFimDeJogo), então não faz sentido redesenhá-la.
-          if (!fimDeJogo) this.travado = false;
-          this.desenharInterface();
+          if (!fimDeJogo) {
+            this.travado = false;
+            // desenharInterface() (logo acima) rodou com this.travado
+            // ainda true, então o botão de menu não foi recriado junto —
+            // precisa trazer ele de volta manualmente agora que a vez
+            // volta pro jogador (mesmo padrão descrito no comentário de
+            // desenharRodaBotoes()).
+            this.desenharRodaBotoes();
+          }
 
           if (fimDeJogo) {
             this.mostrarTelaFimDeJogo(resultadoCombate);
@@ -3568,12 +3796,18 @@ class CenaJogo extends Phaser.Scene {
         // Mostra rapidinho quem ganhou a rodada (turno) que acabou de
         // fechar — só quando a partida ainda continua; se já era a
         // decisiva, a tela de fim de jogo (mostrarTelaFimDeJogo) já cobre
-        // esse resultado, então não precisa duplicar.
-        if (!fimDeJogo && resultadoRodada) {
-          this.mostrarBannerRodada(resultadoRodada, prosseguir);
-        } else {
-          prosseguir();
-        }
+        // esse resultado, então não precisa duplicar. Espera um pouco
+        // antes de mostrar o banner, pra dar tempo do jogador ver a
+        // jogada do inimigo (carta/efeito que acabou de entrar em campo)
+        // antes do resultado da rodada tomar a tela.
+        const PAUSA_ANTES_DO_BANNER = 300;
+        this.time.delayedCall(PAUSA_ANTES_DO_BANNER, () => {
+          if (!fimDeJogo && resultadoRodada) {
+            this.mostrarBannerRodada(resultadoRodada, prosseguir);
+          } else {
+            prosseguir();
+          }
+        });
       });
     };
 

@@ -18,12 +18,18 @@ class CenaPreload extends Phaser.Scene {
     this.criarBarraDeCarregamento();
 
     // ---------- ASSETS DO JOGO ----------
+    //cartas
     this.load.image("cryptoacionistas", "assets/cartas/cryptoacionistas.png");
     this.load.image("dipsp", "assets/cartas/AgenteDIPSP.png");
+    this.load.image("juggernaut", "assets/cartas/juggernautplaceholder.png");
+    this.load.image("cybervendedor", "assets/cartas/cybervendedor.png");
+    this.load.image("estagiarioml", "assets/cartas/Estagiario_machine_learning.png");
+    //fundos
     this.load.image("jogoFundo", "assets/fundo/jogo-fundo.png");
-
+    //musicas
     this.load.audio("musicaFundo", "assets/sons/jogo-musica.wav");
     this.load.audio("somJogarCarta", "assets/sons/jogo-cartawhoosh.wav");
+    //sons
     this.load.audio("somTorcida", "assets/sons/jogo-torcida.wav");
     this.load.audio("somPop", "assets/sons/jogo-pop.mp3");
     this.load.audio("somComprarCarta", "assets/sons/jogo-compra.mp3");

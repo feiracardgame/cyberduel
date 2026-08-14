@@ -230,6 +230,18 @@ class Partida {
     this.historico.push({ turno: this.turno, quem, carta });
   }
 
+  // Variante de jogarCartaDoJogador() usada quando o efeito da carta exige
+  // uma ESCOLHA do jogador antes de poder ser resolvido (hoje, só
+  // BUFF_ALIADO_ESCOLHIDO/CyberVendedor). A cena chama isto primeiro só pra
+  // colocar a carta em campo — sem aplicar nenhum efeito ainda — mostra a UI
+  // de seleção de alvo, e só então chama aplicarEfeitoInvocacao() (abaixo,
+  // já público) com o alvoEscolhido de fato.
+  colocarCartaDoJogador(carta, posicao) {
+    const sucesso = this.jogador.jogarCarta(carta, posicao);
+    if (sucesso) this.registrarHistorico(carta, "jogador");
+    return sucesso;
+  }
+
   // Ponto único de entrada para o jogador jogar uma carta de monstro: garante
   // que o efeito passivo de invocação seja aplicado sempre que a jogada for válida.
   jogarCartaDoJogador(carta, posicao, alvoEscolhido = null) {
@@ -260,62 +272,109 @@ class Partida {
     );
   }
 
-  // Ativa a habilidade de ataque de uma carta que JÁ ESTÁ em campo. Só
-  // funciona pra cartas com efeito ATACAR + habilidadeAtiva=true, uma vez
-  // por turno por carta. dono/oponente são os Jogador donos dos campos.
+  // Ativa a habilidade de uma carta que JÁ ESTÁ em campo, uma vez por turno
+  // por carta (controlado por carta.usadaEsteTurno, liberado a cada
+  // fimTurno()). dono/oponente são os Jogador donos dos campos. Suporta
+  // dois tipos de efeito ativo hoje:
+  //   ATACAR                -> dano em alvo(s) do campo INIMIGO
+  //   BUFF_ALIADO_ESCOLHIDO -> +poder em uma carta ALIADA escolhida
+  // (Agente da DIPSP/Juggernaut usam o primeiro; Estagiário de ML usa o
+  // segundo — ver POOL_CARTAS_MONSTRO em cartas.js.)
   ativarHabilidade(carta, dono, oponente, alvoEscolhido = null) {
-    if (!carta.efeito || carta.efeito.tipo !== TIPOS_EFEITO.ATACAR)
-      return { sucesso: false, afetadas: [] };
-    if (!carta.habilidadeAtiva || carta.usadaEsteTurno)
+    if (!carta.efeito || !carta.habilidadeAtiva || carta.usadaEsteTurno)
       return { sucesso: false, afetadas: [] };
 
     const posicao = dono.campo.cartas.indexOf(carta);
     if (posicao === -1) return { sucesso: false, afetadas: [] };
 
-    const { valor, rangeH, rangeV, atingeTodos } = carta.efeito;
-    const possiveis = alvosEmRange(posicao, rangeH, rangeV, oponente.campo);
-    const indices = atingeTodos
-      ? possiveis
-      : possiveis.includes(alvoEscolhido)
-        ? [alvoEscolhido]
-        : possiveis.length
-          ? [possiveis[Math.floor(Math.random() * possiveis.length)]]
-          : [];
+    if (carta.efeito.tipo === TIPOS_EFEITO.ATACAR) {
+      const { valor, rangeH, rangeV, atingeTodos } = carta.efeito;
+      const possiveis = alvosEmRange(posicao, rangeH, rangeV, oponente.campo);
+      const indices = atingeTodos
+        ? possiveis
+        : possiveis.includes(alvoEscolhido)
+          ? [alvoEscolhido]
+          : possiveis.length
+            ? [possiveis[Math.floor(Math.random() * possiveis.length)]]
+            : [];
 
-    const afetadas = [];
-    indices.forEach((i) => {
-      const c = oponente.campo.cartas[i];
-      c.buff(-valor);
-      afetadas.push({ carta: c, delta: -valor });
-    });
-    oponente.campo.removerMortas();
+      const afetadas = [];
+      indices.forEach((i) => {
+        const c = oponente.campo.cartas[i];
+        c.buff(-valor);
+        afetadas.push({ carta: c, delta: -valor });
+      });
+      oponente.campo.removerMortas();
 
-    carta.usadaEsteTurno = true;
-    if (carta.somAtaque && typeof window !== "undefined" && window.cena) {
-      const s =
-        window.cena.sound.get(carta.somAtaque) ||
-        window.cena.sound.add(carta.somAtaque);
-      if (s) s.play();
+      carta.usadaEsteTurno = true;
+      if (carta.somAtaque && typeof window !== "undefined" && window.cena) {
+        const s =
+          window.cena.sound.get(carta.somAtaque) ||
+          window.cena.sound.add(carta.somAtaque);
+        if (s) s.play();
+      }
+
+      return { sucesso: indices.length > 0, afetadas };
     }
 
-    return { sucesso: indices.length > 0, afetadas };
+    if (carta.efeito.tipo === TIPOS_EFEITO.BUFF_ALIADO_ESCOLHIDO) {
+      // Machine Learning: alvo tem que ser outra carta aliada em campo
+      // (não pode escolher a si mesma). Sem alvo válido, a habilidade não
+      // é gasta — o jogador tem que escolher outra aliada em campo antes.
+      const alvoValido =
+        alvoEscolhido !== null &&
+        alvoEscolhido !== undefined &&
+        alvoEscolhido !== posicao &&
+        dono.campo.cartas[alvoEscolhido];
+      if (!alvoValido) return { sucesso: false, afetadas: [] };
+
+      const { valor, custoProprio } = carta.efeito;
+      const afetadas = [];
+      const alvo = dono.campo.cartas[alvoEscolhido];
+      alvo.buff(valor);
+      afetadas.push({ carta: alvo, delta: valor });
+
+      if (custoProprio) {
+        carta.buff(-custoProprio);
+        afetadas.push({ carta, delta: -custoProprio });
+      }
+      dono.campo.removerMortas();
+
+      carta.usadaEsteTurno = true;
+      return { sucesso: true, afetadas };
+    }
+
+    return { sucesso: false, afetadas: [] };
   }
 
-  // Lista os índices do campo do oponente que ativarHabilidade() atingiria
-  // agora, para a UI poder destacar os alvos possíveis e deixar o jogador
-  // escolher antes de confirmar (mesma lógica de previsualizarAlvosAtaque,
-  // mas para uma carta que já está em campo, e não na mão).
+  // Lista os índices de campo que ativarHabilidade() atingiria agora, pra
+  // UI destacar os alvos possíveis e deixar o jogador escolher antes de
+  // confirmar. Pra ATACAR, os alvos são no campo do OPONENTE; pra
+  // BUFF_ALIADO_ESCOLHIDO (Estagiário de ML), os alvos são no campo do
+  // próprio DONO, exceto a própria carta.
   alvosParaHabilidadeEmCampo(carta, dono, oponente) {
-    if (!carta.efeito || carta.efeito.tipo !== TIPOS_EFEITO.ATACAR) return [];
-    if (!carta.habilidadeAtiva) return [];
+    if (!carta.efeito || !carta.habilidadeAtiva) return [];
     const posicao = dono.campo.cartas.indexOf(carta);
     if (posicao === -1) return [];
-    return alvosEmRange(
-      posicao,
-      carta.efeito.rangeH,
-      carta.efeito.rangeV,
-      oponente.campo,
-    );
+
+    if (carta.efeito.tipo === TIPOS_EFEITO.ATACAR) {
+      return alvosEmRange(
+        posicao,
+        carta.efeito.rangeH,
+        carta.efeito.rangeV,
+        oponente.campo,
+      );
+    }
+
+    if (carta.efeito.tipo === TIPOS_EFEITO.BUFF_ALIADO_ESCOLHIDO) {
+      const indices = [];
+      dono.campo.cartas.forEach((c, i) => {
+        if (c && i !== posicao) indices.push(i);
+      });
+      return indices;
+    }
+
+    return [];
   }
 
   // Ponto único de entrada para o jogador conjurar uma carta de efeito:
@@ -345,6 +404,7 @@ class Partida {
     const afetadas = [];
 
     if (tipo === TIPOS_EFEITO.ATACAR) return []; // habilidade ativa: não dispara ao invocar, ver ativarHabilidade()
+    if (carta.habilidadeAtiva) return []; // qualquer efeito marcado como habilidade ativa (ex: Estagiário de ML) só dispara via ativarHabilidade()
 
     switch (tipo) {
       case TIPOS_EFEITO.BUFF_ALIADOS:
@@ -373,6 +433,26 @@ class Partida {
           oponente.mao.cartas.splice(idx, 1);
         }
         break;
+      case TIPOS_EFEITO.BUFF_ALIADO_ESCOLHIDO: {
+        // alvoEscolhido é um índice no campo do dono (Venda Casada permite
+        // escolher qualquer aliada em campo, inclusive esta mesma carta,
+        // que nesse momento já está em "posicao"). Sem escolha válida,
+        // cai no padrão de buffar a própria carta recém-invocada.
+        // (Cartas com habilidadeAtiva=true, como o Estagiário de ML, nunca
+        // chegam aqui — ver o early return de habilidadeAtiva acima.)
+        const idxAlvo =
+          alvoEscolhido !== null &&
+          alvoEscolhido !== undefined &&
+          dono.campo.cartas[alvoEscolhido]
+            ? alvoEscolhido
+            : posicao;
+        const alvo = dono.campo.cartas[idxAlvo];
+        if (alvo) {
+          alvo.buff(valor);
+          afetadas.push({ carta: alvo, delta: valor });
+        }
+        break;
+      }
     }
 
     return afetadas;
