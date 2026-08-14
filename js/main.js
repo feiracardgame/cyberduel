@@ -275,12 +275,21 @@ class Partida {
   // Ativa a habilidade de uma carta que JÁ ESTÁ em campo, uma vez por turno
   // por carta (controlado por carta.usadaEsteTurno, liberado a cada
   // fimTurno()). dono/oponente são os Jogador donos dos campos. Suporta
-  // dois tipos de efeito ativo hoje:
+  // três tipos de efeito ativo hoje:
   //   ATACAR                -> dano em alvo(s) do campo INIMIGO
   //   BUFF_ALIADO_ESCOLHIDO -> +poder em uma carta ALIADA escolhida
+  //   REDISTRIBUIR_PODER    -> uma carta ALIADA escolhida perde poder, OUTRA ganha
   // (Agente da DIPSP/Juggernaut usam o primeiro; Estagiário de ML usa o
-  // segundo — ver POOL_CARTAS_MONSTRO em cartas.js.)
-  ativarHabilidade(carta, dono, oponente, alvoEscolhido = null) {
+  // segundo; Gestor de RH usa o terceiro — ver POOL_CARTAS_MONSTRO em
+  // cartas.js.) alvoSecundario só é usado por REDISTRIBUIR_PODER (é o
+  // segundo alvo escolhido, quem ganha poder; alvoEscolhido é quem perde).
+  ativarHabilidade(
+    carta,
+    dono,
+    oponente,
+    alvoEscolhido = null,
+    alvoSecundario = null,
+  ) {
     if (!carta.efeito || !carta.habilidadeAtiva || carta.usadaEsteTurno)
       return { sucesso: false, afetadas: [] };
 
@@ -344,6 +353,39 @@ class Partida {
       return { sucesso: true, afetadas };
     }
 
+    if (carta.efeito.tipo === TIPOS_EFEITO.REDISTRIBUIR_PODER) {
+      // Reestruturação Interna (Gestor de RH): dois alvos DISTINTOS, ambos
+      // aliados em campo (qualquer um dos dois pode ser o próprio Gestor).
+      // alvoEscolhido = quem perde poder; alvoSecundario = quem ganha.
+      const alvoPerdaValido =
+        alvoEscolhido !== null &&
+        alvoEscolhido !== undefined &&
+        dono.campo.cartas[alvoEscolhido];
+      const alvoGanhoValido =
+        alvoSecundario !== null &&
+        alvoSecundario !== undefined &&
+        alvoSecundario !== alvoEscolhido &&
+        dono.campo.cartas[alvoSecundario];
+      if (!alvoPerdaValido || !alvoGanhoValido)
+        return { sucesso: false, afetadas: [] };
+
+      const { perda, ganho } = carta.efeito;
+      const afetadas = [];
+
+      const cartaPerda = dono.campo.cartas[alvoEscolhido];
+      cartaPerda.buff(-perda);
+      afetadas.push({ carta: cartaPerda, delta: -perda });
+
+      const cartaGanho = dono.campo.cartas[alvoSecundario];
+      cartaGanho.buff(ganho);
+      afetadas.push({ carta: cartaGanho, delta: ganho });
+
+      dono.campo.removerMortas();
+
+      carta.usadaEsteTurno = true;
+      return { sucesso: true, afetadas };
+    }
+
     return { sucesso: false, afetadas: [] };
   }
 
@@ -370,6 +412,17 @@ class Partida {
       const indices = [];
       dono.campo.cartas.forEach((c, i) => {
         if (c && i !== posicao) indices.push(i);
+      });
+      return indices;
+    }
+
+    if (carta.efeito.tipo === TIPOS_EFEITO.REDISTRIBUIR_PODER) {
+      // Diferente do BUFF_ALIADO_ESCOLHIDO, aqui a própria carta (o Gestor)
+      // TAMBÉM pode ser escolhida como um dos dois alvos — a UI (jogo.js)
+      // é quem cuida de excluir o primeiro alvo escolhido da segunda lista.
+      const indices = [];
+      dono.campo.cartas.forEach((c, i) => {
+        if (c) indices.push(i);
       });
       return indices;
     }

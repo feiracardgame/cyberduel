@@ -23,7 +23,11 @@ class CenaPreload extends Phaser.Scene {
     this.load.image("dipsp", "assets/cartas/AgenteDIPSP.png");
     this.load.image("juggernaut", "assets/cartas/juggernautplaceholder.png");
     this.load.image("cybervendedor", "assets/cartas/cybervendedor.png");
-    this.load.image("estagiarioml", "assets/cartas/Estagiario_machine_learning.png");
+    this.load.image(
+      "estagiarioml",
+      "assets/cartas/Estagiario_machine_learning.png",
+    );
+    this.load.image("rh", "assets/cartas/Departamento_RH.png");
     //fundos
     this.load.image("jogoFundo", "assets/fundo/jogo-fundo.png");
     //musicas
@@ -36,7 +40,6 @@ class CenaPreload extends Phaser.Scene {
     this.load.audio("somBuff", "assets/sons/jogo-buff.mp3");
     this.load.audio("somHover", "assets/sons/jogo-cartawhoosh.wav");
     this.load.audio("somTiro", "assets/sons/jogo-dipsptiro.wav");
-    
   }
 
   // Monta o logo + a barra de carregamento (fundo + preenchimento + %)
@@ -112,7 +115,6 @@ class CenaPreload extends Phaser.Scene {
     // Pequena pausa depois do "Pronto!" só pra não trocar de cena de
     // supetão — dá tempo do jogador registrar que o carregamento acabou.
     this.time.delayedCall(300, () => {
-    
       this.scene.start("CenaTitulo");
     });
   }

@@ -2553,7 +2553,8 @@ class CenaJogo extends Phaser.Scene {
       !!carta.habilidadeAtiva &&
       carta.efeito &&
       (carta.efeito.tipo === TIPOS_EFEITO.ATACAR ||
-        carta.efeito.tipo === TIPOS_EFEITO.BUFF_ALIADO_ESCOLHIDO) &&
+        carta.efeito.tipo === TIPOS_EFEITO.BUFF_ALIADO_ESCOLHIDO ||
+        carta.efeito.tipo === TIPOS_EFEITO.REDISTRIBUIR_PODER) &&
       this.partida.jogador.campo.cartas.includes(carta);
     const habilidadeJaUsada =
       podeMostrarBotaoHabilidade && carta.usadaEsteTurno;
@@ -3092,6 +3093,11 @@ class CenaJogo extends Phaser.Scene {
     // destaca o campo do próprio jogador em vez do campo inimigo.
     const ehBuffAliado =
       carta.efeito && carta.efeito.tipo === TIPOS_EFEITO.BUFF_ALIADO_ESCOLHIDO;
+    // Gestor de RH (Reestruturação Interna): precisa de DOIS alvos aliados
+    // distintos (um perde poder, outro ganha) — fluxo de seleção em duas
+    // etapas, ver iniciarSelecaoDePerdaRedistribuir().
+    const ehRedistribuir =
+      carta.efeito && carta.efeito.tipo === TIPOS_EFEITO.REDISTRIBUIR_PODER;
 
     this.travado = true;
     this.esconderRodaBotoes();
@@ -3110,7 +3116,15 @@ class CenaJogo extends Phaser.Scene {
     // Mesmo com um único alvo possível, o jogador escolhe ativamente
     // tocando nele — assim ele sempre confirma a ação, em vez do jogo
     // disparar sozinho.
-    if (ehBuffAliado) {
+    if (ehRedistribuir) {
+      // Precisa de pelo menos 2 aliadas em campo (o Gestor + mais uma) pra
+      // fazer sentido escolher "quem perde" e "quem ganha" separadamente.
+      if (alvos.length < 2) {
+        this.avisarSemAlvo();
+        return;
+      }
+      this.iniciarSelecaoDePerdaRedistribuir(carta, alvos);
+    } else if (ehBuffAliado) {
       this.iniciarSelecaoDeAliadoParaHabilidade(carta, alvos);
     } else {
       this.iniciarSelecaoDeAlvo(carta, alvos);
@@ -3304,7 +3318,9 @@ class CenaJogo extends Phaser.Scene {
   // Resolve de fato a ativação (via Partida.ativarHabilidade) e anima as
   // cartas inimigas afetadas, reaproveitando animarCartasAfetadas — o
   // mesmo efeito visual usado pelos buffs/debuffs de invocação.
-  executarHabilidade(carta, alvoEscolhido) {
+  // alvoSecundario só é usado pelo Gestor de RH (REDISTRIBUIR_PODER): é o
+  // segundo alvo, quem ganha poder (alvoEscolhido é quem perde).
+  executarHabilidade(carta, alvoEscolhido, alvoSecundario = null) {
     if (this.objetosSelecaoAlvo) {
       this.objetosSelecaoAlvo.forEach((o) => o.destroy());
       this.objetosSelecaoAlvo = null;
@@ -3315,6 +3331,7 @@ class CenaJogo extends Phaser.Scene {
       this.partida.jogador,
       this.partida.inimigo,
       alvoEscolhido,
+      alvoSecundario,
     );
 
     if (resultado.sucesso) {
@@ -3326,6 +3343,157 @@ class CenaJogo extends Phaser.Scene {
       this.travado = false;
       this.desenharRodaBotoes();
     }
+  }
+
+  // Passo 1/2 da habilidade "Reestruturação Interna" (Gestor de RH):
+  // destaca (anel vermelho pulsante) cada aliada em campo — incluindo o
+  // próprio Gestor — e espera o jogador escolher QUEM PERDE poder. Tocar
+  // fora cancela a ativação inteira, sem gastar o turno da habilidade.
+  iniciarSelecaoDePerdaRedistribuir(carta, alvos) {
+    const L = this.layout;
+    const objetos = [];
+
+    let overlay = this.add
+      .rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.35)
+      .setDepth(3700)
+      .setInteractive();
+    overlay.on("pointerup", () => this.cancelarSelecaoDeAlvo());
+    objetos.push(overlay);
+
+    let textoInstr = this.add
+      .text(GW / 2, 140, "Escolha quem perde poder (1/2)", {
+        fontSize: "40px",
+        color: "#ff8888",
+        fontStyle: "bold",
+        stroke: "#000000",
+        strokeThickness: 6,
+      })
+      .setOrigin(0.5)
+      .setDepth(3900);
+    objetos.push(textoInstr);
+
+    let textoCancelar = this.add
+      .text(GW / 2, 195, "(toque fora para cancelar)", {
+        fontSize: "26px",
+        color: "#dddddd",
+      })
+      .setOrigin(0.5)
+      .setDepth(3900);
+    objetos.push(textoCancelar);
+
+    alvos.forEach((indice) => {
+      const col = indice % 5;
+      const fileira = Math.floor(indice / 5);
+      const xPos = L.x[col];
+      const yPos = L.yJogador[fileira];
+
+      let anel = this.add
+        .rectangle(xPos, yPos, L.slotW, L.slotH, 0xff8888, 0)
+        .setStrokeStyle(8, 0xff8888, 1)
+        .setDepth(3800);
+      this.tweens.add({
+        targets: anel,
+        scaleX: 1.08,
+        scaleY: 1.08,
+        alpha: 0.2,
+        duration: 550,
+        yoyo: true,
+        repeat: -1,
+        ease: "Sine.easeInOut",
+      });
+
+      let zonaToque = this.add
+        .rectangle(xPos, yPos, L.slotW, L.slotH, 0xffffff, 0.001)
+        .setDepth(3801)
+        .setInteractive({ useHandCursor: true });
+      zonaToque.on("pointerup", () =>
+        this.iniciarSelecaoDeGanhoRedistribuir(
+          carta,
+          indice,
+          alvos.filter((i) => i !== indice),
+        ),
+      );
+
+      objetos.push(anel, zonaToque);
+    });
+
+    this.objetosSelecaoAlvo = objetos;
+  }
+
+  // Passo 2/2 da habilidade "Reestruturação Interna" (Gestor de RH):
+  // igual em espírito ao passo 1, mas com anel verde e destaca só as
+  // aliadas restantes (já excluindo quem foi escolhida pra perder poder
+  // no passo anterior) — espera o jogador escolher QUEM GANHA poder.
+  iniciarSelecaoDeGanhoRedistribuir(carta, alvoPerda, alvosRestantes) {
+    if (this.objetosSelecaoAlvo) {
+      this.objetosSelecaoAlvo.forEach((o) => o.destroy());
+      this.objetosSelecaoAlvo = null;
+    }
+
+    const L = this.layout;
+    const objetos = [];
+
+    let overlay = this.add
+      .rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.35)
+      .setDepth(3700)
+      .setInteractive();
+    overlay.on("pointerup", () => this.cancelarSelecaoDeAlvo());
+    objetos.push(overlay);
+
+    let textoInstr = this.add
+      .text(GW / 2, 140, "Escolha quem ganha poder (2/2)", {
+        fontSize: "40px",
+        color: "#88ff99",
+        fontStyle: "bold",
+        stroke: "#000000",
+        strokeThickness: 6,
+      })
+      .setOrigin(0.5)
+      .setDepth(3900);
+    objetos.push(textoInstr);
+
+    let textoCancelar = this.add
+      .text(GW / 2, 195, "(toque fora para cancelar)", {
+        fontSize: "26px",
+        color: "#dddddd",
+      })
+      .setOrigin(0.5)
+      .setDepth(3900);
+    objetos.push(textoCancelar);
+
+    alvosRestantes.forEach((indice) => {
+      const col = indice % 5;
+      const fileira = Math.floor(indice / 5);
+      const xPos = L.x[col];
+      const yPos = L.yJogador[fileira];
+
+      let anel = this.add
+        .rectangle(xPos, yPos, L.slotW, L.slotH, 0x88ff99, 0)
+        .setStrokeStyle(8, 0x88ff99, 1)
+        .setDepth(3800);
+      this.tweens.add({
+        targets: anel,
+        scaleX: 1.08,
+        scaleY: 1.08,
+        alpha: 0.2,
+        duration: 550,
+        yoyo: true,
+        repeat: -1,
+        ease: "Sine.easeInOut",
+      });
+
+      let zonaToque = this.add
+        .rectangle(xPos, yPos, L.slotW, L.slotH, 0xffffff, 0.001)
+        .setDepth(3801)
+        .setInteractive({ useHandCursor: true });
+      zonaToque.on("pointerup", () =>
+        this.executarHabilidade(carta, alvoPerda, indice),
+      );
+
+      objetos.push(anel, zonaToque);
+    });
+
+    this.objetosSelecaoAlvo = objetos;
   }
 
   // Modo de mira "Venda Casada": igual em espírito a iniciarSelecaoDeAlvo(),

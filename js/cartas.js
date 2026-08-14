@@ -25,6 +25,7 @@ const TIPOS_EFEITO = {
   DESCARTAR_CARTA: "descartar_carta", // oponente descarta carta(s) aleatória(s) da mão
   ATACAR: "atacar", // dano em alvo(s) inimigo(s) dentro de um range H/V a partir da posição
   BUFF_ALIADO_ESCOLHIDO: "buff_aliado_escolhido", // dono escolhe UMA carta aliada em campo (pode ser esta mesma) pra ganhar poder
+  REDISTRIBUIR_PODER: "redistribuir_poder", // dono escolhe DUAS cartas aliadas distintas em campo: uma perde poder, a outra ganha
 };
 
 // Gera a frase descritiva de um efeito, usada na visualização detalhada da carta
@@ -45,6 +46,8 @@ function descreverEfeito(efeito) {
       return efeito.custoProprio
         ? `Habilidade ativa (1x por turno, em campo): escolha uma carta aliada em campo para ganhar +${efeito.valor} de poder. Esta carta perde ${efeito.custoProprio} de poder.`
         : `Ao ser invocada: escolha uma carta aliada em campo (pode ser esta) para ganhar +${efeito.valor} de poder.`;
+    case TIPOS_EFEITO.REDISTRIBUIR_PODER:
+      return `Habilidade ativa (1x por turno, em campo): escolha uma carta aliada para perder ${efeito.perda} de poder, e outra carta aliada para ganhar +${efeito.ganho} de poder.`;
     default:
       return "";
   }
@@ -174,6 +177,20 @@ const POOL_CARTAS_MONSTRO = [
     habilidadeAtiva: true, // Machine Learning: NÃO dispara ao invocar — ativa em campo, 1x por turno, mesma
     // família de "carta em campo com botão de habilidade" do Agente da DIPSP/Juggernaut,
     // só que aqui alvo é ALIADO (ver ativarHabilidade() em main.js) em vez de inimigo.
+  },
+
+  {
+    nome: "Gestor de Recursos Predominantemente Humanos",
+    poder: 5,
+    descricao:
+      "Atualmente, funcionários humanos e máquinas compartilham os mesmos benefícios corporativos. Nenhum dos dois está particularmente satisfeito com isso. O RH garante que todas as reclamações sejam igualmente ignoradas.",
+    imagem: "rh", // arte ainda não adicionada (ver Cartas_e_boosters.md) — cai no retângulo placeholder
+    efeito: {
+      tipo: TIPOS_EFEITO.REDISTRIBUIR_PODER,
+      perda: 2, // Reestruturação Interna: uma carta aliada escolhida perde 2 PA...
+      ganho: 3, // ...e OUTRA carta aliada escolhida ganha 3 PA (dois alvos distintos)
+    },
+    habilidadeAtiva: true, // Reestruturação Interna: não dispara ao invocar — ativa em campo, 1x por turno
   },
 
   // Adicione novas cartas de monstro especiais aqui, seguindo o mesmo
