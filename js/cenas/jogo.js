@@ -2524,18 +2524,19 @@ class CenaJogo extends Phaser.Scene {
   // Mostra um painel grande com a "arte" (placeholder colorido), nome,
   // poder (no mesmo selo circular usado nas cartas) e a descrição
   // completa (flavor text + efeito passivo).
+  // ---------- VISUALIZAÇÃO DETALHADA DA CARTA ----------
+
+  // ---------- VISUALIZAÇÃO DETALHADA DA CARTA ----------
+
+  // ---------- VISUALIZAÇÃO DETALHADA DA CARTA (PHASER 4) ----------
+
   mostrarDetalheCarta(carta) {
     if (this.modalAberto) return;
     this.modalAberto = true;
     this.travado = true;
 
-    // Bloqueia a abertura do zoom da arte por 2s: sem isso, se o
-    // dedo/mouse já estiver em cima de onde a arte vai aparecer, o
-    // "pointerover" pode disparar o zoom sem querer assim que o modal
-    // abre (ver abrirZoomCarta).
     this.zoomBloqueadoAte = this.time.now + 2000;
 
-    // Fundo escurecido cobrindo a tela toda; tocar nele fecha o painel
     let overlay = this.add.rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.78);
     overlay.setDepth(4000);
     overlay.setInteractive();
@@ -2544,10 +2545,6 @@ class CenaJogo extends Phaser.Scene {
     const corFundo = this.obterCorPorId(carta.id);
     const ehEfeito = carta.tipo === "efeito";
 
-    // A carta tem uma habilidade ativa (ex: Atirador de Elite) e está no
-    // SEU campo? Se sim, e ela ainda não foi usada neste turno, mostramos
-    // um botão "Ativar Habilidade" no rodapé do painel (ver mais abaixo,
-    // logo depois da janela de descrição).
     const podeMostrarBotaoHabilidade =
       !this.partida.partidaEncerrada &&
       !!carta.habilidadeAtiva &&
@@ -2559,29 +2556,20 @@ class CenaJogo extends Phaser.Scene {
     const habilidadeJaUsada =
       podeMostrarBotaoHabilidade && carta.usadaEsteTurno;
 
+    const PAINEL_LARGURA = 840;
+    const PAINEL_ALTURA = 1320;
+
     let painelBg = this.add
-      .rectangle(0, 0, 840, 1320, 0x14141c)
+      .rectangle(0, 0, PAINEL_LARGURA, PAINEL_ALTURA, 0x14141c)
       .setStrokeStyle(9, 0xffffff);
-    // Impede que o toque no painel "vaze" para o overlay e feche o modal
     painelBg.setInteractive();
     painelBg.on("pointerup", () => {});
 
-    // Imagem real da carta (quando ela tiver uma textura associada);
-    // senão, cai no placeholder colorido de sempre. Tudo isolado dentro
-    // de containerImagem só para manter a posição (o efeito de "inclinar"
-    // saiu daqui — agora só acontece na janela de zoom, ver abrirZoomCarta).
     const JANELA_ARTE_W = 660;
     const JANELA_ARTE_H = 480;
 
     let imagem, iconeImagem;
     if (carta.imagem) {
-      // A arte real é em pé (retrato) e a janela reservada aqui é mais
-      // larga que alta — em vez de esticar a imagem pra caber (o que
-      // distorcia o desenho), ela é escalada mantendo a proporção
-      // original até cobrir a janela inteira, e o excedente é recortado
-      // de verdade da textura (setCrop), não só escondido por uma
-      // máscara por cima — assim é IMPOSSÍVEL a arte vazar da janela,
-      // não importa o quanto o "foco" (ver cartas.js) desloque o recorte.
       imagem = this.add.image(0, 0, carta.imagem);
       this.aplicarRecorteCover(
         imagem,
@@ -2607,12 +2595,18 @@ class CenaJogo extends Phaser.Scene {
     );
 
     if (carta.imagem) {
-      // Passar o mouse sobre a arte recortada abre a versão ampliada,
-      // por cima deste painel (ver abrirZoomCarta). O hit-area é a
-      // moldura, do mesmo tamanho da janela de recorte.
       moldura.setInteractive({ useHandCursor: true });
       moldura.on("pointerover", () => this.abrirZoomCarta(carta));
     }
+
+    const PODER_X = -PAINEL_LARGURA / 2 + 100;
+    const PODER_Y = -615;
+    const PODER_RAIO = 46;
+
+    const ESPACO_BOTAO_ABAIXO_PAINEL = 50;
+    const ALTURA_BOTAO_HABILIDADE = 96;
+    const LARGURA_BOTAO_HABILIDADE = 660;
+    const MARGEM_INFERIOR_DESCRICAO = 60;
 
     let etiquetaTipo = this.add
       .text(0, -615, ehEfeito ? "CARTA DE EFEITO" : "CARTA DE PERSONAGEM", {
@@ -2632,38 +2626,25 @@ class CenaJogo extends Phaser.Scene {
       })
       .setOrigin(0.5, 0);
 
-    const filhosPainel = [painelBg, containerImagem, etiquetaTipo, nomeTexto];
+    const elementosTopo = [containerImagem, etiquetaTipo, nomeTexto];
 
-    let descY = 160;
     if (!ehEfeito) {
       const [poderBola, poderTexto] = this.criarSeloEstat(
-        0,
-        135,
+        PODER_X,
+        PODER_Y,
         carta.poder,
         "#ff5555",
-        90,
+        PODER_RAIO,
       );
-      let poderLabel = this.add
-        .text(0, 255, "PODER", { fontSize: "33px", color: "#aaaaaa" })
-        .setOrigin(0.5);
-      filhosPainel.push(poderBola, poderTexto, poderLabel);
-      descY = 330;
+      elementosTopo.push(poderBola, poderTexto);
       this.somPop.play();
     }
 
-    // ---- Descrição: janela de tamanho fixo, com scroll se o texto não couber ----
-    // Antes o texto da descrição podia vazar pra fora do retângulo do
-    // painel quando era muito longo. Agora ele fica preso dentro de uma
-    // "janela" de altura fixa (DESC_ALTURA, calculada pra sempre caber
-    // até perto da borda inferior do painel) e, se o texto for mais alto
-    // que essa janela, dá pra arrastar (dedo ou mouse) ou usar a rodinha
-    // do mouse pra rolar, com uma barrinha indicando a posição.
+    const MARGEM_APOS_NOME = 30;
+    let descY = nomeTexto.y + nomeTexto.height + MARGEM_APOS_NOME;
+
     const DESC_LARGURA = 720;
-    // Reserva espaço embaixo da descrição pro botão de ativar habilidade,
-    // quando ele vai aparecer (ver podeMostrarBotaoHabilidade acima).
-    const ALTURA_BOTAO_HABILIDADE = 130;
-    const DESC_ALTURA =
-      620 - descY - (podeMostrarBotaoHabilidade ? ALTURA_BOTAO_HABILIDADE : 0);
+    const DESC_ALTURA = PAINEL_ALTURA / 2 - descY - MARGEM_INFERIOR_DESCRICAO;
 
     let descTexto = this.add
       .text(0, 0, carta.descricaoCompleta(), {
@@ -2675,41 +2656,26 @@ class CenaJogo extends Phaser.Scene {
       })
       .setOrigin(0.5, 0);
 
-    // Container "viewport": tudo relacionado à descrição vive aqui, em
-    // coordenadas locais próprias (0,0 = topo-centro da janela reservada).
     let containerDescricao = this.add.container(0, descY, [descTexto]);
 
-    // Máscara geométrica que recorta o texto pra não vazar da janela.
-    // IMPORTANTE: o retângulo é desenhado em coordenadas de MUNDO, não
-    // como filho do container — uma Graphics usada como máscara
-    // geométrica dentro de containers aninhados (o painel inteiro já é
-    // um container, e containerDescricao é outro dentro dele) nem
-    // sempre respeita corretamente a posição herdada dos containers
-    // pais, e era isso que fazia o texto vazar por baixo do painel
-    // quando a descrição era longa (ex: CryptoAcionistas, com o texto
-    // do efeito de turno somado ao flavor text). Como o painel sempre
-    // fica centralizado em GW/2, GH/2, dá pra calcular exatamente onde
-    // a janela da descrição cai em mundo, sem depender da cadeia de
-    // containers.
-    let mascaraDescGraphics = this.add.graphics();
-    mascaraDescGraphics.fillStyle(0xffffff);
-    mascaraDescGraphics.fillRect(
-      GW / 2 - DESC_LARGURA / 2 - 20,
-      GH / 2 + descY,
-      DESC_LARGURA + 40,
-      DESC_ALTURA,
-    );
-    mascaraDescGraphics.setVisible(false);
-    descTexto.setMask(mascaraDescGraphics.createGeometryMask());
-    // Guardado à parte (não é mais filho do painel) só pra poder
-    // destruir explicitamente em fecharDetalheCarta().
-    this.mascaraDetalheAtual = mascaraDescGraphics;
+    // ===== NOVO SISMETA DE MÁSCARA - PHASER 4 =====
+    const maskX = (GW - DESC_LARGURA) / 2;
+    const maskY = GH / 2 + descY;
+
+    let mascaraGraphics = this.add.graphics();
+    mascaraGraphics.fillStyle(0xffffff);
+    mascaraGraphics.fillRect(maskX, maskY, DESC_LARGURA, DESC_ALTURA);
+    mascaraGraphics.setVisible(false); // Oculta a forma base do mundo
+
+    // Ativa os filtros e aplica a máscara no contexto externo (Mundo)
+    containerDescricao.enableFilters();
+    containerDescricao.filters.external.addMask(mascaraGraphics);
+
+    this.mascaraGraphicsAtual = mascaraGraphics;
+    // ==============================================
 
     const alturaExcedente = descTexto.height - DESC_ALTURA;
     if (alturaExcedente > 0) {
-      // Área invisível cobrindo a janela inteira, só pra capturar o
-      // arraste (funciona tanto no toque quanto no mouse). Fica por cima
-      // do texto, então também impede o clique de "vazar" pro overlay.
       let areaArraste = this.add
         .rectangle(
           0,
@@ -2722,7 +2688,6 @@ class CenaJogo extends Phaser.Scene {
         .setInteractive({ useHandCursor: true });
       containerDescricao.add(areaArraste);
 
-      // Trilho + indicador, só aparecem quando dá pra rolar de verdade.
       let trilho = this.add
         .rectangle(
           DESC_LARGURA / 2 + 22,
@@ -2762,14 +2727,18 @@ class CenaJogo extends Phaser.Scene {
     fecharBtn.setInteractive({ useHandCursor: true });
     fecharBtn.on("pointerup", () => this.fecharDetalheCarta());
 
-    filhosPainel.push(containerDescricao, fecharBtn);
+    const filhosPainel = [
+      painelBg,
+      containerDescricao,
+      ...elementosTopo,
+      fecharBtn,
+    ];
 
-    // ---- Botão "Ativar Habilidade" ----
-    // Só aparece pra cartas com habilidade ativa que estejam no campo do
-    // jogador (ver podeMostrarBotaoHabilidade, no topo da função). Fica
-    // cinza e travado se a habilidade já foi usada neste turno.
     if (podeMostrarBotaoHabilidade) {
-      const botaoY = descY + DESC_ALTURA + ALTURA_BOTAO_HABILIDADE / 2 + 10;
+      const botaoY =
+        PAINEL_ALTURA / 2 +
+        ESPACO_BOTAO_ABAIXO_PAINEL +
+        ALTURA_BOTAO_HABILIDADE / 2;
       const corBotao = habilidadeJaUsada ? 0x333333 : 0xff5500;
       const corBorda = habilidadeJaUsada ? 0x666666 : 0xffffff;
       const textoBotao = habilidadeJaUsada
@@ -2777,7 +2746,13 @@ class CenaJogo extends Phaser.Scene {
         : "⚡ Ativar Habilidade";
 
       let habBg = this.add
-        .rectangle(0, botaoY, 660, 96, corBotao)
+        .rectangle(
+          0,
+          botaoY,
+          LARGURA_BOTAO_HABILIDADE,
+          ALTURA_BOTAO_HABILIDADE,
+          corBotao,
+        )
         .setStrokeStyle(4, corBorda);
       let habTexto = this.add
         .text(0, botaoY, textoBotao, {
@@ -2829,12 +2804,6 @@ class CenaJogo extends Phaser.Scene {
     this.overlayDetalheAtual = overlay;
     this.painelDetalheAtual = painel;
   }
-
-  // Liga o "arrastar pra rolar" numa área de descrição, para quando o
-  // texto é mais alto que a janela reservada pra ele (ver bloco de
-  // descrição em mostrarDetalheCarta). Funciona com o dedo, arrastando
-  // com o mouse, ou com a rodinha do mouse — sempre limitando (clamp) o
-  // quanto o texto pode subir/descer, pra nunca vazar da janela.
   habilitarScrollDescricao(
     areaArraste,
     descTexto,
