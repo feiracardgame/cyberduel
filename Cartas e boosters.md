@@ -14,7 +14,7 @@ Venda Casada → Ao ser colocado em campo, o CyberVendedor faz questão de garan
 
  
 * Arte:
- <img alt="image" src="assets/cartas/CyberVendedor_Da_RaspCorp.png" />
+ <img alt="image" src="assets/cartas/cybervendedor.png" />
 
 
 
@@ -30,7 +30,7 @@ Machine learning -> Escolha uma carta aliada. Ela recebe +2 PA. O Estagiário pe
 * Visual: é um nerdzinho de oculos mexendo no pc, só que a piada é que tem tipo um cartaz de logo da raspcorp dizendo "RaspCorp - Investindo no futuro da humanidade"
  
 
-* <img width="220" height="219" alt="image" src="assets/cartas/EstagiarioMachineLearning.png" />
+*  <img alt="image" src="assets/cartas/Estagiario_machine_learning.png" />
 
 
 ### 2x carta baixa 3 - NeoAnalista de Suporte Nível Alpha
@@ -67,7 +67,7 @@ Machine learning -> Escolha uma carta aliada. Ela recebe +2 PA. O Estagiário pe
 * Reestruturação Interna → A empresa agradece pelos anos de dedicação do colaborador e informa que sua vaga continuará existindo, porém com salário menor. Escolha uma carta aliada para perder 2 PA. Outra carta aliada ganha 3 PA.
 
  
-* Visual: -> eu não faço a mínima ideia de como representar isso visualmente, essa aqui vc vai ter que se virar.
+* Visual: ->  <img alt="image" src="assets/cartas/Departamento_RH.png" />
 
 
 ### 2x carta alta 1 - CryptoAcionistas
@@ -81,7 +81,7 @@ Machine learning -> Escolha uma carta aliada. Ela recebe +2 PA. O Estagiário pe
   Investimento de Alto Risco → Os investimentos finalmente começaram a render. No início de cada turno, o CryptoAcionista tem 50% de chance de ganhar +1 PA.
 
 * Arte:
- <img alt="image" src="assets/cartas/CryptoAcionista.png" />
+ <img alt="image" src="assets/cartas/cryptoacionistas.png" />
 
 
 ### 2x carta alta 2 - Agente da DIPSP
@@ -220,7 +220,7 @@ Faz um detetive noir com uns implantes tipo assim só que preto com vermelho e e
  
 * Visual: Faz tipo o wolverine vermelho com umas garras cibernéticas bem longas
 
-<img width="1600" height="900" alt="image" src="https://github.com/user-attachments/assets/0a2301cf-0309-415a-919f-79c5faa8b660" />
+ <img alt="image" src="assets/cartas/el_tigre.png" />
 
 
 
@@ -231,7 +231,9 @@ Faz um detetive noir com uns implantes tipo assim só que preto com vermelho e e
 * Efeito: Override -> Escolha uma carta inimiga com PA atual menor que os da Aranha. A carta passa a contar pontos para sua equipe. Este efeito não pode ser mantido pela mesma carta em duas cartas simultaneamente.
 
  
-* Visual: -> já tá fazendo
+* Visual: ->
+
+   <img alt="image" src="assets/cartas/D_Aranha.png" />
 
 
 ### 1x carta lendária -> O Boi
