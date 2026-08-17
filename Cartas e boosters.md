@@ -547,7 +547,7 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
  <img alt="image" src="assets/cartas/Di_Ego_caçador_de_recompensas.png"/>
 
 
-### 1x carta de efeito 1 -> Vento dos ermos
+### 1x carta de efeito 1 -> Vento dos Ermos
 
 
 * Descrição: A forte ventania nas terras destruídas ajuda a acelerar a desertificação no local. De acordo com os anciões remanescentes "o vento tudo leva, menos as lembranças daqueles que passaram"
@@ -693,24 +693,33 @@ Faz tipo o Will Smith com a mão no rosto como se tivesse cansado e o Macaco com
 
 
 
-### 1x carta média 4 -> influenciador
+### 1x carta média 4 -> Influenciador Digital
 
-* Descrição:
-* Energia:
-* Efeito:
-* Visual
+* Descrição: Dentre as chamadas "pessoas normais", o Influenciador é aquele que acredita ser mais especial. Dita tendências, opiniões e comportamentos, embora suas convicções possam mudar diante de uma proposta melhor. Não produz nada além de conteúdo, engajamento e publicidade, mas finalmente encontrou uma forma de vender a própria existência e chamar isso de trabalho.
+* PA: 6
+* Efeito: Opinião Pública -> Uma vez por turno, escolha duas cartas em campo. Se for aliada, ela recebe engajamento e ganha +1 de PA. Se for inimiga, ela sofre um cancelamento e perde essa mesma quantidade.
+* Visual: Faz tipo o Jae na abertura de Hexatombe, só que com uma carta do cyberduel brilhosa
 
-### 1x carta alta 1 -> Político
-
-* Descrição:
-* Energia:
-* Efeito:
-* Visual
+<img width="472" height="423" alt="image" src="https://github.com/user-attachments/assets/9615a295-fa32-49e6-96f5-4e002caeabe1" />
 
 
-### 1x carta lendária -> Professor
+### 1x carta alta 1 -> CyberPolíticos
 
-* Descrição:
-* Energia:
-* Efeito:
-* Visual
+* Descrição: Outrora decisores do futuro da sociedade, os políticos agora disputam influência através de duelos de cartas em vez de discursos elaborados. Continuam prometendo colocar NeoFloripa nas mãos do povo, mas a promessa parece perder força quando surge uma mão mais conveniente, especialmente se ela vier acompanhada de uma carta brilhante.
+* PA: 6
+* Efeito: Troca de Favores -> Ao invocá-lo, escolha uma carta aliada. Enquanto ela ainda estiver em campo, o Político recebe +4 de PA. Caso ela seja destruída, o político é eliminado junto.
+ 
+* Visual: Faz tipo uma charge de um monte de trabalhador olhando o politico com cartas do cyberduel
+
+<img width="320" height="280" alt="image" src="https://github.com/user-attachments/assets/2a4921a9-6b89-4bb9-ad87-a2e10c08ecb6" />
+
+
+
+### 1x carta lendária -> Professores
+
+* Descrição: Apesar de todo o desenvolvimento tecnológico, NeoFloripa parece valorizar mais o entretenimento do que a educação. Por isso, professores precisam associar suas matérias ao CyberDuel para manter a atenção dos alunos. Curiosamente, a estratégia parece ter tido o efeito contrário: uma dupla de professores já chegou ao topo do ranking de CyberDuel e agora tenta guiar a sociedade com base em acontecimentos históricos e dados geográficos.
+* PA: 8
+* Efeito: Recuperação -> Uma vez por turno, escolha uma carta aliada que já tenha usado seu efeito. Ela pode utilizá-lo novamente.
+
+ 
+* Visual: É o Sardá e o Felipe, aí a gente já conversou mais ou menos sobre a ideia, vc tá ligado de como fazer o visual.
