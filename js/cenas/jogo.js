@@ -2276,12 +2276,12 @@ class CenaJogo extends Phaser.Scene {
       .setOrigin(0.5);
 
     let fecharBg = this.add
-      .circle(420, -645, 42, 0x2a2a2a)
+      .circle(0, 0, 42, 0x2a2a2a)
       .setStrokeStyle(3, 0xffffff);
     let fecharTexto = this.add
-      .text(420, -645, "✕", { fontSize: "48px", color: "#ffffff" })
+      .text(0, 0, "✕", { fontSize: "48px", color: "#ffffff" })
       .setOrigin(0.5);
-    let fecharBtn = this.add.container(0, 0, [fecharBg, fecharTexto]);
+    let fecharBtn = this.add.container(420, -645, [fecharBg, fecharTexto]);
     fecharBtn.setSize(84, 84);
     fecharBtn.setInteractive({ useHandCursor: true });
     fecharBtn.on("pointerup", () => this.fecharHistorico());
@@ -2717,12 +2717,12 @@ class CenaJogo extends Phaser.Scene {
     }
 
     let fecharBg = this.add
-      .circle(360, -615, 42, 0x2a2a2a)
+      .circle(0, 0, 42, 0x2a2a2a)
       .setStrokeStyle(3, 0xffffff);
     let fecharTexto = this.add
-      .text(360, -615, "✕", { fontSize: "48px", color: "#ffffff" })
+      .text(0, 0, "✕", { fontSize: "48px", color: "#ffffff" })
       .setOrigin(0.5);
-    let fecharBtn = this.add.container(0, 0, [fecharBg, fecharTexto]);
+    let fecharBtn = this.add.container(360, -615, [fecharBg, fecharTexto]);
     fecharBtn.setSize(84, 84);
     fecharBtn.setInteractive({ useHandCursor: true });
     fecharBtn.on("pointerup", () => this.fecharDetalheCarta());
