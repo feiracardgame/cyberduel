@@ -14,7 +14,7 @@ Venda Casada → Ao ser colocado em campo, o CyberVendedor faz questão de garan
 
  
 * Arte:
- <img alt="image" src="assets/cartas/CyberVendedor_Da_RaspCorp.png" />
+ <img alt="image" src="assets/cartas/cybervendedor.png" />
 
 
 
@@ -30,7 +30,7 @@ Machine learning -> Escolha uma carta aliada. Ela recebe +2 PA. O Estagiário pe
 * Visual: é um nerdzinho de oculos mexendo no pc, só que a piada é que tem tipo um cartaz de logo da raspcorp dizendo "RaspCorp - Investindo no futuro da humanidade"
  
 
-* <img width="220" height="219" alt="image" src="assets/cartas/EstagiarioMachineLearning.png" />
+*  <img alt="image" src="assets/cartas/Estagiario_machine_learning.png" />
 
 
 ### 2x carta baixa 3 - NeoAnalista de Suporte Nível Alpha
@@ -67,7 +67,7 @@ Machine learning -> Escolha uma carta aliada. Ela recebe +2 PA. O Estagiário pe
 * Reestruturação Interna → A empresa agradece pelos anos de dedicação do colaborador e informa que sua vaga continuará existindo, porém com salário menor. Escolha uma carta aliada para perder 2 PA. Outra carta aliada ganha 3 PA.
 
  
-* Visual: -> eu não faço a mínima ideia de como representar isso visualmente, essa aqui vc vai ter que se virar.
+* Visual: ->  <img alt="image" src="assets/cartas/Departamento_RH.png" />
 
 
 ### 2x carta alta 1 - CryptoAcionistas
@@ -81,7 +81,7 @@ Machine learning -> Escolha uma carta aliada. Ela recebe +2 PA. O Estagiário pe
   Investimento de Alto Risco → Os investimentos finalmente começaram a render. No início de cada turno, o CryptoAcionista tem 50% de chance de ganhar +1 PA.
 
 * Arte:
- <img alt="image" src="assets/cartas/CryptoAcionista.png" />
+ <img alt="image" src="assets/cartas/cryptoacionistas.png" />
 
 
 ### 2x carta alta 2 - Agente da DIPSP
@@ -220,7 +220,7 @@ Faz um detetive noir com uns implantes tipo assim só que preto com vermelho e e
  
 * Visual: Faz tipo o wolverine vermelho com umas garras cibernéticas bem longas
 
-<img width="1600" height="900" alt="image" src="https://github.com/user-attachments/assets/0a2301cf-0309-415a-919f-79c5faa8b660" />
+ <img alt="image" src="assets/cartas/el_tigre.png" />
 
 
 
@@ -231,7 +231,9 @@ Faz um detetive noir com uns implantes tipo assim só que preto com vermelho e e
 * Efeito: Override -> Escolha uma carta inimiga com PA atual menor que os da Aranha. A carta passa a contar pontos para sua equipe. Este efeito não pode ser mantido pela mesma carta em duas cartas simultaneamente.
 
  
-* Visual: -> já tá fazendo
+* Visual: ->
+
+   <img alt="image" src="assets/cartas/D_Aranha.png" />
 
 
 ### 1x carta lendária -> O Boi
@@ -547,7 +549,7 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
  <img alt="image" src="assets/cartas/Di_Ego_caçador_de_recompensas.png"/>
 
 
-### 1x carta de efeito 1 -> Vento dos ermos
+### 1x carta de efeito 1 -> Vento dos Ermos
 
 
 * Descrição: A forte ventania nas terras destruídas ajuda a acelerar a desertificação no local. De acordo com os anciões remanescentes "o vento tudo leva, menos as lembranças daqueles que passaram"
@@ -693,24 +695,33 @@ Faz tipo o Will Smith com a mão no rosto como se tivesse cansado e o Macaco com
 
 
 
-### 1x carta média 4 -> influenciador
+### 1x carta média 4 -> Influenciador Digital
 
-* Descrição:
-* Energia:
-* Efeito:
-* Visual
+* Descrição: Dentre as chamadas "pessoas normais", o Influenciador é aquele que acredita ser mais especial. Dita tendências, opiniões e comportamentos, embora suas convicções possam mudar diante de uma proposta melhor. Não produz nada além de conteúdo, engajamento e publicidade, mas finalmente encontrou uma forma de vender a própria existência e chamar isso de trabalho.
+* PA: 6
+* Efeito: Opinião Pública -> Uma vez por turno, escolha duas cartas em campo. Se for aliada, ela recebe engajamento e ganha +1 de PA. Se for inimiga, ela sofre um cancelamento e perde essa mesma quantidade.
+* Visual: Faz tipo o Jae na abertura de Hexatombe, só que com uma carta do cyberduel brilhosa
 
-### 1x carta alta 1 -> Político
-
-* Descrição:
-* Energia:
-* Efeito:
-* Visual
+<img width="472" height="423" alt="image" src="https://github.com/user-attachments/assets/9615a295-fa32-49e6-96f5-4e002caeabe1" />
 
 
-### 1x carta lendária -> Professor
+### 1x carta alta 1 -> CyberPolíticos
 
-* Descrição:
-* Energia:
-* Efeito:
-* Visual
+* Descrição: Outrora decisores do futuro da sociedade, os políticos agora disputam influência através de duelos de cartas em vez de discursos elaborados. Continuam prometendo colocar NeoFloripa nas mãos do povo, mas a promessa parece perder força quando surge uma mão mais conveniente, especialmente se ela vier acompanhada de uma carta brilhante.
+* PA: 6
+* Efeito: Troca de Favores -> Ao invocá-lo, escolha uma carta aliada. Enquanto ela ainda estiver em campo, o Político recebe +4 de PA. Caso ela seja destruída, o político é eliminado junto.
+ 
+* Visual: Faz tipo uma charge de um monte de trabalhador olhando o politico com cartas do cyberduel
+
+<img width="320" height="280" alt="image" src="https://github.com/user-attachments/assets/2a4921a9-6b89-4bb9-ad87-a2e10c08ecb6" />
+
+
+
+### 1x carta lendária -> Professores
+
+* Descrição: Apesar de todo o desenvolvimento tecnológico, NeoFloripa parece valorizar mais o entretenimento do que a educação. Por isso, professores precisam associar suas matérias ao CyberDuel para manter a atenção dos alunos. Curiosamente, a estratégia parece ter tido o efeito contrário: uma dupla de professores já chegou ao topo do ranking de CyberDuel e agora tenta guiar a sociedade com base em acontecimentos históricos e dados geográficos.
+* PA: 8
+* Efeito: Recuperação -> Uma vez por turno, escolha uma carta aliada que já tenha usado seu efeito. Ela pode utilizá-lo novamente.
+
+ 
+* Visual: É o Sardá e o Felipe, aí a gente já conversou mais ou menos sobre a ideia, vc tá ligado de como fazer o visual.
