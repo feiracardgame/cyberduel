@@ -127,7 +127,7 @@ Jogando em casa -> O ambiente de trabalho competitivo e supostamente confortáve
 
 #### 1x carta de terreno 2 - Beira-mar norte de NeoFloripa
 
-* Descrição: Depois que a verdadeira Floripa sucumbiu ao aumento do nível do mar, os nostálgicos decidiram recriá-la no mundo virtual. Ironicamente, continua sendo o jeito mais acessível de morar na ilha.
+* Descrição: Depois que a verdadeira Floripa sucumbiu ao aumento do nível do mar, os nostálgicos decidiram recriá-la no mundo virtual. Ironicamente, continua sendo o jeito mais acessível de morar na ilha. O trânsito, contudo, nem aqui foi resolvido.
 * Efeito:
 
 Rolê na Beira-Mar: A ida à Beira-Mar é um momento de descanso no meio desse mundo louco. Enquanto este terreno estiver em campo, toda carta aliada que tiver sofrido dano recupera 1 PA ao final de cada turno.
@@ -714,6 +714,14 @@ Faz tipo o Will Smith com a mão no rosto como se tivesse cansado e o Macaco com
 * Visual: Faz tipo uma charge de um monte de trabalhador olhando o politico com cartas do cyberduel
 
 <img width="320" height="280" alt="image" src="https://github.com/user-attachments/assets/2a4921a9-6b89-4bb9-ad87-a2e10c08ecb6" />
+
+
+#### 1x carta de terreno - NeoPalhoça
+
+*Efeito
+*Visual:
+
+
 
 
 
