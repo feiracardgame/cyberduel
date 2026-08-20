@@ -28,6 +28,14 @@ class CenaPreload extends Phaser.Scene {
       "assets/cartas/Estagiario_machine_learning.png",
     );
     this.load.image("rh", "assets/cartas/Departamento_RH.png");
+    this.load.image(
+      "beiramarneofloripa",
+      "assets/cartas/Beiramar_Neofloripa.png",
+    );
+    this.load.image("torremontecorp", "assets/cartas/Torre_MonteCorp.png");
+    this.load.image("nexusneofloripa", "assets/cartas/NexusNeoFloripa.png");
+    this.load.image("sugalg", "assets/cartas/Sugestão_algoritmica.png");
+    this.load.image("adv", "assets/cartas/AdvogadoDaRaspCorp.png");
     //fundos
     this.load.image("jogoFundo", "assets/fundo/jogo-fundo.png");
     //musicas

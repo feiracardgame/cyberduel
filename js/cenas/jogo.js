@@ -253,6 +253,9 @@ class CenaJogo extends Phaser.Scene {
         const baseMonstro = POOL_CARTAS_MONSTRO.find((c) =>
           c.nome.toLowerCase().includes(termo),
         );
+        const baseTerreno = POOL_CARTAS_TERRENO.find((c) =>
+          c.nome.toLowerCase().includes(termo),
+        );
 
         if (baseEfeito) {
           carta = new Carta(
@@ -263,6 +266,7 @@ class CenaJogo extends Phaser.Scene {
               nome: baseEfeito.nome,
               descricao: baseEfeito.descricao,
               efeito: baseEfeito.efeito,
+              imagem: baseEfeito.imagem,
             },
           );
         } else if (baseMonstro) {
@@ -279,6 +283,19 @@ class CenaJogo extends Phaser.Scene {
               efeito: baseMonstro.efeito, // <- adicionado
               habilidadeAtiva: baseMonstro.habilidadeAtiva, // <- adicionado
               somAtaque: baseMonstro.somAtaque,
+              booster: baseMonstro.booster,
+            },
+          );
+        } else if (baseTerreno) {
+          carta = new Carta(
+            9000 + Math.floor(Math.random() * 1000),
+            0,
+            "terreno",
+            {
+              nome: baseTerreno.nome,
+              descricao: baseTerreno.descricao,
+              efeitoContinuo: baseTerreno.efeitoContinuo,
+              imagem: baseTerreno.imagem,
             },
           );
         } else {
@@ -503,6 +520,12 @@ class CenaJogo extends Phaser.Scene {
     const total = cartasMao.length;
     if (total === 0) return;
 
+    // Nexus de Dados Global: enquanto esse terreno estiver no campo do
+    // jogador, a mão do inimigo fica revelada — mostra a carta real
+    // (arte/cor + nome + poder), igual ao leque do próprio jogador, em
+    // vez das costas genéricas.
+    const revelada = this.partida.maoRevelada(this.partida.jogador);
+
     const centroX = GW / 2;
     const centroY = Y_MAO_INIMIGO;
     const larguraCarta = 110;
@@ -514,7 +537,7 @@ class CenaJogo extends Phaser.Scene {
         ? espacamentoMax
         : Math.max(espacamentoMin, espacamentoMax - (total - 8) * 5);
 
-    cartasMao.forEach((_carta, indice) => {
+    cartasMao.forEach((carta, indice) => {
       const offset = indice - (total - 1) / 2;
       const posX = centroX + offset * espacamento;
       const posY = centroY - Math.pow(offset, 2) * 4;
@@ -528,11 +551,63 @@ class CenaJogo extends Phaser.Scene {
         0x000000,
         0.3,
       );
-      let costas = this.add
-        .rectangle(0, 0, larguraCarta, alturaCarta, 0x772222)
-        .setStrokeStyle(3, 0xffffff);
 
-      let container = this.add.container(posX, posY, [sombra, costas]);
+      if (!revelada) {
+        let costas = this.add
+          .rectangle(0, 0, larguraCarta, alturaCarta, 0x772222)
+          .setStrokeStyle(3, 0xffffff);
+        let container = this.add.container(posX, posY, [sombra, costas]);
+        container.setAngle(angulo);
+        container.setDepth(-99);
+        return;
+      }
+
+      // --- Carta revelada: mesma lógica visual do leque do jogador ---
+      const corFundo = this.obterCorPorId(carta.id);
+      const ehEfeito = carta.tipo === "efeito";
+      const ehTerreno = carta.tipo === "terreno";
+
+      let fundoCarta = carta.imagem
+        ? this.add
+            .image(0, 0, carta.imagem)
+            .setDisplaySize(larguraCarta, alturaCarta)
+        : this.add.rectangle(0, 0, larguraCarta, alturaCarta, corFundo);
+      let borda = this.add
+        .rectangle(0, 0, larguraCarta, alturaCarta)
+        .setStrokeStyle(3, 0xffffff);
+      let nomeTexto = this.add
+        .text(0, -larguraCarta / 2 + 4, this.truncarTexto(carta.nome, 10), {
+          fontSize: "15px",
+          color: "#ffffff",
+          align: "center",
+          wordWrap: { width: larguraCarta - 10 },
+        })
+        .setOrigin(0.5, 0);
+
+      const filhos = [sombra, fundoCarta, borda, nomeTexto];
+
+      if (!ehEfeito && !ehTerreno) {
+        const [poderBola, poderTexto] = this.criarSeloEstat(
+          0,
+          alturaCarta / 2 - 20,
+          carta.poder,
+          "#ff5555",
+          16,
+        );
+        filhos.push(poderBola, poderTexto);
+      } else if (ehEfeito) {
+        let iconeSelo = this.add
+          .text(0, alturaCarta / 2 - 20, "⚡", { fontSize: "20px" })
+          .setOrigin(0.5);
+        filhos.push(iconeSelo);
+      } else if (ehTerreno) {
+        let iconeSelo = this.add
+          .text(0, alturaCarta / 2 - 20, "⛰", { fontSize: "20px" })
+          .setOrigin(0.5);
+        filhos.push(iconeSelo);
+      }
+
+      let container = this.add.container(posX, posY, filhos);
       container.setAngle(angulo);
       container.setDepth(-99);
     });
@@ -637,6 +712,14 @@ class CenaJogo extends Phaser.Scene {
     // --- Cartas de efeito: nunca vão para o campo. Ao serem soltas,
     // são conjuradas no meio da tela e consumidas na hora. ---
     if (carta.tipo === "efeito") {
+      // Sugestão Algorítmica: precisa que o jogador escolha uma carta do
+      // próprio baralho ANTES de conjurar — abre o seletor primeiro, e só
+      // quando ele escolher é que a carta de efeito é de fato consumida
+      // (ver iniciarSelecaoDeCartaDoBaralho).
+      if (carta.efeito && carta.efeito.tipo === TIPOS_EFEITO.BUSCAR_CARTA_DECK) {
+        this.iniciarSelecaoDeCartaDoBaralho(gameObject, carta);
+        return;
+      }
       this.conjurarCartaDeEfeitoJogador(gameObject, carta);
       this.somPop.play();
       return;
@@ -736,7 +819,7 @@ class CenaJogo extends Phaser.Scene {
   // voa até o meio da tela, cresce, "pulsa" no impacto (momento em que o
   // efeito é de fato aplicado) e então desaparece. Só depois a interface
   // é redesenhada e os alvos afetados recebem a animação de buff/debuff.
-  conjurarCartaDeEfeitoJogador(gameObject, carta) {
+  conjurarCartaDeEfeitoJogador(gameObject, carta, alvoEscolhido = null) {
     this.travado = true;
     this.esconderRodaBotoes();
     this.tweens.killTweensOf(gameObject);
@@ -752,7 +835,10 @@ class CenaJogo extends Phaser.Scene {
       duration: 260,
       ease: "Back.Out",
       onComplete: () => {
-        const resultado = this.partida.jogarCartaEfeitoDoJogador(carta);
+        const resultado = this.partida.jogarCartaEfeitoDoJogador(
+          carta,
+          alvoEscolhido,
+        );
 
         // Pulso no instante em que o efeito é aplicado
         this.tweens.add({
@@ -800,8 +886,11 @@ class CenaJogo extends Phaser.Scene {
       .setOrigin(0.5);
 
     let sombra = this.add.rectangle(8, 10, 260, 340, 0x000000, 0.4);
-    let fundo = this.add
-      .rectangle(0, 0, 260, 340, corFundo)
+    let fundo = carta.imagem
+      ? this.add.image(0, 0, carta.imagem).setDisplaySize(260, 340)
+      : this.add.rectangle(0, 0, 260, 340, corFundo);
+    let moldura = this.add
+      .rectangle(0, 0, 260, 340)
       .setStrokeStyle(6, 0xff4444);
     let nomeTexto = this.add
       .text(0, -95, carta.nome, {
@@ -812,17 +901,15 @@ class CenaJogo extends Phaser.Scene {
         wordWrap: { width: 220 },
       })
       .setOrigin(0.5);
-    let iconeTexto = this.add
-      .text(0, 60, "⚡", { fontSize: "70px" })
-      .setOrigin(0.5);
+    let iconeTexto = carta.imagem
+      ? null
+      : this.add.text(0, 60, "⚡", { fontSize: "70px" }).setOrigin(0.5);
 
-    let container = this.add.container(GW / 2, GH / 2, [
-      rotulo,
-      sombra,
-      fundo,
-      nomeTexto,
-      iconeTexto,
-    ]);
+    let container = this.add.container(
+      GW / 2,
+      GH / 2,
+      [rotulo, sombra, fundo, moldura, nomeTexto, iconeTexto].filter(Boolean),
+    );
     container.setDepth(3500);
     container.setScale(0.3);
     container.setAlpha(0);
@@ -1767,13 +1854,16 @@ class CenaJogo extends Phaser.Scene {
         .setOrigin(0.5, 0);
     }
 
-    const [poderBola, poderTexto] = this.criarSeloEstat(
-      0,
-      Math.round(66 * escala),
-      carta.poder,
-      "#ff5555",
-      Math.round(24 * escala),
-    );
+    const [poderBola, poderTexto] =
+      carta.tipo === "terreno"
+        ? [null, null]
+        : this.criarSeloEstat(
+            0,
+            Math.round(66 * escala),
+            carta.poder,
+            "#ff5555",
+            Math.round(24 * escala),
+          );
     let fundo = carta.imagem
       ? this.add.image(0, 0, carta.imagem).setDisplaySize(CW, CH)
       : this.add.rectangle(0, 0, CW, CH, corFundo);
@@ -1933,6 +2023,7 @@ class CenaJogo extends Phaser.Scene {
         .setOrigin(0.5, 0);
 
       const ehEfeitoLeque = carta.tipo === "efeito";
+      const ehTerrenoLeque = carta.tipo === "terreno";
 
       const filhos = [sombra, fundoCarta, borda, nomeTexto];
 
@@ -1940,7 +2031,7 @@ class CenaJogo extends Phaser.Scene {
       // SELO DE PODER
       // ------------------------------------------------------------------------
 
-      if (!ehEfeitoLeque) {
+      if (!ehEfeitoLeque && !ehTerrenoLeque) {
         const [poderBola, poderTexto] = this.criarSeloEstat(
           0,
           94,
@@ -1957,12 +2048,6 @@ class CenaJogo extends Phaser.Scene {
       // ------------------------------------------------------------------------
 
       if (ehEfeitoLeque) {
-        let iconeGrande = this.add
-          .text(0, 70, "⚡", {
-            fontSize: "70px",
-          })
-          .setOrigin(0.5);
-
         let selo = this.add
           .circle(70, -98, 22, 0x1a1a1a)
           .setStrokeStyle(2, 0xffffff);
@@ -1973,7 +2058,7 @@ class CenaJogo extends Phaser.Scene {
           })
           .setOrigin(0.5);
 
-        filhos.push(iconeGrande, selo, iconeSelo);
+        filhos.push(selo, iconeSelo);
       }
 
       // ------------------------------------------------------------------------
@@ -2544,6 +2629,7 @@ class CenaJogo extends Phaser.Scene {
 
     const corFundo = this.obterCorPorId(carta.id);
     const ehEfeito = carta.tipo === "efeito";
+    const ehTerreno = carta.tipo === "terreno";
 
     const podeMostrarBotaoHabilidade =
       !this.partida.partidaEncerrada &&
@@ -2551,10 +2637,17 @@ class CenaJogo extends Phaser.Scene {
       carta.efeito &&
       (carta.efeito.tipo === TIPOS_EFEITO.ATACAR ||
         carta.efeito.tipo === TIPOS_EFEITO.BUFF_ALIADO_ESCOLHIDO ||
-        carta.efeito.tipo === TIPOS_EFEITO.REDISTRIBUIR_PODER) &&
+        carta.efeito.tipo === TIPOS_EFEITO.REDISTRIBUIR_PODER ||
+        carta.efeito.tipo === TIPOS_EFEITO.DESTRUIR_TERRENO_INIMIGO) &&
       this.partida.jogador.campo.cartas.includes(carta);
+    // Cessar e Desistir (Advogado Corporativo) é 1x por PARTIDA, não 1x
+    // por turno — o botão fica travado pra sempre depois de usado, mesmo
+    // em turnos seguintes (usadaNaPartida nunca reseta).
     const habilidadeJaUsada =
-      podeMostrarBotaoHabilidade && carta.usadaEsteTurno;
+      podeMostrarBotaoHabilidade &&
+      (carta.efeito.tipo === TIPOS_EFEITO.DESTRUIR_TERRENO_INIMIGO
+        ? carta.usadaNaPartida
+        : carta.usadaEsteTurno);
 
     const PAINEL_LARGURA = 840;
     const PAINEL_ALTURA = 1320;
@@ -2581,7 +2674,9 @@ class CenaJogo extends Phaser.Scene {
     } else {
       imagem = this.add.rectangle(0, 0, JANELA_ARTE_W, JANELA_ARTE_H, corFundo);
       iconeImagem = this.add
-        .text(0, 0, ehEfeito ? "⚡" : "⚔", { fontSize: "156px" })
+        .text(0, 0, ehTerreno ? "⛰" : ehEfeito ? "⚡" : "⚔", {
+          fontSize: "156px",
+        })
         .setOrigin(0.5);
     }
     let moldura = this.add
@@ -2609,11 +2704,20 @@ class CenaJogo extends Phaser.Scene {
     const MARGEM_INFERIOR_DESCRICAO = 60;
 
     let etiquetaTipo = this.add
-      .text(0, -615, ehEfeito ? "CARTA DE EFEITO" : "CARTA DE PERSONAGEM", {
-        fontSize: "36px",
-        color: ehEfeito ? "#ffe066" : "#9be7ff",
-        fontStyle: "bold",
-      })
+      .text(
+        0,
+        -615,
+        ehTerreno
+          ? "CARTA DE TERRENO"
+          : ehEfeito
+            ? "CARTA DE EFEITO"
+            : "CARTA DE PERSONAGEM",
+        {
+          fontSize: "36px",
+          color: ehTerreno ? "#a3e635" : ehEfeito ? "#ffe066" : "#9be7ff",
+          fontStyle: "bold",
+        },
+      )
       .setOrigin(0.5);
 
     let nomeTexto = this.add
@@ -2628,7 +2732,7 @@ class CenaJogo extends Phaser.Scene {
 
     const elementosTopo = [containerImagem, etiquetaTipo, nomeTexto];
 
-    if (!ehEfeito) {
+    if (!ehEfeito && !ehTerreno) {
       const [poderBola, poderTexto] = this.criarSeloEstat(
         PODER_X,
         PODER_Y,
@@ -3067,6 +3171,12 @@ class CenaJogo extends Phaser.Scene {
     // etapas, ver iniciarSelecaoDePerdaRedistribuir().
     const ehRedistribuir =
       carta.efeito && carta.efeito.tipo === TIPOS_EFEITO.REDISTRIBUIR_PODER;
+    // Advogado Corporativo (Cessar e Desistir): alvo é um TERRENO no campo
+    // do oponente — reaproveita o mesmo modo de mira de ATACAR (destaca o
+    // campo inimigo), só com um texto de instrução diferente.
+    const ehDestruirTerreno =
+      carta.efeito &&
+      carta.efeito.tipo === TIPOS_EFEITO.DESTRUIR_TERRENO_INIMIGO;
 
     this.travado = true;
     this.esconderRodaBotoes();
@@ -3095,6 +3205,12 @@ class CenaJogo extends Phaser.Scene {
       this.iniciarSelecaoDePerdaRedistribuir(carta, alvos);
     } else if (ehBuffAliado) {
       this.iniciarSelecaoDeAliadoParaHabilidade(carta, alvos);
+    } else if (ehDestruirTerreno) {
+      this.iniciarSelecaoDeAlvo(
+        carta,
+        alvos,
+        "Escolha um terreno inimigo para eliminar",
+      );
     } else {
       this.iniciarSelecaoDeAlvo(carta, alvos);
     }
@@ -3133,7 +3249,7 @@ class CenaJogo extends Phaser.Scene {
   // dentro do alcance da habilidade e espera o jogador tocar num deles.
   // Tocar fora dos alvos destacados cancela a ativação sem gastar o turno
   // da habilidade.
-  iniciarSelecaoDeAlvo(carta, alvos) {
+  iniciarSelecaoDeAlvo(carta, alvos, textoInstrucao = "Escolha um alvo para atacar") {
     const L = this.layout;
     const objetos = [];
 
@@ -3148,7 +3264,7 @@ class CenaJogo extends Phaser.Scene {
     objetos.push(overlay);
 
     let textoInstr = this.add
-      .text(GW / 2, 140, "Escolha um alvo para atacar", {
+      .text(GW / 2, 140, textoInstrucao, {
         fontSize: "40px",
         color: "#ffcc00",
         fontStyle: "bold",
@@ -3209,6 +3325,124 @@ class CenaJogo extends Phaser.Scene {
     }
     this.travado = false;
     this.desenharRodaBotoes();
+  }
+
+  // ---------- SELEÇÃO DE CARTA DO BARALHO (Sugestão Algorítmica) ----------
+  // Mostra as cartas restantes no baralho do jogador (nome + poder) pra ele
+  // escolher qual quer puxar direto pra mão. A carta de efeito arrastada
+  // ainda NÃO foi consumida nesse ponto — só é jogada de fato quando o
+  // jogador confirma uma escolha (ver confirmarEscolhaCartaDoBaralho).
+  // Cancelar (toque fora) devolve a carta arrastada pro leque, sem gastá-la.
+  iniciarSelecaoDeCartaDoBaralho(gameObject, carta) {
+    const deck = this.partida.jogador.deck.cartas;
+
+    if (deck.length === 0) {
+      this.animarRetornoAoLeque(gameObject, true);
+      return;
+    }
+
+    this.travado = true;
+    this.esconderRodaBotoes();
+
+    const objetos = [];
+
+    let overlay = this.add
+      .rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.82)
+      .setDepth(3900)
+      .setInteractive();
+    overlay.on("pointerup", () =>
+      this.cancelarSelecaoDeCartaDoBaralho(gameObject),
+    );
+    objetos.push(overlay);
+
+    let textoInstr = this.add
+      .text(GW / 2, 130, "Escolha uma carta do baralho", {
+        fontSize: "40px",
+        color: "#ffcc00",
+        fontStyle: "bold",
+        stroke: "#000000",
+        strokeThickness: 6,
+      })
+      .setOrigin(0.5)
+      .setDepth(3950);
+    objetos.push(textoInstr);
+
+    let textoCancelar = this.add
+      .text(GW / 2, 185, "(toque fora para cancelar)", {
+        fontSize: "26px",
+        color: "#dddddd",
+      })
+      .setOrigin(0.5)
+      .setDepth(3950);
+    objetos.push(textoCancelar);
+
+    const colunas = 3;
+    const cardW = 300;
+    const cardH = 150;
+    const gapX = 24;
+    const gapY = 24;
+    const inicioX = GW / 2 - ((colunas - 1) * (cardW + gapX)) / 2;
+    const inicioY = 320;
+
+    deck.forEach((cartaDeck, i) => {
+      const col = i % colunas;
+      const linha = Math.floor(i / colunas);
+      const x = inicioX + col * (cardW + gapX);
+      const y = inicioY + linha * (cardH + gapY);
+
+      const corFundo = this.obterCorPorId(cartaDeck.id);
+      let fundo = this.add
+        .rectangle(x, y, cardW, cardH, corFundo)
+        .setStrokeStyle(4, 0xffffff)
+        .setDepth(3950)
+        .setInteractive({ useHandCursor: true });
+      let nomeTxt = this.add
+        .text(x, y - 30, cartaDeck.nome, {
+          fontSize: "24px",
+          color: "#ffffff",
+          fontStyle: "bold",
+          align: "center",
+          wordWrap: { width: cardW - 20 },
+        })
+        .setOrigin(0.5)
+        .setDepth(3951);
+      let poderTxt = this.add
+        .text(
+          x,
+          y + 48,
+          cartaDeck.tipo === "terreno" ? "Terreno" : `PA ${cartaDeck.poder}`,
+          { fontSize: "22px", color: "#ffee88" },
+        )
+        .setOrigin(0.5)
+        .setDepth(3951);
+
+      fundo.on("pointerup", () =>
+        this.confirmarEscolhaCartaDoBaralho(gameObject, carta, i),
+      );
+
+      objetos.push(fundo, nomeTxt, poderTxt);
+    });
+
+    this.objetosSelecaoBaralho = objetos;
+  }
+
+  confirmarEscolhaCartaDoBaralho(gameObject, carta, indiceEscolhido) {
+    if (this.objetosSelecaoBaralho) {
+      this.objetosSelecaoBaralho.forEach((o) => o.destroy());
+      this.objetosSelecaoBaralho = null;
+    }
+    this.desenharRodaBotoes();
+    this.conjurarCartaDeEfeitoJogador(gameObject, carta, indiceEscolhido);
+    this.somPop.play();
+  }
+
+  cancelarSelecaoDeCartaDoBaralho(gameObject) {
+    if (this.objetosSelecaoBaralho) {
+      this.objetosSelecaoBaralho.forEach((o) => o.destroy());
+      this.objetosSelecaoBaralho = null;
+    }
+    this.travado = false;
+    this.animarRetornoAoLeque(gameObject, false);
   }
 
   // Modo de mira da habilidade ativa "Machine Learning" (Estagiário de ML):
@@ -3477,7 +3711,7 @@ class CenaJogo extends Phaser.Scene {
     const objetos = [];
 
     const indicesAliados = this.partida.jogador.campo.cartas
-      .map((c, i) => (c ? i : null))
+      .map((c, i) => (c && c.tipo !== "terreno" ? i : null))
       .filter((i) => i !== null);
 
     this.travado = true;

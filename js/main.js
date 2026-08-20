@@ -46,9 +46,11 @@ class Campo {
     return this.cartas[posicao] === null;
   }
   // Tira cartas com poder 0 do campo (deixa o slot null de novo).
+  // Terrenos ficam de fora: eles sempre têm 0 PA e não "morrem" por isso.
   removerMortas() {
     for (let i = 0; i < this.cartas.length; i++) {
-      if (this.cartas[i] && this.cartas[i].poder <= 0) this.cartas[i] = null;
+      const c = this.cartas[i];
+      if (c && c.tipo !== "terreno" && c.poder <= 0) this.cartas[i] = null;
     }
   }
 }
@@ -68,7 +70,7 @@ function alvosEmRange(posicaoAtacante, rangeH, rangeV, campoOponente) {
   const alvos = [];
   for (let i = 0; i < campoOponente.cartas.length; i++) {
     const carta = campoOponente.cartas[i];
-    if (!carta) continue;
+    if (!carta || carta.tipo === "terreno") continue; // terreno não é alvo de ataque
     const colDiff = Math.abs((i % 5) - colAtk);
     const dist = profAtk + profundidadeLinha(i) - 1;
     if (colDiff <= rangeH - 1 && dist <= rangeV) alvos.push(i);
@@ -127,16 +129,22 @@ class Jogador {
         descricao: base.descricao,
         efeito: base.efeito,
         somAtaque: base.somAtaque,
+        imagem: base.imagem,
       });
       this.deck.adicionarCarta(carta);
     }
 
     // Monstros especiais: cópias fixas (não aleatórias) do pool de
-    // POOL_CARTAS_MONSTRO. Hoje isso é só 2x CryptoAcionistas.
+    // POOL_CARTAS_MONSTRO.
+    const advogadoCorporativo = POOL_CARTAS_MONSTRO.find(
+      (c) => c.nome === "Advogado Corporativo",
+    );
     const copiasMonstroEspecial = [
       POOL_CARTAS_MONSTRO[0],
       POOL_CARTAS_MONSTRO[1],
-    ];
+      advogadoCorporativo,
+      advogadoCorporativo, // 2x Advogado Corporativo
+    ].filter(Boolean);
     const quantidadeMonstrosEspeciais = copiasMonstroEspecial.length;
     copiasMonstroEspecial.forEach((base, i) => {
       const carta = new Carta(2000 + i, base.poder, "monstro", {
@@ -148,13 +156,29 @@ class Jogador {
         efeito: base.efeito,
         habilidadeAtiva: base.habilidadeAtiva,
         somAtaque: base.somAtaque,
+        booster: base.booster,
+      });
+      this.deck.adicionarCarta(carta);
+    });
+
+    // Terrenos: 1 cópia fixa de cada carta do POOL_CARTAS_TERRENO.
+    const quantidadeTerrenos = POOL_CARTAS_TERRENO.length;
+    POOL_CARTAS_TERRENO.forEach((base, i) => {
+      const carta = new Carta(3000 + i, 0, "terreno", {
+        nome: base.nome,
+        descricao: base.descricao,
+        efeitoContinuo: base.efeitoContinuo,
+        imagem: base.imagem,
       });
       this.deck.adicionarCarta(carta);
     });
 
     // Restante do deck: cartas de monstro comuns, sem efeitos
     const quantidadeMonstros =
-      this.deck.limite - quantidadeEfeitos - quantidadeMonstrosEspeciais;
+      this.deck.limite -
+      quantidadeEfeitos -
+      quantidadeMonstrosEspeciais -
+      quantidadeTerrenos;
     for (let i = 0; i < quantidadeMonstros; i++) {
       const carta = new Carta(
         i + 1,
@@ -246,17 +270,66 @@ class Partida {
   // que o efeito passivo de invocação seja aplicado sempre que a jogada for válida.
   jogarCartaDoJogador(carta, posicao, alvoEscolhido = null) {
     const sucesso = this.jogador.jogarCarta(carta, posicao);
-    const afetadas = sucesso
-      ? this.aplicarEfeitoInvocacao(
-          carta,
-          this.jogador,
-          this.inimigo,
-          posicao,
-          alvoEscolhido,
-        )
-      : [];
+    let afetadas = [];
+    if (sucesso && carta.tipo === "terreno") {
+      // Terreno não tem efeito de invocação — só ativa o efeito contínuo,
+      // que fica sendo recalculado do zero (ver resolverEfeitosContinuos).
+      this.resolverEfeitosContinuos(this.jogador);
+    } else if (sucesso) {
+      afetadas = this.aplicarEfeitoInvocacao(
+        carta,
+        this.jogador,
+        this.inimigo,
+        posicao,
+        alvoEscolhido,
+      );
+      this.resolverEfeitosContinuos(this.jogador);
+    }
     if (sucesso) this.registrarHistorico(carta, "jogador");
     return { sucesso, afetadas };
+  }
+
+  // Recalcula, do zero, o bônus de PA que os terrenos do "dono" concedem ao
+  // campo dele. Reverte o bônus aplicado anteriormente (bonusTerreno) e
+  // reaplica com base nos terrenos que estão em campo agora — assim
+  // terrenos que saem de campo, entram, ou se somam não acumulam bônus à
+  // toa. Deve ser chamado sempre que o campo do "dono" mudar (jogar carta,
+  // fim de turno, etc.).
+  resolverEfeitosContinuos(dono) {
+    dono.campo.cartas.forEach((c) => {
+      if (c && c.bonusTerreno) {
+        c.poder -= c.bonusTerreno;
+        c.bonusTerreno = 0;
+      }
+    });
+
+    dono.campo.cartas
+      .filter((c) => c && c.tipo === "terreno" && c.efeitoContinuo)
+      .forEach((terreno) => {
+        const { tipo, valor, booster } = terreno.efeitoContinuo;
+        if (tipo !== TIPOS_EFEITO_CONTINUO.BUFF_CAMPO_CONTINUO) return;
+        dono.campo.cartas.forEach((c) => {
+          if (
+            c &&
+            c.tipo !== "terreno" &&
+            (!booster || c.booster === booster)
+          ) {
+            c.poder += valor;
+            c.bonusTerreno += valor;
+          }
+        });
+      });
+  }
+
+  // true se o "dono" tiver algum terreno com REVELAR_MAO_CONTINUO em campo
+  // — a cena usa isso para decidir se mostra a mão do oponente virada.
+  maoRevelada(dono) {
+    return dono.campo.cartas.some(
+      (c) =>
+        c &&
+        c.tipo === "terreno" &&
+        c.efeitoContinuo?.tipo === TIPOS_EFEITO_CONTINUO.REVELAR_MAO_CONTINUO,
+    );
   }
 
   // Lista os índices do campo inimigo que uma carta ATACAR alcançaria se
@@ -290,7 +363,14 @@ class Partida {
     alvoEscolhido = null,
     alvoSecundario = null,
   ) {
-    if (!carta.efeito || !carta.habilidadeAtiva || carta.usadaEsteTurno)
+    // Cessar e Desistir (Advogado Corporativo) é 1x POR PARTIDA, não 1x
+    // por turno — usa usadaNaPartida em vez de usadaEsteTurno pra decidir
+    // se já foi gasta (usadaNaPartida nunca é resetado em fimTurno()).
+    const jaFoiUsada =
+      carta.efeito && carta.efeito.tipo === TIPOS_EFEITO.DESTRUIR_TERRENO_INIMIGO
+        ? carta.usadaNaPartida
+        : carta.usadaEsteTurno;
+    if (!carta.efeito || !carta.habilidadeAtiva || jaFoiUsada)
       return { sucesso: false, afetadas: [] };
 
     const posicao = dono.campo.cartas.indexOf(carta);
@@ -334,7 +414,8 @@ class Partida {
         alvoEscolhido !== null &&
         alvoEscolhido !== undefined &&
         alvoEscolhido !== posicao &&
-        dono.campo.cartas[alvoEscolhido];
+        dono.campo.cartas[alvoEscolhido] &&
+        dono.campo.cartas[alvoEscolhido].tipo !== "terreno";
       if (!alvoValido) return { sucesso: false, afetadas: [] };
 
       const { valor, custoProprio } = carta.efeito;
@@ -360,12 +441,14 @@ class Partida {
       const alvoPerdaValido =
         alvoEscolhido !== null &&
         alvoEscolhido !== undefined &&
-        dono.campo.cartas[alvoEscolhido];
+        dono.campo.cartas[alvoEscolhido] &&
+        dono.campo.cartas[alvoEscolhido].tipo !== "terreno";
       const alvoGanhoValido =
         alvoSecundario !== null &&
         alvoSecundario !== undefined &&
         alvoSecundario !== alvoEscolhido &&
-        dono.campo.cartas[alvoSecundario];
+        dono.campo.cartas[alvoSecundario] &&
+        dono.campo.cartas[alvoSecundario].tipo !== "terreno";
       if (!alvoPerdaValido || !alvoGanhoValido)
         return { sucesso: false, afetadas: [] };
 
@@ -384,6 +467,29 @@ class Partida {
 
       carta.usadaEsteTurno = true;
       return { sucesso: true, afetadas };
+    }
+
+    if (carta.efeito.tipo === TIPOS_EFEITO.DESTRUIR_TERRENO_INIMIGO) {
+      // Cessar e Desistir: alvo tem que ser um terreno no campo do
+      // oponente. Sem alvo válido, a habilidade não é gasta.
+      const alvoValido =
+        alvoEscolhido !== null &&
+        alvoEscolhido !== undefined &&
+        oponente.campo.cartas[alvoEscolhido] &&
+        oponente.campo.cartas[alvoEscolhido].tipo === "terreno";
+      if (!alvoValido) return { sucesso: false, afetadas: [] };
+
+      const terrenoDestruido = oponente.campo.cartas[alvoEscolhido];
+      oponente.campo.cartas[alvoEscolhido] = null;
+
+      // Bônus contínuo do terreno destruído deixa de existir — recalcula
+      // do zero pro lado do oponente (mesmo mecanismo do bug corrigido
+      // antes: garante que o campo inimigo perca o buff na hora).
+      this.resolverEfeitosContinuos(oponente);
+
+      carta.usadaNaPartida = true; // 1x por PARTIDA: não reseta em fimTurno()
+      carta.usadaEsteTurno = true; // também trava o botão neste turno, por consistência visual
+      return { sucesso: true, afetadas: [], terrenoDestruido };
     }
 
     return { sucesso: false, afetadas: [] };
@@ -411,7 +517,7 @@ class Partida {
     if (carta.efeito.tipo === TIPOS_EFEITO.BUFF_ALIADO_ESCOLHIDO) {
       const indices = [];
       dono.campo.cartas.forEach((c, i) => {
-        if (c && i !== posicao) indices.push(i);
+        if (c && i !== posicao && c.tipo !== "terreno") indices.push(i);
       });
       return indices;
     }
@@ -422,7 +528,15 @@ class Partida {
       // é quem cuida de excluir o primeiro alvo escolhido da segunda lista.
       const indices = [];
       dono.campo.cartas.forEach((c, i) => {
-        if (c) indices.push(i);
+        if (c && c.tipo !== "terreno") indices.push(i);
+      });
+      return indices;
+    }
+
+    if (carta.efeito.tipo === TIPOS_EFEITO.DESTRUIR_TERRENO_INIMIGO) {
+      const indices = [];
+      oponente.campo.cartas.forEach((c, i) => {
+        if (c && c.tipo === "terreno") indices.push(i);
       });
       return indices;
     }
@@ -432,10 +546,18 @@ class Partida {
 
   // Ponto único de entrada para o jogador conjurar uma carta de efeito:
   // ela nunca vai para o campo, só é consumida e aplica sua passiva.
-  jogarCartaEfeitoDoJogador(carta) {
+  // alvoEscolhido só é usado pela Sugestão Algorítmica (BUSCAR_CARTA_DECK):
+  // é o índice, no baralho do jogador, da carta escolhida pra ir pra mão.
+  jogarCartaEfeitoDoJogador(carta, alvoEscolhido = null) {
     const sucesso = this.jogador.jogarCartaEfeito(carta);
     const afetadas = sucesso
-      ? this.aplicarEfeitoInvocacao(carta, this.jogador, this.inimigo)
+      ? this.aplicarEfeitoInvocacao(
+          carta,
+          this.jogador,
+          this.inimigo,
+          null,
+          alvoEscolhido,
+        )
       : [];
     if (sucesso) this.registrarHistorico(carta, "jogador");
     return { sucesso, afetadas };
@@ -462,7 +584,7 @@ class Partida {
     switch (tipo) {
       case TIPOS_EFEITO.BUFF_ALIADOS:
         dono.campo.cartas.forEach((c) => {
-          if (c && c !== carta) {
+          if (c && c !== carta && c.tipo !== "terreno") {
             c.buff(valor);
             afetadas.push({ carta: c, delta: valor });
           }
@@ -470,7 +592,7 @@ class Partida {
         break;
       case TIPOS_EFEITO.DEBUFF_INIMIGOS:
         oponente.campo.cartas.forEach((c) => {
-          if (c) {
+          if (c && c.tipo !== "terreno") {
             c.buff(-valor);
             afetadas.push({ carta: c, delta: -valor });
           }
@@ -490,19 +612,36 @@ class Partida {
         // alvoEscolhido é um índice no campo do dono (Venda Casada permite
         // escolher qualquer aliada em campo, inclusive esta mesma carta,
         // que nesse momento já está em "posicao"). Sem escolha válida,
-        // cai no padrão de buffar a própria carta recém-invocada.
+        // cai no padrão de buffar a própria carta recém-invocada. Terreno
+        // nunca é alvo válido (não tem PA).
         // (Cartas com habilidadeAtiva=true, como o Estagiário de ML, nunca
         // chegam aqui — ver o early return de habilidadeAtiva acima.)
         const idxAlvo =
           alvoEscolhido !== null &&
           alvoEscolhido !== undefined &&
-          dono.campo.cartas[alvoEscolhido]
+          dono.campo.cartas[alvoEscolhido] &&
+          dono.campo.cartas[alvoEscolhido].tipo !== "terreno"
             ? alvoEscolhido
             : posicao;
         const alvo = dono.campo.cartas[idxAlvo];
-        if (alvo) {
+        if (alvo && alvo.tipo !== "terreno") {
           alvo.buff(valor);
           afetadas.push({ carta: alvo, delta: valor });
+        }
+        break;
+      }
+      case TIPOS_EFEITO.BUSCAR_CARTA_DECK: {
+        // Sugestão Algorítmica: alvoEscolhido é o índice, no baralho do
+        // dono, da carta escolhida. Sem escolha válida, o efeito não faz
+        // nada (a carta ainda é consumida normalmente ao ser conjurada).
+        if (
+          alvoEscolhido !== null &&
+          alvoEscolhido !== undefined &&
+          dono.deck.cartas[alvoEscolhido]
+        ) {
+          const [comprada] = dono.deck.cartas.splice(alvoEscolhido, 1);
+          dono.mao.adicionarCarta(comprada);
+          dono.cartasRecemCompradas.push(comprada);
         }
         break;
       }
@@ -605,6 +744,35 @@ class Partida {
       });
     });
 
+    // Recupera dano de cartas aliadas enquanto um terreno Beira-mar (ou
+    // qualquer outro RECUPERAR_DANO_CONTINUO) estiver em campo — nunca
+    // passa do PA original da carta (poderBase).
+    [this.jogador, this.inimigo].forEach((dono) => {
+      const terrenos = dono.campo.cartas.filter(
+        (c) =>
+          c &&
+          c.tipo === "terreno" &&
+          c.efeitoContinuo?.tipo ===
+            TIPOS_EFEITO_CONTINUO.RECUPERAR_DANO_CONTINUO,
+      );
+      if (terrenos.length === 0) return;
+      const valor = Math.max(...terrenos.map((t) => t.efeitoContinuo.valor));
+      dono.campo.cartas.forEach((c) => {
+        if (c && c.tipo !== "terreno" && c.poder < c.poderBase) {
+          const novoPoder = Math.min(c.poderBase, c.poder + valor);
+          const delta = novoPoder - c.poder;
+          c.poder = novoPoder;
+          if (delta > 0) afetadas.push({ carta: c, delta });
+        }
+      });
+    });
+
+    // Reavalia bônus contínuos dos terrenos (Torre MonteCorp etc.) antes de
+    // remover mortas, já que o buff/recuperação pode ter tirado uma carta
+    // da zona de "morta".
+    this.resolverEfeitosContinuos(this.jogador);
+    this.resolverEfeitosContinuos(this.inimigo);
+
     this.jogador.campo.removerMortas();
     this.inimigo.campo.removerMortas();
     return afetadas;
@@ -620,10 +788,19 @@ class Partida {
     if (carta.tipo === "efeito") {
       const sucesso = this.inimigo.jogarCartaEfeito(carta);
       if (sucesso) {
+        // Sugestão Algorítmica: IA escolhe uma carta aleatória do próprio
+        // baralho (o jogador escolhe manualmente; a IA não tem preferência).
+        const alvoDeckIA =
+          carta.efeito?.tipo === TIPOS_EFEITO.BUSCAR_CARTA_DECK &&
+          this.inimigo.deck.cartas.length > 0
+            ? Math.floor(Math.random() * this.inimigo.deck.cartas.length)
+            : null;
         const afetadas = this.aplicarEfeitoInvocacao(
           carta,
           this.inimigo,
           this.jogador,
+          null,
+          alvoDeckIA,
         );
         this.efeitoInimigoTurno = { carta, afetadas };
         this.registrarHistorico(carta, "inimigo");
@@ -634,15 +811,26 @@ class Partida {
     for (let i = 0; i < 10; i++) {
       if (this.inimigo.campo.temEspaco(i)) {
         const sucesso = this.inimigo.jogarCarta(carta, i);
-        if (sucesso) this.registrarHistorico(carta, "inimigo");
+        if (sucesso) {
+          this.registrarHistorico(carta, "inimigo");
+          if (carta.tipo === "terreno")
+            this.resolverEfeitosContinuos(this.inimigo);
+        }
         break;
       }
     }
 
     // IA também ativa habilidades de ataque disponíveis em campo (1x cada).
     this.inimigo.campo.cartas.forEach((c) => {
-      if (c && c.habilidadeAtiva && !c.usadaEsteTurno) {
-        this.ativarHabilidade(c, this.inimigo, this.jogador);
+      if (c && c.habilidadeAtiva && !c.usadaEsteTurno && !c.usadaNaPartida) {
+        // Cessar e Desistir (Advogado Corporativo): a IA precisa de um
+        // alvo explícito (terreno do jogador) — sem isso ativarHabilidade
+        // sempre falharia em silêncio, então mira no primeiro disponível.
+        const alvoTerrenoIA =
+          c.efeito?.tipo === TIPOS_EFEITO.DESTRUIR_TERRENO_INIMIGO
+            ? this.alvosParaHabilidadeEmCampo(c, this.inimigo, this.jogador)[0]
+            : null;
+        this.ativarHabilidade(c, this.inimigo, this.jogador, alvoTerrenoIA);
       }
     });
   }

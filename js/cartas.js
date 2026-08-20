@@ -26,6 +26,8 @@ const TIPOS_EFEITO = {
   ATACAR: "atacar", // dano em alvo(s) inimigo(s) dentro de um range H/V a partir da posição
   BUFF_ALIADO_ESCOLHIDO: "buff_aliado_escolhido", // dono escolhe UMA carta aliada em campo (pode ser esta mesma) pra ganhar poder
   REDISTRIBUIR_PODER: "redistribuir_poder", // dono escolhe DUAS cartas aliadas distintas em campo: uma perde poder, a outra ganha
+  DESTRUIR_TERRENO_INIMIGO: "destruir_terreno_inimigo", // habilidade ativa, 1x POR PARTIDA (não reseta por turno): elimina um terreno inimigo escolhido
+  BUSCAR_CARTA_DECK: "buscar_carta_deck", // ao conjurar: dono escolhe uma carta do próprio baralho e a compra direto pra mão
 };
 
 // Gera a frase descritiva de um efeito, usada na visualização detalhada da carta
@@ -48,10 +50,82 @@ function descreverEfeito(efeito) {
         : `Ao ser invocada: escolha uma carta aliada em campo (pode ser esta) para ganhar +${efeito.valor} de poder.`;
     case TIPOS_EFEITO.REDISTRIBUIR_PODER:
       return `Habilidade ativa (1x por turno, em campo): escolha uma carta aliada para perder ${efeito.perda} de poder, e outra carta aliada para ganhar +${efeito.ganho} de poder.`;
+    case TIPOS_EFEITO.DESTRUIR_TERRENO_INIMIGO:
+      return `Habilidade ativa (1x por PARTIDA, em campo): escolha um terreno inimigo para ser eliminado.`;
+    case TIPOS_EFEITO.BUSCAR_CARTA_DECK:
+      return `Ao ser conjurada: escolha uma carta do seu baralho para puxar diretamente para sua mão.`;
     default:
       return "";
   }
 }
+
+// ---------- SISTEMA DE EFEITOS DE TERRENO (CONTÍNUOS, ENQUANTO EM CAMPO) ----------
+//
+// Cartas de terreno: ocupam um espaço normal do campo, têm poder sempre 0
+// (não têm PA, não atacam nem podem ser atacadas) e seu efeito fica ativo
+// continuamente enquanto a carta estiver em campo (recalculado a cada
+// mudança relevante por Partida.resolverEfeitosContinuos(), em main.js).
+
+const TIPOS_EFEITO_CONTINUO = {
+  BUFF_CAMPO_CONTINUO: "buff_campo_continuo", // enquanto em campo: cartas aliadas (de um booster, se definido) ganham +poder
+  RECUPERAR_DANO_CONTINUO: "recuperar_dano_continuo", // enquanto em campo: aliadas que perderam PA recuperam um pouco ao fim de cada turno
+  REVELAR_MAO_CONTINUO: "revelar_mao_continuo", // enquanto em campo: mão do oponente fica revelada
+};
+
+function descreverEfeitoContinuo(efeito) {
+  if (!efeito) return "";
+  switch (efeito.tipo) {
+    case TIPOS_EFEITO_CONTINUO.BUFF_CAMPO_CONTINUO:
+      return `Enquanto estiver em campo: cartas aliadas${efeito.booster ? ` da ${efeito.booster}` : ""} ganham +${efeito.valor} de PA.`;
+    case TIPOS_EFEITO_CONTINUO.RECUPERAR_DANO_CONTINUO:
+      return `Enquanto estiver em campo: cartas aliadas que sofreram dano recuperam +${efeito.valor} de PA ao final de cada turno.`;
+    case TIPOS_EFEITO_CONTINUO.REVELAR_MAO_CONTINUO:
+      return `Enquanto estiver em campo: a mão do oponente permanece revelada.`;
+    default:
+      return "";
+  }
+}
+
+// ----------------------------------------------------------------------------
+// POOL DE CARTAS DE TERRENO
+// ----------------------------------------------------------------------------
+// Molde igual aos outros pools: sem id (gerado ao montar deck) e sem "poder"
+// (terrenos são sempre 0 PA — ver classe Carta).
+// ----------------------------------------------------------------------------
+const POOL_CARTAS_TERRENO = [
+  {
+    nome: "Torre MonteCorp",
+    descricao:
+      "Recriada no mundo virtual com mais de quatro quilômetros de altura, a Torre MonteCorp permanece como um lembrete constante de que, se a Raspcorp quisesse conquistar os céus, provavelmente encontraria uma forma de monetizá-los.",
+    imagem: "torremontecorp",
+    efeitoContinuo: {
+      tipo: TIPOS_EFEITO_CONTINUO.BUFF_CAMPO_CONTINUO,
+      valor: 2,
+      booster: "raspcorp",
+    },
+  },
+  {
+    nome: "Beira-mar norte de NeoFloripa",
+    descricao:
+      "Depois que a verdadeira Floripa sucumbiu ao aumento do nível do mar, os nostálgicos decidiram recriá-la no mundo virtual. Ironicamente, continua sendo o jeito mais acessível de morar na ilha. O trânsito, contudo, nem aqui foi resolvido.",
+    imagem: "beiramarneofloripa",
+    efeitoContinuo: {
+      tipo: TIPOS_EFEITO_CONTINUO.RECUPERAR_DANO_CONTINUO,
+      valor: 1,
+    },
+  },
+  {
+    nome: "Nexus de Dados Global",
+    descricao:
+      "Responsável por armazenar aproximadamente 99% dos dados da humanidade. Sua destruição foi comparada à queima da Biblioteca de Alexandria, caso ela armazenasse apenas informações pessoais obtidas por meios semilegais. Ainda bem que tudo é salvo na nuvem atualmente.",
+    imagem: "nexusneofloripa",
+    efeitoContinuo: {
+      tipo: TIPOS_EFEITO_CONTINUO.REVELAR_MAO_CONTINUO,
+    },
+  },
+
+  // Adicione novas cartas de terreno aqui, seguindo o mesmo formato acima.
+];
 
 // ---------- SISTEMA DE EFEITOS DE TURNO (A CADA FIM DE TURNO) ----------
 //
@@ -92,6 +166,7 @@ const POOL_CARTAS_MONSTRO = [
     descricao:
       "Após a implementação das moedas digitais em escala global, os CryptoAcionistas rapidamente se tornaram a nova tendência. Defensores ferrenhos da sustentabilidade, continuam trabalhando diariamente para maximizar o ROI, elevar o valuation e garantir um futuro melhor para as próximas gerações de suas CryptoWallets.",
     imagem: "cryptoacionistas",
+    booster: "raspcorp",
     // Ponto da imagem que fica centralizado dentro do retângulo de arte
     // (0 a 1, em cada eixo — 0.5/0.5 é o centro da imagem, que é o
     // padrão se você não definir "foco"). Como o retângulo de exibição é
@@ -116,6 +191,7 @@ const POOL_CARTAS_MONSTRO = [
     descricao:
       "Quando surgiram os primeiros bio-androides, foi-se percebido que seria possível criar um funcionário que juntaria a capacidade de convencimento de um ser humano e a não necessidade de descanso de um robô, resultando em um vendedor duplamente capacitado, com duas vezes menos salário e três vezes menos alma.",
     imagem: "cybervendedor",
+    booster: "raspcorp",
     foco: { x: 0.5, y: 0.4 },
     efeito: {
       tipo: TIPOS_EFEITO.BUFF_ALIADO_ESCOLHIDO,
@@ -131,6 +207,7 @@ const POOL_CARTAS_MONSTRO = [
     descricao:
       "Uma carta de campo com habilidade ativa: mira e dispara num alvo à sua escolha.",
     imagem: "dipsp",
+    booster: "raspcorp",
     efeito: {
       tipo: TIPOS_EFEITO.ATACAR,
       valor: 3,
@@ -148,6 +225,7 @@ const POOL_CARTAS_MONSTRO = [
     descricao:
       "A Unidade Cibernética de Combate, apelidada de Juggernaut, é responsável pela defesa e controle de NeoFloripa. Afinal, a liberdade é grande, mas não infinita. Desde sua implementação, a CyberCidade aboliu os firewalls: agora as ameaças são pessoalmente confrontadas.",
     imagem: "juggernaut",
+    booster: "raspcorp",
     efeito: {
       tipo: TIPOS_EFEITO.ATACAR,
       valor: 5,
@@ -169,6 +247,7 @@ const POOL_CARTAS_MONSTRO = [
     descricao:
       "As árduas horas dedicadas ao treinamento e desenvolvimento de IAs capazes de substituir o trabalho humano demonstram que, apesar de ser apenas um estagiário, seu trabalho é vital para o futuro da empresa. O RPH estima que ele continuará sendo lembrado por aproximadamente três semanas após sua substituição.",
     imagem: "estagiarioml",
+    booster: "raspcorp",
     efeito: {
       tipo: TIPOS_EFEITO.BUFF_ALIADO_ESCOLHIDO,
       valor: 2,
@@ -185,12 +264,28 @@ const POOL_CARTAS_MONSTRO = [
     descricao:
       "Atualmente, funcionários humanos e máquinas compartilham os mesmos benefícios corporativos. Nenhum dos dois está particularmente satisfeito com isso. O RH garante que todas as reclamações sejam igualmente ignoradas.",
     imagem: "rh", // arte ainda não adicionada (ver Cartas_e_boosters.md) — cai no retângulo placeholder
+    booster: "raspcorp",
     efeito: {
       tipo: TIPOS_EFEITO.REDISTRIBUIR_PODER,
       perda: 2, // Reestruturação Interna: uma carta aliada escolhida perde 2 PA...
       ganho: 3, // ...e OUTRA carta aliada escolhida ganha 3 PA (dois alvos distintos)
     },
     habilidadeAtiva: true, // Reestruturação Interna: não dispara ao invocar — ativa em campo, 1x por turno
+  },
+
+  {
+    nome: "Advogado Corporativo",
+    poder: 5,
+    descricao:
+      "Sua principal função é garantir que a Raspcorp permaneça em conformidade com a legislação vigente. Felizmente, ambas costumam ser atualizadas ao mesmo tempo. Ao longo de sua carreira, participou da aquisição de sete empresas, três governos e um incidente que permanece sob sigilo judicial.",
+    // Provisória: reaproveita a arte do Gestor de RH até ter uma própria.
+    imagem: "adv",
+    booster: "raspcorp",
+    efeito: {
+      tipo: TIPOS_EFEITO.DESTRUIR_TERRENO_INIMIGO,
+    },
+    habilidadeAtiva: true, // Cessar e Desistir: não dispara ao invocar — ativa em campo, mas só 1x POR PARTIDA
+    // (não reseta a cada turno como as outras habilidades ativas — ver Carta.usadaNaPartida e Partida.ativarHabilidade)
   },
 
   // Adicione novas cartas de monstro especiais aqui, seguindo o mesmo
@@ -254,6 +349,16 @@ const POOL_CARTAS_EFEITO = [
     efeito: { tipo: TIPOS_EFEITO.DEBUFF_INIMIGOS, valor: 3 },
   },
 
+  {
+    nome: "Sugestão Algorítmica",
+    poder: 1,
+    descricao:
+      "Após analisar seu histórico de compras, pesquisas e sonhos recorrentes, o algoritmo preparou uma sugestão especialmente para você. Foi você que aceitou todos os cookies...",
+    // Provisória: reaproveita a arte do Gestor de RH até ter uma própria.
+    imagem: "sugalg",
+    efeito: { tipo: TIPOS_EFEITO.BUSCAR_CARTA_DECK },
+  },
+
   // Adicione novas cartas de efeito aqui, seguindo o mesmo formato acima.
 ];
 
@@ -263,17 +368,23 @@ const POOL_CARTAS_EFEITO = [
 class Carta {
   constructor(id, poder, tipo, opcoes = {}) {
     this.id = id;
-    this.poder = poder;
-    this.tipo = tipo; // "monstro" ou "efeito"
+    // Terreno: ocupa espaço normal do campo, mas nunca tem PA.
+    this.poder = tipo === "terreno" ? 0 : poder;
+    this.tipo = tipo; // "monstro", "efeito" ou "terreno"
     this.nome = opcoes.nome || `Unidade #${id}`;
     this.descricaoFlavor = opcoes.descricao || "";
     this.efeito = opcoes.efeito || null; // efeito passivo, disparado só ao ser invocada
     this.efeitoTurno = opcoes.efeitoTurno || null; // efeito passivo, reavaliado a cada fim de turno em campo
+    this.efeitoContinuo = opcoes.efeitoContinuo || null; // terreno: efeito ativo continuamente enquanto em campo
+    this.booster = opcoes.booster || null; // ex: "raspcorp" — usado por efeitos contínuos que filtram por booster
     this.imagem = opcoes.imagem || null; // chave da textura carregada no preload (ver CenaJogo)
     this.foco = opcoes.foco || { x: 0.5, y: 0.5 }; // ponto da imagem centralizado no recorte (ver POOL_CARTAS_MONSTRO)
     this.somAtaque = opcoes.somAtaque || null; // chave do som (preload) tocado quando esta carta ataca
     this.habilidadeAtiva = !!opcoes.habilidadeAtiva; // true = ataque é ativado manualmente em campo, não ao invocar
     this.usadaEsteTurno = false; // trava a habilidade ativa até o próximo turno
+    this.usadaNaPartida = false; // trava habilidades "1x por jogo" (ex: Cessar e Desistir) até o fim da partida, sem resetar por turno
+    this.poderBase = this.poder; // teto de recuperação (ex: terreno Beira-mar) e base p/ bônus de terreno
+    this.bonusTerreno = 0; // soma de bônus contínuos aplicados por terrenos (revertida/reaplicada a cada recálculo)
   }
 
   mostrar() {
@@ -293,6 +404,8 @@ class Carta {
     if (textoEfeito) partes.push(textoEfeito);
     const textoEfeitoTurno = descreverEfeitoTurno(this.efeitoTurno);
     if (textoEfeitoTurno) partes.push(textoEfeitoTurno);
+    const textoEfeitoContinuo = descreverEfeitoContinuo(this.efeitoContinuo);
+    if (textoEfeitoContinuo) partes.push(textoEfeitoContinuo);
     if (partes.length === 0)
       partes.push("Uma unidade de combate padrão, sem habilidades especiais.");
     return partes.join(" ");
