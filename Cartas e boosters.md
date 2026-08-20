@@ -718,8 +718,11 @@ Faz tipo o Will Smith com a mão no rosto como se tivesse cansado e o Macaco com
 
 #### 1x carta de terreno - NeoPalhoça
 
-*Efeito
-*Visual:
+*Descrição: Para combater o alto custo de vida de NeoFloripa, a solução encontrada foi criar NeoPalhoça: uma região barata, distante e convenientemente localizada longe de tudo que importa. A simulação foi tão fiel que seus moradores enfrentam diariamente trânsito, longos deslocamentos e falta de infraestrutura. A única novidade foi o vulcão.
+
+*Efeito: Todas as cartas do Sindicato ganham +2 de PA
+
+*Visual: Faz a palhoça cyberpunk com um vulcaozao pique o natural disaster, só não faz ela alagada pfv.
 
 
 
