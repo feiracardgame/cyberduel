@@ -139,11 +139,22 @@ class Jogador {
     const advogadoCorporativo = POOL_CARTAS_MONSTRO.find(
       (c) => c.nome === "Advogado Corporativo",
     );
+    const raspclay = POOL_CARTAS_MONSTRO.find(
+      (c) => c.nome === "RaspClay MonteCorp",
+    );
+    // EchoSsystem (booster 2) — primeiras 3 cartas do booster no jogo.
+    const oTigre = POOL_CARTAS_MONSTRO.find((c) => c.nome === "O Tigre");
+    const aAranha = POOL_CARTAS_MONSTRO.find((c) => c.nome === "A Aranha");
+    const oBoi = POOL_CARTAS_MONSTRO.find((c) => c.nome === "O Boi");
     const copiasMonstroEspecial = [
       POOL_CARTAS_MONSTRO[0],
       POOL_CARTAS_MONSTRO[1],
       advogadoCorporativo,
       advogadoCorporativo, // 2x Advogado Corporativo
+      raspclay, // 1x só — carta lendária, mais rara que as demais
+      oTigre,
+      aAranha,
+      oBoi, // 1x só — carta lendária, mais rara que as demais
     ].filter(Boolean);
     const quantidadeMonstrosEspeciais = copiasMonstroEspecial.length;
     copiasMonstroEspecial.forEach((base, i) => {
@@ -157,6 +168,7 @@ class Jogador {
         habilidadeAtiva: base.habilidadeAtiva,
         somAtaque: base.somAtaque,
         booster: base.booster,
+        lendaria: base.lendaria,
       });
       this.deck.adicionarCarta(carta);
     });
@@ -492,6 +504,91 @@ class Partida {
       return { sucesso: true, afetadas: [], terrenoDestruido };
     }
 
+    if (carta.efeito.tipo === TIPOS_EFEITO.RESETAR_PODER) {
+      // Novo Começo (O Boi): alvo tem que ser uma carta aliada em campo
+      // (terrenos não têm poder, então nunca são alvo válido).
+      const alvoValido =
+        alvoEscolhido !== null &&
+        alvoEscolhido !== undefined &&
+        dono.campo.cartas[alvoEscolhido] &&
+        dono.campo.cartas[alvoEscolhido].tipo !== "terreno";
+      if (!alvoValido) return { sucesso: false, afetadas: [] };
+
+      const alvo = dono.campo.cartas[alvoEscolhido];
+      const poderAntes = alvo.poder;
+      alvo.poder = alvo.poderBase;
+      // Zera o bônus de terreno acumulado e deixa resolverEfeitosContinuos
+      // recalcular do zero — evita que o próximo recálculo subtraia um
+      // bônus que este reset já descartou.
+      alvo.bonusTerreno = 0;
+      this.resolverEfeitosContinuos(dono);
+
+      carta.usadaEsteTurno = true;
+      return {
+        sucesso: true,
+        afetadas: [{ carta: alvo, delta: alvo.poder - poderAntes }],
+      };
+    }
+
+    if (carta.efeito.tipo === TIPOS_EFEITO.ATACAR_DOIS_ALVOS) {
+      // Garra de aço (O Tigre): alvoEscolhido e alvoSecundario são dois
+      // índices distintos no campo do oponente, ambos dentro do range —
+      // se só um alvo válido foi escolhido (ex: só havia 1 em alcance), o
+      // efeito ainda se aplica a esse um, sem gastar o segundo.
+      const { valor, rangeH, rangeV } = carta.efeito;
+      const possiveis = alvosEmRange(posicao, rangeH, rangeV, oponente.campo);
+      if (!possiveis.includes(alvoEscolhido))
+        return { sucesso: false, afetadas: [] };
+
+      const indices = [alvoEscolhido];
+      if (
+        alvoSecundario !== null &&
+        alvoSecundario !== undefined &&
+        alvoSecundario !== alvoEscolhido &&
+        possiveis.includes(alvoSecundario)
+      ) {
+        indices.push(alvoSecundario);
+      }
+
+      const afetadas = [];
+      indices.forEach((i) => {
+        const c = oponente.campo.cartas[i];
+        c.buff(-valor);
+        afetadas.push({ carta: c, delta: -valor });
+      });
+      oponente.campo.removerMortas();
+
+      carta.usadaEsteTurno = true;
+      return { sucesso: true, afetadas };
+    }
+
+    if (carta.efeito.tipo === TIPOS_EFEITO.OVERRIDE) {
+      // Override (A Aranha): captura de fato a carta-alvo pro campo do
+      // dono, num slot livre — ver nota em POOL_CARTAS_MONSTRO/cartas.js
+      // sobre por que essa é a versão simplificada do efeito original.
+      const alvoValido =
+        alvoEscolhido !== null &&
+        alvoEscolhido !== undefined &&
+        oponente.campo.cartas[alvoEscolhido] &&
+        oponente.campo.cartas[alvoEscolhido].tipo !== "terreno" &&
+        oponente.campo.cartas[alvoEscolhido].poder < carta.poder;
+      const slotLivre = dono.campo.cartas.findIndex((c) => c === null);
+      if (!alvoValido || slotLivre === -1)
+        return { sucesso: false, afetadas: [] };
+
+      const capturada = oponente.campo.cartas[alvoEscolhido];
+      oponente.campo.cartas[alvoEscolhido] = null;
+      dono.campo.cartas[slotLivre] = capturada;
+
+      // Bônus de terreno depende de quem está em cada campo agora —
+      // recalcula os dois lados do zero.
+      this.resolverEfeitosContinuos(oponente);
+      this.resolverEfeitosContinuos(dono);
+
+      carta.usadaEsteTurno = true;
+      return { sucesso: true, afetadas: [], capturada };
+    }
+
     return { sucesso: false, afetadas: [] };
   }
 
@@ -537,6 +634,42 @@ class Partida {
       const indices = [];
       oponente.campo.cartas.forEach((c, i) => {
         if (c && c.tipo === "terreno") indices.push(i);
+      });
+      return indices;
+    }
+
+    if (carta.efeito.tipo === TIPOS_EFEITO.RESETAR_PODER) {
+      // Novo Começo (O Boi): alvo é uma carta ALIADA em campo (pode ser o
+      // próprio Boi, embora ele normalmente não tenha bônus/reduções pra
+      // reverter).
+      const indices = [];
+      dono.campo.cartas.forEach((c, i) => {
+        if (c && c.tipo !== "terreno") indices.push(i);
+      });
+      return indices;
+    }
+
+    if (carta.efeito.tipo === TIPOS_EFEITO.ATACAR_DOIS_ALVOS) {
+      // Garra de aço (O Tigre): mesmo range de ATACAR — a diferença (dois
+      // alvos em vez de um) é resolvida pela UI em duas etapas, ver
+      // iniciarSelecaoDoPrimeiroAlvoDuplo() em jogo.js.
+      return alvosEmRange(
+        posicao,
+        carta.efeito.rangeH,
+        carta.efeito.rangeV,
+        oponente.campo,
+      );
+    }
+
+    if (carta.efeito.tipo === TIPOS_EFEITO.OVERRIDE) {
+      // Override (A Aranha): só cartas inimigas com poder MENOR que o dela
+      // agora, e só se houver espaço livre no campo do dono pra capturar.
+      if (dono.campo.cartas.every((c) => c !== null)) return [];
+      const indices = [];
+      oponente.campo.cartas.forEach((c, i) => {
+        if (c && c.tipo !== "terreno" && c.poder < carta.poder) {
+          indices.push(i);
+        }
       });
       return indices;
     }
@@ -645,9 +778,60 @@ class Partida {
         }
         break;
       }
+      case TIPOS_EFEITO.ABSORVER_ALIADOS: {
+        // Potencialização de Capital (RaspClay MonteCorp): alvoEscolhido
+        // aqui é um ARRAY de índices no campo do dono (não um índice só,
+        // como nos outros efeitos) — já filtrados pela UI (jogo.js) como
+        // aliadas elegíveis (nível baixo/médio, ver alvosParaAbsorverAliados
+        // abaixo) e limitados a efeito.maxAlvos. Cada aliada escolhida é
+        // zerada (buff(-poder), mesmo truque usado em DEBUFF_INIMIGOS) e o
+        // poder somado delas vira ganho pra esta carta; removerMortas() no
+        // final tira as zeradas do campo de fato.
+        const indices = Array.isArray(alvoEscolhido) ? alvoEscolhido : [];
+        const maxAlvos = carta.efeito.maxAlvos || 0;
+        let somaPoder = 0;
+
+        indices.slice(0, maxAlvos).forEach((idx) => {
+          const alvo = dono.campo.cartas[idx];
+          if (!alvo || alvo === carta || alvo.tipo === "terreno") return;
+          somaPoder += alvo.poder;
+          afetadas.push({ carta: alvo, delta: -alvo.poder });
+          alvo.buff(-alvo.poder);
+        });
+
+        if (somaPoder > 0) {
+          carta.buff(somaPoder);
+          afetadas.push({ carta, delta: somaPoder });
+        }
+        dono.campo.removerMortas();
+        break;
+      }
     }
 
     return afetadas;
+  }
+
+  // Lista os índices do campo do DONO que uma carta ABSORVER_ALIADOS (ex:
+  // RaspClay MonteCorp) pode escolher pra absorver agora: aliadas de nível
+  // baixo ou médio (poder até efeito.nivelMaximo), sem contar terrenos (que
+  // não têm PA de verdade) nem a própria carta recém-invocada. Usada pela
+  // UI (iniciarSelecaoDeAbsorcao, em jogo.js) pra saber quais slots
+  // destacar antes do jogador confirmar.
+  alvosParaAbsorverAliados(carta, dono, posicaoPropria) {
+    if (!carta.efeito || carta.efeito.tipo !== TIPOS_EFEITO.ABSORVER_ALIADOS)
+      return [];
+    const { nivelMaximo } = carta.efeito;
+    const indices = [];
+    dono.campo.cartas.forEach((c, i) => {
+      if (
+        c &&
+        i !== posicaoPropria &&
+        c.tipo !== "terreno" &&
+        c.poder <= nivelMaximo
+      )
+        indices.push(i);
+    });
+    return indices;
   }
 
   // Fecha o turno atual. A cada turno fechado, uma rodada é resolvida

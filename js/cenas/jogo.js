@@ -795,14 +795,25 @@ class CenaJogo extends Phaser.Scene {
           carta.efeito.tipo === TIPOS_EFEITO.BUFF_ALIADO_ESCOLHIDO &&
           !carta.habilidadeAtiva;
 
-        if (precisaEscolherAlvo) {
+        // RaspClay MonteCorp (Potencialização de Capital): pode absorver
+        // VÁRIAS aliadas de uma vez, então usa um fluxo de seleção próprio
+        // (iniciarSelecaoDeAbsorcao), com marcar/desmarcar + botão
+        // "Confirmar", em vez do fluxo de alvo único acima.
+        const precisaEscolherAlvosAbsorcao =
+          carta.efeito && carta.efeito.tipo === TIPOS_EFEITO.ABSORVER_ALIADOS;
+
+        if (precisaEscolherAlvo || precisaEscolherAlvosAbsorcao) {
           const sucesso = this.partida.colocarCartaDoJogador(
             carta,
             slotAtingido,
           );
           this.desenharInterface();
           if (sucesso) {
-            this.iniciarSelecaoDeAliadoParaBuff(carta, slotAtingido);
+            if (precisaEscolherAlvosAbsorcao) {
+              this.iniciarSelecaoDeAbsorcao(carta, slotAtingido);
+            } else {
+              this.iniciarSelecaoDeAliadoParaBuff(carta, slotAtingido);
+            }
           } else {
             this.travado = false;
           }
@@ -2664,6 +2675,7 @@ class CenaJogo extends Phaser.Scene {
     const corFundo = this.obterCorPorId(carta.id);
     const ehEfeito = carta.tipo === "efeito";
     const ehTerreno = carta.tipo === "terreno";
+    const ehLendaria = !!carta.lendaria;
 
     const podeMostrarBotaoHabilidade =
       !this.partida.partidaEncerrada &&
@@ -2688,7 +2700,7 @@ class CenaJogo extends Phaser.Scene {
 
     let painelBg = this.add
       .rectangle(0, 0, PAINEL_LARGURA, PAINEL_ALTURA, 0x14141c)
-      .setStrokeStyle(9, 0xffffff);
+      .setStrokeStyle(ehLendaria ? 12 : 9, ehLendaria ? 0xffd966 : 0xffffff);
     painelBg.setInteractive();
     painelBg.on("pointerup", () => {});
 
@@ -2715,7 +2727,7 @@ class CenaJogo extends Phaser.Scene {
     }
     let moldura = this.add
       .rectangle(0, 0, JANELA_ARTE_W, JANELA_ARTE_H)
-      .setStrokeStyle(6, 0xffffff);
+      .setStrokeStyle(ehLendaria ? 8 : 6, ehLendaria ? 0xffd966 : 0xffffff);
 
     let containerImagem = this.add.container(
       0,
@@ -2741,14 +2753,22 @@ class CenaJogo extends Phaser.Scene {
       .text(
         0,
         -615,
-        ehTerreno
-          ? "CARTA DE TERRENO"
-          : ehEfeito
-            ? "CARTA DE EFEITO"
-            : "CARTA DE PERSONAGEM",
+        ehLendaria
+          ? "★ CARTA LENDÁRIA ★"
+          : ehTerreno
+            ? "CARTA DE TERRENO"
+            : ehEfeito
+              ? "CARTA DE EFEITO"
+              : "CARTA DE PERSONAGEM",
         {
           fontSize: "36px",
-          color: ehTerreno ? "#a3e635" : ehEfeito ? "#ffe066" : "#9be7ff",
+          color: ehLendaria
+            ? "#ffd966"
+            : ehTerreno
+              ? "#a3e635"
+              : ehEfeito
+                ? "#ffe066"
+                : "#9be7ff",
           fontStyle: "bold",
         },
       )
@@ -2757,7 +2777,7 @@ class CenaJogo extends Phaser.Scene {
     let nomeTexto = this.add
       .text(0, -60, carta.nome, {
         fontSize: "54px",
-        color: "#ffffff",
+        color: ehLendaria ? "#ffd966" : "#ffffff",
         fontStyle: "bold",
         align: "center",
         wordWrap: { width: 750 },
@@ -3211,6 +3231,22 @@ class CenaJogo extends Phaser.Scene {
     const ehDestruirTerreno =
       carta.efeito &&
       carta.efeito.tipo === TIPOS_EFEITO.DESTRUIR_TERRENO_INIMIGO;
+    // O Boi (Novo Começo): alvo é uma carta ALIADA em campo — reaproveita
+    // o mesmo modo de mira do Estagiário de ML (iniciarSelecaoDeAliadoParaHabilidade),
+    // só com um texto de instrução diferente.
+    const ehResetarPoder =
+      carta.efeito && carta.efeito.tipo === TIPOS_EFEITO.RESETAR_PODER;
+    // O Tigre (Garra de aço): precisa de DOIS alvos inimigos distintos —
+    // fluxo de seleção em duas etapas próprio (ver
+    // iniciarSelecaoDoPrimeiroAlvoDuplo abaixo), só quando há pelo menos 2
+    // alvos possíveis; com só 1 em alcance, cai no modo de mira padrão
+    // (single-target) mais abaixo.
+    const ehAtaqueDuplo =
+      carta.efeito && carta.efeito.tipo === TIPOS_EFEITO.ATACAR_DOIS_ALVOS;
+    // A Aranha (Override): alvo é uma carta INIMIGA (mesmo modo de mira de
+    // ATACAR/Cessar e Desistir), só com texto de instrução próprio.
+    const ehOverride =
+      carta.efeito && carta.efeito.tipo === TIPOS_EFEITO.OVERRIDE;
 
     this.travado = true;
     this.esconderRodaBotoes();
@@ -3237,13 +3273,27 @@ class CenaJogo extends Phaser.Scene {
         return;
       }
       this.iniciarSelecaoDePerdaRedistribuir(carta, alvos);
+    } else if (ehAtaqueDuplo && alvos.length >= 2) {
+      this.iniciarSelecaoDoPrimeiroAlvoDuplo(carta, alvos);
     } else if (ehBuffAliado) {
       this.iniciarSelecaoDeAliadoParaHabilidade(carta, alvos);
+    } else if (ehResetarPoder) {
+      this.iniciarSelecaoDeAliadoParaHabilidade(
+        carta,
+        alvos,
+        "Escolha uma aliada para redefinir o poder",
+      );
     } else if (ehDestruirTerreno) {
       this.iniciarSelecaoDeAlvo(
         carta,
         alvos,
         "Escolha um terreno inimigo para eliminar",
+      );
+    } else if (ehOverride) {
+      this.iniciarSelecaoDeAlvo(
+        carta,
+        alvos,
+        "Escolha um alvo com menos poder para capturar",
       );
     } else {
       this.iniciarSelecaoDeAlvo(carta, alvos);
@@ -3490,7 +3540,11 @@ class CenaJogo extends Phaser.Scene {
   // alvo é quem vai RECEBER o +poder. Tocar fora dos alvos cancela a
   // ativação sem gastar o turno da habilidade (diferente da Venda Casada,
   // que é resolvida na hora de invocar e por isso não tem cancelamento).
-  iniciarSelecaoDeAliadoParaHabilidade(carta, alvos) {
+  iniciarSelecaoDeAliadoParaHabilidade(
+    carta,
+    alvos,
+    textoInstrucao = "Escolha uma aliada para fortalecer",
+  ) {
     const L = this.layout;
     const objetos = [];
 
@@ -3502,7 +3556,7 @@ class CenaJogo extends Phaser.Scene {
     objetos.push(overlay);
 
     let textoInstr = this.add
-      .text(GW / 2, 140, "Escolha uma aliada para fortalecer", {
+      .text(GW / 2, 140, textoInstrucao, {
         fontSize: "40px",
         color: "#88ff99",
         fontStyle: "bold",
@@ -3737,6 +3791,156 @@ class CenaJogo extends Phaser.Scene {
     this.objetosSelecaoAlvo = objetos;
   }
 
+  // ---------- SELEÇÃO DE DOIS ALVOS INIMIGOS (O Tigre - Garra de aço) ----------
+  // Mesma ideia dos dois passos de Redistribuir Poder (acima), mas os dois
+  // alvos são INIMIGOS (campo do oponente, anel vermelho nos dois passos,
+  // já que os dois sofrem o mesmo dano) em vez de aliados.
+  iniciarSelecaoDoPrimeiroAlvoDuplo(carta, alvos) {
+    const L = this.layout;
+    const objetos = [];
+
+    let overlay = this.add
+      .rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.35)
+      .setDepth(3700)
+      .setInteractive();
+    overlay.on("pointerup", () => this.cancelarSelecaoDeAlvo());
+    objetos.push(overlay);
+
+    let textoInstr = this.add
+      .text(GW / 2, 140, "Escolha o primeiro alvo (1/2)", {
+        fontSize: "40px",
+        color: "#ffcc00",
+        fontStyle: "bold",
+        stroke: "#000000",
+        strokeThickness: 6,
+      })
+      .setOrigin(0.5)
+      .setDepth(3900);
+    objetos.push(textoInstr);
+
+    let textoCancelar = this.add
+      .text(GW / 2, 195, "(toque fora para cancelar)", {
+        fontSize: "26px",
+        color: "#dddddd",
+      })
+      .setOrigin(0.5)
+      .setDepth(3900);
+    objetos.push(textoCancelar);
+
+    alvos.forEach((indice) => {
+      const col = indice % 5;
+      const fileira = Math.floor(indice / 5);
+      const xPos = L.x[col];
+      const yPos = L.yInimigo[fileira];
+
+      let anel = this.add
+        .rectangle(xPos, yPos, L.slotW, L.slotH, 0xffcc00, 0)
+        .setStrokeStyle(8, 0xffcc00, 1)
+        .setDepth(3800);
+      this.tweens.add({
+        targets: anel,
+        scaleX: 1.08,
+        scaleY: 1.08,
+        alpha: 0.2,
+        duration: 550,
+        yoyo: true,
+        repeat: -1,
+        ease: "Sine.easeInOut",
+      });
+
+      let zonaToque = this.add
+        .rectangle(xPos, yPos, L.slotW, L.slotH, 0xffffff, 0.001)
+        .setDepth(3801)
+        .setInteractive({ useHandCursor: true });
+      zonaToque.on("pointerup", () =>
+        this.iniciarSelecaoDoSegundoAlvoDuplo(
+          carta,
+          indice,
+          alvos.filter((i) => i !== indice),
+        ),
+      );
+
+      objetos.push(anel, zonaToque);
+    });
+
+    this.objetosSelecaoAlvo = objetos;
+  }
+
+  iniciarSelecaoDoSegundoAlvoDuplo(carta, alvo1, alvosRestantes) {
+    if (this.objetosSelecaoAlvo) {
+      this.objetosSelecaoAlvo.forEach((o) => o.destroy());
+      this.objetosSelecaoAlvo = null;
+    }
+
+    const L = this.layout;
+    const objetos = [];
+
+    let overlay = this.add
+      .rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.35)
+      .setDepth(3700)
+      .setInteractive();
+    // Tocar fora aqui não cancela a habilidade inteira — o primeiro alvo
+    // já é válido sozinho, então resolve com só ele em vez de descartar
+    // tudo (Garra de aço funciona com 1 ou 2 alvos, ver ativarHabilidade).
+    overlay.on("pointerup", () => this.executarHabilidade(carta, alvo1));
+    objetos.push(overlay);
+
+    let textoInstr = this.add
+      .text(GW / 2, 140, "Escolha o segundo alvo (2/2)", {
+        fontSize: "40px",
+        color: "#ffcc00",
+        fontStyle: "bold",
+        stroke: "#000000",
+        strokeThickness: 6,
+      })
+      .setOrigin(0.5)
+      .setDepth(3900);
+    objetos.push(textoInstr);
+
+    let textoCancelar = this.add
+      .text(GW / 2, 195, "(toque fora para atacar só o primeiro)", {
+        fontSize: "26px",
+        color: "#dddddd",
+      })
+      .setOrigin(0.5)
+      .setDepth(3900);
+    objetos.push(textoCancelar);
+
+    alvosRestantes.forEach((indice) => {
+      const col = indice % 5;
+      const fileira = Math.floor(indice / 5);
+      const xPos = L.x[col];
+      const yPos = L.yInimigo[fileira];
+
+      let anel = this.add
+        .rectangle(xPos, yPos, L.slotW, L.slotH, 0xffcc00, 0)
+        .setStrokeStyle(8, 0xffcc00, 1)
+        .setDepth(3800);
+      this.tweens.add({
+        targets: anel,
+        scaleX: 1.08,
+        scaleY: 1.08,
+        alpha: 0.2,
+        duration: 550,
+        yoyo: true,
+        repeat: -1,
+        ease: "Sine.easeInOut",
+      });
+
+      let zonaToque = this.add
+        .rectangle(xPos, yPos, L.slotW, L.slotH, 0xffffff, 0.001)
+        .setDepth(3801)
+        .setInteractive({ useHandCursor: true });
+      zonaToque.on("pointerup", () =>
+        this.executarHabilidade(carta, alvo1, indice),
+      );
+
+      objetos.push(anel, zonaToque);
+    });
+
+    this.objetosSelecaoAlvo = objetos;
+  }
+
   // Modo de mira "Venda Casada": igual em espírito a iniciarSelecaoDeAlvo(),
   // mas em vez de mirar no campo inimigo pra atacar, destaca (anel pulsante
   // verde) cada carta ALIADA em campo — incluindo o CyberVendedor recém
@@ -3825,6 +4029,155 @@ class CenaJogo extends Phaser.Scene {
       this.partida.inimigo,
       posicaoPropria,
       alvoEscolhido,
+    );
+
+    this.processarCartasAfetadas(afetadas, () => {
+      this.travado = false;
+      this.desenharInterface();
+    });
+  }
+
+  // ---------- SELEÇÃO MÚLTIPLA (ex: Potencialização de Capital) ----------
+
+  // Modo de mira "Potencialização de Capital" (RaspClay MonteCorp):
+  // diferente das seleções de alvo único acima (que resolvem no primeiro
+  // toque), aqui o jogador pode marcar/desmarcar até efeito.maxAlvos
+  // cartas aliadas elegíveis (nível baixo/médio — ver
+  // Partida.alvosParaAbsorverAliados) e só confirma quando quiser, com um
+  // botão. A carta já está em campo neste momento (colocarCartaDoJogador
+  // já rodou), então tocar fora só confirma a seleção atual, mesmo que
+  // esteja vazia — não existe "cancelar" essa jogada.
+  iniciarSelecaoDeAbsorcao(carta, posicaoPropria) {
+    const L = this.layout;
+    const objetos = [];
+    const selecionados = new Set();
+
+    const alvos = this.partida.alvosParaAbsorverAliados(
+      carta,
+      this.partida.jogador,
+      posicaoPropria,
+    );
+    const maxAlvos = carta.efeito.maxAlvos || 3;
+
+    this.travado = true;
+
+    let overlay = this.add
+      .rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.35)
+      .setDepth(3700)
+      .setInteractive();
+    objetos.push(overlay);
+
+    let textoInstr = this.add
+      .text(
+        GW / 2,
+        130,
+        `Escolha até ${maxAlvos} aliadas de nível baixo/médio para absorver`,
+        {
+          fontSize: "34px",
+          color: "#ffcc00",
+          fontStyle: "bold",
+          stroke: "#000000",
+          strokeThickness: 6,
+          align: "center",
+          wordWrap: { width: GW - 160 },
+        },
+      )
+      .setOrigin(0.5)
+      .setDepth(3900);
+    objetos.push(textoInstr);
+
+    let textoContador = this.add
+      .text(GW / 2, 210, `0/${maxAlvos} escolhidas`, {
+        fontSize: "28px",
+        color: "#dddddd",
+      })
+      .setOrigin(0.5)
+      .setDepth(3900);
+    objetos.push(textoContador);
+
+    // Se não houver nenhuma aliada elegível em campo, não tem o que
+    // escolher — cai direto na confirmação (soma zero, efeito só não
+    // rende ganho nenhum pra ela desta vez). Registra os objetos criados
+    // até aqui (overlay/textos) em objetosSelecaoAlvo antes de confirmar,
+    // pra confirmarAbsorcao conseguir destruí-los normalmente.
+    if (alvos.length === 0) {
+      this.objetosSelecaoAlvo = objetos;
+      this.confirmarAbsorcao(carta, posicaoPropria, []);
+      return;
+    }
+
+    alvos.forEach((indice) => {
+      const col = indice % 5;
+      const fileira = Math.floor(indice / 5);
+      const xPos = L.x[col];
+      const yPos = L.yJogador[fileira];
+
+      let anel = this.add
+        .rectangle(xPos, yPos, L.slotW, L.slotH, 0xffcc00, 0)
+        .setStrokeStyle(8, 0xffcc00, 0.5)
+        .setDepth(3800);
+      this.tweens.add({
+        targets: anel,
+        scaleX: 1.08,
+        scaleY: 1.08,
+        alpha: 0.15,
+        duration: 550,
+        yoyo: true,
+        repeat: -1,
+        ease: "Sine.easeInOut",
+      });
+
+      let zonaToque = this.add
+        .rectangle(xPos, yPos, L.slotW, L.slotH, 0xffffff, 0.001)
+        .setDepth(3801)
+        .setInteractive({ useHandCursor: true });
+      zonaToque.on("pointerup", () => {
+        if (selecionados.has(indice)) {
+          selecionados.delete(indice);
+          anel.setStrokeStyle(8, 0xffcc00, 0.5);
+        } else if (selecionados.size < maxAlvos) {
+          selecionados.add(indice);
+          anel.setStrokeStyle(10, 0x88ff99, 1);
+        }
+        textoContador.setText(`${selecionados.size}/${maxAlvos} escolhidas`);
+      });
+
+      objetos.push(anel, zonaToque);
+    });
+
+    let btnConfirmar = this.criarBotaoConfirmacao(
+      GW / 2,
+      Y_MAO_JOGADOR - 60,
+      "Confirmar",
+      0x336633,
+      () =>
+        this.confirmarAbsorcao(carta, posicaoPropria, Array.from(selecionados)),
+    );
+    objetos.push(btnConfirmar);
+
+    overlay.on("pointerup", () =>
+      this.confirmarAbsorcao(carta, posicaoPropria, Array.from(selecionados)),
+    );
+
+    this.objetosSelecaoAlvo = objetos;
+  }
+
+  // Resolve de fato o efeito (via Partida.aplicarEfeitoInvocacao, passando
+  // o array de índices escolhidos) e anima tanto o ganho de poder do
+  // RaspClay quanto a "morte"/remoção das aliadas absorvidas, reaproveitando
+  // processarCartasAfetadas — mesmo fluxo visual usado pelos outros efeitos.
+  confirmarAbsorcao(carta, posicaoPropria, indices) {
+    if (this.objetosSelecaoAlvo) {
+      this.objetosSelecaoAlvo.forEach((o) => o.destroy());
+      this.objetosSelecaoAlvo = null;
+    }
+
+    const afetadas = this.partida.aplicarEfeitoInvocacao(
+      carta,
+      this.partida.jogador,
+      this.partida.inimigo,
+      posicaoPropria,
+      indices,
     );
 
     this.processarCartasAfetadas(afetadas, () => {
