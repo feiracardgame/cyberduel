@@ -980,7 +980,7 @@ const config = {
     antialias: true,
     roundPixels: false,
   },
-  scene: [CenaPreload, CenaTitulo, CenaJogo],
+  scene: [CenaPreload, CenaTitulo, CenaTransicao, CenaJogo],
 };
 
 const game = new Phaser.Game(config);

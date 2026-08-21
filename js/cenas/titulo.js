@@ -101,7 +101,7 @@ class CenaTitulo extends Phaser.Scene {
           this.cameras.main.fadeOut(200, 0, 0, 0);
 
           this.cameras.main.once("camerafadeoutcomplete", () => {
-          this.scene.start("CenaJogo");
+          this.scene.start("CenaTransicao");
           });
         },
       });

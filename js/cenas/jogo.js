@@ -113,6 +113,14 @@ class CenaJogo extends Phaser.Scene {
     this.musicaFundo.play();
     this.somTorcida.play();
 
+    // O fundo (parte_3 em loop) é desenhado logo abaixo, em
+    // desenharFundoJogo() — chamado dentro de desenharInterface(). A
+    // interface inteira (câmera desta cena) entra em fade in assim que a
+    // partida começa a rodar por cima do vídeo — mas só DEPOIS do primeiro
+    // desenharInterface() lá embaixo, porque ele chama tweens.killAll() e
+    // mataria esse tween se ele fosse criado aqui antes.
+    this.cameras.main.setAlpha(0);
+
     // Traçado preto padrão em TODOS os textos da cena: sobrescreve
     // this.add.text para injetar stroke preto sempre que a chamada não
     // definir um estilo de traçado próprio. Assim não precisamos repetir
@@ -346,6 +354,16 @@ class CenaJogo extends Phaser.Scene {
     });
 
     this.desenharInterface();
+
+    // Fade in da câmera por cima do vídeo de fundo — criado só agora,
+    // depois do primeiro desenharInterface(), porque ele começa com
+    // tweens.killAll() e mataria este tween se ele existisse antes.
+    this.tweens.add({
+      targets: this.cameras.main,
+      alpha: 1,
+      duration: 600,
+      ease: "Sine.easeOut",
+    });
   }
 
   // Gera uma cor fixa baseada no ID da carta
@@ -442,6 +460,13 @@ class CenaJogo extends Phaser.Scene {
       this.textoResultadoAtual.destroy();
       this.textoResultadoAtual = null;
     }
+
+    // O vídeo de fundo (parte_3, em loop) não pode ser destruído pelo
+    // removeAll(true) logo abaixo, senão ele reiniciaria do zero toda
+    // vez que a interface é redesenhada (o que acontece a cada jogada).
+    // this.children.remove(..., false) só desanexa (sem destruir) —
+    // ele volta pra cena logo depois, já com desenharFundoJogo().
+    if (this.videoFundo) this.children.remove(this.videoFundo, false);
 
     // IMPORTANTE: removeAll(true) — o "true" manda destruir de verdade os
     // objetos antigos, não só tirá-los da tela. Sem isso (removeAll()
@@ -716,7 +741,10 @@ class CenaJogo extends Phaser.Scene {
       // próprio baralho ANTES de conjurar — abre o seletor primeiro, e só
       // quando ele escolher é que a carta de efeito é de fato consumida
       // (ver iniciarSelecaoDeCartaDoBaralho).
-      if (carta.efeito && carta.efeito.tipo === TIPOS_EFEITO.BUSCAR_CARTA_DECK) {
+      if (
+        carta.efeito &&
+        carta.efeito.tipo === TIPOS_EFEITO.BUSCAR_CARTA_DECK
+      ) {
         this.iniciarSelecaoDeCartaDoBaralho(gameObject, carta);
         return;
       }
@@ -1501,17 +1529,23 @@ class CenaJogo extends Phaser.Scene {
       });
     });
   }
+  // Cria o vídeo de fundo (parte_3, em loop mudo) só na primeira vez —
+  // depois disso só reanexa o mesmo objeto (ver o remove/re-add em volta
+  // do removeAll(true), lá em desenharInterface()), pra ele não reiniciar
+  // do zero a cada jogada. Resolução nativa (1080x2160 = GW/GH), sem
+  // setDisplaySize, então não estica nem dá zoom.
   desenharFundoJogo() {
-    const fundo = this.add
-      .image(GW / 2, GH / 2, "jogoFundo")
-      .setOrigin(0.5)
-      .setDisplaySize(GW, GH)
-      .setAlpha(0.3)
-      .setDepth(-100);
+    if (!this.videoFundo) {
+      this.videoFundo = this.add.video(GW / 2, GH / 2, "videoParte3");
+      this.videoFundo.setOrigin(0.5);
+      this.videoFundo.setMute(true);
+      this.videoFundo.play(true);
+    } else {
+      this.children.addAt(this.videoFundo, 0);
+    }
+    this.videoFundo.setDepth(-100);
 
-    fundo.setScrollFactor(0);
-
-    return fundo;
+    return this.videoFundo;
   }
 
   despedacarCarta(chaveTextura, cx, cy, CW, CH, containerOriginal, aoConcluir) {
@@ -3249,7 +3283,11 @@ class CenaJogo extends Phaser.Scene {
   // dentro do alcance da habilidade e espera o jogador tocar num deles.
   // Tocar fora dos alvos destacados cancela a ativação sem gastar o turno
   // da habilidade.
-  iniciarSelecaoDeAlvo(carta, alvos, textoInstrucao = "Escolha um alvo para atacar") {
+  iniciarSelecaoDeAlvo(
+    carta,
+    alvos,
+    textoInstrucao = "Escolha um alvo para atacar",
+  ) {
     const L = this.layout;
     const objetos = [];
 
