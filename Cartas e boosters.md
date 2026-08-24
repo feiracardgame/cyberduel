@@ -655,7 +655,7 @@ Faz aqueles arbusto seco que voa pelo deserto com alguns riscos indicando vento,
 
 
   
-### 1x carta media 1 -> bombeiro
+### 1x carta media 1 -> WebBombeiros
 
 * Descrição: Os bombeiros continuam sendo alguns dos profissionais mais importantes da sociedade, enfrentando incêndios, acidentes e desastres para salvar vidas. Ainda assim, infelizmente, a maioria das pessoas conhece melhor o elenco da série sobre bombeiros do que os valorosos profissionais que trabalham na própria cidade.
 * Efeito: Extintor -> Extintor: Uma vez por turno, escolha uma carta inimiga. Até o fim da rodada, ela não pode receber bônus de PA.
@@ -666,9 +666,9 @@ Faz aqueles arbusto seco que voa pelo deserto com alguns riscos indicando vento,
 
 
 
-### 1x carta media 2 -> Policial 
+### 1x carta media 2 -> TecnoAgentes de Segurança
 
-* Descrição: Enquanto IAs e Firewalls físicos protegem NeoFloripa de ameaças reais, os policiais mantêm a paz nas pequenas confusões do dia a dia. Nem sempre é um trabalho glorioso, mas alguém ainda precisa convencer o vizinho a abaixar o volume da música.
+* Descrição: Enquanto IAs e Firewalls físicos protegem NeoFloripa de ameaças reais, a nova versão dos policiais mantem a paz nas pequenas confusões do dia a dia. Nem sempre é um trabalho glorioso, mas alguém ainda precisa convencer o vizinho a abaixar o volume da música.
 * PA: 5 
 * Efeito: Advertência -> Escolha uma carta inimiga. Ela recebe uma advertência. Se utilizar seu efeito no próximo turno, perde 3 de PA.
 * Visual:
@@ -728,7 +728,7 @@ Faz tipo o Will Smith com a mão no rosto como se tivesse cansado e o Macaco com
 
 
 
-### 1x carta lendária -> Professores
+### 1x carta lendária -> Professores de Duelo
 
 * Descrição: Apesar de todo o desenvolvimento tecnológico, NeoFloripa parece valorizar mais o entretenimento do que a educação. Por isso, professores precisam associar suas matérias ao CyberDuel para manter a atenção dos alunos. Curiosamente, a estratégia parece ter tido o efeito contrário: uma dupla de professores já chegou ao topo do ranking de CyberDuel e agora tenta guiar a sociedade com base em acontecimentos históricos e dados geográficos.
 * PA: 8
