@@ -154,9 +154,9 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 * PA: 1
 * Efeito: Mãos Leves → Escolha, a cada turno, uma carta inimiga em qualquer lugar do campo. O Rato rouba 1 PA dela, adicionando esse valor ao seu próprio PA.
 
-* Visual: -> Faz algo na vibe de um Cyber Ladino, e faz nele a ideia de um cara se camuflando/ficando invisível
+* Visual: 
 
-  <img width="646" height="800" alt="image" src="https://github.com/user-attachments/assets/abe6f7ec-1313-4de9-932c-97b7e167c445" />
+   <img alt="image" src="assets/cartas/O_rato.png" />
 
 só que claramente da de ver que é tipo um mlk aleatorio jovem de bigode, tipo o Campos Neto
 
@@ -167,9 +167,9 @@ só que claramente da de ver que é tipo um mlk aleatorio jovem de bigode, tipo 
 * Efeito: Escalada -> A Cabra, devido à sua alta mobilidade, pode, a cada turno, reposicionar-se no campo aliado, trocando de lugar com outra carta ou espaço livre disponível.
 * Visual:
 
-Faz tipo a Jewel da Marvel, só que mais cyberpunk e mete umas prótese de perna com detalhe vermelho nela
 
-<img width="250" height="287" alt="image" src="https://github.com/user-attachments/assets/79259985-8ea7-48ed-ad9a-7dfe7a93f410" />
+
+ <img alt="image" src="assets/cartas/A cabra.png" />
 
 
 ### 2x carta baixa 3 -> O Cão
@@ -179,9 +179,9 @@ Faz tipo a Jewel da Marvel, só que mais cyberpunk e mete umas prótese de perna
 * Efeito: Faro -> O Cão consegue rastrear o cheiro do inimigo, apesar de não tão bem quanto sua época. Ao ser invocado, o Cão te informa de até 5 cartas que o inimigo tenha na mão ou no baralho.
 * Visual:
 
-Faz um detetive noir com uns implantes tipo assim só que preto com vermelho e ele tem que ser velho
 
-<img width="450" height="500" alt="image" src="https://github.com/user-attachments/assets/b3658a75-e25f-4c6c-a9c9-e14bb6cc9a49" />
+
+ <img alt="image" src="assets/cartas/O_cão.png" />
 
 
 ### 2x carta media 1 -> O Porco
@@ -190,8 +190,8 @@ Faz um detetive noir com uns implantes tipo assim só que preto com vermelho e e
 * PA: 6
 * Efeito: Casca Grossa → Os PA do Porco não podem ser reduzidos por efeitos de outras cartas.
 
-* Visual: Faz tipo o RoadHog, só que cyberpunk. Ele tem que ter uma armadura metálica, brilho em vermelho. etc.
-* <img width="1200" height="1239" alt="image" src="https://github.com/user-attachments/assets/06c690ce-5e1a-4a22-9c06-aa3a293c6918" />
+* Visual: 
+
 
 
 ### 2x carta media 2 -> A Cobra
@@ -202,9 +202,9 @@ Faz um detetive noir com uns implantes tipo assim só que preto com vermelho e e
 * Efeito: Dose Letal → A Cobra injeta uma de suas substâncias em um inimigo em alcance curto à sua frente ou em um espaço adjacente. O inimigo perde 1 PA por turno enquanto estiver envenenado.
 
  
-* Visual: Ela é pique a Viper de Valorant, basicamente, só que vermelha. 
+* Visual:
 
-* <img width="2048" height="1860" alt="image" src="https://github.com/user-attachments/assets/d0b4b90c-7ebb-4008-b272-c3edcbbe1bcd" />
+  <img alt="image" src="assets/cartas/Cobra.png" />
 
 
 
@@ -257,7 +257,7 @@ Faz um detetive noir com uns implantes tipo assim só que preto com vermelho e e
  
 * Visual: faz tipo o ciborgue (mas só o rosto metade metal) mas correndo rápido pique aquelas imagens do flash
 
-<img width="446" height="688" alt="image" src="https://github.com/user-attachments/assets/599f177f-fb0f-47b0-a4d3-57e32e2a5c24" />
+ <img alt="image" src="assets/cartas/OTROTARDOCAVALO.png" />
 
 
 ### 2x carta de efeito 2 -> O Canto do Galo
@@ -267,12 +267,7 @@ Faz um detetive noir com uns implantes tipo assim só que preto com vermelho e e
 * Efeito: A inspiradora voz do Galo fortalece seus companheiros. Escolha duas cartas aliadas. A primeira recebe +2 PA e a segunda +1 PA. 
 * Visual:
 
-Faz tipo um cara desses num salão de ópera cibernético, mas ele tem um cabelo de moicano vermelho também e tem algum tipo de implante cibernético na boca que parece aquelas parada q o galo tem no queixo pra fazer som
-
- <img width="429" height="340" alt="image" src="https://github.com/user-attachments/assets/1cdd210b-e28d-4bf5-b3fd-4f96cfc96b12" />
-
-
-* <img width="415" height="612" alt="image" src="https://github.com/user-attachments/assets/b3d5802e-e369-4d67-a11c-e38e6c67a5ba" />
+ <img alt="image" src="assets/cartas/o canto do galo.png" />
 
 
   
@@ -285,9 +280,7 @@ Faz tipo um cara desses num salão de ópera cibernético, mas ele tem um cabelo
  
 * Visual:
 
-é o junkrat, mas ele tem um rabo de macaco cibernético, ele tem mais detalhes vermelhos e as bombas sao mais tecnologicas futuristas.
 
-<img width="610" height="1080" alt="image" src="https://github.com/user-attachments/assets/e595906d-f358-45ec-b2ac-55020c78edf1" />
 
 
 
@@ -300,10 +293,9 @@ Faz tipo um cara desses num salão de ópera cibernético, mas ele tem um cabelo
 
 
  
-* Visual: Pode fazer aquela ideia do clube futurista cibernético com um guarda na frente, e escrito "Toca do coelho" atrás e faz um logo de coelho (NÃO PODE SER O DA PLAYBOY)
+* Visual:
 
-
-<img width="1130" height="643" alt="image" src="https://github.com/user-attachments/assets/3b6b2584-665a-477f-8bf8-3d67e44906c8" />
+*  <img alt="image" src="assets/cartas/Toca_do_coelho.png" />
 
 
 
