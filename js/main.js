@@ -378,11 +378,7 @@ class Partida {
     // Cessar e Desistir (Advogado Corporativo) é 1x POR PARTIDA, não 1x
     // por turno — usa usadaNaPartida em vez de usadaEsteTurno pra decidir
     // se já foi gasta (usadaNaPartida nunca é resetado em fimTurno()).
-    const jaFoiUsada =
-      carta.efeito &&
-      carta.efeito.tipo === TIPOS_EFEITO.DESTRUIR_TERRENO_INIMIGO
-        ? carta.usadaNaPartida
-        : carta.usadaEsteTurno;
+    const jaFoiUsada = carta.usadaEsteTurno;
     if (!carta.efeito || !carta.habilidadeAtiva || jaFoiUsada)
       return { sucesso: false, afetadas: [] };
 
@@ -576,6 +572,13 @@ class Partida {
       oponente.campo.removerMortas();
 
       carta.usadaEsteTurno = true;
+      if (carta.somAtaque && typeof window !== "undefined" && window.cena) {
+        const s =
+          window.cena.sound.get(carta.somAtaque) ||
+          window.cena.sound.add(carta.somAtaque);
+        if (s) s.play();
+      }
+
       return { sucesso: true, afetadas };
     }
 
@@ -1020,7 +1023,7 @@ class Partida {
 
     // IA também ativa habilidades de ataque disponíveis em campo (1x cada).
     this.inimigo.campo.cartas.forEach((c) => {
-      if (c && c.habilidadeAtiva && !c.usadaEsteTurno && !c.usadaNaPartida) {
+      if (c && c.habilidadeAtiva && !c.usadaEsteTurno) {
         // Cessar e Desistir (Advogado Corporativo): a IA precisa de um
         // alvo explícito (terreno do jogador) — sem isso ativarHabilidade
         // sempre falharia em silêncio, então mira no primeiro disponível.

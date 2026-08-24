@@ -661,15 +661,13 @@ class CenaJogo extends Phaser.Scene {
     if (total === 0) return;
 
     // Nexus de Dados Global: enquanto esse terreno estiver no campo do
-    // jogador, a mão do inimigo fica revelada — mostra a carta real
-    // (arte/cor + nome + poder), igual ao leque do próprio jogador, em
-    // vez das costas genéricas.
+    // jogador, a mão do inimigo fica revelada.
     const revelada = this.partida.maoRevelada(this.partida.jogador);
 
     const centroX = GW / 2;
     const centroY = Y_MAO_INIMIGO;
-    const larguraCarta = 110;
-    const alturaCarta = 154;
+    const larguraCarta = 140;
+    const alturaCarta = 200;
     const espacamentoMax = 60;
     const espacamentoMin = 26;
     const espacamento =
@@ -748,8 +746,64 @@ class CenaJogo extends Phaser.Scene {
       }
 
       let container = this.add.container(posX, posY, filhos);
+
+      // Ajustes para o Leque Inimigo Interativo:
+      container.setSize(larguraCarta, alturaCarta);
       container.setAngle(angulo);
-      container.setDepth(-99);
+
+      // Controla a profundidade baseada no índice para que as cartas
+      // se sobreponham corretamente, assim como no leque original.
+      container.depthBase = 10 + indice;
+      container.setDepth(container.depthBase);
+
+      container.setInteractive({ useHandCursor: true });
+
+      // Eventos de animação parecidos com o "desenharMaoEmLeque"
+      container.on("pointerover", (pointer) => {
+        if (this.travado) return;
+        this.tweens.killTweensOf(container);
+        container.setDepth(1000);
+        this.tweens.add({
+          targets: container,
+          y: posY + 40, // Puxa a carta ligeiramente para baixo ao invés de para cima
+          angle: 0,
+          scaleX: 1.3,
+          scaleY: 1.3,
+          duration: 150,
+          ease: "Back.Out",
+          onComplete: () => {
+            if (!this.travado && this.somHover) {
+              this.somHover.play();
+            }
+          },
+        });
+      });
+
+      container.on("pointerout", () => {
+        if (this.travado) return;
+        this.tweens.killTweensOf(container);
+        this.tweens.add({
+          targets: container,
+          x: posX,
+          y: posY,
+          angle: angulo,
+          scaleX: 1,
+          scaleY: 1,
+          duration: 150,
+          ease: "Sine.easeOut",
+          onComplete: () => {
+            if (container && container.active) {
+              container.setDepth(container.depthBase);
+            }
+          },
+        });
+      });
+
+      // Abre a ficha detalhada ao clicar/tocar
+      container.on("pointerup", () => {
+        if (this.travado) return;
+        this.mostrarDetalheCarta(carta);
+      });
     });
   }
 
@@ -2814,10 +2868,7 @@ class CenaJogo extends Phaser.Scene {
     // por turno — o botão fica travado pra sempre depois de usado, mesmo
     // em turnos seguintes (usadaNaPartida nunca reseta).
     const habilidadeJaUsada =
-      podeMostrarBotaoHabilidade &&
-      (carta.efeito.tipo === TIPOS_EFEITO.DESTRUIR_TERRENO_INIMIGO
-        ? carta.usadaNaPartida
-        : carta.usadaEsteTurno);
+      podeMostrarBotaoHabilidade && carta.usadaEsteTurno;
 
     const PAINEL_LARGURA = 840;
     const PAINEL_ALTURA = 1320;
@@ -2930,7 +2981,7 @@ class CenaJogo extends Phaser.Scene {
           fontSize: "30px",
           color: parte.tipo === "efeito" ? "#ffd966" : "#dddddd",
           fontStyle: parte.tipo === "efeito" ? "bold" : "normal",
-          align: "center",
+          align: "justify", // <-- Altere de "center" para "justify"
           wordWrap: { width: DESC_LARGURA },
           lineSpacing: 10,
         })
@@ -3354,7 +3405,7 @@ class CenaJogo extends Phaser.Scene {
           fontSize: "30px",
           color: parte.tipo === "efeito" ? "#ffd966" : "#f2f2f2",
           fontStyle: parte.tipo === "efeito" ? "bold" : "normal",
-          align: "center",
+          align: "justify", // <-- Altere de "center" para "justify"
           wordWrap: { width: DESC_LARGURA },
           lineSpacing: 10,
         })
@@ -3528,7 +3579,7 @@ class CenaJogo extends Phaser.Scene {
     this.tweensLendariaAtual = tweensLendaria;
   }
 
-    habilitarScrollDescricao(
+  habilitarScrollDescricao(
     areaArraste,
     descTexto,
     alturaExcedente,
@@ -3874,7 +3925,7 @@ class CenaJogo extends Phaser.Scene {
       this.iniciarSelecaoDeQualquerCartaParaHabilidade(
         carta,
         alvos,
-        "Escolha uma carta (aliada ou inimiga) para redefinir o poder",
+        "Escolha uma carta (aliada ou inimiga)\npara redefinir o poder",
       );
     } else if (ehDestruirTerreno) {
       this.iniciarSelecaoDeAlvo(
@@ -4303,14 +4354,78 @@ class CenaJogo extends Phaser.Scene {
     );
 
     if (resultado.sucesso) {
-      this.processarCartasAfetadas(resultado.afetadas, () => {
-        this.travado = false;
-        this.desenharInterface();
-      });
+      const finalizar = () => {
+        this.processarCartasAfetadas(resultado.afetadas, () => {
+          this.travado = false;
+          this.desenharInterface();
+        });
+      };
+
+      if (carta.efeito.tipo === TIPOS_EFEITO.DESTRUIR_TERRENO_INIMIGO) {
+        // Agora passamos o alvoEscolhido para a animação!
+        this.animarEfeitoAdvogado(alvoEscolhido, finalizar);
+      } else {
+        finalizar();
+      }
     } else {
       this.travado = false;
       this.desenharRodaBotoes();
     }
+  }
+  animarEfeitoAdvogado(alvoEscolhido, aoConcluir) {
+    // Posição padrão no centro, caso algo dê errado
+    let xPos = GW / 2;
+    let yPos = GH / 2;
+
+    // Se temos um alvo, calculamos a posição dele no campo inimigo
+    if (alvoEscolhido !== null && alvoEscolhido !== undefined) {
+      const L = this.layout;
+      const col = alvoEscolhido % 5;
+      const fileira = Math.floor(alvoEscolhido / 5);
+      xPos = L.x[col];
+      yPos = L.yInimigo[fileira]; // Posição do terreno no campo do oponente
+    }
+
+    // 1. Cria a imagem na posição exata do terreno alvo
+    let imgEfeito = this.add.image(xPos, yPos, "efeitoAdvogado");
+    imgEfeito.setDepth(4500); // Fica por cima de tudo
+    imgEfeito.setScale(0); // Começa invisível para dar um efeito de "pop"
+
+    this.tweens.add({
+      targets: imgEfeito,
+      scale: 0.5, // Aumentei um pouco para cobrir bem a carta
+      duration: 300,
+      ease: "Back.Out",
+    });
+
+    // 2. Toca o som do advogado
+    const som = this.sound.add("somAdvogado", {
+      loop: false,
+      volume: 0.3,
+    });
+    som.play();
+
+    // 3. Quando o som terminar de tocar, remove a imagem
+    som.once("complete", () => {
+      this.tweens.add({
+        targets: imgEfeito,
+        alpha: 0,
+        duration: 300,
+        onComplete: () => {
+          imgEfeito.destroy();
+          aoConcluir(); // Continua o jogo tirando o terreno inimigo
+        },
+      });
+    });
+
+    // Fallback de segurança: se por acaso o som bugar e não disparar o evento
+    this.time.delayedCall(5000, () => {
+      if (imgEfeito.active) {
+        this.tweens.killTweensOf(imgEfeito);
+        imgEfeito.destroy();
+        aoConcluir();
+      }
+    });
   }
 
   // Passo 1/2 da habilidade "Reestruturação Interna" (Gestor de RH):

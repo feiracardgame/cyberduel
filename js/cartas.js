@@ -63,7 +63,7 @@ function descreverEfeito(efeito) {
     case TIPOS_EFEITO.REDISTRIBUIR_PODER:
       return `Habilidade ativa (1x por turno, em campo): escolha uma carta aliada para perder ${efeito.perda} de poder, e outra carta aliada para ganhar +${efeito.ganho} de poder.`;
     case TIPOS_EFEITO.DESTRUIR_TERRENO_INIMIGO:
-      return `Habilidade ativa (1x por PARTIDA, em campo): escolha um terreno inimigo para ser eliminado.`;
+      return `Habilidade ativa (1x por turno, em campo): escolha um terreno inimigo para ser eliminado.`;
     case TIPOS_EFEITO.BUSCAR_CARTA_DECK:
       return `Ao ser conjurada: escolha uma carta do seu baralho para puxar diretamente para sua mão.`;
     case TIPOS_EFEITO.ABSORVER_ALIADOS:
@@ -71,7 +71,7 @@ function descreverEfeito(efeito) {
     case TIPOS_EFEITO.RESETAR_PODER:
       return `Habilidade ativa (1x por turno, em campo): escolha uma carta aliada em campo para retornar ao seu poder original, perdendo todos os bônus e reduções que tiver recebido.`;
     case TIPOS_EFEITO.ATACAR_DOIS_ALVOS:
-      return `Habilidade ativa (1x por turno, em campo): escolha 2 cartas inimigas em alcance curto (H${efeito.rangeH}/V${efeito.rangeV}) para perder ${efeito.valor} de poder cada.`;
+      return `Habilidade ativa (1x por turno, em campo): escolha 2 cartas inimigas em alcance curto (H${efeito.rangeH}/V${efeito.rangeV}) para perder ${efeito.valor} de PA cada.`;
     case TIPOS_EFEITO.OVERRIDE:
       return `Habilidade ativa (1x por turno, em campo): escolha uma carta inimiga com poder menor que o desta carta. Ela é capturada para o seu campo, se houver espaço livre.`;
     default:
@@ -298,14 +298,15 @@ const POOL_CARTAS_MONSTRO = [
     poder: 5,
     descricao:
       "Sua principal função é garantir que a Raspcorp permaneça em conformidade com a legislação vigente. Felizmente, ambas costumam ser atualizadas ao mesmo tempo. Ao longo de sua carreira, participou da aquisição de sete empresas, três governos e um incidente que permanece sob sigilo judicial.",
-    // Provisória: reaproveita a arte do Gestor de RH até ter uma própria.
     imagem: "adv",
     booster: "raspcorp",
     efeito: {
       tipo: TIPOS_EFEITO.DESTRUIR_TERRENO_INIMIGO,
     },
-    habilidadeAtiva: true, // Cessar e Desistir: não dispara ao invocar — ativa em campo, mas só 1x POR PARTIDA
-    // (não reseta a cada turno como as outras habilidades ativas — ver Carta.usadaNaPartida e Partida.ativarHabilidade)
+    habilidadeAtiva: true,
+
+    // Adicione a linha abaixo:
+    somAtaque: "somAdvogado",
   },
 
   {
@@ -348,7 +349,9 @@ const POOL_CARTAS_MONSTRO = [
       rangeH: 5,
       rangeV: 1,
     },
+
     habilidadeAtiva: true, // Garra de aço: não dispara ao invocar — ativa em campo, 1x por turno
+    somAtaque: "somTigreAtaque",
   },
 
   {
