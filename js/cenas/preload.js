@@ -54,7 +54,7 @@ class CenaPreload extends Phaser.Scene {
     this.load.audio("somHover", "assets/sons/jogo-cartawhoosh.wav");
     this.load.audio("somTiro", "assets/sons/jogo-dipsptiro.wav");
     //videos
-    this.load.video("videoTransicao", "assets/videos/Transicao_de_tela.mp4");
+    this.load.video("videoTransicao", "assets/videos/transicaocerta.mp4");
     this.load.video("videoParte3", "assets/videos/parte_3.mp4");
   }
 

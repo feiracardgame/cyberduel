@@ -379,7 +379,8 @@ class Partida {
     // por turno — usa usadaNaPartida em vez de usadaEsteTurno pra decidir
     // se já foi gasta (usadaNaPartida nunca é resetado em fimTurno()).
     const jaFoiUsada =
-      carta.efeito && carta.efeito.tipo === TIPOS_EFEITO.DESTRUIR_TERRENO_INIMIGO
+      carta.efeito &&
+      carta.efeito.tipo === TIPOS_EFEITO.DESTRUIR_TERRENO_INIMIGO
         ? carta.usadaNaPartida
         : carta.usadaEsteTurno;
     if (!carta.efeito || !carta.habilidadeAtiva || jaFoiUsada)
@@ -505,23 +506,39 @@ class Partida {
     }
 
     if (carta.efeito.tipo === TIPOS_EFEITO.RESETAR_PODER) {
-      // Novo Começo (O Boi): alvo tem que ser uma carta aliada em campo
-      // (terrenos não têm poder, então nunca são alvo válido).
+      // Novo Começo (O Boi): alvo pode ser QUALQUER carta em campo, aliada
+      // ou inimiga (terrenos não têm poder, então nunca são alvo válido).
+      // alvoEscolhido usa índice deslocado: 0..TAM-1 é o campo do dono,
+      // TAM..2*TAM-1 é o campo do oponente (TAM = tamanho do campo) —
+      // ver alvosParaHabilidadeEmCampo() e iniciarSelecaoDeQualquerCarta-
+      // ParaHabilidade() em jogo.js, que geram/consomem esse mesmo esquema.
+      const TAM = dono.campo.cartas.length;
+      const lado =
+        alvoEscolhido !== null && alvoEscolhido !== undefined
+          ? alvoEscolhido < TAM
+            ? dono
+            : oponente
+          : null;
+      const indiceReal =
+        lado !== null
+          ? alvoEscolhido < TAM
+            ? alvoEscolhido
+            : alvoEscolhido - TAM
+          : null;
       const alvoValido =
-        alvoEscolhido !== null &&
-        alvoEscolhido !== undefined &&
-        dono.campo.cartas[alvoEscolhido] &&
-        dono.campo.cartas[alvoEscolhido].tipo !== "terreno";
+        lado !== null &&
+        lado.campo.cartas[indiceReal] &&
+        lado.campo.cartas[indiceReal].tipo !== "terreno";
       if (!alvoValido) return { sucesso: false, afetadas: [] };
 
-      const alvo = dono.campo.cartas[alvoEscolhido];
+      const alvo = lado.campo.cartas[indiceReal];
       const poderAntes = alvo.poder;
       alvo.poder = alvo.poderBase;
       // Zera o bônus de terreno acumulado e deixa resolverEfeitosContinuos
       // recalcular do zero — evita que o próximo recálculo subtraia um
       // bônus que este reset já descartou.
       alvo.bonusTerreno = 0;
-      this.resolverEfeitosContinuos(dono);
+      this.resolverEfeitosContinuos(lado);
 
       carta.usadaEsteTurno = true;
       return {
@@ -563,27 +580,19 @@ class Partida {
     }
 
     if (carta.efeito.tipo === TIPOS_EFEITO.OVERRIDE) {
-      // Override (A Aranha): captura de fato a carta-alvo pro campo do
-      // dono, num slot livre — ver nota em POOL_CARTAS_MONSTRO/cartas.js
-      // sobre por que essa é a versão simplificada do efeito original.
+      // Override (A Aranha): a carta-alvo CONTINUA no campo do oponente
+      // (não muda de dono nem de slot) — só passa a contar ponto pro
+      // dono da Aranha, via a flag capturadaPor (ver calcularPoderTotal).
       const alvoValido =
         alvoEscolhido !== null &&
         alvoEscolhido !== undefined &&
         oponente.campo.cartas[alvoEscolhido] &&
         oponente.campo.cartas[alvoEscolhido].tipo !== "terreno" &&
         oponente.campo.cartas[alvoEscolhido].poder < carta.poder;
-      const slotLivre = dono.campo.cartas.findIndex((c) => c === null);
-      if (!alvoValido || slotLivre === -1)
-        return { sucesso: false, afetadas: [] };
+      if (!alvoValido) return { sucesso: false, afetadas: [] };
 
       const capturada = oponente.campo.cartas[alvoEscolhido];
-      oponente.campo.cartas[alvoEscolhido] = null;
-      dono.campo.cartas[slotLivre] = capturada;
-
-      // Bônus de terreno depende de quem está em cada campo agora —
-      // recalcula os dois lados do zero.
-      this.resolverEfeitosContinuos(oponente);
-      this.resolverEfeitosContinuos(dono);
+      capturada.capturadaPor = dono;
 
       carta.usadaEsteTurno = true;
       return { sucesso: true, afetadas: [], capturada };
@@ -639,12 +648,17 @@ class Partida {
     }
 
     if (carta.efeito.tipo === TIPOS_EFEITO.RESETAR_PODER) {
-      // Novo Começo (O Boi): alvo é uma carta ALIADA em campo (pode ser o
-      // próprio Boi, embora ele normalmente não tenha bônus/reduções pra
-      // reverter).
+      // Novo Começo (O Boi): alvo é QUALQUER carta em campo — aliada
+      // (incluindo o próprio Boi) ou inimiga. Índice deslocado: 0..TAM-1
+      // = campo do dono, TAM..2*TAM-1 = campo do oponente (mesmo esquema
+      // decodificado em ativarHabilidade()).
+      const TAM = dono.campo.cartas.length;
       const indices = [];
       dono.campo.cartas.forEach((c, i) => {
         if (c && c.tipo !== "terreno") indices.push(i);
+      });
+      oponente.campo.cartas.forEach((c, i) => {
+        if (c && c.tipo !== "terreno") indices.push(TAM + i);
       });
       return indices;
     }
@@ -662,9 +676,9 @@ class Partida {
     }
 
     if (carta.efeito.tipo === TIPOS_EFEITO.OVERRIDE) {
-      // Override (A Aranha): só cartas inimigas com poder MENOR que o dela
-      // agora, e só se houver espaço livre no campo do dono pra capturar.
-      if (dono.campo.cartas.every((c) => c !== null)) return [];
+      // Override (A Aranha): só cartas inimigas com poder MENOR que o
+      // dela — a carta capturada fica no campo do oponente, então não
+      // precisa de slot livre no campo do dono.
       const indices = [];
       oponente.campo.cartas.forEach((c, i) => {
         if (c && c.tipo !== "terreno" && c.poder < carta.poder) {
@@ -1019,13 +1033,19 @@ class Partida {
     });
   }
 
-  calcularPoderTotal(campo) {
+  // Recebe o JOGADOR (não mais o campo) porque, com Override (A Aranha),
+  // uma carta pode fisicamente estar no campo do oponente mas contar
+  // ponto pro dono da Aranha (carta.capturadaPor) — então é preciso
+  // varrer os dois campos e decidir o dono efetivo de cada carta.
+  calcularPoderTotal(jogadorAlvo) {
     let total = 0;
-    for (let carta of campo.cartas) {
-      if (carta !== null) {
-        total += carta.poder;
-      }
-    }
+    [this.jogador, this.inimigo].forEach((donoDoCampoFisico) => {
+      donoDoCampoFisico.campo.cartas.forEach((carta) => {
+        if (!carta) return;
+        const donoEfetivo = carta.capturadaPor || donoDoCampoFisico;
+        if (donoEfetivo === jogadorAlvo) total += carta.poder;
+      });
+    });
     return total;
   }
 
@@ -1052,8 +1072,8 @@ class Partida {
     this.partidaEncerrada = true;
     this.inimigo.vitorias++;
 
-    const poderJogador = this.calcularPoderTotal(this.jogador.campo);
-    const poderInimigo = this.calcularPoderTotal(this.inimigo.campo);
+    const poderJogador = this.calcularPoderTotal(this.jogador);
+    const poderInimigo = this.calcularPoderTotal(this.inimigo);
     const cartaDestaque = this.obterCartaComMaiorPoder(this.inimigo.campo);
 
     return {
@@ -1071,8 +1091,8 @@ class Partida {
   // frente (empate não pontua ninguém). Isso é só o placar da rodada —
   // quem vence a PARTIDA é decidido em finalizarPartida().
   resolverRodada() {
-    const poderJogador = this.calcularPoderTotal(this.jogador.campo);
-    const poderInimigo = this.calcularPoderTotal(this.inimigo.campo);
+    const poderJogador = this.calcularPoderTotal(this.jogador);
+    const poderInimigo = this.calcularPoderTotal(this.inimigo);
 
     let vencedor = "empate";
     if (poderJogador > poderInimigo) {
@@ -1098,8 +1118,8 @@ class Partida {
   // mesmo formato de resultado de antes (poder final em campo + carta
   // destaque) pra tela de fim de jogo não precisar mudar.
   finalizarPartida() {
-    const poderJogador = this.calcularPoderTotal(this.jogador.campo);
-    const poderInimigo = this.calcularPoderTotal(this.inimigo.campo);
+    const poderJogador = this.calcularPoderTotal(this.jogador);
+    const poderInimigo = this.calcularPoderTotal(this.inimigo);
 
     let resultado;
     if (this.rodadasJogador > this.rodadasInimigo) {

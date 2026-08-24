@@ -67,7 +67,7 @@ function descreverEfeito(efeito) {
     case TIPOS_EFEITO.BUSCAR_CARTA_DECK:
       return `Ao ser conjurada: escolha uma carta do seu baralho para puxar diretamente para sua mão.`;
     case TIPOS_EFEITO.ABSORVER_ALIADOS:
-      return `Ao ser invocada: escolha até ${efeito.maxAlvos} carta${efeito.maxAlvos > 1 ? "s" : ""} aliada${efeito.maxAlvos > 1 ? "s" : ""} de nível baixo ou médio (poder até ${efeito.nivelMaximo}) em campo. Elas são removidas do campo, e esta carta ganha poder igual à soma dos poderes delas.`;
+      return `Ao ser invocada: escolha até ${efeito.maxAlvos} carta${efeito.maxAlvos > 1 ? "s" : ""} aliada${efeito.maxAlvos > 1 ? "s" : ""} de nível baixo ou médio em campo. Elas são removidas do campo, e esta carta ganha poder igual à soma dos poderes delas.`;
     case TIPOS_EFEITO.RESETAR_PODER:
       return `Habilidade ativa (1x por turno, em campo): escolha uma carta aliada em campo para retornar ao seu poder original, perdendo todos os bônus e reduções que tiver recebido.`;
     case TIPOS_EFEITO.ATACAR_DOIS_ALVOS:
@@ -345,7 +345,7 @@ const POOL_CARTAS_MONSTRO = [
       valor: 3,
       // "Alcance curto": só a coluna imediatamente vizinha (rangeH:1) e a
       // fileira adjacente (rangeV:1) — combate corpo a corpo.
-      rangeH: 1,
+      rangeH: 5,
       rangeV: 1,
     },
     habilidadeAtiva: true, // Garra de aço: não dispara ao invocar — ativa em campo, 1x por turno
@@ -497,16 +497,31 @@ class Carta {
 
   // Texto completo mostrado na visualização detalhada da carta
   descricaoCompleta() {
+    return this.partesDescricao()
+      .map((p) => p.texto)
+      .join(" ");
+  }
+
+  // Igual a descricaoCompleta(), mas separado em partes com a tag "flavor"
+  // (texto de ambientação) ou "efeito" (regra de jogo) — usado pra colorir
+  // cada trecho de forma diferente na visualização detalhada (ver jogo.js).
+  partesDescricao() {
     const partes = [];
-    if (this.descricaoFlavor) partes.push(this.descricaoFlavor);
+    if (this.descricaoFlavor)
+      partes.push({ texto: this.descricaoFlavor, tipo: "flavor" });
     const textoEfeito = descreverEfeito(this.efeito);
-    if (textoEfeito) partes.push(textoEfeito);
+    if (textoEfeito) partes.push({ texto: textoEfeito, tipo: "efeito" });
     const textoEfeitoTurno = descreverEfeitoTurno(this.efeitoTurno);
-    if (textoEfeitoTurno) partes.push(textoEfeitoTurno);
+    if (textoEfeitoTurno)
+      partes.push({ texto: textoEfeitoTurno, tipo: "efeito" });
     const textoEfeitoContinuo = descreverEfeitoContinuo(this.efeitoContinuo);
-    if (textoEfeitoContinuo) partes.push(textoEfeitoContinuo);
+    if (textoEfeitoContinuo)
+      partes.push({ texto: textoEfeitoContinuo, tipo: "efeito" });
     if (partes.length === 0)
-      partes.push("Uma unidade de combate padrão, sem habilidades especiais.");
-    return partes.join(" ");
+      partes.push({
+        texto: "Uma unidade de combate padrão, sem habilidades especiais.",
+        tipo: "flavor",
+      });
+    return partes;
   }
 }
