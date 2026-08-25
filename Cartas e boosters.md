@@ -218,7 +218,7 @@ só que claramente da de ver que é tipo um mlk aleatorio jovem de bigode, tipo 
 * Efeito: Garra de aço -> O Tigre é um mestre de combate corpo a corpo. Escolha 2 dentre toda carta em alcance curto, o Tigre reduz seus PA em 3.
 
  
-* Visual: Faz tipo o wolverine vermelho com umas garras cibernéticas bem longas
+* Visual: 
 
  <img alt="image" src="assets/cartas/el_tigre.png" />
 
@@ -255,7 +255,7 @@ só que claramente da de ver que é tipo um mlk aleatorio jovem de bigode, tipo 
 * Efeito: O Cavalo atravessa uma coluna do campo inimigo, causando 2 PA de dano a todas as cartas presentes nela.
 
  
-* Visual: faz tipo o ciborgue (mas só o rosto metade metal) mas correndo rápido pique aquelas imagens do flash
+* Visual: 
 
  <img alt="image" src="assets/cartas/OTROTARDOCAVALO.png" />
 
@@ -295,7 +295,7 @@ só que claramente da de ver que é tipo um mlk aleatorio jovem de bigode, tipo 
  
 * Visual:
 
-*  <img alt="image" src="assets/cartas/Toca_do_coelho.png" />
+*  <img alt="image" src="assets/cartas/Toca_do_Coelho.png" />
 
 
 
