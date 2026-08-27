@@ -70,7 +70,7 @@ function calcularLayoutCampo(slotW, slotH, gapFileira, gapTimes, yInimigoTras) {
 // Cartas maiores e menor distância entre o campo inimigo e o jogador.
 const LAYOUT_CAMPO_NORMAL = calcularLayoutCampo(
   195, // slotW: largura da carta
-  255, // slotH: altura da carta
+  270, // slotH: altura da carta
   12, // gapFileira: espaço entre as duas fileiras
   30, // gapTimes: espaço entre inimigo e jogador
   560, // yInimigoTras (empurrado pra baixo, deixa espaço pra mão do inimigo no topo)
@@ -692,8 +692,8 @@ class CenaJogo extends Phaser.Scene {
 
       if (!revelada) {
         let costas = this.add
-          .rectangle(0, 0, larguraCarta, alturaCarta, 0x772222)
-          .setStrokeStyle(3, 0xffffff);
+          .image(0, 0, "fundoCarta")
+          .setDisplaySize(larguraCarta, alturaCarta);
         let container = this.add.container(posX, posY, [sombra, costas]);
         container.setAngle(angulo);
         container.setDepth(-99);
@@ -839,8 +839,8 @@ class CenaJogo extends Phaser.Scene {
       0.35,
     );
     let costas = this.add
-      .rectangle(0, 0, larguraCarta, alturaCarta, 0x222233)
-      .setStrokeStyle(4, cor);
+      .image(0, 0, "fundoCarta")
+      .setDisplaySize(larguraCarta, alturaCarta);
     let numero = this.add
       .text(0, 0, `${quantidade}`, {
         fontSize: "48px",
@@ -1023,36 +1023,88 @@ class CenaJogo extends Phaser.Scene {
     });
   }
 
-  // Faro (O Cão): toast simples listando os nomes das cartas reveladas do
-  // inimigo, no mesmo espírito visual de avisarSemAlvo() (texto que some
-  // sozinho), só que fica mais tempo na tela por ter mais texto pra ler.
-  mostrarRevelacaoFaro(nomes) {
-    const corpo =
-      nomes.length > 0
-        ? nomes.join("\n")
-        : "O inimigo não tem cartas para revelar.";
+  // Faro (O Cão): painel dedicado com arte, nome, nível, tipo e PA de
+  // cada carta farejada. Permanece aberto até o jogador confirmar.
+  mostrarRevelacaoFaro(cartas) {
+    this.travado = true;
+    const objetos = [];
+    const overlay = this.add
+      .rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.82)
+      .setDepth(4000)
+      .setInteractive();
+    const painel = this.add
+      .rectangle(GW / 2, GH / 2, 900, 1240, 0x14141c, 0.98)
+      .setStrokeStyle(8, 0xffd166)
+      .setDepth(4001);
+    objetos.push(overlay, painel);
 
-    let texto = this.add
-      .text(GW / 2, 200, `Faro revelou:\n${corpo}`, {
-        fontSize: "30px",
-        color: "#ffe08a",
-        fontStyle: "bold",
-        stroke: "#000000",
-        strokeThickness: 6,
-        align: "center",
-      })
-      .setOrigin(0.5, 0)
-      .setDepth(3900)
-      .setAlpha(0);
+    objetos.push(
+      this.add
+        .text(GW / 2, GH / 2 - 560, "🐕  FARO DO CÃO", {
+          fontSize: "48px",
+          color: "#ffe08a",
+          fontStyle: "bold",
+          stroke: "#000000",
+          strokeThickness: 7,
+        })
+        .setOrigin(0.5)
+        .setDepth(4002),
+    );
 
-    this.tweens.add({
-      targets: texto,
-      alpha: 1,
-      duration: 200,
-      yoyo: true,
-      hold: 2200,
-      onComplete: () => texto.destroy(),
+    if (!cartas.length) {
+      objetos.push(
+        this.add
+          .text(GW / 2, GH / 2, "O inimigo não possui cartas para farejar.", {
+            fontSize: "32px",
+            color: "#dddddd",
+          })
+          .setOrigin(0.5)
+          .setDepth(4002),
+      );
+    }
+
+    cartas.forEach((carta, i) => {
+      const y = GH / 2 - 420 + i * 190;
+      const fundoLinha = this.add
+        .rectangle(GW / 2, y, 780, 160, 0x252538, 0.95)
+        .setStrokeStyle(3, 0x6b6b88)
+        .setDepth(4002);
+      const arte = carta.imagem
+        ? this.add.image(GW / 2 - 315, y, carta.imagem).setDisplaySize(100, 140)
+        : this.add.rectangle(GW / 2 - 315, y, 100, 140, 0x444466);
+      arte.setDepth(4003);
+      const nivel = (carta.nivel || carta.tipo).toUpperCase();
+      const texto = this.add
+        .text(
+          GW / 2 - 235,
+          y - 48,
+          `${carta.nome}\n${nivel}${carta.tipo === "monstro" ? `  •  ${carta.poder} PA` : ""}`,
+          {
+            fontSize: "28px",
+            color: "#ffffff",
+            fontStyle: "bold",
+            lineSpacing: 12,
+            wordWrap: { width: 560 },
+          },
+        )
+        .setOrigin(0, 0)
+        .setDepth(4003);
+      objetos.push(fundoLinha, arte, texto);
     });
+
+    const fechar = () => {
+      objetos.forEach((o) => o.destroy());
+      this.travado = false;
+      this.desenharInterface();
+    };
+    const btn = this.criarBotaoConfirmacao(
+      GW / 2,
+      GH / 2 + 545,
+      "Entendido",
+      0x665522,
+      fechar,
+    ).setDepth(4004);
+    objetos.push(btn);
   }
 
   animarRetornoAoLeque(gameObject, comErro) {
@@ -2168,21 +2220,11 @@ class CenaJogo extends Phaser.Scene {
           );
     let fundo = viradaParaBaixo
       ? this.add
-          .rectangle(0, 0, CW, CH, 0x10152b)
-          .setStrokeStyle(5, 0x8a55cc)
+          .image(0, 0, "fundoCarta")
+          .setDisplaySize(CW, CH)
       : carta.imagem
       ? this.add.image(0, 0, carta.imagem).setDisplaySize(CW, CH)
       : this.add.rectangle(0, 0, CW, CH, corFundo);
-    if (viradaParaBaixo) {
-      nomeTexto = this.add
-        .text(0, 0, "EchoSsystem\n?", {
-          fontSize: `${Math.round(20 * escala)}px`,
-          color: "#caa8ff",
-          align: "center",
-          fontStyle: "bold",
-        })
-        .setOrigin(0.5);
-    }
     const filhos = [
       sombra,
       fundo,
@@ -2209,6 +2251,29 @@ class CenaJogo extends Phaser.Scene {
         })
         .setOrigin(0.5);
       filhos.push(selo, iconeSelo);
+    }
+
+    // Override da Aranha: deixa inequívoco que a carta continua no campo
+    // inimigo, mas agora pontua para a equipe que a capturou.
+    if (carta.capturadaPor && !viradaParaBaixo) {
+      const seloAranha = this.add
+        .circle(
+          Math.round(62 * escala),
+          Math.round(-68 * escala),
+          Math.round(24 * escala),
+          0x6d28d9,
+          0.96,
+        )
+        .setStrokeStyle(3, 0xffffff);
+      const iconeAranha = this.add
+        .text(
+          Math.round(62 * escala),
+          Math.round(-68 * escala),
+          "🕷",
+          { fontSize: `${Math.round(25 * escala)}px` },
+        )
+        .setOrigin(0.5);
+      filhos.push(seloAranha, iconeAranha);
     }
 
     // Anel de impacto: some rapidinho, dá um "pop" visual no instante
@@ -3072,7 +3137,7 @@ class CenaJogo extends Phaser.Scene {
           ? "CARTA DE TERRENO"
           : ehEfeito
             ? "CARTA DE EFEITO"
-            : "CARTA DE PERSONAGEM",
+            : `CARTA ${(carta.nivel || "personagem").toUpperCase()}`,
         {
           fontSize: "36px",
           color: ehTerreno ? "#a3e635" : ehEfeito ? "#ffe066" : "#9be7ff",
@@ -4400,8 +4465,8 @@ class CenaJogo extends Phaser.Scene {
   }
 
   // ---------- SELEÇÃO DE CARTA DO BARALHO (Sugestão Algorítmica) ----------
-  // Mostra as cartas restantes no baralho do jogador (nome + poder) pra ele
-  // escolher qual quer puxar direto pra mão. A carta de efeito arrastada
+  // Mostra as cartas restantes como cards visuais paginados pra escolher
+  // qual puxar direto pra mão. A carta de efeito arrastada
   // ainda NÃO foi consumida nesse ponto — só é jogada de fato quando o
   // jogador confirma uma escolha (ver confirmarEscolhaCartaDoBaralho).
   // Cancelar (toque fora) devolve a carta arrastada pro leque, sem gastá-la.
@@ -4417,9 +4482,10 @@ class CenaJogo extends Phaser.Scene {
     this.esconderRodaBotoes();
 
     const objetos = [];
+    let objetosPagina = [];
 
     let overlay = this.add
-      .rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.82)
+      .rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.86)
       .setDepth(3900)
       .setInteractive();
     overlay.on("pointerup", () =>
@@ -4427,9 +4493,16 @@ class CenaJogo extends Phaser.Scene {
     );
     objetos.push(overlay);
 
+    const painel = this.add
+      .rectangle(GW / 2, GH / 2, 920, 1200, 0x11121c, 0.98)
+      .setStrokeStyle(7, 0xffcc00)
+      .setDepth(3910)
+      .setInteractive();
+    objetos.push(painel);
+
     let textoInstr = this.add
-      .text(GW / 2, 130, "Escolha uma carta do baralho", {
-        fontSize: "40px",
+      .text(GW / 2, 520, "SUGESTÃO ALGORÍTMICA", {
+        fontSize: "46px",
         color: "#ffcc00",
         fontStyle: "bold",
         stroke: "#000000",
@@ -4440,60 +4513,140 @@ class CenaJogo extends Phaser.Scene {
     objetos.push(textoInstr);
 
     let textoCancelar = this.add
-      .text(GW / 2, 185, "(toque fora para cancelar)", {
-        fontSize: "26px",
+      .text(GW / 2, 580, "Escolha uma carta para adicionar à sua mão", {
+        fontSize: "27px",
         color: "#dddddd",
       })
       .setOrigin(0.5)
       .setDepth(3950);
     objetos.push(textoCancelar);
 
-    const colunas = 3;
-    const cardW = 300;
-    const cardH = 150;
-    const gapX = 24;
-    const gapY = 24;
-    const inicioX = GW / 2 - ((colunas - 1) * (cardW + gapX)) / 2;
-    const inicioY = 320;
+    const porPagina = 6;
+    const totalPaginas = Math.ceil(deck.length / porPagina);
+    let pagina = 0;
 
-    deck.forEach((cartaDeck, i) => {
-      const col = i % colunas;
-      const linha = Math.floor(i / colunas);
-      const x = inicioX + col * (cardW + gapX);
-      const y = inicioY + linha * (cardH + gapY);
+    const renderizarPagina = () => {
+      objetosPagina.forEach((o) => o.destroy());
+      objetosPagina = [];
+      const inicio = pagina * porPagina;
+      deck.slice(inicio, inicio + porPagina).forEach((cartaDeck, local) => {
+        const indiceReal = inicio + local;
+        const col = local % 3;
+        const linha = Math.floor(local / 3);
+        const x = 285 + col * 255;
+        const y = 790 + linha * 405;
+        const cardW = 220;
+        const cardH = 360;
+        const arteH = 270;
+        const corFundo = this.obterCorPorId(cartaDeck.id);
 
-      const corFundo = this.obterCorPorId(cartaDeck.id);
-      let fundo = this.add
-        .rectangle(x, y, cardW, cardH, corFundo)
-        .setStrokeStyle(4, 0xffffff)
-        .setDepth(3950)
-        .setInteractive({ useHandCursor: true });
-      let nomeTxt = this.add
-        .text(x, y - 30, cartaDeck.nome, {
-          fontSize: "24px",
+        const moldura = this.add
+          .rectangle(x, y, cardW, cardH, 0x252638, 1)
+          .setStrokeStyle(5, cartaDeck.lendaria ? 0xffd700 : 0xffffff)
+          .setDepth(3950)
+          .setInteractive({ useHandCursor: true });
+        const arte = cartaDeck.imagem
+          ? this.add
+              .image(x, y - 36, cartaDeck.imagem)
+              .setDisplaySize(cardW - 16, arteH)
+          : this.add.rectangle(x, y - 36, cardW - 16, arteH, corFundo);
+        arte.setDepth(3951);
+        const nomeTxt = this.add
+          .text(x, y + 112, cartaDeck.nome, {
+            fontSize: "20px",
+            color: "#ffffff",
+            fontStyle: "bold",
+            align: "center",
+            wordWrap: { width: cardW - 18 },
+          })
+          .setOrigin(0.5, 0)
+          .setDepth(3952);
+        const alturaNome = 58;
+        const mascaraGrafico = this.add.graphics().setVisible(false);
+        mascaraGrafico.fillStyle(0xffffff, 1);
+        mascaraGrafico.fillRect(
+          x - cardW / 2 + 8,
+          y + 108,
+          cardW - 16,
+          alturaNome,
+        );
+        const mascaraNome = mascaraGrafico.createGeometryMask();
+        nomeTxt.setMask(mascaraNome);
+
+        let tweenNome = null;
+        if (nomeTxt.height > alturaNome) {
+          const excesso = nomeTxt.height - alturaNome + 8;
+          tweenNome = this.tweens.add({
+            targets: nomeTxt,
+            y: nomeTxt.y - excesso,
+            duration: Math.max(1200, excesso * 55),
+            delay: 700,
+            hold: 900,
+            yoyo: true,
+            repeat: -1,
+            repeatDelay: 500,
+            ease: "Sine.easeInOut",
+          });
+        }
+        moldura.on("pointerover", () => moldura.setScale(1.04));
+        moldura.on("pointerout", () => moldura.setScale(1));
+        moldura.on("pointerup", () =>
+          this.confirmarEscolhaCartaDoBaralho(
+            gameObject,
+            carta,
+            indiceReal,
+          ),
+        );
+        objetosPagina.push({
+          destroy: () => {
+            if (tweenNome) tweenNome.stop();
+            nomeTxt.clearMask(false);
+            mascaraNome.destroy();
+            mascaraGrafico.destroy();
+          },
+        }, moldura, arte, nomeTxt);
+      });
+
+      const paginaTxt = this.add
+        .text(GW / 2, 1480, `${pagina + 1} / ${totalPaginas}`, {
+          fontSize: "28px",
           color: "#ffffff",
           fontStyle: "bold",
-          align: "center",
-          wordWrap: { width: cardW - 20 },
         })
         .setOrigin(0.5)
-        .setDepth(3951);
-      let poderTxt = this.add
-        .text(
-          x,
-          y + 48,
-          cartaDeck.tipo === "terreno" ? "Terreno" : `PA ${cartaDeck.poder}`,
-          { fontSize: "22px", color: "#ffee88" },
-        )
-        .setOrigin(0.5)
-        .setDepth(3951);
+        .setDepth(3952);
+      objetosPagina.push(paginaTxt);
 
-      fundo.on("pointerup", () =>
-        this.confirmarEscolhaCartaDoBaralho(gameObject, carta, i),
-      );
+      if (pagina > 0) {
+        const anterior = this.criarBotaoConfirmacao(
+          320,
+          1480,
+          "‹ Anterior",
+          0x3a3a55,
+          () => {
+            pagina--;
+            renderizarPagina();
+          },
+        ).setDepth(3953);
+        objetosPagina.push(anterior);
+      }
+      if (pagina < totalPaginas - 1) {
+        const proxima = this.criarBotaoConfirmacao(
+          760,
+          1480,
+          "Próxima ›",
+          0x3a3a55,
+          () => {
+            pagina++;
+            renderizarPagina();
+          },
+        ).setDepth(3953);
+        objetosPagina.push(proxima);
+      }
+    };
 
-      objetos.push(fundo, nomeTxt, poderTxt);
-    });
+    renderizarPagina();
+    objetos.push({ destroy: () => objetosPagina.forEach((o) => o.destroy()) });
 
     this.objetosSelecaoBaralho = objetos;
   }
@@ -5523,6 +5676,17 @@ class CenaJogo extends Phaser.Scene {
     );
     const maxAlvos = carta.efeito.maxAlvos || 3;
 
+    // Efeitos de invocação que dependem de alvo simplesmente não ativam
+    // quando não existe escolha válida. A carta continua invocada, mas não
+    // abrimos seletor vazio e não chamamos aplicarEfeitoInvocacao().
+    if (alvos.length === 0) {
+      this.partida.resolverEfeitosContinuos(this.partida.jogador);
+      this.partida.resolverEfeitosContinuos(this.partida.inimigo);
+      this.travado = false;
+      this.desenharInterface();
+      return;
+    }
+
     this.travado = true;
 
     let overlay = this.add
@@ -5558,17 +5722,6 @@ class CenaJogo extends Phaser.Scene {
       .setOrigin(0.5)
       .setDepth(3900);
     objetos.push(textoContador);
-
-    // Se não houver nenhuma aliada elegível em campo, não tem o que
-    // escolher — cai direto na confirmação (soma zero, efeito só não
-    // rende ganho nenhum pra ela desta vez). Registra os objetos criados
-    // até aqui (overlay/textos) em objetosSelecaoAlvo antes de confirmar,
-    // pra confirmarAbsorcao conseguir destruí-los normalmente.
-    if (alvos.length === 0) {
-      this.objetosSelecaoAlvo = objetos;
-      this.confirmarAbsorcao(carta, posicaoPropria, []);
-      return;
-    }
 
     alvos.forEach((indice) => {
       const col = indice % 5;

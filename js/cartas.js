@@ -3,6 +3,38 @@ console.log("cartas.js carregado");
 // ============================================================================
 // ARQUIVO DE DADOS DAS CARTAS
 // ============================================================================
+
+const NIVEIS_CARTAS = {
+  "CyberVendedor da RaspCorp": "baixa",
+  "Estagiário de Machine Learning": "baixa",
+  "NeoAnalista de Suporte Nível Alpha": "baixa",
+  "Advogado Corporativo": "media",
+  "Gestor de Recursos Predominantemente Humanos": "media",
+  CryptoAcionistas: "alta",
+  "Agente da DIPSP": "alta",
+  'UCC "Juggernaut"': "alta",
+  "RaspClay MonteCorp": "lendaria",
+  "O Rato": "baixa",
+  "A Cabra": "baixa",
+  "O Cão": "baixa",
+  "O Porco": "media",
+  "A Cobra": "media",
+  "O Tigre": "alta",
+  "A Aranha": "alta",
+  "O Boi": "lendaria",
+  HumbaBrain: "lendaria",
+  "Dieh'Go, o Xerife": "lendaria",
+};
+
+function classificarNivelCarta(nome, poder, tipo, lendaria) {
+  if (tipo === "efeito") return "efeito";
+  if (tipo === "terreno") return "terreno";
+  if (lendaria) return "lendaria";
+  if (NIVEIS_CARTAS[nome]) return NIVEIS_CARTAS[nome];
+  if (poder <= 4) return "baixa";
+  if (poder <= 7) return "media";
+  return "alta";
+}
 // Tudo relacionado a "o que é uma carta" mora aqui: a classe Carta, os tipos
 // de efeito passivo e o pool de cartas de efeito usado para montar os decks.
 //
@@ -47,11 +79,8 @@ const TIPOS_EFEITO = {
   DISTRIBUIR_DANO: "distribuir_dano", // Dieh'Go: distribui livremente uma reserva de dano entre inimigos
 };
 
-// O jogo não tem uma tag de "nível" separada por carta — "baixo/médio/alto"
-// é só uma forma de falar do PODER dela. ABSORVER_ALIADOS usa um teto de
-// poder (efeito.nivelMaximo) pra decidir quem conta como "baixo ou médio":
-// cartas com poder MAIOR que o teto (ex: o próprio RaspClay MonteCorp, ou
-// o Juggernaut) são "nível alto" e ficam de fora.
+// O campo `nivel` é a fonte oficial para regras de baixa, média, alta e
+// lendária. Nenhum efeito deve inferir a categoria pelo PA atual.
 
 // Gera a frase descritiva de um efeito, usada na visualização detalhada da carta
 function descreverEfeito(efeito) {
@@ -409,7 +438,7 @@ const POOL_CARTAS_MONSTRO = [
     efeito: {
       tipo: TIPOS_EFEITO.ABSORVER_ALIADOS,
       maxAlvos: 3, // Potencialização de Capital: até 3 cartas aliadas por ativação
-      nivelMaximo: 7, // só absorve cartas de nível baixo ou médio (poder até 7)
+      niveisPermitidos: ["baixa", "media"],
     },
     // Potencialização de Capital: efeito passivo normal (dispara ao
     // invocar, como a Venda Casada do CyberVendedor), não é habilidade
@@ -692,7 +721,15 @@ class Carta {
     this.foco = opcoes.foco || { x: 0.5, y: 0.5 }; // ponto da imagem centralizado no recorte (ver POOL_CARTAS_MONSTRO)
     this.somAtaque = opcoes.somAtaque || null; // chave do som (preload) tocado quando esta carta ataca
     this.habilidadeAtiva = !!opcoes.habilidadeAtiva; // true = ataque é ativado manualmente em campo, não ao invocar
-    this.lendaria = !!opcoes.lendaria; // true = visualização detalhada com destaque especial dourado (ver mostrarDetalheCarta, em jogo.js)
+    this.nivel =
+      opcoes.nivel ||
+      classificarNivelCarta(
+        this.nome,
+        this.poder,
+        this.tipo,
+        !!opcoes.lendaria,
+      );
+    this.lendaria = this.nivel === "lendaria";
     this.usadaEsteTurno = false; // trava a habilidade ativa até o próximo turno
     this.usadaNaPartida = false; // trava habilidades "1x por jogo" (ex: Cessar e Desistir) até o fim da partida, sem resetar por turno
     this.poderBase = this.poder; // teto de recuperação (ex: terreno Beira-mar) e base p/ bônus de terreno

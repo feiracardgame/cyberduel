@@ -1105,7 +1105,7 @@ class Partida {
         // mexe no campo, então "afetadas" fica vazio. A UI (jogo.js) lê
         // this.ultimaRevelacaoFaro pra mostrar os nomes revelados.
         const poolInimigo = [...oponente.mao.cartas, ...oponente.deck.cartas];
-        this.ultimaRevelacaoFaro = poolInimigo.slice(0, valor).map((c) => c.nome);
+        this.ultimaRevelacaoFaro = poolInimigo.slice(0, valor);
         break;
       }
     }
@@ -1114,22 +1114,25 @@ class Partida {
   }
 
   // Lista os índices do campo do DONO que uma carta ABSORVER_ALIADOS (ex:
-  // RaspClay MonteCorp) pode escolher pra absorver agora: aliadas de nível
-  // baixo ou médio (poder até efeito.nivelMaximo), sem contar terrenos (que
-  // não têm PA de verdade) nem a própria carta recém-invocada. Usada pela
+  // RaspClay MonteCorp) pode escolher pra absorver agora: aliadas cuja
+  // classificação oficial esteja permitida pelo efeito, sem contar terrenos
+  // nem a própria carta recém-invocada. Usada pela
   // UI (iniciarSelecaoDeAbsorcao, em jogo.js) pra saber quais slots
   // destacar antes do jogador confirmar.
   alvosParaAbsorverAliados(carta, dono, posicaoPropria) {
     if (!carta.efeito || carta.efeito.tipo !== TIPOS_EFEITO.ABSORVER_ALIADOS)
       return [];
-    const { nivelMaximo } = carta.efeito;
+    const niveisPermitidos = carta.efeito.niveisPermitidos || [
+      "baixa",
+      "media",
+    ];
     const indices = [];
     dono.campo.cartas.forEach((c, i) => {
       if (
         c &&
         i !== posicaoPropria &&
         c.tipo !== "terreno" &&
-        c.poder <= nivelMaximo
+        niveisPermitidos.includes(c.nivel)
       )
         indices.push(i);
     });

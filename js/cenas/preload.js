@@ -18,6 +18,7 @@ class CenaPreload extends Phaser.Scene {
     this.criarBarraDeCarregamento();
 
     // ---------- ASSETS DO JOGO ----------
+    this.load.image("fundoCarta", "assets/fundo/fundo_carta_2.png");
     //cartas
     this.load.image("cryptoacionistas", "assets/cartas/cryptoacionistas.png");
     this.load.image("dipsp", "assets/cartas/AgenteDIPSP.png");
