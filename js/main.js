@@ -286,6 +286,7 @@ class Partida {
     // junto das cartas que foram afetadas por ela, para a cena poder
     // mostrar a animação de conjuração e de buff/debuff no momento certo.
     this.efeitoInimigoTurno = null;
+    this.jogadasCampoInimigoTurno = [];
 
     // Histórico de todas as cartas jogadas na partida, na ordem em que
     // foram jogadas. Cada entrada: { turno, quem: 'jogador'|'inimigo', carta }.
@@ -459,7 +460,6 @@ class Partida {
 
     const posicao = dono.campo.cartas.indexOf(carta);
     if (posicao === -1) return { sucesso: false, afetadas: [] };
-    carta.revelada = true;
 
     if (carta.efeito.tipo === TIPOS_EFEITO.ATACAR) {
       const { valor, rangeH, rangeV, atingeTodos } = carta.efeito;
@@ -481,6 +481,7 @@ class Partida {
       oponente.campo.removerMortas();
 
       carta.usadaEsteTurno = true;
+      carta.revelada = true;
       if (carta.somAtaque && typeof window !== "undefined" && window.cena) {
         const s =
           window.cena.sound.get(carta.somAtaque) ||
@@ -516,6 +517,7 @@ class Partida {
       dono.campo.removerMortas();
 
       carta.usadaEsteTurno = true;
+      carta.revelada = true;
       return { sucesso: true, afetadas };
     }
 
@@ -560,6 +562,7 @@ class Partida {
       });
       oponente.campo.removerMortas();
       carta.usadaEsteTurno = true;
+      carta.revelada = true;
       return { sucesso: true, afetadas };
     }
 
@@ -595,6 +598,7 @@ class Partida {
       dono.campo.removerMortas();
 
       carta.usadaEsteTurno = true;
+      carta.revelada = true;
       return { sucesso: true, afetadas };
     }
 
@@ -622,6 +626,7 @@ class Partida {
 
       carta.usadaNaPartida = true; // 1x por PARTIDA: não reseta em fimTurno()
       carta.usadaEsteTurno = true; // também trava o botão neste turno, por consistência visual
+      carta.revelada = true;
       return { sucesso: true, afetadas: [], terrenoDestruido };
     }
 
@@ -661,6 +666,7 @@ class Partida {
       this.resolverEfeitosContinuos(lado);
 
       carta.usadaEsteTurno = true;
+      carta.revelada = true;
       return {
         sucesso: true,
         afetadas: [{ carta: alvo, delta: alvo.poder - poderAntes }],
@@ -696,6 +702,7 @@ class Partida {
       oponente.campo.removerMortas();
 
       carta.usadaEsteTurno = true;
+      carta.revelada = true;
       if (carta.somAtaque && typeof window !== "undefined" && window.cena) {
         const s =
           window.cena.sound.get(carta.somAtaque) ||
@@ -722,6 +729,7 @@ class Partida {
       capturada.capturadaPor = dono;
 
       carta.usadaEsteTurno = true;
+      carta.revelada = true;
       return { sucesso: true, afetadas: [], capturada };
     }
 
@@ -744,6 +752,7 @@ class Partida {
       oponente.campo.removerMortas();
 
       carta.usadaEsteTurno = true;
+      carta.revelada = true;
       return {
         sucesso: true,
         afetadas: [
@@ -769,6 +778,7 @@ class Partida {
       dono.campo.cartas[alvoEscolhido] = carta;
 
       carta.usadaEsteTurno = true;
+      carta.revelada = true;
       return { sucesso: true, afetadas: [] };
     }
 
@@ -785,6 +795,7 @@ class Partida {
       oponente.campo.cartas[alvoEscolhido].envenenada = { valor };
 
       carta.usadaEsteTurno = true;
+      carta.revelada = true;
       return { sucesso: true, afetadas: [] };
     }
 
@@ -1289,56 +1300,90 @@ class Partida {
 
   turnoIA() {
     this.efeitoInimigoTurno = null;
+    this.jogadasCampoInimigoTurno = [];
+    const candidatas = Phaser.Utils.Array.Shuffle([...this.inimigo.mao.cartas]);
+    const efeitosConjurados = [];
+    const afetadasPorEfeitos = [];
+    const maxJogadas = candidatas.length
+      ? Phaser.Math.Between(1, Math.min(3, candidatas.length))
+      : 0;
+    let jogadas = 0;
 
-    const carta = this.inimigo.mao.cartas[0];
-    if (!carta) return;
+    for (const carta of candidatas) {
+      if (jogadas >= maxJogadas) break;
 
-    // Cartas de efeito nunca vão para o campo: são conjuradas e consumidas
-    if (carta.tipo === "efeito") {
-      const sucesso = this.inimigo.jogarCartaEfeito(carta);
-      if (sucesso) {
-        // Sugestão Algorítmica: IA escolhe uma carta aleatória do próprio
-        // baralho (o jogador escolhe manualmente; a IA não tem preferência).
+      if (carta.tipo === "efeito") {
+        const sucesso = this.inimigo.jogarCartaEfeito(carta);
+        if (!sucesso) continue;
         const alvoDeckIA =
           carta.efeito?.tipo === TIPOS_EFEITO.BUSCAR_CARTA_DECK &&
           this.inimigo.deck.cartas.length > 0
             ? Math.floor(Math.random() * this.inimigo.deck.cartas.length)
             : null;
-        const aliadosParaGalo = this.inimigo.campo.cartas
+        const aliados = this.inimigo.campo.cartas
           .map((c, i) => (c && c.tipo !== "terreno" ? i : null))
+          .filter((i) => i !== null);
+        const slotsJogadorVazios = this.jogador.campo.cartas
+          .map((c, i) => (!c ? i : null))
           .filter((i) => i !== null);
         const alvoEfeitoIA =
           carta.efeito?.tipo === TIPOS_EFEITO.BUFF_DOIS_ALIADOS &&
-          aliadosParaGalo.length >= 2
-            ? aliadosParaGalo.slice(0, 2)
-            : carta.efeito?.tipo === TIPOS_EFEITO.ARMADILHA_ESPACO
-              ? this.jogador.campo.cartas.findIndex((c) => !c)
+          aliados.length >= 2
+            ? Phaser.Utils.Array.Shuffle([...aliados]).slice(0, 2)
+            : carta.efeito?.tipo === TIPOS_EFEITO.ARMADILHA_ESPACO &&
+                slotsJogadorVazios.length
+              ? Phaser.Utils.Array.GetRandom(slotsJogadorVazios)
               : alvoDeckIA;
-        const afetadas = this.aplicarEfeitoInvocacao(
+        afetadasPorEfeitos.push(
+          ...this.aplicarEfeitoInvocacao(
+            carta,
+            this.inimigo,
+            this.jogador,
+            null,
+            alvoEfeitoIA,
+          ),
+        );
+        efeitosConjurados.push(carta);
+        this.registrarHistorico(carta, "inimigo");
+        jogadas++;
+        continue;
+      }
+
+      const slotsLivres = this.inimigo.campo.cartas
+        .map((c, i) => (!c ? i : null))
+        .filter((i) => i !== null);
+      if (!slotsLivres.length) continue;
+      const posicao = Phaser.Utils.Array.GetRandom(slotsLivres);
+      const sucesso = this.inimigo.jogarCarta(carta, posicao);
+      if (!sucesso) continue;
+      this.registrarHistorico(carta, "inimigo");
+      this.jogadasCampoInimigoTurno.push({ carta, posicao });
+      if (carta.tipo !== "terreno") {
+        this.aplicarEfeitoInvocacao(
           carta,
           this.inimigo,
           this.jogador,
-          null,
-          alvoEfeitoIA,
+          posicao,
         );
-        this.efeitoInimigoTurno = { carta, afetadas };
-        this.registrarHistorico(carta, "inimigo");
       }
-      return;
+      this.resolverEfeitosContinuos(this.inimigo);
+      this.resolverEfeitosContinuos(this.jogador);
+      jogadas++;
     }
 
-    for (let i = 0; i < 10; i++) {
-      if (this.inimigo.campo.temEspaco(i)) {
-        const sucesso = this.inimigo.jogarCarta(carta, i);
-        if (sucesso) {
-          this.registrarHistorico(carta, "inimigo");
-          if (carta.tipo === "terreno")
-            this.resolverEfeitosContinuos(this.inimigo);
-          this.resolverEfeitosContinuos(this.jogador);
-        }
-        break;
-      }
+    if (efeitosConjurados.length) {
+      this.efeitoInimigoTurno = {
+        carta: efeitosConjurados[0],
+        cartas: efeitosConjurados,
+        afetadas: afetadasPorEfeitos,
+      };
     }
+
+    // Reavalia uma última vez depois das duas jogadas. Isso é importante
+    // quando a Toca do Coelho foi a primeira: a segunda carta também deve
+    // nascer oculta antes de a cena iniciar a animação sequencial.
+    this.resolverEfeitosContinuos(this.inimigo);
+    this.resolverEfeitosContinuos(this.jogador);
 
     // IA também ativa habilidades de ataque disponíveis em campo (1x cada).
     this.inimigo.campo.cartas.forEach((c) => {

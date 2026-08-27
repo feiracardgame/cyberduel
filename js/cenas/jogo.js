@@ -326,6 +326,8 @@ class CenaJogo extends Phaser.Scene {
               descricao: baseTerreno.descricao,
               efeitoContinuo: baseTerreno.efeitoContinuo,
               imagem: baseTerreno.imagem,
+              foco: baseTerreno.foco,
+              booster: baseTerreno.booster,
             },
           );
         } else {
@@ -415,9 +417,9 @@ class CenaJogo extends Phaser.Scene {
       }
 
       this.partida.inimigo.campo.adicionarCarta(carta, posicao);
+      this.partida.resolverEfeitosContinuos(this.partida.inimigo);
+      this.partida.resolverEfeitosContinuos(this.partida.jogador);
       if (!this.travado) this.desenharInterface();
-      return carta;
-      console.log(`puxarCarta: "${carta.nome}" foi pra sua mão.`);
       return carta;
     };
 
@@ -951,7 +953,6 @@ class CenaJogo extends Phaser.Scene {
       this.animarRetornoAoLeque(gameObject, true);
       this.cameras.main.shake(150, 0.002);
       return;
-      this.somJogarCarta.play();
     }
 
     this.travado = true;
@@ -6131,6 +6132,8 @@ class CenaJogo extends Phaser.Scene {
     const { resultadoCombate, fimDeJogo, resultadoRodada } =
       this.partida.fimTurno();
     const efeitoInimigo = this.partida.efeitoInimigoTurno;
+    const jogadasCampoInimigo =
+      this.partida.jogadasCampoInimigoTurno || [];
     const efeitosDeTurno = this.partida.efeitosDeTurno;
 
     const finalizarTurno = () => {
@@ -6186,11 +6189,118 @@ class CenaJogo extends Phaser.Scene {
       });
     };
 
-    if (efeitoInimigo) {
-      this.conjurarCartaDeEfeitoInimigo(efeitoInimigo.carta, finalizarTurno);
-    } else {
-      finalizarTurno();
+    const animarEfeitosInimigos = () => {
+      if (!efeitoInimigo) {
+        finalizarTurno();
+        return;
+      }
+      const cartasEfeito = efeitoInimigo.cartas || [efeitoInimigo.carta];
+      const animarProxima = (indice) => {
+        if (indice >= cartasEfeito.length) {
+          finalizarTurno();
+          return;
+        }
+        this.conjurarCartaDeEfeitoInimigo(cartasEfeito[indice], () =>
+          animarProxima(indice + 1),
+        );
+      };
+      animarProxima(0);
+    };
+
+    this.animarJogadasCampoInimigo(
+      jogadasCampoInimigo,
+      animarEfeitosInimigos,
+    );
+  }
+
+  // Apresenta as invocações da IA uma por vez sem redesenhar a interface
+  // inteira a cada carta. Isso evita os flashes dos objetos já existentes.
+  animarJogadasCampoInimigo(jogadas, aoTerminar) {
+    const validas = jogadas.filter(
+      ({ carta, posicao }) =>
+        this.partida.inimigo.campo.cartas[posicao] === carta,
+    );
+    if (!validas.length) {
+      aoTerminar();
+      return;
     }
+
+    const cartasJogadas = new Set(validas.map(({ carta }) => carta));
+    let tocaJaVisivel = this.partida.inimigo.campo.cartas.some(
+      (c) =>
+        c &&
+        !cartasJogadas.has(c) &&
+        c.efeitoContinuo?.tipo === TIPOS_EFEITO_CONTINUO.OCULTAR_ALIADOS,
+    );
+
+    const mostrar = (indice) => {
+      if (indice >= validas.length) {
+        // O redesenho final do turno aplica a aparência definitiva da Toca.
+        // Não redesenhamos aqui para evitar um segundo flash desnecessário.
+        this.time.delayedCall(650, aoTerminar);
+        return;
+      }
+      const { carta, posicao } = validas[indice];
+      const col = posicao % 5;
+      const fileira = Math.floor(posicao / 5);
+      const ehToca =
+        carta.efeitoContinuo?.tipo ===
+        TIPOS_EFEITO_CONTINUO.OCULTAR_ALIADOS;
+      this.criarCartaDeCampo(
+        this.layout.x[col],
+        this.layout.yInimigo[fileira],
+        carta,
+        this.layout,
+        tocaJaVisivel && carta.tipo !== "terreno",
+        false,
+      );
+      if (ehToca) {
+        tocaJaVisivel = true;
+        this.animarFlipCartasInimigasParaBaixo(carta);
+      }
+      this.time.delayedCall(950, () => mostrar(indice + 1));
+    };
+    this.time.delayedCall(420, () => mostrar(0));
+  }
+
+  // Quando a Toca é jogada depois de outra carta, vira somente as cartas
+  // inimigas que já estão desenhadas, sem redesenhar/piscar a tela inteira.
+  animarFlipCartasInimigasParaBaixo(tocaRecemJogada) {
+    const campoInimigo = this.partida.inimigo.campo.cartas;
+    this.children.list
+      .filter((objeto) => {
+        const carta = objeto.dadosCartaCampo;
+        return (
+          carta &&
+          carta !== tocaRecemJogada &&
+          carta.tipo !== "terreno" &&
+          campoInimigo.includes(carta)
+        );
+      })
+      .forEach((container) => {
+        const carta = container.dadosCartaCampo;
+        carta.ocultadaPelaToca = true;
+        carta.revelada = false;
+        this.tweens.add({
+          targets: container,
+          scaleX: 0,
+          duration: 190,
+          ease: "Sine.easeIn",
+          onComplete: () => {
+            if (!container.active) return;
+            const verso = this.add
+              .image(0, 0, "fundoCarta")
+              .setDisplaySize(container.width, container.height);
+            container.add(verso);
+            this.tweens.add({
+              targets: container,
+              scaleX: 1,
+              duration: 210,
+              ease: "Sine.easeOut",
+            });
+          },
+        });
+      });
   }
 
   // Banner central rápido (aparece e some sozinho) avisando quem venceu a
