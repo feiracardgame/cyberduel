@@ -37,7 +37,7 @@ const TIPOS_EFEITO = {
   ROUBAR_PODER: "roubar_poder", // O Rato (Mãos Leves): escolhe uma carta inimiga em qualquer lugar do campo e rouba poder dela, somando ao próprio poder
   REPOSICIONAR: "reposicionar", // A Cabra (Escalada): troca de lugar com outra carta aliada (ou se move pra um espaço livre) no próprio campo
   REVELAR_CARTAS_INIMIGO: "revelar_cartas_inimigo", // O Cão (Faro): ao ser invocado, revela até N cartas da mão/baralho do inimigo
-  CASCA_GROSSA: "casca_grossa", // O Porco (Casca Grossa): passivo permanente — o poder desta carta nunca pode ser reduzido por efeitos de outras cartas (ver Carta.buff())
+  CASCA_GROSSA: "casca_grossa", // O Porco (Casca Grossa): passivo permanente — o poder desta carta nunca reduz abaixo do poder original (poderBase), mesmo com múltiplas reduções (ver Carta.buff())
   ENVENENAR: "envenenar", // A Cobra (Dose Letal): escolhe uma carta inimiga em alcance curto (à frente ou espaço adjacente) e a envenena — ela perde poder a cada turno enquanto estiver em campo
 };
 
@@ -86,7 +86,7 @@ function descreverEfeito(efeito) {
     case TIPOS_EFEITO.REVELAR_CARTAS_INIMIGO:
       return `Ao ser invocado: revela até ${efeito.valor} cartas da mão ou do baralho do inimigo.`;
     case TIPOS_EFEITO.CASCA_GROSSA:
-      return `Casca Grossa: o poder desta carta nunca pode ser reduzido por efeitos de outras cartas.`;
+      return `Casca Grossa: o poder desta carta nunca pode ser reduzido abaixo do seu valor original.`;
     case TIPOS_EFEITO.ENVENENAR:
       return `Habilidade ativa (1x por turno, em campo): escolha uma carta inimiga em alcance curto (à frente ou em espaço adjacente) para envenenar. Ela perde ${efeito.valor} de poder a cada turno enquanto estiver em campo.`;
     default:
@@ -460,9 +460,9 @@ const POOL_CARTAS_MONSTRO = [
       tipo: TIPOS_EFEITO.CASCA_GROSSA,
     },
     // Casca Grossa: passivo permanente, sem gatilho — não dispara ao
-    // invocar nem é habilidade ativa. A proteção é resolvida direto em
-    // Carta.buff() (abaixo), que ignora qualquer redução vinda de outra
-    // carta enquanto este efeito estiver presente.
+    // invocar nem é habilidade ativa. O piso é resolvido direto em
+    // Carta.buff() (abaixo): reduções normais, mas nunca abaixo de 6 (o
+    // poderBase dela).
   },
 
   {
@@ -470,7 +470,7 @@ const POOL_CARTAS_MONSTRO = [
     poder: 5,
     descricao:
       "A Cobra é uma lendária produtora de venenos que nunca perguntou quem era o cliente, desde que ele pagasse o suficiente. Quando seus próprios compradores decidiram eliminá-la, ela finalmente percebeu que talvez fosse hora de escolher melhor seus parceiros. Agora, ao lado da EchoSsystem, pretende fazer cada um deles provar do próprio veneno.",
-    imagem: "cobra", // arte ainda não adicionada — cai no placeholder até assets/cartas/Cobra.png existir
+    imagem: null, // arte ainda não adicionada — cai no placeholder até assets/cartas/Cobra.png existir
     booster: "echossystem",
     efeito: {
       tipo: TIPOS_EFEITO.ENVENENAR,
@@ -587,13 +587,14 @@ class Carta {
   }
 
   buff(valor) {
-    // Casca Grossa (O Porco): ignora qualquer redução vinda de efeitos de
-    // outras cartas — ganhos (valor positivo) continuam funcionando normal.
+    // Casca Grossa (O Porco): reduções normais, mas o poder nunca desce
+    // abaixo do valor original (poderBase) — ganhos continuam sem teto.
     if (
       valor < 0 &&
       this.efeito &&
       this.efeito.tipo === TIPOS_EFEITO.CASCA_GROSSA
     ) {
+      this.poder = Math.max(this.poderBase, this.poder + valor);
       return;
     }
     // Poder nunca fica negativo, mesmo após vários debuffs
