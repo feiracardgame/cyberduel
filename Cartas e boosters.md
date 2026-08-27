@@ -51,7 +51,7 @@ Machine learning -> Escolha uma carta aliada. Ela recebe +2 PA. O Estagiário pe
 * PA: 5
 * Efeito:
 
- Cessar e Desistir → Após uma longa análise jurídica de aproximadamente três minutos, concluiu-se que o terreno inimigo infringe ao menos dezessete patentes da RaspCorp. Uma vez por jogo, escolha um terreno inimigo para ser eliminado.
+ Cessar e Desistir → Após uma longa análise jurídica de aproximadamente três minutos, concluiu-se que o terreno inimigo infringe ao menos dezessete patentes da RaspCorp. Uma vez por turno, escolha um terreno inimigo para ser eliminado.
 
  
 * Arte:
@@ -202,7 +202,7 @@ só que claramente da de ver que é tipo um mlk aleatorio jovem de bigode, tipo 
 * Descrição: A Cobra é uma lendária produtora de venenos que nunca perguntou quem era o cliente, desde que ele pagasse o suficiente. Quando seus próprios compradores decidiram eliminá-la, ela finalmente percebeu que talvez fosse hora de escolher melhor seus parceiros. Agora, ao lado da EchoSsystem, pretende fazer cada um deles provar do próprio veneno.
  
 * PA: 5
-* Efeito: Dose Letal → A Cobra injeta uma de suas substâncias em um inimigo em alcance curto à sua frente ou em um espaço adjacente. O inimigo perde 1 PA por turno enquanto estiver envenenado.
+* Efeito: Dose Letal → A Cobra injeta uma de suas substâncias em um inimigo em qualquer ponto do campo. O inimigo escolhido perde 1 PA por turno enquanto estiver envenenado.
 
  
 * Visual:
@@ -255,7 +255,7 @@ só que claramente da de ver que é tipo um mlk aleatorio jovem de bigode, tipo 
 
 * Descrição: Há muito tempo, a humanidade admirava seus maiores atletas. Depois descobriu que podia construir robôs mais rápidos. Assim, os humanos desapareceram das pistas. Um deles foi O Cavalo. Tricampeão olímpico, hoje presta serviços à EchoSsystem realizando entregas, causando distrações e se arremessando contra ciborgues. Felizmente, a concussão cerebral deixou de ser um problema depois que metade do seu crânio foi substituída por titânio.
 
-* Efeito: O Cavalo atravessa uma coluna do campo inimigo, causando 2 PA de dano a todas as cartas presentes nela.
+* Efeito: O Cavalo atravessa uma coluna do campo inimigo, causando 3 PA de dano a todas as cartas presentes nela.
 
  
 * Visual: 
