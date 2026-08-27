@@ -245,7 +245,8 @@ Como recurso adicional, também gostaríamos de implementar um sistema de mercad
 ### Do matchmaking e disposição física
 - O jogo poderá ser jogado somente com o celular através da procura de um adversário aleatório para realizar a partida
 - A busca por jogador pode ocorrer de duas formas através do celular: aleatoriamente, buscando o adversário com score mais próximo do seu, ou utilizando o código de outro jogador para uma batalha direta.
-- Haverão 4 salas disponíveis (na feira) e ilimitadas (para jogar em casa) para jogar de forma híbrida, permitindo que a visualização do campo de batalha ocorra em um computador e o menu de ações e cartas seja visualizado pelo celular.
+- Haverá 1 sala disponível (na feira) e ilimitadas (para jogar em casa) para jogar de forma híbrida, permitindo que a visualização do campo de batalha ocorra em um computador e o menu de ações e cartas seja visualizado pelo celular. A ideia para a disposição na feira seria uma mesa, sobre a qual estaria a imagem direcionada por um projetor. Cada jogador veria o deck no celular e, ao invocar a carta, ela apareceria em cima da mesa (na imagem do projetor) no campo de batalha.
+- Ainda será verificado a possibilidade de utilizar um projetor menor (Fornecido pelo João Campos Neto) para deixar à mostra a leaderboard do jogo, estimulando o pessoal a jogar e subir no ranking. Do contrário, usaremos um monitor.
 
 
 
