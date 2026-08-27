@@ -569,6 +569,7 @@ class CenaJogo extends Phaser.Scene {
   }
 
   desenharInterface() {
+    this.partida.atualizarOverrides();
     // Mata tweens pendentes e remove qualquer texto de resultado que
     // ainda estivesse na tela, evitando animações "órfãs" apontando
     // para objetos destruídos.
@@ -5235,27 +5236,30 @@ class CenaJogo extends Phaser.Scene {
     });
     som.play();
 
-    // 3. Quando o som terminar de tocar, remove a imagem
-    som.once("complete", () => {
+    // A conclusão da habilidade não pode depender do áudio: navegadores
+    // podem bloquear o AudioContext, deixando a Toca removida nos dados
+    // mas ainda desenhada e a interface travada. O som apenas antecipa a
+    // finalização; um timer curto sempre garante a atualização do campo.
+    let finalizado = false;
+    const finalizarRemocao = () => {
+      if (finalizado) return;
+      finalizado = true;
       this.tweens.add({
         targets: imgEfeito,
         alpha: 0,
         duration: 300,
         onComplete: () => {
-          imgEfeito.destroy();
-          aoConcluir(); // Continua o jogo tirando o terreno inimigo
+          if (imgEfeito.active) imgEfeito.destroy();
+          aoConcluir();
         },
       });
-    });
+    };
 
-    // Fallback de segurança: se por acaso o som bugar e não disparar o evento
-    this.time.delayedCall(5000, () => {
-      if (imgEfeito.active) {
-        this.tweens.killTweensOf(imgEfeito);
-        imgEfeito.destroy();
-        aoConcluir();
-      }
-    });
+    // 3. Quando o som terminar de tocar, remove a imagem.
+    som.once("complete", finalizarRemocao);
+
+    // Duração visual máxima, mesmo com áudio bloqueado ou sem evento.
+    this.time.delayedCall(1100, finalizarRemocao);
   }
 
   // Passo 1/2 da habilidade "Reestruturação Interna" (Gestor de RH):
@@ -5945,7 +5949,7 @@ class CenaJogo extends Phaser.Scene {
       .text(0, 0, "☰", { fontSize: "40px", color: "#ffffff" })
       .setOrigin(0.5);
 
-    let botaoMenu = this.add.container(0, 0, [bg, icone]);
+    let botaoMenu = this.add.container(X, Y, [bg, icone]);
     botaoMenu.setSize(RAIO * 2, RAIO * 2);
     botaoMenu.setInteractive({ useHandCursor: true });
 
@@ -5962,7 +5966,17 @@ class CenaJogo extends Phaser.Scene {
       this.alternarOpcoesDaRoda();
     });
 
-    const roda = this.add.container(X, Y, [botaoMenu]);
+    const botaoPassar = this.criarBotaoDaRoda(
+      GW - 160,
+      GH - 65,
+      270,
+      76,
+      "⏭ Passar Turno",
+      0xff5500,
+      () => this.aoClicarPassarTurno(),
+    );
+
+    const roda = this.add.container(0, 0, [botaoMenu, botaoPassar]);
     roda.setDepth(200);
     this.rodaBotoesContainer = roda;
   }
@@ -5992,11 +6006,6 @@ class CenaJogo extends Phaser.Scene {
         rotulo: "📜 Histórico",
         cor: 0x2255aa,
         aoClicar: () => this.mostrarHistorico(),
-      },
-      {
-        rotulo: "⏭ Passar Turno",
-        cor: 0xff5500,
-        aoClicar: () => this.aoClicarPassarTurno(),
       },
       {
         rotulo: "🏳 Desistir",

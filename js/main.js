@@ -451,6 +451,7 @@ class Partida {
     alvoEscolhido = null,
     alvoSecundario = null,
   ) {
+    this.atualizarOverrides();
     // Cessar e Desistir (Advogado Corporativo) é 1x POR PARTIDA, não 1x
     // por turno — usa usadaNaPartida em vez de usadaEsteTurno pra decidir
     // se já foi gasta (usadaNaPartida nunca é resetado em fimTurno()).
@@ -717,16 +718,20 @@ class Partida {
       // Override (A Aranha): a carta-alvo CONTINUA no campo do oponente
       // (não muda de dono nem de slot) — só passa a contar ponto pro
       // dono da Aranha, via a flag capturadaPor (ver calcularPoderTotal).
+      const jaHackeiaOutra = !!this.obterCartaHackeadaPor(carta);
       const alvoValido =
+        !jaHackeiaOutra &&
         alvoEscolhido !== null &&
         alvoEscolhido !== undefined &&
         oponente.campo.cartas[alvoEscolhido] &&
         oponente.campo.cartas[alvoEscolhido].tipo !== "terreno" &&
+        !oponente.campo.cartas[alvoEscolhido].capturadaPorAranha &&
         oponente.campo.cartas[alvoEscolhido].poder < carta.poder;
       if (!alvoValido) return { sucesso: false, afetadas: [] };
 
       const capturada = oponente.campo.cartas[alvoEscolhido];
       capturada.capturadaPor = dono;
+      capturada.capturadaPorAranha = carta;
 
       carta.usadaEsteTurno = true;
       carta.revelada = true;
@@ -885,12 +890,19 @@ class Partida {
     }
 
     if (carta.efeito.tipo === TIPOS_EFEITO.OVERRIDE) {
+      this.atualizarOverrides();
+      if (this.obterCartaHackeadaPor(carta)) return [];
       // Override (A Aranha): só cartas inimigas com poder MENOR que o
       // dela — a carta capturada fica no campo do oponente, então não
       // precisa de slot livre no campo do dono.
       const indices = [];
       oponente.campo.cartas.forEach((c, i) => {
-        if (c && c.tipo !== "terreno" && c.poder < carta.poder) {
+        if (
+          c &&
+          c.tipo !== "terreno" &&
+          !c.capturadaPorAranha &&
+          c.poder < carta.poder
+        ) {
           indices.push(i);
         }
       });
@@ -1416,11 +1428,44 @@ class Partida {
     return distribuicao;
   }
 
+  // A identidade da própria instância da Aranha define o vínculo. Assim,
+  // duas ou mais Aranhas podem manter hacks diferentes sem compartilhar
+  // estado; somente um alvo já hackeado fica indisponível para as demais.
+  obterCartaHackeadaPor(aranha) {
+    for (const dono of [this.jogador, this.inimigo]) {
+      const alvo = dono.campo.cartas.find(
+        (carta) => carta?.capturadaPorAranha === aranha,
+      );
+      if (alvo) return alvo;
+    }
+    return null;
+  }
+
+  // Mantém o Override da Dona Aranha como um vínculo contínuo. Ela pode
+  // controlar somente uma carta; se sair de campo ou deixar de ter PA
+  // estritamente maior que o alvo, o hack acaba imediatamente.
+  atualizarOverrides() {
+    [this.jogador, this.inimigo].forEach((donoDoCampoFisico) => {
+      donoDoCampoFisico.campo.cartas.forEach((alvo) => {
+        if (!alvo?.capturadaPorAranha) return;
+        const aranha = alvo.capturadaPorAranha;
+        const aranhaEmCampo =
+          this.jogador.campo.cartas.includes(aranha) ||
+          this.inimigo.campo.cartas.includes(aranha);
+        if (aranhaEmCampo && aranha.poder > alvo.poder) return;
+
+        alvo.capturadaPor = null;
+        alvo.capturadaPorAranha = null;
+      });
+    });
+  }
+
   // Recebe o JOGADOR (não mais o campo) porque, com Override (A Aranha),
   // uma carta pode fisicamente estar no campo do oponente mas contar
   // ponto pro dono da Aranha (carta.capturadaPor) — então é preciso
   // varrer os dois campos e decidir o dono efetivo de cada carta.
   calcularPoderTotal(jogadorAlvo) {
+    this.atualizarOverrides();
     let total = 0;
     [this.jogador, this.inimigo].forEach((donoDoCampoFisico) => {
       donoDoCampoFisico.campo.cartas.forEach((carta) => {
