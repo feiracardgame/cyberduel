@@ -1052,9 +1052,9 @@ class Partida {
         // como nos outros efeitos) — já filtrados pela UI (jogo.js) como
         // aliadas elegíveis (nível baixo/médio, ver alvosParaAbsorverAliados
         // abaixo) e limitados a efeito.maxAlvos. Cada aliada escolhida é
-        // zerada (buff(-poder), mesmo truque usado em DEBUFF_INIMIGOS) e o
-        // poder somado delas vira ganho pra esta carta; removerMortas() no
-        // final tira as zeradas do campo de fato.
+        // sacrificada diretamente e o poder somado delas vira ganho pra esta
+        // carta. Sacrifício não é redução de PA: por isso ele ignora efeitos
+        // como Casca Grossa, que protege O Porco apenas contra debuffs.
         const indices = Array.isArray(alvoEscolhido) ? alvoEscolhido : [];
         const maxAlvos = carta.efeito.maxAlvos || 0;
         let somaPoder = 0;
@@ -1062,9 +1062,11 @@ class Partida {
         indices.slice(0, maxAlvos).forEach((idx) => {
           const alvo = dono.campo.cartas[idx];
           if (!alvo || alvo === carta || alvo.tipo === "terreno") return;
-          somaPoder += alvo.poder;
-          afetadas.push({ carta: alvo, delta: -alvo.poder });
-          alvo.buff(-alvo.poder);
+          const poderSacrificado = alvo.poder;
+          somaPoder += poderSacrificado;
+          afetadas.push({ carta: alvo, delta: -poderSacrificado });
+          alvo.poder = 0;
+          alvo.revelada = true;
         });
 
         if (somaPoder > 0) {
