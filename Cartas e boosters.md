@@ -181,7 +181,7 @@ só que claramente da de ver que é tipo um mlk aleatorio jovem de bigode, tipo 
 
 
 
- <img alt="image" src="assets/cartas/O_cão.png" />
+ <img alt="image" src="assets/cartas/O_cao.png" />
 
 
 ### 2x carta media 1 -> O Porco
@@ -191,6 +191,9 @@ só que claramente da de ver que é tipo um mlk aleatorio jovem de bigode, tipo 
 * Efeito: Casca Grossa → Os PA do Porco não podem ser reduzidos por efeitos de outras cartas.
 
 * Visual: 
+
+
+ <img alt="image" src="assets/cartas/O_porco.png" />
 
 
 
@@ -279,6 +282,10 @@ só que claramente da de ver que é tipo um mlk aleatorio jovem de bigode, tipo 
 
  
 * Visual:
+
+
+ <img alt="image" src="assets/cartas/O_macaco.png" />
+
 
 
 
