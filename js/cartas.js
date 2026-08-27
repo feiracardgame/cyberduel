@@ -34,6 +34,11 @@ const TIPOS_EFEITO = {
   RESETAR_PODER: "resetar_poder", // O Boi (Novo Começo): escolhe uma carta aliada em campo e a devolve ao poder original (poderBase), zerando bônus/reduções acumulados
   ATACAR_DOIS_ALVOS: "atacar_dois_alvos", // O Tigre (Garra de aço): igual a ATACAR, mas escolhe DOIS alvos inimigos distintos em vez de um só (mesmo range para os dois)
   OVERRIDE: "override", // A Aranha (Override): escolhe uma carta inimiga com poder MENOR que o dela; a carta é "capturada" pro campo do dono, se houver espaço livre
+  ROUBAR_PODER: "roubar_poder", // O Rato (Mãos Leves): escolhe uma carta inimiga em qualquer lugar do campo e rouba poder dela, somando ao próprio poder
+  REPOSICIONAR: "reposicionar", // A Cabra (Escalada): troca de lugar com outra carta aliada (ou se move pra um espaço livre) no próprio campo
+  REVELAR_CARTAS_INIMIGO: "revelar_cartas_inimigo", // O Cão (Faro): ao ser invocado, revela até N cartas da mão/baralho do inimigo
+  CASCA_GROSSA: "casca_grossa", // O Porco (Casca Grossa): passivo permanente — o poder desta carta nunca pode ser reduzido por efeitos de outras cartas (ver Carta.buff())
+  ENVENENAR: "envenenar", // A Cobra (Dose Letal): escolhe uma carta inimiga em alcance curto (à frente ou espaço adjacente) e a envenena — ela perde poder a cada turno enquanto estiver em campo
 };
 
 // O jogo não tem uma tag de "nível" separada por carta — "baixo/médio/alto"
@@ -74,6 +79,16 @@ function descreverEfeito(efeito) {
       return `Habilidade ativa (1x por turno, em campo): escolha 2 cartas inimigas em alcance curto (H${efeito.rangeH}/V${efeito.rangeV}) para perder ${efeito.valor} de PA cada.`;
     case TIPOS_EFEITO.OVERRIDE:
       return `Habilidade ativa (1x por turno, em campo): escolha uma carta inimiga com poder menor que o desta carta. Ela é capturada para o seu campo, se houver espaço livre.`;
+    case TIPOS_EFEITO.ROUBAR_PODER:
+      return `Habilidade ativa (1x por turno, em campo): escolha uma carta inimiga em qualquer lugar do campo. Rouba ${efeito.valor} de poder dela, somando esse valor ao próprio poder.`;
+    case TIPOS_EFEITO.REPOSICIONAR:
+      return `Habilidade ativa (1x por turno, em campo): troque de lugar com outra carta aliada, ou mova-se para um espaço livre do seu campo.`;
+    case TIPOS_EFEITO.REVELAR_CARTAS_INIMIGO:
+      return `Ao ser invocado: revela até ${efeito.valor} cartas da mão ou do baralho do inimigo.`;
+    case TIPOS_EFEITO.CASCA_GROSSA:
+      return `Casca Grossa: o poder desta carta nunca pode ser reduzido por efeitos de outras cartas.`;
+    case TIPOS_EFEITO.ENVENENAR:
+      return `Habilidade ativa (1x por turno, em campo): escolha uma carta inimiga em alcance curto (à frente ou em espaço adjacente) para envenenar. Ela perde ${efeito.valor} de poder a cada turno enquanto estiver em campo.`;
     default:
       return "";
   }
@@ -389,6 +404,83 @@ const POOL_CARTAS_MONSTRO = [
     habilidadeAtiva: true, // Novo Começo: não dispara ao invocar — ativa em campo, 1x por turno
   },
 
+  {
+    nome: "O Rato",
+    poder: 1,
+    descricao:
+      "O Rato é o membro mais jovem da EchoSsystem. Sua habilidade de infiltração é tão impressionante que poucos acreditam que ele de fato exista. O mesmo não pode ser dito sobre as piadas envolvendo seu nome, que aparecem em praticamente todas as reuniões do grupo.",
+    imagem: "rato", // arte ainda não adicionada — cai no placeholder até assets/cartas/O_rato.png existir
+    foco: { x: 0.5, y: 0.15 },
+    booster: "echossystem",
+    efeito: {
+      tipo: TIPOS_EFEITO.ROUBAR_PODER,
+      valor: 1,
+    },
+    habilidadeAtiva: true, // Mãos Leves: não dispara ao invocar — ativa em campo, 1x por turno
+  },
+
+  {
+    nome: "A Cabra",
+    poder: 3,
+    descricao:
+      "A Cabra era ginasta olímpica antes da humanidade decidir que esportes tradicionais deixaram de ser uma profissão. Hoje, ela continua escalando estruturas gigantescas, mas finalmente encontrou um público que realmente valoriza seu trabalho: a equipe de segurança do último andar da torre MonteCorp.",
+    imagem: "cabra", // arte ainda não adicionada — cai no placeholder até assets/cartas/A_cabra.png existir
+    foco: { x: 0.5, y: 0.8 }, // arte ainda não adicionada — cai no placeholder até assets/cartas/A_cabra.png existir
+    booster: "echossystem",
+    efeito: {
+      tipo: TIPOS_EFEITO.REPOSICIONAR,
+    },
+    habilidadeAtiva: true, // Escalada: não dispara ao invocar — ativa em campo, 1x por turno
+  },
+
+  {
+    nome: "O Cão",
+    poder: 4,
+    descricao:
+      "Antes mesmo de entrar para o grupo anarquista, o Cão já era um mercenário especializado em rastrear alvos. Seus implantes cibernéticos de olfato permitem encontrar praticamente qualquer pessoa pelo menor dos rastros. O único problema é que a idade já está afetando seus sentidos: recentemente, ele passou três horas seguindo o próprio cheiro.",
+    imagem: "cao", // arte ainda não adicionada — cai no placeholder até assets/cartas/O_cão.png existir
+    foco: { x: 0.5, y: 0.9 },
+    booster: "echossystem",
+    efeito: {
+      tipo: TIPOS_EFEITO.REVELAR_CARTAS_INIMIGO,
+      valor: 5,
+    },
+    // Faro: efeito passivo normal (dispara ao invocar), não é habilidade
+    // ativa — mesma família de BUFF_ALIADOS/DEBUFF_INIMIGOS.
+  },
+
+  {
+    nome: "O Porco",
+    poder: 6,
+    descricao:
+      "O Porco acredita que nenhum trabalho é nojento demais. Entre esgotos, lixões industriais e montanhas de sucata, tornou-se especialista em encontrar recursos onde ninguém mais pisaria. Anos de exposição aos ambientes mais inóspitos de NeoFloripa fizeram seu corpo desenvolver uma resistência impressionante. Felizmente, o olfato também foi perdido no processo.",
+    imagem: "porco", // arte ainda não adicionada — cai no placeholder até assets/cartas/O_porco.png existir
+    booster: "echossystem",
+    efeito: {
+      tipo: TIPOS_EFEITO.CASCA_GROSSA,
+    },
+    // Casca Grossa: passivo permanente, sem gatilho — não dispara ao
+    // invocar nem é habilidade ativa. A proteção é resolvida direto em
+    // Carta.buff() (abaixo), que ignora qualquer redução vinda de outra
+    // carta enquanto este efeito estiver presente.
+  },
+
+  {
+    nome: "A Cobra",
+    poder: 5,
+    descricao:
+      "A Cobra é uma lendária produtora de venenos que nunca perguntou quem era o cliente, desde que ele pagasse o suficiente. Quando seus próprios compradores decidiram eliminá-la, ela finalmente percebeu que talvez fosse hora de escolher melhor seus parceiros. Agora, ao lado da EchoSsystem, pretende fazer cada um deles provar do próprio veneno.",
+    imagem: "cobra", // arte ainda não adicionada — cai no placeholder até assets/cartas/Cobra.png existir
+    booster: "echossystem",
+    efeito: {
+      tipo: TIPOS_EFEITO.ENVENENAR,
+      valor: 1,
+      rangeH: 2,
+      rangeV: 1,
+    },
+    habilidadeAtiva: true, // Dose Letal: não dispara ao invocar — ativa em campo, 1x por turno
+  },
+
   // Adicione novas cartas de monstro especiais aqui, seguindo o mesmo
   // formato acima. O campo "foco" é opcional — se não colocar, usa 0.5/0.5
   // (centro da imagem), sem precisar mexer em nenhum outro lugar do código.
@@ -487,6 +579,7 @@ class Carta {
     this.usadaNaPartida = false; // trava habilidades "1x por jogo" (ex: Cessar e Desistir) até o fim da partida, sem resetar por turno
     this.poderBase = this.poder; // teto de recuperação (ex: terreno Beira-mar) e base p/ bônus de terreno
     this.bonusTerreno = 0; // soma de bônus contínuos aplicados por terrenos (revertida/reaplicada a cada recálculo)
+    this.envenenada = null; // Dose Letal (A Cobra): { valor } enquanto envenenada — perde poder a cada turno (ver Partida.resolverEfeitosDeTurno)
   }
 
   mostrar() {
@@ -494,6 +587,15 @@ class Carta {
   }
 
   buff(valor) {
+    // Casca Grossa (O Porco): ignora qualquer redução vinda de efeitos de
+    // outras cartas — ganhos (valor positivo) continuam funcionando normal.
+    if (
+      valor < 0 &&
+      this.efeito &&
+      this.efeito.tipo === TIPOS_EFEITO.CASCA_GROSSA
+    ) {
+      return;
+    }
     // Poder nunca fica negativo, mesmo após vários debuffs
     this.poder = Math.max(0, this.poder + valor);
   }

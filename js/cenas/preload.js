@@ -37,6 +37,11 @@ class CenaPreload extends Phaser.Scene {
     this.load.image("sugalg", "assets/cartas/Sugestão_algoritmica.png");
     this.load.image("adv", "assets/cartas/AdvogadoDaRaspCorp.png");
     this.load.image("raspclay", "assets/cartas/RaspClay_MonteCorp.png");
+    this.load.image("rato", "assets/cartas/O_rato.png") 
+    this.load.image("cabra", "assets/cartas/A_cabra.png")
+    this.load.image("cao", "assets/cartas/O_cao.png")
+    this.load.image("porco", "assets/cartas/O_porco.png")
+    this.load.image("cobra", "assets/cartas/Cobra.png");
     // EchoSsystem (booster 2)
     this.load.image("eltigre", "assets/cartas/el_tigre.png");
     this.load.image("daranha", "assets/cartas/D_Aranha.png");

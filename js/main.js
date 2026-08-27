@@ -142,10 +142,17 @@ class Jogador {
     const raspclay = POOL_CARTAS_MONSTRO.find(
       (c) => c.nome === "RaspClay MonteCorp",
     );
-    // EchoSsystem (booster 2) — primeiras 3 cartas do booster no jogo.
+    // EchoSsystem (booster 2) — cartas do booster no jogo, da mais fácil
+    // pra mais difícil: Tigre/Aranha/Boi já tinham arte pronta; O Rato é
+    // a próxima (mais fácil, PA baixo) — segue sem arte por enquanto.
     const oTigre = POOL_CARTAS_MONSTRO.find((c) => c.nome === "O Tigre");
     const aAranha = POOL_CARTAS_MONSTRO.find((c) => c.nome === "A Aranha");
     const oBoi = POOL_CARTAS_MONSTRO.find((c) => c.nome === "O Boi");
+    const oRato = POOL_CARTAS_MONSTRO.find((c) => c.nome === "O Rato");
+    const aCabra = POOL_CARTAS_MONSTRO.find((c) => c.nome === "A Cabra");
+    const oCao = POOL_CARTAS_MONSTRO.find((c) => c.nome === "O Cão");
+    const oPorco = POOL_CARTAS_MONSTRO.find((c) => c.nome === "O Porco");
+    const aCobra = POOL_CARTAS_MONSTRO.find((c) => c.nome === "A Cobra");
     const copiasMonstroEspecial = [
       POOL_CARTAS_MONSTRO[0],
       POOL_CARTAS_MONSTRO[1],
@@ -155,6 +162,11 @@ class Jogador {
       oTigre,
       aAranha,
       oBoi, // 1x só — carta lendária, mais rara que as demais
+      oRato,
+      aCabra,
+      oCao,
+      oPorco,
+      aCobra,
     ].filter(Boolean);
     const quantidadeMonstrosEspeciais = copiasMonstroEspecial.length;
     copiasMonstroEspecial.forEach((base, i) => {
@@ -601,6 +613,69 @@ class Partida {
       return { sucesso: true, afetadas: [], capturada };
     }
 
+    if (carta.efeito.tipo === TIPOS_EFEITO.ROUBAR_PODER) {
+      // Mãos Leves (O Rato): alvo pode ser QUALQUER carta inimiga em campo
+      // (sem restrição de range/coluna, diferente do ATACAR).
+      const alvoValido =
+        alvoEscolhido !== null &&
+        alvoEscolhido !== undefined &&
+        oponente.campo.cartas[alvoEscolhido] &&
+        oponente.campo.cartas[alvoEscolhido].tipo !== "terreno";
+      if (!alvoValido) return { sucesso: false, afetadas: [] };
+
+      const { valor } = carta.efeito;
+      const alvo = oponente.campo.cartas[alvoEscolhido];
+      const roubado = Math.min(valor, alvo.poder);
+
+      alvo.buff(-roubado);
+      carta.buff(roubado);
+      oponente.campo.removerMortas();
+
+      carta.usadaEsteTurno = true;
+      return {
+        sucesso: true,
+        afetadas: [
+          { carta: alvo, delta: -roubado },
+          { carta, delta: roubado },
+        ],
+      };
+    }
+
+    if (carta.efeito.tipo === TIPOS_EFEITO.REPOSICIONAR) {
+      // Escalada (A Cabra): troca de lugar com outra carta aliada, ou se
+      // move pra um espaço livre — sempre dentro do próprio campo. Nunca
+      // troca com terreno (terreno não sai do lugar).
+      const alvoOcupante = dono.campo.cartas[alvoEscolhido];
+      const alvoValido =
+        alvoEscolhido !== null &&
+        alvoEscolhido !== undefined &&
+        alvoEscolhido !== posicao &&
+        (alvoOcupante === null || alvoOcupante.tipo !== "terreno");
+      if (!alvoValido) return { sucesso: false, afetadas: [] };
+
+      dono.campo.cartas[posicao] = alvoOcupante;
+      dono.campo.cartas[alvoEscolhido] = carta;
+
+      carta.usadaEsteTurno = true;
+      return { sucesso: true, afetadas: [] };
+    }
+
+    if (carta.efeito.tipo === TIPOS_EFEITO.ENVENENAR) {
+      // Dose Letal (A Cobra): alvo é uma carta inimiga em alcance curto
+      // (mesmo esquema de range de ATACAR). A picada em si não causa dano
+      // na hora — só marca a carta como envenenada; o dano por turno é
+      // resolvido em Partida.resolverEfeitosDeTurno().
+      const { rangeH, rangeV, valor } = carta.efeito;
+      const possiveis = alvosEmRange(posicao, rangeH, rangeV, oponente.campo);
+      if (!possiveis.includes(alvoEscolhido))
+        return { sucesso: false, afetadas: [] };
+
+      oponente.campo.cartas[alvoEscolhido].envenenada = { valor };
+
+      carta.usadaEsteTurno = true;
+      return { sucesso: true, afetadas: [] };
+    }
+
     return { sucesso: false, afetadas: [] };
   }
 
@@ -689,6 +764,37 @@ class Partida {
         }
       });
       return indices;
+    }
+
+    if (carta.efeito.tipo === TIPOS_EFEITO.ROUBAR_PODER) {
+      // Mãos Leves (O Rato): qualquer carta inimiga em campo, sem range.
+      const indices = [];
+      oponente.campo.cartas.forEach((c, i) => {
+        if (c && c.tipo !== "terreno") indices.push(i);
+      });
+      return indices;
+    }
+
+    if (carta.efeito.tipo === TIPOS_EFEITO.REPOSICIONAR) {
+      // Escalada (A Cabra): qualquer espaço do PRÓPRIO campo, livre ou
+      // ocupado por aliada (não-terreno), exceto a posição atual dela.
+      const indices = [];
+      dono.campo.cartas.forEach((c, i) => {
+        if (i !== posicao && (c === null || c.tipo !== "terreno")) {
+          indices.push(i);
+        }
+      });
+      return indices;
+    }
+
+    if (carta.efeito.tipo === TIPOS_EFEITO.ENVENENAR) {
+      // Dose Letal (A Cobra): mesmo esquema de alvosEmRange do ATACAR.
+      return alvosEmRange(
+        posicao,
+        carta.efeito.rangeH,
+        carta.efeito.rangeV,
+        oponente.campo,
+      );
     }
 
     return [];
@@ -823,6 +929,15 @@ class Partida {
         dono.campo.removerMortas();
         break;
       }
+      case TIPOS_EFEITO.REVELAR_CARTAS_INIMIGO: {
+        // Faro (O Cão): junta mão + baralho do oponente e revela até
+        // `valor` cartas (prioriza a mão, completa com o baralho) — não
+        // mexe no campo, então "afetadas" fica vazio. A UI (jogo.js) lê
+        // this.ultimaRevelacaoFaro pra mostrar os nomes revelados.
+        const poolInimigo = [...oponente.mao.cartas, ...oponente.deck.cartas];
+        this.ultimaRevelacaoFaro = poolInimigo.slice(0, valor).map((c) => c.nome);
+        break;
+      }
     }
 
     return afetadas;
@@ -941,6 +1056,21 @@ class Partida {
               afetadas.push({ carta: alvo, delta: valor });
             }
             break;
+        }
+      });
+    });
+
+    // Dose Letal (A Cobra): cartas envenenadas perdem poder a cada turno,
+    // sempre respeitando Casca Grossa (buff() já ignora reduções nesse
+    // caso). O veneno persiste enquanto a carta estiver em campo — não
+    // existe cura por enquanto.
+    [this.jogador, this.inimigo].forEach((dono) => {
+      dono.campo.cartas.forEach((c) => {
+        if (c && c.envenenada) {
+          const poderAntes = c.poder;
+          c.buff(-c.envenenada.valor);
+          const delta = c.poder - poderAntes;
+          if (delta !== 0) afetadas.push({ carta: c, delta });
         }
       });
     });

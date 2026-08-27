@@ -992,7 +992,45 @@ class CenaJogo extends Phaser.Scene {
         this.partida.jogarCartaDoJogador(carta, slotAtingido);
         this.travado = false;
         this.desenharInterface();
+        // Faro (O Cão): mostra as cartas reveladas do inimigo logo após a
+        // carta entrar em campo (ultimaRevelacaoFaro só existe se o
+        // efeito disparou agora, ver aplicarEfeitoInvocacao em main.js).
+        if (carta.efeito?.tipo === TIPOS_EFEITO.REVELAR_CARTAS_INIMIGO) {
+          this.mostrarRevelacaoFaro(this.partida.ultimaRevelacaoFaro || []);
+        }
       },
+    });
+  }
+
+  // Faro (O Cão): toast simples listando os nomes das cartas reveladas do
+  // inimigo, no mesmo espírito visual de avisarSemAlvo() (texto que some
+  // sozinho), só que fica mais tempo na tela por ter mais texto pra ler.
+  mostrarRevelacaoFaro(nomes) {
+    const corpo =
+      nomes.length > 0
+        ? nomes.join("\n")
+        : "O inimigo não tem cartas para revelar.";
+
+    let texto = this.add
+      .text(GW / 2, 200, `Faro revelou:\n${corpo}`, {
+        fontSize: "30px",
+        color: "#ffe08a",
+        fontStyle: "bold",
+        stroke: "#000000",
+        strokeThickness: 6,
+        align: "center",
+      })
+      .setOrigin(0.5, 0)
+      .setDepth(3900)
+      .setAlpha(0);
+
+    this.tweens.add({
+      targets: texto,
+      alpha: 1,
+      duration: 200,
+      yoyo: true,
+      hold: 2200,
+      onComplete: () => texto.destroy(),
     });
   }
 
@@ -2862,7 +2900,10 @@ class CenaJogo extends Phaser.Scene {
         carta.efeito.tipo === TIPOS_EFEITO.DESTRUIR_TERRENO_INIMIGO ||
         carta.efeito.tipo === TIPOS_EFEITO.RESETAR_PODER ||
         carta.efeito.tipo === TIPOS_EFEITO.ATACAR_DOIS_ALVOS ||
-        carta.efeito.tipo === TIPOS_EFEITO.OVERRIDE) &&
+        carta.efeito.tipo === TIPOS_EFEITO.OVERRIDE ||
+        carta.efeito.tipo === TIPOS_EFEITO.ROUBAR_PODER ||
+        carta.efeito.tipo === TIPOS_EFEITO.REPOSICIONAR ||
+        carta.efeito.tipo === TIPOS_EFEITO.ENVENENAR) &&
       this.partida.jogador.campo.cartas.includes(carta);
     // Cessar e Desistir (Advogado Corporativo) é 1x por PARTIDA, não 1x
     // por turno — o botão fica travado pra sempre depois de usado, mesmo
@@ -3172,7 +3213,10 @@ class CenaJogo extends Phaser.Scene {
         carta.efeito.tipo === TIPOS_EFEITO.DESTRUIR_TERRENO_INIMIGO ||
         carta.efeito.tipo === TIPOS_EFEITO.RESETAR_PODER ||
         carta.efeito.tipo === TIPOS_EFEITO.ATACAR_DOIS_ALVOS ||
-        carta.efeito.tipo === TIPOS_EFEITO.OVERRIDE) &&
+        carta.efeito.tipo === TIPOS_EFEITO.OVERRIDE ||
+        carta.efeito.tipo === TIPOS_EFEITO.ROUBAR_PODER ||
+        carta.efeito.tipo === TIPOS_EFEITO.REPOSICIONAR ||
+        carta.efeito.tipo === TIPOS_EFEITO.ENVENENAR) &&
       this.partida.jogador.campo.cartas.includes(carta);
     const habilidadeJaUsada =
       podeMostrarBotaoHabilidade &&
@@ -3891,6 +3935,21 @@ class CenaJogo extends Phaser.Scene {
     // ATACAR/Cessar e Desistir), só com texto de instrução próprio.
     const ehOverride =
       carta.efeito && carta.efeito.tipo === TIPOS_EFEITO.OVERRIDE;
+    // O Rato (Mãos Leves): alvo é uma carta INIMIGA em qualquer lugar do
+    // campo (mesmo modo de mira de ATACAR/Override), sem restrição de
+    // range — só texto de instrução próprio.
+    const ehRoubarPoder =
+      carta.efeito && carta.efeito.tipo === TIPOS_EFEITO.ROUBAR_PODER;
+    // A Cabra (Escalada): alvo é um espaço do PRÓPRIO campo (livre ou
+    // ocupado) — reaproveita o mesmo modo de mira do Estagiário de ML/O
+    // Boi (iniciarSelecaoDeAliadoParaHabilidade), que já sabe destacar
+    // slots vazios além de ocupados.
+    const ehReposicionar =
+      carta.efeito && carta.efeito.tipo === TIPOS_EFEITO.REPOSICIONAR;
+    // A Cobra (Dose Letal): alvo é uma carta INIMIGA em alcance curto —
+    // mesmo modo de mira de ATACAR, só com texto de instrução próprio.
+    const ehEnvenenar =
+      carta.efeito && carta.efeito.tipo === TIPOS_EFEITO.ENVENENAR;
 
     this.travado = true;
     this.esconderRodaBotoes();
@@ -3938,6 +3997,24 @@ class CenaJogo extends Phaser.Scene {
         carta,
         alvos,
         "Escolha um alvo com menos poder (fica no campo dele, ponto pra você)",
+      );
+    } else if (ehRoubarPoder) {
+      this.iniciarSelecaoDeAlvo(
+        carta,
+        alvos,
+        "Escolha uma carta inimiga para roubar poder",
+      );
+    } else if (ehReposicionar) {
+      this.iniciarSelecaoDeAliadoParaHabilidade(
+        carta,
+        alvos,
+        "Escolha um espaço do seu campo para se mover",
+      );
+    } else if (ehEnvenenar) {
+      this.iniciarSelecaoDeAlvo(
+        carta,
+        alvos,
+        "Escolha uma carta inimiga para envenenar",
       );
     } else {
       this.iniciarSelecaoDeAlvo(carta, alvos);
