@@ -42,6 +42,9 @@ const TIPOS_EFEITO = {
   ATACAR_COLUNA: "atacar_coluna", // O Trotar do Cavalo (carta de efeito): escolhe uma coluna do campo inimigo; TODAS as cartas dessa coluna (as duas fileiras) perdem poder
   BUFF_DOIS_ALIADOS: "buff_dois_aliados", // O Canto do Galo (carta de efeito): +2 PA no primeiro aliado escolhido e +1 PA no segundo
   ARMADILHA_ESPACO: "armadilha_espaco", // A Travessura do Macaco: arma um slot inimigo; a próxima carta nele entra com -2 PA
+  REDUZIR_TEMPO_OPONENTE: "reduzir_tempo_oponente", // NeoAnalista: reduz o turno adversário quando houver cronômetro ativo
+  HUMATRIX: "humbatrix", // HumbaBrain: neutraliza terrenos inimigos e protege terrenos aliados
+  DISTRIBUIR_DANO: "distribuir_dano", // Dieh'Go: distribui livremente uma reserva de dano entre inimigos
 };
 
 // O jogo não tem uma tag de "nível" separada por carta — "baixo/médio/alto"
@@ -98,6 +101,12 @@ function descreverEfeito(efeito) {
       return `Ao ser conjurada: escolha duas cartas aliadas. A primeira ganha +${efeito.valores[0]} de poder e a segunda ganha +${efeito.valores[1]} de poder.`;
     case TIPOS_EFEITO.ARMADILHA_ESPACO:
       return `Ao ser conjurada: arme um espaço vazio do campo inimigo. A próxima carta invocada nele entra com -${efeito.valor} de poder.`;
+    case TIPOS_EFEITO.REDUZIR_TEMPO_OPONENTE:
+      return `Enquanto estiver em campo: reduz o tempo de turno do oponente em ${efeito.valor} segundos, até o mínimo de ${efeito.minimo} segundos.`;
+    case TIPOS_EFEITO.HUMATRIX:
+      return `Enquanto estiver em campo: terrenos inimigos não têm efeito e seus terrenos não podem ser destruídos.`;
+    case TIPOS_EFEITO.DISTRIBUIR_DANO:
+      return `Habilidade ativa (1x por turno): distribua até ${efeito.total} pontos de dano livremente entre as cartas inimigas. A carta aliada diretamente atrás desta recebe +2 de PA enquanto ela permanecer em campo.`;
     default:
       return "";
   }
@@ -259,7 +268,7 @@ const POOL_CARTAS_MONSTRO = [
 
   {
     nome: "Agente da DIPSP",
-    poder: 3,
+    poder: 8,
     descricao:
       "Uma carta de campo com habilidade ativa: mira e dispara num alvo à sua escolha.",
     imagem: "dipsp",
@@ -327,6 +336,49 @@ const POOL_CARTAS_MONSTRO = [
       ganho: 3, // ...e OUTRA carta aliada escolhida ganha 3 PA (dois alvos distintos)
     },
     habilidadeAtiva: true, // Reestruturação Interna: não dispara ao invocar — ativa em campo, 1x por turno
+  },
+
+  {
+    nome: "NeoAnalista de Suporte Nível Alpha",
+    poder: 4,
+    descricao:
+      "Treinado para lidar com situações que desafiam a lógica, a física e, ocasionalmente, a sanidade, o NeoAnalista de Suporte Nível Alpha dispõe de apenas cinco minutos para solucionar incidentes críticos. Estatisticamente, 87% deles são resolvidos com uma reinicialização do sistema.",
+    imagem: "neoanalista",
+    foco: { x: 0.5, y: 0 },
+    booster: "raspcorp",
+    efeito: {
+      tipo: TIPOS_EFEITO.REDUZIR_TEMPO_OPONENTE,
+      valor: 10,
+      minimo: 20,
+    },
+  },
+
+  {
+    nome: "HumbaBrain",
+    poder: 8,
+    descricao:
+      "O cientista Humba, buscando salvar o planeta das mudanças climáticas, fez upload de uma IA para sua própria cabeça, tornando-se a primeira IA a experimentar o mundo humano. Após compreender a humanidade, criou uma realidade virtual onde humanos e IAs poderiam viver como iguais. Atualmente, comanda a simulação e trabalha para torná-la cada vez mais atrativa aos usuários, não importa o custo.",
+    imagem: "humbabrain",
+    foco: { x: 0.5, y: 0 },
+    booster: "humbanet",
+    lendaria: true,
+    efeito: { tipo: TIPOS_EFEITO.HUMATRIX },
+  },
+
+  {
+    nome: "Dieh'Go, o Xerife",
+    poder: 9,
+    descricao:
+      "Dentre os Remanescentes, a lei não é um código escrito. A lei é Dieh'Go. Nunca foi eleito nem nomeado xerife, simplesmente assumiu o posto quando o povo mais precisou. Sua autoridade vem da força e da confiança conquistada por anos protegendo o Povo da Areia.",
+    imagem: "diehgo",
+    foco: { x: 0.5, y: 0 },
+    booster: "remanescentes",
+    lendaria: true,
+    efeito: {
+      tipo: TIPOS_EFEITO.DISTRIBUIR_DANO,
+      total: 6,
+    },
+    habilidadeAtiva: true,
   },
 
   {
@@ -602,6 +654,20 @@ const POOL_CARTAS_EFEITO = [
     foco: { x: 0.5, y: 0 },
     booster: "echossystem",
     efeito: { tipo: TIPOS_EFEITO.ARMADILHA_ESPACO, valor: 2 },
+  },
+  {
+    nome: "Você Parece Sozinho",
+    poder: 2,
+    descricao:
+      "Para que buscar companhia real quando você pode preencher o vazio conversando com uma IA? No mundo virtual, todo solitário recebe seu próprio modelo androide da linha Hoi, programado para ouvir, conversar e concordar com você.",
+    imagem: "voceparecesozinho",
+    foco: { x: 0.5, y: 0 },
+    booster: "humbanet",
+    efeito: {
+      tipo: TIPOS_EFEITO.BUFF_ALIADO_ESCOLHIDO,
+      valor: 3,
+      exigeAlvoIsolado: true,
+    },
   },
 
   // Adicione novas cartas de efeito aqui, seguindo o mesmo formato acima.

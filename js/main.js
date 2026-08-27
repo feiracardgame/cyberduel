@@ -7,7 +7,7 @@ console.log("Cyberduel iniciou!");
 class Deck {
   constructor() {
     this.cartas = [];
-    this.limite = 20;
+    this.limite = 30;
   }
   adicionarCarta(carta) {
     if (this.cartas.length < this.limite) {
@@ -160,6 +160,13 @@ class Jogador {
     const oCao = POOL_CARTAS_MONSTRO.find((c) => c.nome === "O Cão");
     const oPorco = POOL_CARTAS_MONSTRO.find((c) => c.nome === "O Porco");
     const aCobra = POOL_CARTAS_MONSTRO.find((c) => c.nome === "A Cobra");
+    const neoAnalista = POOL_CARTAS_MONSTRO.find(
+      (c) => c.nome === "NeoAnalista de Suporte Nível Alpha",
+    );
+    const humbaBrain = POOL_CARTAS_MONSTRO.find((c) => c.nome === "HumbaBrain");
+    const diehGo = POOL_CARTAS_MONSTRO.find(
+      (c) => c.nome === "Dieh'Go, o Xerife",
+    );
     const copiasMonstroEspecial = [
       POOL_CARTAS_MONSTRO[0],
       POOL_CARTAS_MONSTRO[1],
@@ -174,6 +181,9 @@ class Jogador {
       oCao,
       oPorco,
       aCobra,
+      neoAnalista,
+      humbaBrain,
+      diehGo,
     ].filter(Boolean);
     const quantidadeMonstrosEspeciais = copiasMonstroEspecial.length;
     copiasMonstroEspecial.forEach((base, i) => {
@@ -317,6 +327,7 @@ class Partida {
         alvoEscolhido,
       );
       this.resolverEfeitosContinuos(this.jogador);
+      this.resolverEfeitosContinuos(this.inimigo);
     }
     if (sucesso) this.registrarHistorico(carta, "jogador");
     return { sucesso, afetadas };
@@ -334,11 +345,21 @@ class Partida {
         c.poder -= c.bonusTerreno;
         c.bonusTerreno = 0;
       }
+      if (c && c.bonusDiehGo) {
+        c.poder -= c.bonusDiehGo;
+        c.bonusDiehGo = 0;
+      }
     });
+
+    const oponente = dono === this.jogador ? this.inimigo : this.jogador;
+    const terrenosNeutralizados = oponente.campo.cartas.some(
+      (c) => c?.efeito?.tipo === TIPOS_EFEITO.HUMATRIX,
+    );
 
     dono.campo.cartas
       .filter((c) => c && c.tipo === "terreno" && c.efeitoContinuo)
       .forEach((terreno) => {
+        if (terrenosNeutralizados) return;
         const { tipo, valor, booster } = terreno.efeitoContinuo;
         if (tipo !== TIPOS_EFEITO_CONTINUO.BUFF_CAMPO_CONTINUO) return;
         dono.campo.cartas.forEach((c) => {
@@ -353,9 +374,12 @@ class Partida {
         });
       });
 
-    const tocaAtiva = dono.campo.cartas.some(
-      (c) => c?.efeitoContinuo?.tipo === TIPOS_EFEITO_CONTINUO.OCULTAR_ALIADOS,
-    );
+    const tocaAtiva =
+      !terrenosNeutralizados &&
+      dono.campo.cartas.some(
+        (c) =>
+          c?.efeitoContinuo?.tipo === TIPOS_EFEITO_CONTINUO.OCULTAR_ALIADOS,
+      );
     dono.campo.cartas.forEach((c) => {
       if (!c || c.tipo === "terreno") return;
       if (tocaAtiva && !c.ocultadaPelaToca) {
@@ -366,11 +390,27 @@ class Partida {
         c.revelada = true;
       }
     });
+
+    dono.campo.cartas.forEach((c, i) => {
+      if (c?.nome !== "Dieh'Go, o Xerife" || i < 5) return;
+      const cartaAtras = dono.campo.cartas[i - 5];
+      if (cartaAtras && cartaAtras.tipo !== "terreno") {
+        cartaAtras.poder += 2;
+        cartaAtras.bonusDiehGo = (cartaAtras.bonusDiehGo || 0) + 2;
+      }
+    });
   }
 
   // true se o "dono" tiver algum terreno com REVELAR_MAO_CONTINUO em campo
   // — a cena usa isso para decidir se mostra a mão do oponente virada.
   maoRevelada(dono) {
+    const oponente = dono === this.jogador ? this.inimigo : this.jogador;
+    if (
+      oponente.campo.cartas.some(
+        (c) => c?.efeito?.tipo === TIPOS_EFEITO.HUMATRIX,
+      )
+    )
+      return false;
     return dono.campo.cartas.some(
       (c) =>
         c &&
@@ -479,6 +519,50 @@ class Partida {
       return { sucesso: true, afetadas };
     }
 
+    if (carta.efeito.tipo === TIPOS_EFEITO.DISTRIBUIR_DANO) {
+      const distribuicao = Array.isArray(alvoEscolhido) ? alvoEscolhido : [];
+      const total = carta.efeito.total || 6;
+      const vidaTotalDisponivel = oponente.campo.cartas.reduce(
+        (soma, alvo) =>
+          soma + (alvo && alvo.tipo !== "terreno" ? alvo.poder : 0),
+        0,
+      );
+      const totalDisponivel = Math.min(total, vidaTotalDisponivel);
+      const indicesValidos = distribuicao
+        .slice(0, totalDisponivel)
+        .filter(
+          (i) =>
+            Number.isInteger(i) &&
+            oponente.campo.cartas[i] &&
+            oponente.campo.cartas[i].tipo !== "terreno",
+        );
+      if (
+        indicesValidos.length === 0 ||
+        indicesValidos.length !== distribuicao.length ||
+        indicesValidos.length > totalDisponivel
+      )
+        return { sucesso: false, afetadas: [] };
+
+      const danoPorCarta = new Map();
+      indicesValidos.forEach((i) =>
+        danoPorCarta.set(i, (danoPorCarta.get(i) || 0) + 1),
+      );
+      const excedeuVida = Array.from(danoPorCarta.entries()).some(
+        ([i, dano]) => dano > oponente.campo.cartas[i].poder,
+      );
+      if (excedeuVida) return { sucesso: false, afetadas: [] };
+      const afetadas = [];
+      danoPorCarta.forEach((dano, i) => {
+        const alvo = oponente.campo.cartas[i];
+        const antes = alvo.poder;
+        alvo.buff(-dano);
+        afetadas.push({ carta: alvo, delta: alvo.poder - antes });
+      });
+      oponente.campo.removerMortas();
+      carta.usadaEsteTurno = true;
+      return { sucesso: true, afetadas };
+    }
+
     if (carta.efeito.tipo === TIPOS_EFEITO.REDISTRIBUIR_PODER) {
       // Reestruturação Interna (Gestor de RH): dois alvos DISTINTOS, ambos
       // aliados em campo (qualquer um dos dois pode ser o próprio Gestor).
@@ -523,6 +607,10 @@ class Partida {
         oponente.campo.cartas[alvoEscolhido] &&
         oponente.campo.cartas[alvoEscolhido].tipo === "terreno";
       if (!alvoValido) return { sucesso: false, afetadas: [] };
+      const protegidoPorHumba = oponente.campo.cartas.some(
+        (c) => c?.efeito?.tipo === TIPOS_EFEITO.HUMATRIX,
+      );
+      if (protegidoPorHumba) return { sucesso: false, afetadas: [] };
 
       const terrenoDestruido = oponente.campo.cartas[alvoEscolhido];
       oponente.campo.cartas[alvoEscolhido] = null;
@@ -720,6 +808,14 @@ class Partida {
         carta.efeito.rangeV,
         oponente.campo,
       );
+    }
+
+    // Eu Sou a Lei ignora completamente posição, fileira e alcance:
+    // toda carta inimiga que tenha PA é um alvo válido.
+    if (carta.efeito.tipo === TIPOS_EFEITO.DISTRIBUIR_DANO) {
+      return oponente.campo.cartas
+        .map((c, i) => (c && c.tipo !== "terreno" ? i : null))
+        .filter((i) => i !== null);
     }
 
     if (carta.efeito.tipo === TIPOS_EFEITO.BUFF_ALIADO_ESCOLHIDO) {
@@ -1160,6 +1256,11 @@ class Partida {
           c.efeitoContinuo?.tipo ===
             TIPOS_EFEITO_CONTINUO.RECUPERAR_DANO_CONTINUO,
       );
+      const oponente = dono === this.jogador ? this.inimigo : this.jogador;
+      const neutralizados = oponente.campo.cartas.some(
+        (c) => c?.efeito?.tipo === TIPOS_EFEITO.HUMATRIX,
+      );
+      if (neutralizados) return;
       if (terrenos.length === 0) return;
       const valor = Math.max(...terrenos.map((t) => t.efeitoContinuo.valor));
       dono.campo.cartas.forEach((c) => {
@@ -1230,6 +1331,7 @@ class Partida {
           this.registrarHistorico(carta, "inimigo");
           if (carta.tipo === "terreno")
             this.resolverEfeitosContinuos(this.inimigo);
+          this.resolverEfeitosContinuos(this.jogador);
         }
         break;
       }
@@ -1244,10 +1346,24 @@ class Partida {
         const alvoTerrenoIA =
           c.efeito?.tipo === TIPOS_EFEITO.DESTRUIR_TERRENO_INIMIGO
             ? this.alvosParaHabilidadeEmCampo(c, this.inimigo, this.jogador)[0]
+            : c.efeito?.tipo === TIPOS_EFEITO.DISTRIBUIR_DANO
+              ? this.montarDistribuicaoDanoIA(c, this.jogador)
             : null;
         this.ativarHabilidade(c, this.inimigo, this.jogador, alvoTerrenoIA);
       }
     });
+  }
+
+  montarDistribuicaoDanoIA(carta, oponente) {
+    let restante = carta.efeito.total || 6;
+    const distribuicao = [];
+    oponente.campo.cartas.forEach((alvo, indice) => {
+      if (!alvo || alvo.tipo === "terreno" || restante <= 0) return;
+      const dano = Math.min(alvo.poder, restante);
+      for (let i = 0; i < dano; i++) distribuicao.push(indice);
+      restante -= dano;
+    });
+    return distribuicao;
   }
 
   // Recebe o JOGADOR (não mais o campo) porque, com Override (A Aranha),

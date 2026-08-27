@@ -917,6 +917,13 @@ class CenaJogo extends Phaser.Scene {
         this.iniciarSelecaoDeCartaDoBaralho(gameObject, carta);
         return;
       }
+      if (
+        carta.efeito?.tipo === TIPOS_EFEITO.BUFF_ALIADO_ESCOLHIDO &&
+        carta.efeito.exigeAlvoIsolado
+      ) {
+        this.iniciarSelecaoDeAliadoIsolado(gameObject, carta);
+        return;
+      }
       // O Trotar do Cavalo: precisa que o jogador escolha a coluna do campo
       // inimigo a atropelar ANTES de conjurar (ver iniciarSelecaoDeColunaInimiga).
       if (carta.efeito && carta.efeito.tipo === TIPOS_EFEITO.ATACAR_COLUNA) {
@@ -2994,7 +3001,8 @@ class CenaJogo extends Phaser.Scene {
         carta.efeito.tipo === TIPOS_EFEITO.OVERRIDE ||
         carta.efeito.tipo === TIPOS_EFEITO.ROUBAR_PODER ||
         carta.efeito.tipo === TIPOS_EFEITO.REPOSICIONAR ||
-        carta.efeito.tipo === TIPOS_EFEITO.ENVENENAR) &&
+        carta.efeito.tipo === TIPOS_EFEITO.ENVENENAR ||
+        carta.efeito.tipo === TIPOS_EFEITO.DISTRIBUIR_DANO) &&
       this.partida.jogador.campo.cartas.includes(carta);
     // Cessar e Desistir (Advogado Corporativo) é 1x por PARTIDA, não 1x
     // por turno — o botão fica travado pra sempre depois de usado, mesmo
@@ -3307,7 +3315,8 @@ class CenaJogo extends Phaser.Scene {
         carta.efeito.tipo === TIPOS_EFEITO.OVERRIDE ||
         carta.efeito.tipo === TIPOS_EFEITO.ROUBAR_PODER ||
         carta.efeito.tipo === TIPOS_EFEITO.REPOSICIONAR ||
-        carta.efeito.tipo === TIPOS_EFEITO.ENVENENAR) &&
+        carta.efeito.tipo === TIPOS_EFEITO.ENVENENAR ||
+        carta.efeito.tipo === TIPOS_EFEITO.DISTRIBUIR_DANO) &&
       this.partida.jogador.campo.cartas.includes(carta);
     const habilidadeJaUsada =
       podeMostrarBotaoHabilidade &&
@@ -4041,6 +4050,8 @@ class CenaJogo extends Phaser.Scene {
     // mesmo modo de mira de ATACAR, só com texto de instrução próprio.
     const ehEnvenenar =
       carta.efeito && carta.efeito.tipo === TIPOS_EFEITO.ENVENENAR;
+    const ehDistribuirDano =
+      carta.efeito && carta.efeito.tipo === TIPOS_EFEITO.DISTRIBUIR_DANO;
 
     this.travado = true;
     this.esconderRodaBotoes();
@@ -4059,7 +4070,9 @@ class CenaJogo extends Phaser.Scene {
     // Mesmo com um único alvo possível, o jogador escolhe ativamente
     // tocando nele — assim ele sempre confirma a ação, em vez do jogo
     // disparar sozinho.
-    if (ehRedistribuir) {
+    if (ehDistribuirDano) {
+      this.iniciarDistribuicaoDeDano(carta, alvos);
+    } else if (ehRedistribuir) {
       // Precisa de pelo menos 2 aliadas em campo (o Gestor + mais uma) pra
       // fazer sentido escolher "quem perde" e "quem ganha" separadamente.
       if (alvos.length < 2) {
@@ -4110,6 +4123,165 @@ class CenaJogo extends Phaser.Scene {
     } else {
       this.iniciarSelecaoDeAlvo(carta, alvos);
     }
+  }
+
+  // Dieh'Go — Eu Sou a Lei: cada toque aplica um ponto da reserva ao alvo.
+  // O mesmo inimigo pode receber vários pontos; a habilidade só confirma
+  // O jogador pode confirmar antes de usar os 6 pontos; eles são um limite.
+  iniciarDistribuicaoDeDano(carta, alvos) {
+    const total = carta.efeito.total || 6;
+    const totalDistribuivel = Math.min(
+      total,
+      alvos.reduce(
+        (soma, indice) => soma + this.partida.inimigo.campo.cartas[indice].poder,
+        0,
+      ),
+    );
+    const distribuicao = [];
+    const contagens = new Map();
+    const objetos = [];
+    const rotulos = new Map();
+    const L = this.layout;
+
+    const overlay = this.add
+      .rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.35)
+      .setDepth(3700)
+      .setInteractive();
+    objetos.push(overlay);
+
+    const instrucao = this.add
+      .text(GW / 2, 125, `Distribua até ${totalDistribuivel} pontos de dano`, {
+        fontSize: "38px",
+        color: "#ffcc66",
+        fontStyle: "bold",
+        stroke: "#000000",
+        strokeThickness: 6,
+      })
+      .setOrigin(0.5)
+      .setDepth(3900);
+    const contador = this.add
+      .text(GW / 2, 180, `Restam: ${totalDistribuivel}`, {
+        fontSize: "30px",
+        color: "#ffffff",
+        stroke: "#000000",
+        strokeThickness: 5,
+      })
+      .setOrigin(0.5)
+      .setDepth(3900);
+    objetos.push(instrucao, contador);
+
+    const limpar = () => {
+      objetos.forEach((o) => o.destroy());
+      this.objetosSelecaoAlvo = null;
+    };
+    overlay.on("pointerup", () => {
+      limpar();
+      this.cancelarSelecaoDeAlvo();
+    });
+
+    let btnConfirmar = null;
+    const atualizar = () => {
+      contador.setText(`Restam: ${totalDistribuivel - distribuicao.length}`);
+      rotulos.forEach((texto, indice) => {
+        const qtd = contagens.get(indice) || 0;
+        texto.setText(`${qtd}`);
+      });
+      if (btnConfirmar)
+        btnConfirmar.setAlpha(distribuicao.length > 0 ? 1 : 0.35);
+      if (btnConfirmar)
+        btnConfirmar.list
+          .find((objeto) => objeto.type === "Text")
+          ?.setText(`Confirmar ${distribuicao.length} de dano`);
+    };
+
+    alvos.forEach((indice) => {
+      const xPos = L.x[indice % 5];
+      const yPos = L.yInimigo[Math.floor(indice / 5)];
+      const anel = this.add
+        .rectangle(xPos, yPos, L.slotW, L.slotH, 0xff7744, 0)
+        .setStrokeStyle(8, 0xff7744, 1)
+        .setDepth(3800);
+      const rotulo = this.add
+        .text(xPos, yPos, "0", {
+          fontSize: "42px",
+          color: "#ffffff",
+          fontStyle: "bold",
+          stroke: "#000000",
+          strokeThickness: 7,
+        })
+        .setOrigin(0.5)
+        .setDepth(3802);
+      const botaoMenos = this.add
+        .text(xPos - L.slotW * 0.28, yPos, "−", {
+          fontSize: "52px",
+          color: "#ffaaaa",
+          fontStyle: "bold",
+          stroke: "#000000",
+          strokeThickness: 7,
+        })
+        .setOrigin(0.5)
+        .setDepth(3804);
+      const botaoMais = this.add
+        .text(xPos + L.slotW * 0.28, yPos, "+", {
+          fontSize: "52px",
+          color: "#aaffaa",
+          fontStyle: "bold",
+          stroke: "#000000",
+          strokeThickness: 7,
+        })
+        .setOrigin(0.5)
+        .setDepth(3804);
+      const zonaMenos = this.add
+        .rectangle(xPos - L.slotW * 0.28, yPos, L.slotW * 0.42, L.slotH, 0xffffff, 0.001)
+        .setDepth(3803)
+        .setInteractive({ useHandCursor: true });
+      const zonaMais = this.add
+        .rectangle(xPos + L.slotW * 0.28, yPos, L.slotW * 0.42, L.slotH, 0xffffff, 0.001)
+        .setDepth(3803)
+        .setInteractive({ useHandCursor: true });
+      zonaMais.on("pointerup", () => {
+        const vidaDoAlvo = this.partida.inimigo.campo.cartas[indice].poder;
+        if (
+          distribuicao.length >= totalDistribuivel ||
+          (contagens.get(indice) || 0) >= vidaDoAlvo
+        )
+          return;
+        distribuicao.push(indice);
+        contagens.set(indice, (contagens.get(indice) || 0) + 1);
+        atualizar();
+      });
+      zonaMenos.on("pointerup", () => {
+        const posicaoRemover = distribuicao.lastIndexOf(indice);
+        if (posicaoRemover === -1) return;
+        distribuicao.splice(posicaoRemover, 1);
+        contagens.set(indice, (contagens.get(indice) || 0) - 1);
+        atualizar();
+      });
+      rotulos.set(indice, rotulo);
+      objetos.push(
+        anel,
+        rotulo,
+        botaoMenos,
+        botaoMais,
+        zonaMenos,
+        zonaMais,
+      );
+    });
+
+    btnConfirmar = this.criarBotaoConfirmacao(
+      GW / 2,
+      Y_MAO_JOGADOR - 60,
+      "Confirmar 0 de dano",
+      0x884422,
+      () => {
+        if (distribuicao.length === 0) return;
+        limpar();
+        this.executarHabilidade(carta, distribuicao);
+      },
+    );
+    btnConfirmar.setAlpha(0.35);
+    objetos.push(btnConfirmar);
+    this.objetosSelecaoAlvo = objetos;
   }
 
   // Mostra um avisinho rápido de "nenhum alvo em alcance" quando o
@@ -4495,6 +4667,84 @@ class CenaJogo extends Phaser.Scene {
       const anel = this.add
         .rectangle(xPos, yPos, L.slotW, L.slotH, 0xff9b6b, 0)
         .setStrokeStyle(8, 0xff9b6b, 1)
+        .setDepth(3800);
+      const zona = this.add
+        .rectangle(xPos, yPos, L.slotW, L.slotH, 0xffffff, 0.001)
+        .setDepth(3801)
+        .setInteractive({ useHandCursor: true });
+      zona.on("pointerup", () => {
+        objetos.forEach((o) => o.destroy());
+        this.objetosSelecaoAlvo = null;
+        this.desenharRodaBotoes();
+        this.conjurarCartaDeEfeitoJogador(gameObject, carta, indice);
+        this.somPop.play();
+      });
+      objetos.push(anel, zona);
+    });
+    this.objetosSelecaoAlvo = objetos;
+  }
+
+  iniciarSelecaoDeAliadoIsolado(gameObject, carta) {
+    const campo = this.partida.jogador.campo.cartas;
+    const adjacentes = (i) => {
+      const linha = Math.floor(i / 5);
+      const coluna = i % 5;
+      return [
+        coluna > 0 ? i - 1 : null,
+        coluna < 4 ? i + 1 : null,
+        linha > 0 ? i - 5 : null,
+        linha < 1 ? i + 5 : null,
+      ].filter((v) => v !== null);
+    };
+    const alvos = campo
+      .map((c, i) =>
+        c &&
+        c.tipo !== "terreno" &&
+        adjacentes(i).every((vizinho) => !campo[vizinho])
+          ? i
+          : null,
+      )
+      .filter((i) => i !== null);
+
+    if (!alvos.length) {
+      this.animarRetornoAoLeque(gameObject, true);
+      return;
+    }
+
+    this.travado = true;
+    this.esconderRodaBotoes();
+    const objetos = [];
+    const L = this.layout;
+    const overlay = this.add
+      .rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.35)
+      .setDepth(3700)
+      .setInteractive();
+    const cancelar = () => {
+      objetos.forEach((o) => o.destroy());
+      this.objetosSelecaoAlvo = null;
+      this.desenharRodaBotoes();
+      this.animarRetornoAoLeque(gameObject, false);
+    };
+    overlay.on("pointerup", cancelar);
+    objetos.push(overlay);
+    objetos.push(
+      this.add
+        .text(GW / 2, 140, "Escolha uma carta aliada sem vizinhos", {
+          fontSize: "36px",
+          color: "#88ff99",
+          fontStyle: "bold",
+          stroke: "#000000",
+          strokeThickness: 6,
+        })
+        .setOrigin(0.5)
+        .setDepth(3900),
+    );
+    alvos.forEach((indice) => {
+      const xPos = L.x[indice % 5];
+      const yPos = L.yJogador[Math.floor(indice / 5)];
+      const anel = this.add
+        .rectangle(xPos, yPos, L.slotW, L.slotH, 0x88ff99, 0)
+        .setStrokeStyle(8, 0x88ff99, 1)
         .setDepth(3800);
       const zona = this.add
         .rectangle(xPos, yPos, L.slotW, L.slotH, 0xffffff, 0.001)
