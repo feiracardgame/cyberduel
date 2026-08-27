@@ -39,6 +39,9 @@ const TIPOS_EFEITO = {
   REVELAR_CARTAS_INIMIGO: "revelar_cartas_inimigo", // O Cão (Faro): ao ser invocado, revela até N cartas da mão/baralho do inimigo
   CASCA_GROSSA: "casca_grossa", // O Porco (Casca Grossa): passivo permanente — o poder desta carta nunca reduz abaixo do poder original (poderBase), mesmo com múltiplas reduções (ver Carta.buff())
   ENVENENAR: "envenenar", // A Cobra (Dose Letal): escolhe uma carta inimiga em alcance curto (à frente ou espaço adjacente) e a envenena — ela perde poder a cada turno enquanto estiver em campo
+  ATACAR_COLUNA: "atacar_coluna", // O Trotar do Cavalo (carta de efeito): escolhe uma coluna do campo inimigo; TODAS as cartas dessa coluna (as duas fileiras) perdem poder
+  BUFF_DOIS_ALIADOS: "buff_dois_aliados", // O Canto do Galo (carta de efeito): +2 PA no primeiro aliado escolhido e +1 PA no segundo
+  ARMADILHA_ESPACO: "armadilha_espaco", // A Travessura do Macaco: arma um slot inimigo; a próxima carta nele entra com -2 PA
 };
 
 // O jogo não tem uma tag de "nível" separada por carta — "baixo/médio/alto"
@@ -89,6 +92,12 @@ function descreverEfeito(efeito) {
       return `Casca Grossa: o poder desta carta nunca pode ser reduzido abaixo do seu valor original.`;
     case TIPOS_EFEITO.ENVENENAR:
       return `Habilidade ativa (1x por turno, em campo): escolha uma carta inimiga em alcance curto (à frente ou em espaço adjacente) para envenenar. Ela perde ${efeito.valor} de poder a cada turno enquanto estiver em campo.`;
+    case TIPOS_EFEITO.ATACAR_COLUNA:
+      return `Ao ser conjurada: escolha uma coluna do campo inimigo. Todas as cartas dessa coluna perdem ${efeito.valor} de poder.`;
+    case TIPOS_EFEITO.BUFF_DOIS_ALIADOS:
+      return `Ao ser conjurada: escolha duas cartas aliadas. A primeira ganha +${efeito.valores[0]} de poder e a segunda ganha +${efeito.valores[1]} de poder.`;
+    case TIPOS_EFEITO.ARMADILHA_ESPACO:
+      return `Ao ser conjurada: arme um espaço vazio do campo inimigo. A próxima carta invocada nele entra com -${efeito.valor} de poder.`;
     default:
       return "";
   }
@@ -105,6 +114,7 @@ const TIPOS_EFEITO_CONTINUO = {
   BUFF_CAMPO_CONTINUO: "buff_campo_continuo", // enquanto em campo: cartas aliadas (de um booster, se definido) ganham +poder
   RECUPERAR_DANO_CONTINUO: "recuperar_dano_continuo", // enquanto em campo: aliadas que perderam PA recuperam um pouco ao fim de cada turno
   REVELAR_MAO_CONTINUO: "revelar_mao_continuo", // enquanto em campo: mão do oponente fica revelada
+  OCULTAR_ALIADOS: "ocultar_aliados", // Toca do Coelho: aliados ficam virados para baixo até sofrer dano ou ativar efeito
 };
 
 function descreverEfeitoContinuo(efeito) {
@@ -116,6 +126,8 @@ function descreverEfeitoContinuo(efeito) {
       return `Enquanto estiver em campo: cartas aliadas que sofreram dano recuperam +${efeito.valor} de PA ao final de cada turno.`;
     case TIPOS_EFEITO_CONTINUO.REVELAR_MAO_CONTINUO:
       return `Enquanto estiver em campo: a mão do oponente permanece revelada.`;
+    case TIPOS_EFEITO_CONTINUO.OCULTAR_ALIADOS:
+      return `Enquanto estiver em campo: cartas aliadas ficam viradas para baixo até sofrerem dano ou ativarem seus efeitos.`;
     default:
       return "";
   }
@@ -157,6 +169,15 @@ const POOL_CARTAS_TERRENO = [
     efeitoContinuo: {
       tipo: TIPOS_EFEITO_CONTINUO.REVELAR_MAO_CONTINUO,
     },
+  },
+  {
+    nome: "A Toca do Coelho",
+    descricao:
+      "O Coelho é a principal fonte de renda da EchoSsystem. Ninguém sabe exatamente de onde vem seu dinheiro, porque, além de ter um talento incomum para fazer as coisas acontecerem, ele possui um talento ainda maior para garantir que ninguém descubra como elas aconteceram. Quem quiser respostas pode tentar visitar seu clube e descobrir até onde vai a Toca do Coelho...",
+    imagem: "tocacoelho",
+    foco: { x: 0.5, y: 0 },
+    booster: "echossystem",
+    efeitoContinuo: { tipo: TIPOS_EFEITO_CONTINUO.OCULTAR_ALIADOS },
   },
 
   // Adicione novas cartas de terreno aqui, seguindo o mesmo formato acima.
@@ -470,13 +491,13 @@ const POOL_CARTAS_MONSTRO = [
     poder: 5,
     descricao:
       "A Cobra é uma lendária produtora de venenos que nunca perguntou quem era o cliente, desde que ele pagasse o suficiente. Quando seus próprios compradores decidiram eliminá-la, ela finalmente percebeu que talvez fosse hora de escolher melhor seus parceiros. Agora, ao lado da EchoSsystem, pretende fazer cada um deles provar do próprio veneno.",
-    imagem: null, // arte ainda não adicionada — cai no placeholder até assets/cartas/Cobra.png existir
+    imagem: "cobra", // arte ainda não adicionada — cai no placeholder até assets/cartas/Cobra.png existir
     booster: "echossystem",
     efeito: {
       tipo: TIPOS_EFEITO.ENVENENAR,
       valor: 1,
-      rangeH: 2,
-      rangeV: 1,
+      rangeH: 5,
+      rangeV: 5,
     },
     habilidadeAtiva: true, // Dose Letal: não dispara ao invocar — ativa em campo, 1x por turno
   },
@@ -552,6 +573,37 @@ const POOL_CARTAS_EFEITO = [
     efeito: { tipo: TIPOS_EFEITO.BUSCAR_CARTA_DECK },
   },
 
+  {
+    nome: "O Trotar do Cavalo",
+    poder: 2,
+    descricao:
+      "Há muito tempo, a humanidade admirava seus maiores atletas. Depois descobriu que podia construir robôs mais rápidos. Assim, os humanos desapareceram das pistas. Um deles foi O Cavalo. Tricampeão olímpico, hoje presta serviços à EchoSsystem realizando entregas, causando distrações e se arremessando contra ciborgues.",
+    imagem: "cavalo", // arte ainda não adicionada — cai no placeholder até assets/cartas/OTROTARDOCAVALO.png existir
+    booster: "echossystem",
+    efeito: { tipo: TIPOS_EFEITO.ATACAR_COLUNA, valor: 3 },
+  },
+
+  {
+    nome: "O Canto do Galo",
+    poder: 2,
+    descricao:
+      "Em um passado distante, casas de ópera lotavam para ouvir vozes capazes de emocionar multidões. Hoje, foram substituídas por CyberBaladas que reproduzem as mesmas três notas eletrônicas em ritmos diferentes. Felizmente, a EchoSsystem ainda desperta todas as manhãs ao som do outrora prestigiado Canto do Galo, lembrando que ainda vale a pena lutar por mais um dia.",
+    imagem: "galo",
+    foco: { x: 0.5, y: 0 },
+    booster: "echossystem",
+    efeito: { tipo: TIPOS_EFEITO.BUFF_DOIS_ALIADOS, valores: [2, 1] },
+  },
+  {
+    nome: "A Travessura do Macaco",
+    poder: 2,
+    descricao:
+      "O Macaco nunca foi muito fã da companhia de outras pessoas. Isolado desde a infância, passava os dias pregando peças em qualquer um que cruzasse seu caminho. Com o tempo, descobriu que armar emboscadas para figuras importantes pagava surpreendentemente bem. Na EchoSsystem, finalmente encontrou um grupo disposto a financiar suas travessuras e, mais importante, capaz de sobreviver a elas.",
+    imagem: "macaco",
+    foco: { x: 0.5, y: 0 },
+    booster: "echossystem",
+    efeito: { tipo: TIPOS_EFEITO.ARMADILHA_ESPACO, valor: 2 },
+  },
+
   // Adicione novas cartas de efeito aqui, seguindo o mesmo formato acima.
 ];
 
@@ -587,6 +639,7 @@ class Carta {
   }
 
   buff(valor) {
+    if (valor < 0) this.revelada = true;
     // Casca Grossa (O Porco): reduções normais, mas o poder nunca desce
     // abaixo do valor original (poderBase) — ganhos continuam sem teto.
     if (

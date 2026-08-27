@@ -917,6 +917,20 @@ class CenaJogo extends Phaser.Scene {
         this.iniciarSelecaoDeCartaDoBaralho(gameObject, carta);
         return;
       }
+      // O Trotar do Cavalo: precisa que o jogador escolha a coluna do campo
+      // inimigo a atropelar ANTES de conjurar (ver iniciarSelecaoDeColunaInimiga).
+      if (carta.efeito && carta.efeito.tipo === TIPOS_EFEITO.ATACAR_COLUNA) {
+        this.iniciarSelecaoDeColunaInimiga(gameObject, carta);
+        return;
+      }
+      if (carta.efeito && carta.efeito.tipo === TIPOS_EFEITO.BUFF_DOIS_ALIADOS) {
+        this.iniciarSelecaoDoCantoDoGalo(gameObject, carta);
+        return;
+      }
+      if (carta.efeito && carta.efeito.tipo === TIPOS_EFEITO.ARMADILHA_ESPACO) {
+        this.iniciarSelecaoDeArmadilha(gameObject, carta);
+        return;
+      }
       this.conjurarCartaDeEfeitoJogador(gameObject, carta);
       this.somPop.play();
       return;
@@ -2038,9 +2052,20 @@ class CenaJogo extends Phaser.Scene {
         ease: "Sine.easeOut",
       });
 
+      if (this.partida.inimigo.campo.armadilhas.has(i)) {
+        this.criarIndicadorArmadilha(xPos, yPos, L);
+      }
+
       let carta = this.partida.inimigo.campo.cartas[i];
       if (carta) {
-        this.criarCartaDeCampo(xPos, yPos, carta, L);
+        this.criarCartaDeCampo(
+          xPos,
+          yPos,
+          carta,
+          L,
+          carta.ocultadaPelaToca && !carta.revelada,
+          false,
+        );
       }
     }
   }
@@ -2074,9 +2099,20 @@ class CenaJogo extends Phaser.Scene {
         ease: "Sine.easeOut",
       });
 
+      if (this.partida.jogador.campo.armadilhas.has(i)) {
+        this.criarIndicadorArmadilha(xPos, yPos, L);
+      }
+
       let carta = this.partida.jogador.campo.cartas[i];
       if (carta) {
-        this.criarCartaDeCampo(xPos, yPos, carta, L);
+        this.criarCartaDeCampo(
+          xPos,
+          yPos,
+          carta,
+          L,
+          carta.ocultadaPelaToca && !carta.revelada,
+          true,
+        );
       }
     }
   }
@@ -2084,7 +2120,14 @@ class CenaJogo extends Phaser.Scene {
   // Carta do campo com pequena sombra e animação de "pop" ao aparecer.
   // O poder fica centralizado embaixo, dentro de um selo circular.
   // Também é clicável: um toque abre a visualização detalhada da carta.
-  criarCartaDeCampo(xPos, yPos, carta, layout) {
+  criarCartaDeCampo(
+    xPos,
+    yPos,
+    carta,
+    layout,
+    viradaParaBaixo = false,
+    podeInteragirOculta = false,
+  ) {
     const L = layout || this.layout;
     const escala = L.slotH / 210; // 210 = altura base do slot no layout normal
     let corFundo = this.obterCorPorId(carta.id);
@@ -2094,7 +2137,7 @@ class CenaJogo extends Phaser.Scene {
     let sombra = this.add.rectangle(6, 8, CW, CH, 0x000000, 0.35);
     let brilho = this.add.rectangle(0, -CH / 2 + 3, CW - 10, 4, 0xffffff, 0.35);
     let nomeTexto = null;
-    if (!carta.imagem) {
+    if (!carta.imagem && !viradaParaBaixo) {
       let nomeCurto = this.truncarTexto(carta.nome, 14);
       nomeTexto = this.add
         .text(0, Math.round(-58 * escala), nomeCurto, {
@@ -2107,7 +2150,7 @@ class CenaJogo extends Phaser.Scene {
     }
 
     const [poderBola, poderTexto] =
-      carta.tipo === "terreno"
+      carta.tipo === "terreno" || viradaParaBaixo
         ? [null, null]
         : this.criarSeloEstat(
             0,
@@ -2116,9 +2159,23 @@ class CenaJogo extends Phaser.Scene {
             "#ff5555",
             Math.round(24 * escala),
           );
-    let fundo = carta.imagem
+    let fundo = viradaParaBaixo
+      ? this.add
+          .rectangle(0, 0, CW, CH, 0x10152b)
+          .setStrokeStyle(5, 0x8a55cc)
+      : carta.imagem
       ? this.add.image(0, 0, carta.imagem).setDisplaySize(CW, CH)
       : this.add.rectangle(0, 0, CW, CH, corFundo);
+    if (viradaParaBaixo) {
+      nomeTexto = this.add
+        .text(0, 0, "EchoSsystem\n?", {
+          fontSize: `${Math.round(20 * escala)}px`,
+          color: "#caa8ff",
+          align: "center",
+          fontStyle: "bold",
+        })
+        .setOrigin(0.5);
+    }
     const filhos = [
       sombra,
       fundo,
@@ -2164,7 +2221,7 @@ class CenaJogo extends Phaser.Scene {
     container.dadosCartaCampo = carta;
 
     container.on("pointerup", () => {
-      if (this.travado) return;
+      if (this.travado || (viradaParaBaixo && !podeInteragirOculta)) return;
       this.mostrarDetalheCarta(carta);
     });
 
@@ -2172,7 +2229,12 @@ class CenaJogo extends Phaser.Scene {
     // Em touch não existe "hover" de verdade, então o toque continua
     // sendo tratado pelo pointerup acima.
     container.on("pointerover", (pointer) => {
-      if (this.travado || pointer.pointerType !== "mouse") return;
+      if (
+        this.travado ||
+        (viradaParaBaixo && !podeInteragirOculta) ||
+        pointer.pointerType !== "mouse"
+      )
+        return;
       this.mostrarDetalheCarta(carta);
     });
 
@@ -2191,6 +2253,35 @@ class CenaJogo extends Phaser.Scene {
       duration: 380,
       ease: "Cubic.Out",
       onComplete: () => anel.destroy(),
+    });
+  }
+
+  // Marcador persistente da Travessura do Macaco. Ele é redesenhado junto
+  // do campo e desaparece automaticamente quando a armadilha é consumida.
+  criarIndicadorArmadilha(xPos, yPos, layout) {
+    const L = layout || this.layout;
+    const anel = this.add
+      .rectangle(xPos, yPos, L.slotW - 8, L.slotH - 8, 0xff6b35, 0.08)
+      .setStrokeStyle(6, 0xff6b35, 0.95)
+      .setDepth(420);
+    const icone = this.add
+      .text(xPos, yPos, "⚠\nARMADILHA", {
+        fontSize: "24px",
+        color: "#ffb08a",
+        fontStyle: "bold",
+        align: "center",
+        stroke: "#000000",
+        strokeThickness: 5,
+      })
+      .setOrigin(0.5)
+      .setDepth(421);
+    this.tweens.add({
+      targets: [anel, icone],
+      alpha: 0.45,
+      duration: 650,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut",
     });
   }
 
@@ -4252,6 +4343,264 @@ class CenaJogo extends Phaser.Scene {
     }
     this.travado = false;
     this.animarRetornoAoLeque(gameObject, false);
+  }
+
+  // O Trotar do Cavalo: destaca as colunas do campo inimigo que têm ao
+  // menos uma carta (ver Partida.colunasComAlvoInimigo), pra o jogador
+  // escolher qual coluna inteira sofre o dano. Sem coluna válida (campo
+  // inimigo vazio), a carta simplesmente volta pro leque sem efeito.
+  iniciarSelecaoDeColunaInimiga(gameObject, carta) {
+    const colunas = this.partida.colunasComAlvoInimigo();
+    if (colunas.length === 0) {
+      this.animarRetornoAoLeque(gameObject, true);
+      return;
+    }
+
+    this.travado = true;
+    this.esconderRodaBotoes();
+    const L = this.layout;
+    const objetos = [];
+
+    let overlay = this.add
+      .rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.35)
+      .setDepth(3700)
+      .setInteractive();
+    overlay.on("pointerup", () =>
+      this.cancelarSelecaoDeColunaInimiga(gameObject),
+    );
+    objetos.push(overlay);
+
+    let textoInstr = this.add
+      .text(GW / 2, 140, "Escolha uma coluna inimiga para atropelar", {
+        fontSize: "36px",
+        color: "#ff9b6b",
+        fontStyle: "bold",
+        stroke: "#000000",
+        strokeThickness: 6,
+      })
+      .setOrigin(0.5)
+      .setDepth(3900);
+    objetos.push(textoInstr);
+
+    let textoCancelar = this.add
+      .text(GW / 2, 195, "(toque fora para cancelar)", {
+        fontSize: "26px",
+        color: "#dddddd",
+      })
+      .setOrigin(0.5)
+      .setDepth(3900);
+    objetos.push(textoCancelar);
+
+    colunas.forEach((col) => {
+      const xPos = L.x[col];
+      const yTopo = L.yInimigo[0];
+      const yBase = L.yInimigo[1];
+      const alturaTotal = yBase - yTopo + L.slotH;
+      const yCentro = (yTopo + yBase) / 2;
+
+      let anel = this.add
+        .rectangle(xPos, yCentro, L.slotW + 12, alturaTotal + 12, 0xff9b6b, 0)
+        .setStrokeStyle(8, 0xff9b6b, 1)
+        .setDepth(3800);
+      this.tweens.add({
+        targets: anel,
+        scaleX: 1.04,
+        scaleY: 1.04,
+        alpha: 0.2,
+        duration: 550,
+        yoyo: true,
+        repeat: -1,
+        ease: "Sine.easeInOut",
+      });
+
+      let zonaToque = this.add
+        .rectangle(xPos, yCentro, L.slotW + 12, alturaTotal + 12, 0xffffff, 0.001)
+        .setDepth(3801)
+        .setInteractive({ useHandCursor: true });
+      zonaToque.on("pointerup", () =>
+        this.confirmarEscolhaColunaInimiga(gameObject, carta, col),
+      );
+
+      objetos.push(anel, zonaToque);
+    });
+
+    this.objetosSelecaoColuna = objetos;
+  }
+
+  confirmarEscolhaColunaInimiga(gameObject, carta, colunaEscolhida) {
+    if (this.objetosSelecaoColuna) {
+      this.objetosSelecaoColuna.forEach((o) => o.destroy());
+      this.objetosSelecaoColuna = null;
+    }
+    this.desenharRodaBotoes();
+    this.conjurarCartaDeEfeitoJogador(gameObject, carta, colunaEscolhida);
+    this.somPop.play();
+  }
+
+  cancelarSelecaoDeColunaInimiga(gameObject) {
+    if (this.objetosSelecaoColuna) {
+      this.objetosSelecaoColuna.forEach((o) => o.destroy());
+      this.objetosSelecaoColuna = null;
+    }
+    this.travado = false;
+    this.animarRetornoAoLeque(gameObject, false);
+  }
+
+  // A Travessura do Macaco: destaca todos os slots vazios do inimigo e
+  // guarda a armadilha no campo até uma carta ser invocada naquele espaço.
+  iniciarSelecaoDeArmadilha(gameObject, carta) {
+    const alvos = this.partida.inimigo.campo.cartas
+      .map((c, i) => (!c && !this.partida.inimigo.campo.armadilhas.has(i) ? i : null))
+      .filter((i) => i !== null);
+    if (!alvos.length) {
+      this.animarRetornoAoLeque(gameObject, true);
+      return;
+    }
+
+    this.travado = true;
+    this.esconderRodaBotoes();
+    const objetos = [];
+    const L = this.layout;
+    const overlay = this.add
+      .rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.35)
+      .setDepth(3700)
+      .setInteractive();
+    objetos.push(overlay);
+
+    const cancelar = () => {
+      objetos.forEach((o) => o.destroy());
+      this.objetosSelecaoAlvo = null;
+      this.desenharRodaBotoes();
+      this.animarRetornoAoLeque(gameObject, false);
+    };
+    overlay.on("pointerup", cancelar);
+    objetos.push(
+      this.add
+        .text(GW / 2, 140, "Escolha um espaço inimigo para armar", {
+          fontSize: "36px",
+          color: "#ff9b6b",
+          fontStyle: "bold",
+          stroke: "#000000",
+          strokeThickness: 6,
+        })
+        .setOrigin(0.5)
+        .setDepth(3900),
+    );
+
+    alvos.forEach((indice) => {
+      const col = indice % 5;
+      const fileira = Math.floor(indice / 5);
+      const xPos = L.x[col];
+      const yPos = L.yInimigo[fileira];
+      const anel = this.add
+        .rectangle(xPos, yPos, L.slotW, L.slotH, 0xff9b6b, 0)
+        .setStrokeStyle(8, 0xff9b6b, 1)
+        .setDepth(3800);
+      const zona = this.add
+        .rectangle(xPos, yPos, L.slotW, L.slotH, 0xffffff, 0.001)
+        .setDepth(3801)
+        .setInteractive({ useHandCursor: true });
+      zona.on("pointerup", () => {
+        objetos.forEach((o) => o.destroy());
+        this.objetosSelecaoAlvo = null;
+        this.desenharRodaBotoes();
+        this.conjurarCartaDeEfeitoJogador(gameObject, carta, indice);
+        this.somPop.play();
+      });
+      objetos.push(anel, zona);
+    });
+    this.objetosSelecaoAlvo = objetos;
+  }
+
+  // O Canto do Galo: exige dois aliados distintos. A ordem importa porque
+  // o primeiro recebe +2 PA e o segundo +1 PA.
+  iniciarSelecaoDoCantoDoGalo(gameObject, carta, primeiroAlvo = null) {
+    if (this.objetosSelecaoAlvo) {
+      this.objetosSelecaoAlvo.forEach((o) => o.destroy());
+    }
+
+    const alvos = this.partida.jogador.campo.cartas
+      .map((c, i) =>
+        c && c.tipo !== "terreno" && i !== primeiroAlvo ? i : null,
+      )
+      .filter((i) => i !== null);
+
+    // A carta só pode ser conjurada quando há dois aliados válidos.
+    if ((primeiroAlvo === null && alvos.length < 2) || alvos.length === 0) {
+      this.objetosSelecaoAlvo = null;
+      this.animarRetornoAoLeque(gameObject, true);
+      return;
+    }
+
+    this.travado = true;
+    this.esconderRodaBotoes();
+    const objetos = [];
+    const L = this.layout;
+    const etapa = primeiroAlvo === null ? 1 : 2;
+
+    const overlay = this.add
+      .rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.35)
+      .setDepth(3700)
+      .setInteractive();
+    overlay.on("pointerup", () => {
+      objetos.forEach((o) => o.destroy());
+      this.objetosSelecaoAlvo = null;
+      this.desenharRodaBotoes();
+      this.animarRetornoAoLeque(gameObject, false);
+    });
+    objetos.push(overlay);
+
+    objetos.push(
+      this.add
+        .text(
+          GW / 2,
+          140,
+          etapa === 1
+            ? "Escolha quem recebe +2 PA (1/2)"
+            : "Escolha quem recebe +1 PA (2/2)",
+          {
+            fontSize: "38px",
+            color: "#88ff99",
+            fontStyle: "bold",
+            stroke: "#000000",
+            strokeThickness: 6,
+          },
+        )
+        .setOrigin(0.5)
+        .setDepth(3900),
+    );
+
+    alvos.forEach((indice) => {
+      const col = indice % 5;
+      const fileira = Math.floor(indice / 5);
+      const xPos = L.x[col];
+      const yPos = L.yJogador[fileira];
+      const anel = this.add
+        .rectangle(xPos, yPos, L.slotW, L.slotH, 0x88ff99, 0)
+        .setStrokeStyle(8, 0x88ff99, 1)
+        .setDepth(3800);
+      const zona = this.add
+        .rectangle(xPos, yPos, L.slotW, L.slotH, 0xffffff, 0.001)
+        .setDepth(3801)
+        .setInteractive({ useHandCursor: true });
+      zona.on("pointerup", () => {
+        objetos.forEach((o) => o.destroy());
+        this.objetosSelecaoAlvo = null;
+        if (primeiroAlvo === null) {
+          this.iniciarSelecaoDoCantoDoGalo(gameObject, carta, indice);
+        } else {
+          this.desenharRodaBotoes();
+          this.conjurarCartaDeEfeitoJogador(gameObject, carta, [
+            primeiroAlvo,
+            indice,
+          ]);
+          this.somPop.play();
+        }
+      });
+      objetos.push(anel, zona);
+    });
+
+    this.objetosSelecaoAlvo = objetos;
   }
 
   // Modo de mira da habilidade ativa "Machine Learning" (Estagiário de ML):

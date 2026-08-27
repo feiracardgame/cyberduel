@@ -36,10 +36,15 @@ class Campo {
     // fileira da frente (ver CenaJogo.desenharCampoInimigo/Jogador).
     this.cartas = new Array(10).fill(null);
     this.limite = 10;
+    this.armadilhas = new Set();
   }
   adicionarCarta(carta, posicao) {
     if (this.cartas[posicao] === null) {
       this.cartas[posicao] = carta;
+      if (carta.tipo !== "terreno" && this.armadilhas.has(posicao)) {
+        this.armadilhas.delete(posicao);
+        carta.buff(-2);
+      }
     }
   }
   temEspaco(posicao) {
@@ -130,6 +135,8 @@ class Jogador {
         efeito: base.efeito,
         somAtaque: base.somAtaque,
         imagem: base.imagem,
+        foco: base.foco,
+        booster: base.booster,
       });
       this.deck.adicionarCarta(carta);
     }
@@ -193,6 +200,8 @@ class Jogador {
         descricao: base.descricao,
         efeitoContinuo: base.efeitoContinuo,
         imagem: base.imagem,
+        foco: base.foco,
+        booster: base.booster,
       });
       this.deck.adicionarCarta(carta);
     });
@@ -343,6 +352,20 @@ class Partida {
           }
         });
       });
+
+    const tocaAtiva = dono.campo.cartas.some(
+      (c) => c?.efeitoContinuo?.tipo === TIPOS_EFEITO_CONTINUO.OCULTAR_ALIADOS,
+    );
+    dono.campo.cartas.forEach((c) => {
+      if (!c || c.tipo === "terreno") return;
+      if (tocaAtiva && !c.ocultadaPelaToca) {
+        c.ocultadaPelaToca = true;
+        c.revelada = false;
+      } else if (!tocaAtiva) {
+        c.ocultadaPelaToca = false;
+        c.revelada = true;
+      }
+    });
   }
 
   // true se o "dono" tiver algum terreno com REVELAR_MAO_CONTINUO em campo
@@ -396,6 +419,7 @@ class Partida {
 
     const posicao = dono.campo.cartas.indexOf(carta);
     if (posicao === -1) return { sucesso: false, afetadas: [] };
+    carta.revelada = true;
 
     if (carta.efeito.tipo === TIPOS_EFEITO.ATACAR) {
       const { valor, rangeH, rangeV, atingeTodos } = carta.efeito;
@@ -800,6 +824,20 @@ class Partida {
     return [];
   }
 
+  // O Trotar do Cavalo: lista as colunas (0-4) do campo inimigo que têm ao
+  // menos uma carta (não-terreno), pra UI saber quais colunas destacar
+  // antes do jogador confirmar (ver iniciarSelecaoDeColunaInimiga, jogo.js).
+  colunasComAlvoInimigo() {
+    const colunas = [];
+    for (let col = 0; col < 5; col++) {
+      const a = this.inimigo.campo.cartas[col];
+      const b = this.inimigo.campo.cartas[col + 5];
+      const temAlvo = (a && a.tipo !== "terreno") || (b && b.tipo !== "terreno");
+      if (temAlvo) colunas.push(col);
+    }
+    return colunas;
+  }
+
   // Ponto único de entrada para o jogador conjurar uma carta de efeito:
   // ela nunca vai para o campo, só é consumida e aplica sua passiva.
   // alvoEscolhido só é usado pela Sugestão Algorítmica (BUSCAR_CARTA_DECK):
@@ -927,6 +965,42 @@ class Partida {
           afetadas.push({ carta, delta: somaPoder });
         }
         dono.campo.removerMortas();
+        break;
+      }
+      case TIPOS_EFEITO.ATACAR_COLUNA: {
+        // O Trotar do Cavalo: alvoEscolhido é a COLUNA (0-4) escolhida pelo
+        // jogador (ver alvosParaAtacarColuna abaixo e a seleção em jogo.js).
+        // Atinge as duas fileiras dessa coluna no campo do oponente.
+        const coluna = alvoEscolhido;
+        if (coluna !== null && coluna !== undefined) {
+          [coluna, coluna + 5].forEach((idx) => {
+            const c = oponente.campo.cartas[idx];
+            if (c && c.tipo !== "terreno") {
+              c.buff(-valor);
+              afetadas.push({ carta: c, delta: -valor });
+            }
+          });
+          oponente.campo.removerMortas();
+        }
+        break;
+      }
+      case TIPOS_EFEITO.BUFF_DOIS_ALIADOS: {
+        const indices = Array.isArray(alvoEscolhido) ? alvoEscolhido : [];
+        const valores = carta.efeito.valores || [2, 1];
+        indices.slice(0, 2).forEach((idx, ordem) => {
+          const alvo = dono.campo.cartas[idx];
+          if (!alvo || alvo.tipo === "terreno") return;
+          const ganho = valores[ordem] || 0;
+          alvo.buff(ganho);
+          afetadas.push({ carta: alvo, delta: ganho });
+        });
+        break;
+      }
+      case TIPOS_EFEITO.ARMADILHA_ESPACO: {
+        const idx = Number(alvoEscolhido);
+        if (Number.isInteger(idx) && idx >= 0 && idx < 10 && !oponente.campo.cartas[idx]) {
+          oponente.campo.armadilhas.add(idx);
+        }
         break;
       }
       case TIPOS_EFEITO.REVELAR_CARTAS_INIMIGO: {
@@ -1126,12 +1200,22 @@ class Partida {
           this.inimigo.deck.cartas.length > 0
             ? Math.floor(Math.random() * this.inimigo.deck.cartas.length)
             : null;
+        const aliadosParaGalo = this.inimigo.campo.cartas
+          .map((c, i) => (c && c.tipo !== "terreno" ? i : null))
+          .filter((i) => i !== null);
+        const alvoEfeitoIA =
+          carta.efeito?.tipo === TIPOS_EFEITO.BUFF_DOIS_ALIADOS &&
+          aliadosParaGalo.length >= 2
+            ? aliadosParaGalo.slice(0, 2)
+            : carta.efeito?.tipo === TIPOS_EFEITO.ARMADILHA_ESPACO
+              ? this.jogador.campo.cartas.findIndex((c) => !c)
+              : alvoDeckIA;
         const afetadas = this.aplicarEfeitoInvocacao(
           carta,
           this.inimigo,
           this.jogador,
           null,
-          alvoDeckIA,
+          alvoEfeitoIA,
         );
         this.efeitoInimigoTurno = { carta, afetadas };
         this.registrarHistorico(carta, "inimigo");
