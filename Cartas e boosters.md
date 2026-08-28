@@ -500,7 +500,7 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
  
 * Descrição: Tuh'Coh é um sobrevivente. Oscilando entre o certo e o errado, sempre tenta fazer o seu melhor, mesmo que precise recorrer a esquemas cada vez mais complexos para sobreviver. Engraçado, impulsivo e caótico, O Feio mostra que até os mais habilidosos continuam sendo humanos. A máscara que veste, porém, parece dizer o contrário — embora quem já tenha visto seu rosto diga que a verdade é ainda pior.
 * PA: 5
-* Efeito: Três Homens em Conflito -> Caso seja posto adjacente ao Bom e ao Mau, o Feio ganha +3 PA
+* Efeito: Três Homens em Conflito -> Caso seja posto adjacente ao Bom e ao Mau, o Feio ganha + 4 PA
 * Visual: Faz um cara tipo um mandaloriano, com um capacete maneiro e armadura, mas com elementos de cowboy
 
 <img width="447" height="447" alt="image" src="https://github.com/user-attachments/assets/8cceaaa0-5480-4a88-8ba0-2fd1c0e9b939" />
@@ -512,7 +512,7 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 
 * Descrição: Sen'Tenzhah ocupa uma zona cinzenta até mesmo entre os Remanescentes. Como caçador de recompensas, emprega métodos pouco ortodoxos e muda de lado sempre que a recompensa compensa. Seu apelido, “O Mau”, contrasta curiosamente com sua aparência, especialmente com seus olhos angelicais.
 * PA: 6
-* Efeito: Alvo Marcado -> Escolha uma carta inimiga. Ela perde 2 de PA. Caso seja removida do campo por este efeito, O Mau recebe +1 de PA.
+* Efeito: Alvo Marcado -> Escolha uma carta inimiga. Ela perde 3 de PA. Caso seja removida do campo por este efeito, O Mau recebe +1 de PA.
 
  
 * Visual: Faz tipo esse personagem aqui, só que adaptado pro estilo que fez o diego, eles tem que ter tecnologias mais rudimentares. Pode dar um toque especial nele como quiser.
