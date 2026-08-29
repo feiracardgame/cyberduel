@@ -12,10 +12,13 @@
   <body>
     <!-- 1. Phaser precisa ser o primeiro -->
     <script src="phaser.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
 
     <!-- 2. Dados das cartas: carregue antes de main.js (é onde ficam a
          classe Carta, os tipos de efeito e o pool de cartas de efeito) -->
     <script src="js/cartas.js"></script>
+    <script src="js/deck-builder.js"></script>
+    <script src="js/multiplayer.js"></script>
 
     <!-- 3. Carregue as cenas ANTES do main.js. A ordem entre elas não
          importa pro Phaser em si (quem decide a ordem de execução é o
@@ -23,6 +26,7 @@
          preload.js/titulo.js porque é lá que ficam as constantes GW/GH
          usadas nas outras duas. -->
     <script src="js/cenas/jogo.js"></script>
+    <script src="js/cenas/deck-builder.js"></script>
     <script src="js/cenas/preload.js"></script>
     <script src="js/cenas/titulo.js"></script>
     <script src="js/cenas/transicao.js"></script>

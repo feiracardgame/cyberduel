@@ -603,46 +603,7 @@ const POOL_CARTAS_MONSTRO = [
 //   efeito     -> { tipo: TIPOS_EFEITO.<algum>, valor: <número> }
 // ----------------------------------------------------------------------------
 const POOL_CARTAS_EFEITO = [
-  {
-    nome: "Engenheiro de Elite",
-    poder: 3,
-    descricao:
-      "Um técnico que reforça as defesas de toda a equipe assim que entra em campo.",
-    efeito: { tipo: TIPOS_EFEITO.BUFF_ALIADOS, valor: 2 },
-  },
-  {
-    nome: "Vírus Corrosivo",
-    poder: 2,
-    descricao:
-      "Um malware agressivo que corrompe os sistemas inimigos no instante da invasão.",
-    efeito: { tipo: TIPOS_EFEITO.DEBUFF_INIMIGOS, valor: 2 },
-  },
-  {
-    nome: "Gerador Portátil",
-    poder: 1,
-    descricao: "Acessa a rede e extrai dados extras assim que é conectado.",
-    efeito: { tipo: TIPOS_EFEITO.COMPRAR_CARTA, valor: 1 },
-  },
-  {
-    nome: "Hacker Fantasma",
-    poder: 4,
-    descricao:
-      "Invade os servidores inimigos e corrompe seus arquivos ao ser ativado.",
-    efeito: { tipo: TIPOS_EFEITO.DESCARTAR_CARTA, valor: 1 },
-  },
-  {
-    nome: "Enxame de Drones",
-    poder: 2,
-    descricao: "Pequenos drones autônomos que reforçam toda a formação aliada.",
-    efeito: { tipo: TIPOS_EFEITO.BUFF_ALIADOS, valor: 1 },
-  },
-  {
-    nome: "Pulso EMP",
-    poder: 1,
-    descricao:
-      "Uma sobrecarga elétrica de curto alcance que enfraquece os sistemas inimigos.",
-    efeito: { tipo: TIPOS_EFEITO.DEBUFF_INIMIGOS, valor: 3 },
-  },
+  
 
   {
     nome: "Sugestão Algorítmica",

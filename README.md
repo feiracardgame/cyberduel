@@ -1,6 +1,53 @@
 
 # Cyberduel
 
+## Executando o multiplayer
+
+O jogo possui modo solo e multiplayer para duas pessoas. No multiplayer, um
+jogador cria uma sala e envia o código ou o link exibido na tela; o segundo
+jogador entra na mesma sala. Ao criar a sala, a tela também gera um QR Code
+com o convite completo para entrada direta pelo celular. Cada rodada é
+dividida em duas etapas: o jogador
+1 joga e passa a vez, depois o jogador 2 joga e encerra a rodada.
+
+As cartas colocadas em campo, habilidades e alterações de poder são enviadas
+ao oponente durante a jogada, sem esperar a passagem da vez. O cliente remoto
+anima invocações, conjurações, habilidades, compras de cartas, buffs, danos e
+remoções antes de consolidar o novo estado do campo. A tela inicial
+também oferece o botão **MONTAR DECK**: a seleção deve ter 20 cartas, com no
+mínimo 6 cartas baixas, 4 médias e 2 altas. Ela respeita o limite de cópias e
+fica salva no navegador para as próximas partidas. Somente cartas cadastradas
+nos pools oficiais de cartas e boosters podem entrar no deck.
+
+O montador funciona como uma cena própria do Phaser: mostra os 20 slots do
+deck com as artes das cartas, oferece auto-deck, coleção paginada e filtros por
+tipo. No modo de edição, os botões `+` e `−` controlam as cópias e tocar na arte
+abre a visualização avançada com atributos, descrição completa e rolagem.
+
+Para executar cliente, servidor Socket.IO e proxy com Docker:
+
+```bash
+docker compose up
+```
+
+Depois, abra `http://localhost` em dois dispositivos ou navegadores. Para
+validar o servidor e a sincronização sem abrir o jogo:
+
+```bash
+npm install
+npm run check
+npm test
+```
+
+Também é possível executar sem Docker:
+
+```bash
+npm install
+npm start
+```
+
+Nesse caso, abra `http://localhost:3000`.
+
 ## Plataforma
 
 - Celular
@@ -312,4 +359,3 @@ As fontes de receita seriam primariamente:
 - Star Wars
 - Cowboy Bebop
 -> O visual deste jogo foi feito com auxílio de IA
-

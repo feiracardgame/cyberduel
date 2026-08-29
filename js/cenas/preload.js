@@ -146,10 +146,12 @@ class CenaPreload extends Phaser.Scene {
   }
 
   create() {
-    // Pequena pausa depois do "Pronto!" só pra não trocar de cena de
-    // supetão — dá tempo do jogador registrar que o carregamento acabou.
-    this.time.delayedCall(300, () => {
-      this.scene.start("CenaTitulo");
+    // `?deck=1` também funciona como atalho direto para o montador. Além
+    // de ser útil no celular, permite validar a cena sem atravessar menus.
+    const abrirDeck =
+      new URLSearchParams(window.location.search).get("deck") === "1";
+    this.time.delayedCall(abrirDeck ? 0 : 300, () => {
+      this.scene.start(abrirDeck ? "CenaDeckBuilder" : "CenaTitulo");
     });
   }
 }

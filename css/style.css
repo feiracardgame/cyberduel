@@ -8,3 +8,51 @@ body {
   background-color: #000;
   touch-action: none;
 }
+
+.room-qr-panel {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  z-index: 9000;
+  display: grid;
+  justify-items: center;
+  gap: 9px;
+  width: min(390px, calc(100vw - 44px));
+  padding: 18px;
+  border: 2px solid #55dfff;
+  border-radius: 16px;
+  color: #fff;
+  background: rgba(9, 11, 18, 0.97);
+  box-shadow: 0 0 30px rgba(0, 210, 255, 0.35);
+  font-family: Arial, sans-serif;
+  text-align: center;
+  touch-action: manipulation;
+}
+
+.room-qr-panel img {
+  width: min(310px, 72vw);
+  height: auto;
+  border: 8px solid #fff;
+  border-radius: 8px;
+}
+
+.room-qr-panel b {
+  color: #ffb14a;
+  font-size: 24px;
+  letter-spacing: 3px;
+}
+
+.room-qr-panel small {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  color: #aeb8c8;
+}
+
+.room-qr-panel button {
+  padding: 9px 15px;
+  border: 0;
+  border-radius: 8px;
+  color: #fff;
+  background: #3a4050;
+  font-weight: 700;
+}

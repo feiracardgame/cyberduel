@@ -454,7 +454,19 @@ class CenaJogo extends Phaser.Scene {
       this.tratarSoltarCarta(gameObject);
     });
 
+    this.multiplayer = window.cyberduelMultiplayer;
+    this.multiplayerAtivo = !!this.multiplayer?.active;
+    if (this.multiplayerAtivo) {
+      this.travado = this.multiplayer.player !== 1;
+      this.multiplayer.attachScene(this);
+      this.events.once("shutdown", () => this.multiplayer.detachScene(this));
+      if (this.multiplayer.player === 1)
+        this.multiplayer.sendInitialState(this.partida);
+    }
+
     this.desenharInterface();
+
+    if (this.multiplayerAtivo && this.travado) this.mostrarEsperaMultiplayer();
 
     // Fade in da câmera por cima do vídeo de fundo — criado só agora,
     // depois do primeiro desenharInterface(), porque ele começa com
@@ -654,6 +666,8 @@ class CenaJogo extends Phaser.Scene {
     if (!this.travado) this.desenharRodaBotoes();
 
     this.configurarGestosMao();
+    if (this.multiplayerAtivo && !this.aplicandoEstadoRemoto)
+      this.multiplayer.sendLiveState(this.partida);
   }
 
   // Mostra as costas das cartas na mão do inimigo, no topo da tela — só
@@ -1195,11 +1209,15 @@ class CenaJogo extends Phaser.Scene {
   // Versão usada quando é a IA quem conjura uma carta de efeito: não existe
   // um objeto de carta sendo arrastado, então criamos uma carta temporária
   // no meio da tela só para a animação de conjuração.
-  conjurarCartaDeEfeitoInimigo(carta, aoConcluir) {
+  conjurarCartaDeEfeitoInimigo(
+    carta,
+    aoConcluir,
+    textoRotulo = "O inimigo conjurou:",
+  ) {
     const corFundo = this.obterCorPorId(carta.id);
 
     let rotulo = this.add
-      .text(0, -285, "O inimigo conjurou:", {
+      .text(0, -285, textoRotulo, {
         fontSize: "26px",
         color: "#ff8888",
         fontStyle: "bold",
@@ -6135,6 +6153,10 @@ class CenaJogo extends Phaser.Scene {
   // fim de turno do jogador, jogada da IA, efeitos de turno e, se for o
   // último turno, o combate final.
   aoClicarPassarTurno() {
+    if (this.multiplayerAtivo) {
+      this.aoClicarPassarTurnoMultiplayer();
+      return;
+    }
     this.travado = true;
     this.esconderRodaBotoes();
 
@@ -6220,6 +6242,361 @@ class CenaJogo extends Phaser.Scene {
       jogadasCampoInimigo,
       animarEfeitosInimigos,
     );
+  }
+
+  aoClicarPassarTurnoMultiplayer() {
+    if (this.travado || this.partida.partidaEncerrada) return;
+    this.travado = true;
+    this.esconderRodaBotoes();
+
+    // O jogador 1 entrega apenas sua posição atual. O jogador 2 fecha a
+    // rodada depois de jogar, substituindo exatamente o turno da antiga IA.
+    let resultado = null;
+    if (this.multiplayer.player === 2) {
+      const resolvido = this.partida.fimTurno({ semIA: true });
+      resultado = resolvido;
+    }
+
+    this.multiplayer.finishTurn(this.partida, resultado);
+    this.desenharInterface();
+
+    if (resultado?.fimDeJogo) {
+      this.mostrarTelaFimDeJogo(resultado.resultadoCombate);
+      return;
+    }
+    if (resultado?.resultadoRodada) {
+      this.mostrarBannerRodada(resultado.resultadoRodada, () =>
+        this.mostrarEsperaMultiplayer(),
+      );
+    } else {
+      this.mostrarEsperaMultiplayer();
+    }
+  }
+
+  receberEstadoMultiplayer(snapshot, resultado, update) {
+    if (this.animacaoRemotaEmCurso) {
+      this.atualizacaoRemotaPendente = { snapshot, resultado, update };
+      return;
+    }
+
+    this.aplicandoEstadoRemoto = true;
+
+    const partidaAnterior = this.partida;
+    const novaPartida = this.multiplayer.hydrateMatch(snapshot);
+    const eventos = update.initial
+      ? null
+      : this.detectarEventosVisuaisMultiplayer(partidaAnterior, novaPartida);
+
+    if (eventos && eventos.temEventos) {
+      this.animacaoRemotaEmCurso = true;
+      this.travado = true;
+      this.executarEventosVisuaisMultiplayer(
+        partidaAnterior,
+        novaPartida,
+        eventos,
+        () => {
+          this.finalizarRecebimentoMultiplayer(resultado, update, true);
+          this.aplicandoEstadoRemoto = false;
+          this.animacaoRemotaEmCurso = false;
+          if (this.atualizacaoRemotaPendente) {
+            const pendente = this.atualizacaoRemotaPendente;
+            this.atualizacaoRemotaPendente = null;
+            this.receberEstadoMultiplayer(
+              pendente.snapshot,
+              pendente.resultado,
+              pendente.update,
+            );
+          }
+        },
+      );
+      return;
+    }
+
+    this.partida = novaPartida;
+    window.partida = this.partida;
+    this.finalizarRecebimentoMultiplayer(resultado, update, false);
+    this.aplicandoEstadoRemoto = false;
+  }
+
+  finalizarRecebimentoMultiplayer(resultado, update, interfaceDesenhada) {
+    const podeJogar = update.activePlayer === this.multiplayer.player;
+    this.travado = !podeJogar || !!resultado?.resultadoRodada;
+    if (!interfaceDesenhada) this.desenharInterface();
+
+    if (resultado?.fimDeJogo) {
+      this.travado = true;
+      this.mostrarTelaFimDeJogo(resultado.resultadoCombate);
+      return;
+    }
+
+    const concluir = () => {
+      if (this.travado) this.mostrarEsperaMultiplayer();
+      else if (!this.rodaBotoesContainer) this.desenharRodaBotoes();
+    };
+    if (resultado?.resultadoRodada) {
+      this.mostrarBannerRodada(resultado.resultadoRodada, () => {
+        this.travado = !podeJogar;
+        concluir();
+      });
+    } else concluir();
+  }
+
+  chaveCartaMultiplayer(carta) {
+    return carta ? `${carta.id}:${carta.nome}:${carta.tipo}` : null;
+  }
+
+  detectarEventosVisuaisMultiplayer(anterior, nova) {
+    if (!anterior || !nova) return { temEventos: false };
+    const chave = (carta) => this.chaveCartaMultiplayer(carta);
+    const campoAnteriorInimigo = anterior.inimigo.campo.cartas;
+    const campoNovoInimigo = nova.inimigo.campo.cartas;
+    const chavesCampoAnterior = new Set(
+      campoAnteriorInimigo.filter(Boolean).map(chave),
+    );
+
+    const jogadasCampo = campoNovoInimigo
+      .map((carta, posicao) => ({ carta, posicao }))
+      .filter(
+        ({ carta }) => carta && !chavesCampoAnterior.has(chave(carta)),
+      );
+
+    const novasEntradasHistorico = nova.historico.slice(
+      anterior.historico.length,
+    );
+    const efeitos = novasEntradasHistorico
+      .filter(
+        (entrada) =>
+          entrada.quem === "inimigo" && entrada.carta?.tipo === "efeito",
+      )
+      .map((entrada) => entrada.carta);
+
+    const ativacoes = [];
+    campoNovoInimigo.forEach((cartaNova) => {
+      if (!cartaNova?.habilidadeAtiva || !cartaNova.usadaEsteTurno) return;
+      const cartaAnterior = campoAnteriorInimigo.find(
+        (carta) => chave(carta) === chave(cartaNova),
+      );
+      if (cartaAnterior && !cartaAnterior.usadaEsteTurno)
+        ativacoes.push(cartaNova);
+    });
+
+    const contagemMaoAnterior = new Map();
+    anterior.inimigo.mao.cartas.forEach((carta) => {
+      const key = chave(carta);
+      contagemMaoAnterior.set(key, (contagemMaoAnterior.get(key) || 0) + 1);
+    });
+    let compras = 0;
+    nova.inimigo.mao.cartas.forEach((carta) => {
+      const key = chave(carta);
+      const disponiveis = contagemMaoAnterior.get(key) || 0;
+      if (disponiveis > 0) contagemMaoAnterior.set(key, disponiveis - 1);
+      else compras++;
+    });
+
+    const afetadas = [];
+    const compararCampo = (campoAnterior, campoNovo) => {
+      campoNovo.forEach((cartaNova) => {
+        if (!cartaNova) return;
+        const cartaAnterior = campoAnterior.find(
+          (carta) => chave(carta) === chave(cartaNova),
+        );
+        if (!cartaAnterior) return;
+        const delta = cartaNova.poder - cartaAnterior.poder;
+        if (delta !== 0) afetadas.push({ carta: cartaNova, delta });
+      });
+    };
+    compararCampo(anterior.jogador.campo.cartas, nova.jogador.campo.cartas);
+    compararCampo(campoAnteriorInimigo, campoNovoInimigo);
+
+    const chavesNovasDoInimigo = new Set(
+      [
+        ...nova.inimigo.campo.cartas,
+        ...nova.inimigo.mao.cartas,
+        ...nova.inimigo.deck.cartas,
+      ]
+        .filter(Boolean)
+        .map(chave),
+    );
+    const removidas = campoAnteriorInimigo.filter(
+      (carta) => carta && !chavesNovasDoInimigo.has(chave(carta)),
+    );
+
+    return {
+      jogadasCampo,
+      efeitos,
+      ativacoes,
+      compras,
+      afetadas,
+      removidas,
+      temEventos:
+        jogadasCampo.length > 0 ||
+        efeitos.length > 0 ||
+        ativacoes.length > 0 ||
+        compras > 0 ||
+        afetadas.length > 0 ||
+        removidas.length > 0,
+    };
+  }
+
+  executarEventosVisuaisMultiplayer(
+    partidaAnterior,
+    novaPartida,
+    eventos,
+    aoConcluir,
+  ) {
+    const aplicarNovoEstado = () => {
+      this.partida = novaPartida;
+      window.partida = this.partida;
+
+      const apresentacoes = [
+        ...eventos.efeitos.map((carta) => ({
+          carta,
+          rotulo: "O inimigo conjurou:",
+        })),
+        ...eventos.ativacoes.map((carta) => ({
+          carta,
+          rotulo: "O inimigo ativou:",
+        })),
+      ];
+
+      const finalizar = () => {
+        this.desenharInterface();
+        this.animarCartasAfetadas(eventos.afetadas);
+        aoConcluir();
+      };
+
+      const apresentarCarta = (indice) => {
+        if (indice >= apresentacoes.length) {
+          this.animarComprasInimigas(eventos.compras, finalizar);
+          return;
+        }
+        const apresentacao = apresentacoes[indice];
+        this.conjurarCartaDeEfeitoInimigo(
+          apresentacao.carta,
+          () => apresentarCarta(indice + 1),
+          apresentacao.rotulo,
+        );
+      };
+
+      this.animarJogadasCampoInimigo(eventos.jogadasCampo, () =>
+        apresentarCarta(0),
+      );
+    };
+
+    this.animarRemocoesInimigas(eventos.removidas, aplicarNovoEstado);
+  }
+
+  animarRemocoesInimigas(cartas, aoConcluir) {
+    if (!cartas.length) {
+      aoConcluir();
+      return;
+    }
+    let restantes = cartas.length;
+    const terminou = () => {
+      restantes--;
+      if (restantes === 0) aoConcluir();
+    };
+    cartas.forEach((carta) => {
+      const container = this.children.list.find(
+        (objeto) => objeto.dadosCartaCampo === carta,
+      );
+      if (container) this.animarMorteCarta(container, terminou);
+      else terminou();
+    });
+  }
+
+  animarComprasInimigas(quantidade, aoConcluir) {
+    if (!quantidade) {
+      aoConcluir();
+      return;
+    }
+
+    const origem = { x: GW / 5.4, y: Y_MAO_INIMIGO };
+    const totalMao = this.partida.inimigo.mao.cartas.length;
+    let concluidas = 0;
+    for (let indice = 0; indice < quantidade; indice++) {
+      const offset = indice - (quantidade - 1) / 2;
+      const destinoX = GW / 2 + offset * 58;
+      const destinoY = Y_MAO_INIMIGO - 20 - Math.abs(offset) * 5;
+      const verso = this.add
+        .image(origem.x, origem.y, "fundoCarta")
+        .setDisplaySize(140, 200)
+        .setDepth(3700 + indice)
+        .setScale(0.45)
+        .setAlpha(0);
+      this.time.delayedCall(indice * 190, () => {
+        if (this.somComprarCarta) this.somComprarCarta.play();
+        this.tweens.add({
+          targets: verso,
+          x: destinoX,
+          y: destinoY,
+          alpha: 1,
+          scaleX: 1,
+          scaleY: 1,
+          angle: offset * 2,
+          duration: 430,
+          ease: "Back.Out",
+          onComplete: () => {
+            this.tweens.add({
+              targets: verso,
+              alpha: 0,
+              duration: 140,
+              delay: 120,
+              onComplete: () => {
+                verso.destroy();
+                concluidas++;
+                if (concluidas === quantidade) aoConcluir();
+              },
+            });
+          },
+        });
+      });
+    }
+
+    this.add
+      .text(GW / 2, Y_MAO_INIMIGO + 145, `Oponente comprou ${quantidade} carta${quantidade > 1 ? "s" : ""}`, {
+        fontSize: "26px",
+        color: "#9be7ff",
+      })
+      .setOrigin(0.5)
+      .setDepth(3699);
+  }
+
+  mostrarEsperaMultiplayer(texto = "AGUARDANDO O OPONENTE...") {
+    if (!this.multiplayerAtivo || this.partida.partidaEncerrada) return;
+    this.add
+      .text(GW / 2, GH / 2, texto, {
+        fontSize: "38px",
+        color: "#9be7ff",
+        fontStyle: "bold",
+        backgroundColor: "#000000cc",
+        padding: { x: 32, y: 22 },
+      })
+      .setOrigin(0.5)
+      .setDepth(5000);
+  }
+
+  oponenteDesistiuMultiplayer() {
+    if (!this.multiplayerAtivo || this.partida.partidaEncerrada) return;
+    this.partida.partidaEncerrada = true;
+    const resultado = {
+      poderJogador: this.partida.calcularPoderTotal(this.partida.jogador),
+      poderInimigo: this.partida.calcularPoderTotal(this.partida.inimigo),
+      resultado: "jogador",
+      cartaDestaque: this.partida.obterCartaComMaiorPoder(
+        this.partida.jogador.campo,
+      ),
+      rodadasJogador: this.partida.rodadasJogador,
+      rodadasInimigo: this.partida.rodadasInimigo,
+    };
+    this.mostrarTelaFimDeJogo(resultado);
+  }
+
+  oponenteSaiuMultiplayer() {
+    if (!this.multiplayerAtivo || this.partida.partidaEncerrada) return;
+    this.travado = true;
+    this.desenharInterface();
+    this.mostrarEsperaMultiplayer("O OPONENTE SAIU DA PARTIDA");
   }
 
   // Apresenta as invocações da IA uma por vez sem redesenhar a interface
@@ -6406,6 +6783,7 @@ class CenaJogo extends Phaser.Scene {
       () => {
         fechar();
         this.modalAberto = false;
+        if (this.multiplayerAtivo) this.multiplayer.surrender();
         const resultado = this.partida.desistir();
         this.mostrarTelaFimDeJogo(resultado);
       },

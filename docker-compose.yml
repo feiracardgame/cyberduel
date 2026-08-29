@@ -7,4 +7,21 @@ services:
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
       - ./:/usr/share/nginx/html:ro
+    depends_on:
+      - server
     restart: unless-stopped
+
+  server:
+    image: node:22-alpine
+    container_name: cyberduel-server
+    working_dir: /app
+    command: sh -c "npm install --omit=dev && npm start"
+    environment:
+      - PORT=3000
+    volumes:
+      - ./:/app
+      - cyberduel_node_modules:/app/node_modules
+    restart: unless-stopped
+
+volumes:
+  cyberduel_node_modules:

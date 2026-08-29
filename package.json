@@ -1,0 +1,18 @@
+{
+  "name": "cyberduel",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cyberduel com partidas multiplayer em salas Socket.IO",
+  "scripts": {
+    "start": "node server/server.js",
+    "check": "node --check server/server.js && node --check js/deck-builder.js && node --check js/multiplayer.js && node --check js/main.js && node --check js/cenas/preload.js && node --check js/cenas/titulo.js && node --check js/cenas/deck-builder.js && node --check js/cenas/jogo.js",
+    "test": "node test/state-sync.test.js && node test/multiplayer.test.js"
+  },
+  "dependencies": {
+    "qrcode": "^1.5.4",
+    "socket.io": "^4.8.3"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.8.3"
+  }
+}

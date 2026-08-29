@@ -7,7 +7,7 @@ console.log("Cyberduel iniciou!");
 class Deck {
   constructor() {
     this.cartas = [];
-    this.limite = 30;
+    this.limite = 20;
   }
   adicionarCarta(carta) {
     if (this.cartas.length < this.limite) {
@@ -120,121 +120,47 @@ class Jogador {
     return true;
   }
 
-  criardeckteste() {
-    // Uma seleção de cartas de efeito, garantindo variedade tática no deck
-    const efeitosEmbaralhados = Phaser.Utils.Array.Shuffle([
-      ...POOL_CARTAS_EFEITO,
-    ]);
-    const quantidadeEfeitos = 6;
-
-    for (let i = 0; i < quantidadeEfeitos; i++) {
-      const base = efeitosEmbaralhados[i % efeitosEmbaralhados.length];
-      const carta = new Carta(1000 + i, base.poder, "efeito", {
-        nome: base.nome,
-        descricao: base.descricao,
-        efeito: base.efeito,
-        somAtaque: base.somAtaque,
-        imagem: base.imagem,
-        foco: base.foco,
-        booster: base.booster,
-      });
-      this.deck.adicionarCarta(carta);
+  criarDeckConfigurado(configuracao) {
+    const pools = {
+      monstro: POOL_CARTAS_MONSTRO,
+      efeito: POOL_CARTAS_EFEITO,
+      terreno: POOL_CARTAS_TERRENO,
+    };
+    let id = 10000;
+    for (const entrada of configuracao) {
+      const tipo = entrada.tipo;
+      const base = pools[tipo]?.find((carta) => carta.nome === entrada.nome);
+      if (!base) continue;
+      for (let copia = 0; copia < entrada.quantidade; copia++) {
+        this.deck.adicionarCarta(
+          new Carta(id++, tipo === "terreno" ? 0 : base.poder || 0, tipo, {
+            ...base,
+          }),
+        );
+      }
     }
+    return this.deck.cartas.length === this.deck.limite;
+  }
 
-    // Monstros especiais: cópias fixas (não aleatórias) do pool de
-    // POOL_CARTAS_MONSTRO.
-    const advogadoCorporativo = POOL_CARTAS_MONSTRO.find(
-      (c) => c.nome === "Advogado Corporativo",
-    );
-    const raspclay = POOL_CARTAS_MONSTRO.find(
-      (c) => c.nome === "RaspClay MonteCorp",
-    );
-    // EchoSsystem (booster 2) — cartas do booster no jogo, da mais fácil
-    // pra mais difícil: Tigre/Aranha/Boi já tinham arte pronta; O Rato é
-    // a próxima (mais fácil, PA baixo) — segue sem arte por enquanto.
-    const oTigre = POOL_CARTAS_MONSTRO.find((c) => c.nome === "O Tigre");
-    const aAranha = POOL_CARTAS_MONSTRO.find((c) => c.nome === "A Aranha");
-    const oBoi = POOL_CARTAS_MONSTRO.find((c) => c.nome === "O Boi");
-    const oRato = POOL_CARTAS_MONSTRO.find((c) => c.nome === "O Rato");
-    const aCabra = POOL_CARTAS_MONSTRO.find((c) => c.nome === "A Cabra");
-    const oCao = POOL_CARTAS_MONSTRO.find((c) => c.nome === "O Cão");
-    const oPorco = POOL_CARTAS_MONSTRO.find((c) => c.nome === "O Porco");
-    const aCobra = POOL_CARTAS_MONSTRO.find((c) => c.nome === "A Cobra");
-    const neoAnalista = POOL_CARTAS_MONSTRO.find(
-      (c) => c.nome === "NeoAnalista de Suporte Nível Alpha",
-    );
-    const humbaBrain = POOL_CARTAS_MONSTRO.find((c) => c.nome === "HumbaBrain");
-    const diehGo = POOL_CARTAS_MONSTRO.find(
-      (c) => c.nome === "Dieh'Go, o Xerife",
-    );
-    const copiasMonstroEspecial = [
-      POOL_CARTAS_MONSTRO[0],
-      POOL_CARTAS_MONSTRO[1],
-      advogadoCorporativo,
-      advogadoCorporativo, // 2x Advogado Corporativo
-      raspclay, // 1x só — carta lendária, mais rara que as demais
-      oTigre,
-      aAranha,
-      oBoi, // 1x só — carta lendária, mais rara que as demais
-      oRato,
-      aCabra,
-      oCao,
-      oPorco,
-      aCobra,
-      neoAnalista,
-      humbaBrain,
-      diehGo,
-    ].filter(Boolean);
-    const quantidadeMonstrosEspeciais = copiasMonstroEspecial.length;
-    copiasMonstroEspecial.forEach((base, i) => {
-      const carta = new Carta(2000 + i, base.poder, "monstro", {
-        nome: base.nome,
-        descricao: base.descricao,
-        efeitoTurno: base.efeitoTurno,
-        imagem: base.imagem,
-        foco: base.foco,
-        efeito: base.efeito,
-        habilidadeAtiva: base.habilidadeAtiva,
-        somAtaque: base.somAtaque,
-        booster: base.booster,
-        lendaria: base.lendaria,
-      });
-      this.deck.adicionarCarta(carta);
-    });
+  criardeckteste(configuracao = null) {
+    const builder = window.cyberduelDeckBuilder;
+    const configuracaoNormalizada = builder?.normalize(configuracao);
+    const configuracaoFinal = builder?.isValid(configuracaoNormalizada)
+      ? configuracaoNormalizada
+      : null;
+    if (
+      Array.isArray(configuracaoFinal) &&
+      configuracaoFinal.reduce(
+        (total, entrada) => total + (Number(entrada.quantidade) || 0),
+        0,
+      ) === this.deck.limite &&
+      this.criarDeckConfigurado(configuracaoFinal)
+    )
+      return;
 
-    // Terrenos: 1 cópia fixa de cada carta do POOL_CARTAS_TERRENO.
-    const quantidadeTerrenos = POOL_CARTAS_TERRENO.length;
-    POOL_CARTAS_TERRENO.forEach((base, i) => {
-      const carta = new Carta(3000 + i, 0, "terreno", {
-        nome: base.nome,
-        descricao: base.descricao,
-        efeitoContinuo: base.efeitoContinuo,
-        imagem: base.imagem,
-        foco: base.foco,
-        booster: base.booster,
-      });
-      this.deck.adicionarCarta(carta);
-    });
-
-    // Restante do deck: cartas de monstro comuns, sem efeitos
-    const quantidadeMonstros =
-      this.deck.limite -
-      quantidadeEfeitos -
-      quantidadeMonstrosEspeciais -
-      quantidadeTerrenos;
-    for (let i = 0; i < quantidadeMonstros; i++) {
-      const carta = new Carta(
-        i + 1,
-        Math.floor(Math.random() * 10) + 1,
-        "monstro",
-        {
-          nome: `Unidade ${i + 1}`,
-          descricao:
-            "Uma unidade de combate padrão, confiável em qualquer formação.",
-        },
-      );
-      this.deck.adicionarCarta(carta);
-    }
+    throw new Error(
+      "Não foi possível montar um deck válido usando o catálogo de cartas.",
+    );
   }
 
   comprarCarta() {
@@ -254,8 +180,15 @@ class Partida {
     this.jogador = new Jogador();
     this.inimigo = new Jogador();
 
-    this.jogador.criardeckteste();
-    this.inimigo.criardeckteste();
+    const deckBuilder = window.cyberduelDeckBuilder;
+    const multiplayer = window.cyberduelMultiplayer;
+    const deckLocal = deckBuilder?.getDeckForMatch() || null;
+    const deckOponente =
+      multiplayer?.active && multiplayer.opponentDeck?.length
+        ? multiplayer.opponentDeck
+        : deckLocal;
+    this.jogador.criardeckteste(deckLocal);
+    this.inimigo.criardeckteste(deckOponente);
 
     this.jogador.deck.embaralhar();
     this.inimigo.deck.embaralhar();
@@ -1170,7 +1103,7 @@ class Partida {
   // qualquer coisa depois disso (this.partidaEncerrada = true) — assim
   // que um dos lados chegar a 4 rodadas vencidas (melhor de 7) ou o turno
   // máximo (7) for atingido, o que vier primeiro.
-  fimTurno() {
+  fimTurno(opcoes = {}) {
     if (this.partidaEncerrada) {
       return { resultadoCombate: null, fimDeJogo: true, resultadoRodada: null };
     }
@@ -1182,7 +1115,10 @@ class Partida {
       },
     );
 
-    this.turnoIA();
+    // No multiplayer, o segundo cliente ocupa o lugar da IA. O estado da
+    // primeira metade da rodada já chegou pela rede, então fechamos a rodada
+    // sem gerar uma jogada automática.
+    if (!opcoes.semIA) this.turnoIA();
     // Cartas que a IA acabou de jogar neste turno também entram no sorteio
     // de efeitos de turno abaixo (mesma regra pro jogador e pro inimigo).
     this.efeitosDeTurno = this.resolverEfeitosDeTurno();
@@ -1600,8 +1536,13 @@ class Partida {
 // (Retina/AMOLED) mais comuns em celulares atuais. O modo FIT + CENTER_BOTH
 // garante que o jogo continue se ajustando a qualquer tamanho de tela sem
 // distorcer, só que agora renderizando com muito mais nitidez.
+const usarCanvasParaDiagnostico =
+  typeof window !== "undefined" &&
+  typeof URLSearchParams !== "undefined" &&
+  new URLSearchParams(window.location.search).get("renderer") === "canvas";
+
 const config = {
-  type: Phaser.AUTO,
+  type: usarCanvasParaDiagnostico ? Phaser.CANVAS : Phaser.AUTO,
   width: 1080,
   height: 2160,
   scale: {
@@ -1612,7 +1553,7 @@ const config = {
     antialias: true,
     roundPixels: false,
   },
-  scene: [CenaPreload, CenaTitulo, CenaTransicao, CenaJogo],
+  scene: [CenaPreload, CenaTitulo, CenaDeckBuilder, CenaTransicao, CenaJogo],
 };
 
 const game = new Phaser.Game(config);
