@@ -19,7 +19,7 @@ Venda Casada → Ao ser colocado em campo, o CyberVendedor faz questão de garan
 
  #### Assets
 
- Som: audio que o vivi vai enviar falando "Raspcorp, bom dia"
+ Som: som-cybervendedor
 
  Efeito visual: não tem
 
@@ -66,7 +66,7 @@ Machine learning -> Escolha uma carta aliada. Ela recebe +2 PA. O Estagiário pe
 
  Som: som-neoanalista
 
- Efeito visual: efeito-neoanalista -> aparece no meio da tela quando invoca ele
+ Efeito visual: efeito-neoanalista -> aparece em cima da carta quando invoca ela
 
 
 ### 2x carta media 1 - Advogado Corporativo
@@ -103,7 +103,7 @@ Machine learning -> Escolha uma carta aliada. Ela recebe +2 PA. O Estagiário pe
 
  Som: som-grph
 
- Efeito visual:
+ Efeito visual: sem
 
 
 ### 2x carta alta 1 - CryptoAcionistas
@@ -171,9 +171,9 @@ Machine learning -> Escolha uma carta aliada. Ela recebe +2 PA. O Estagiário pe
 
   #### Assets
 
- Som: 
+ Som: som-sugestao
 
- Efeito visual:
+ Efeito visual: -> assim como todas as cartas de efeito, faz a carta tipo droppar em cima da mesa e depois sumir, pra ver q ela foi usada
 
 ### 1x carta de terreno 1 -> Torre MonteCorp
 
@@ -185,11 +185,7 @@ Jogando em casa -> O ambiente de trabalho competitivo e supostamente confortáve
 * Arte:
  <img alt="image" src="assets/cartas/Torre_MonteCorp.png" />
 
-  #### Assets
 
- Som: 
-
- Efeito visual:
 
 #### 1x carta de terreno 2 - Beira-mar norte de NeoFloripa
 
@@ -201,11 +197,6 @@ Rolê na Beira-Mar: A ida à Beira-Mar é um momento de descanso no meio desse m
 * Arte:
  <img alt="image" src="assets/cartas/Beiramar_Neofloripa.png" />
 
-  #### Assets
-
- Som: 
-
- Efeito visual:
 
 ### 1x carta de terreno 3 -> Nexus de Dados Global
 
@@ -216,11 +207,6 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 * Arte:
  <img alt="image" src="assets/cartas/NexusNeoFloripa.png" />
 
-  #### Assets
-
- Som: 
-
- Efeito visual:
 
 ---
 
