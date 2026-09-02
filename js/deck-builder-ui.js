@@ -4,6 +4,7 @@ class CyberduelDeckBuilderUI {
     this.builder = builder;
     this.onExit = onExit;
     this.catalog = builder.getCatalog();
+    this.catalogByKey = builder.getCatalogByKey();
     this.deck = (builder.getSavedDeck() || []).map((entry) => ({ ...entry }));
     this.filter = "todos";
     this.order = "crescente";
@@ -11,6 +12,8 @@ class CyberduelDeckBuilderUI {
     this.mobileView = "collection";
     this.dirty = false;
     this.modal = null;
+    this.hasRendered = false;
+    this.imageSourceCache = new Map();
     this.handleKeydown = (event) => this.onKeydown(event);
   }
 
@@ -37,8 +40,6 @@ class CyberduelDeckBuilderUI {
     const atmosphere = this.element("div", "forge-atmosphere");
     atmosphere.setAttribute("aria-hidden", "true");
     atmosphere.append(
-      this.element("div", "forge-orb forge-orb--cyan"),
-      this.element("div", "forge-orb forge-orb--violet"),
       this.element("div", "forge-grid"),
       this.element("div", "forge-scanlines"),
     );
@@ -148,6 +149,7 @@ class CyberduelDeckBuilderUI {
     this.filters = this.element("div", "forge-filters");
     this.filters.setAttribute("role", "group");
     this.filters.setAttribute("aria-label", "Filtrar tipo de carta");
+    this.filters.setAttribute("aria-describedby", "forge-filter-swipe-hint");
     [
       ["todos", "Todas", "✦"],
       ["monstro", "Personagens", "◈"],
@@ -161,20 +163,68 @@ class CyberduelDeckBuilderUI {
       filterButton.dataset.filter = value;
       this.filters.append(filterButton);
     });
+    this.enableHorizontalDrag(this.filters);
     this.orderButton = this.button("forge-order", "Nível ↑", () => {
       this.order = this.order === "crescente" ? "decrescente" : "crescente";
       this.renderCollection();
     }, "Inverter ordem por nível");
     controls.append(this.filters, this.orderButton);
-    toolbar.append(headingRow, searchWrap, controls);
+    const swipeHint = this.element(
+      "span",
+      "forge-filter-swipe-hint",
+      "↔ ARRASTE PARA VER MAIS",
+    );
+    swipeHint.id = "forge-filter-swipe-hint";
+    toolbar.append(headingRow, searchWrap, controls, swipeHint);
     return toolbar;
   }
 
+  enableHorizontalDrag(rail) {
+    let drag = null;
+    let blockClick = false;
+
+    rail.addEventListener("pointerdown", (event) => {
+      if (event.pointerType !== "mouse" || event.button !== 0) return;
+      drag = { x: event.clientX, scrollLeft: rail.scrollLeft };
+      blockClick = false;
+      rail.setPointerCapture?.(event.pointerId);
+    });
+    rail.addEventListener("pointermove", (event) => {
+      if (!drag) return;
+      const distance = event.clientX - drag.x;
+      if (Math.abs(distance) > 5) {
+        blockClick = true;
+        rail.classList.add("is-dragging");
+      }
+      rail.scrollLeft = drag.scrollLeft - distance;
+    });
+    const finishDrag = () => {
+      drag = null;
+      rail.classList.remove("is-dragging");
+    };
+    rail.addEventListener("pointerup", finishDrag);
+    rail.addEventListener("pointercancel", finishDrag);
+    rail.addEventListener("click", (event) => {
+      if (!blockClick) return;
+      event.preventDefault();
+      event.stopPropagation();
+      blockClick = false;
+    }, true);
+    rail.addEventListener("wheel", (event) => {
+      if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+      rail.scrollLeft += event.deltaY;
+      event.preventDefault();
+    }, { passive: false });
+  }
+
   render() {
-    this.renderCollection();
-    this.renderDeckPanel();
+    if (!this.hasRendered || this.mobileView === "collection")
+      this.renderCollection();
+    if (!this.hasRendered || this.mobileView === "deck")
+      this.renderDeckPanel();
     this.renderSaveState();
     this.renderMobileChrome();
+    this.hasRendered = true;
   }
 
   mobileSummary(status = this.builder.status(this.deck)) {
@@ -240,7 +290,12 @@ class CyberduelDeckBuilderUI {
 
   showMobileView(view, options = {}) {
     if (view !== "collection" && view !== "deck") return;
+    const changed = this.mobileView !== view;
     this.mobileView = view;
+    if (changed) {
+      if (view === "collection") this.renderCollection();
+      else this.renderDeckPanel();
+    }
     this.renderMobileChrome();
     if (options.scroll !== false) this.root.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -275,11 +330,12 @@ class CyberduelDeckBuilderUI {
       this.collectionGrid.append(empty);
       return;
     }
-    cards.forEach((card, index) => {
+    const fragment = document.createDocumentFragment();
+    cards.forEach((card) => {
       const cardElement = this.createCollectionCard(card);
-      cardElement.style.setProperty("--enter-index", Math.min(index, 12));
-      this.collectionGrid.append(cardElement);
+      fragment.append(cardElement);
     });
+    this.collectionGrid.append(fragment);
   }
 
   createCollectionCard(card) {
@@ -296,6 +352,7 @@ class CyberduelDeckBuilderUI {
     image.src = this.imageSource(card);
     image.alt = "";
     image.loading = "lazy";
+    image.decoding = "async";
     artButton.append(
       image,
       this.element("span", "forge-card__wash"),
@@ -378,11 +435,12 @@ class CyberduelDeckBuilderUI {
       );
       deckList.append(empty);
     } else {
-      const cardsByKey = new Map(this.catalog.map((card) => [card.key, card]));
+      const fragment = document.createDocumentFragment();
       this.deck.forEach((entry) => {
-        const card = cardsByKey.get(`${entry.tipo}:${entry.nome}`);
-        if (card) deckList.append(this.createDeckRow(card, entry.quantidade));
+        const card = this.catalogByKey.get(`${entry.tipo}:${entry.nome}`);
+        if (card) fragment.append(this.createDeckRow(card, entry.quantidade));
       });
+      deckList.append(fragment);
     }
     const footer = this.element("div", "forge-deck-footer");
     this.validationMessage = this.element("p", "forge-validation", this.validationText(status));
@@ -399,6 +457,8 @@ class CyberduelDeckBuilderUI {
     const image = this.element("img");
     image.src = this.imageSource(card);
     image.alt = "";
+    image.loading = "lazy";
+    image.decoding = "async";
     preview.append(image);
     const identity = this.element("div", "forge-deck-row__identity");
     identity.append(this.element("strong", "", card.nome), this.element("span", "", `${this.levelLabel(card)} · ${this.typeLabel(card.tipo)}`));
@@ -414,7 +474,7 @@ class CyberduelDeckBuilderUI {
   }
 
   validationText(status) {
-    if (status.valid) return "Todos os protocolos atendidos. Deck pronto para combate.";
+    if (status.valid) return "Todos os requisitos atendidos. Deck pronto para combate.";
     if (status.total < 20) {
       const missing = Object.entries(status.remaining)
         .filter(([, value]) => value > 0)
@@ -425,8 +485,9 @@ class CyberduelDeckBuilderUI {
   }
 
   change(card, delta) {
+    const previousQuantity = this.builder.quantity(this.deck, card);
     const next = this.builder.changeQuantity(this.deck, card, delta);
-    if (JSON.stringify(next) === JSON.stringify(this.deck)) return;
+    if (this.builder.quantity(next, card) === previousQuantity) return;
     this.deck = next;
     this.markDirty();
     this.render();
@@ -500,6 +561,7 @@ class CyberduelDeckBuilderUI {
     const image = this.element("img");
     image.src = this.imageSource(card);
     image.alt = `Arte da carta ${card.nome}`;
+    image.decoding = "async";
     visual.append(image, this.element("div", "forge-detail__visual-wash"));
     if (card.tipo === "monstro") visual.append(this.element("strong", "forge-detail__power", String(card.poder)));
     const content = this.element("div", "forge-detail__content");
@@ -585,9 +647,15 @@ class CyberduelDeckBuilderUI {
   }
 
   imageSource(card) {
-    const texture = this.scene.textures.get(card.imagem || "fundoCarta");
+    const textureKey = card.imagem || "fundoCarta";
+    if (this.imageSourceCache.has(textureKey))
+      return this.imageSourceCache.get(textureKey);
+    const texture = this.scene.textures.get(textureKey);
     const source = texture?.getSourceImage?.();
-    return source?.currentSrc || source?.src || "assets/fundo/fundo_carta_2.png";
+    const url =
+      source?.currentSrc || source?.src || "assets/fundo/fundo_carta_2.png";
+    this.imageSourceCache.set(textureKey, url);
+    return url;
   }
 
   levelColor(card) {
@@ -599,7 +667,7 @@ class CyberduelDeckBuilderUI {
   }
 
   typeLabel(type) {
-    return ({ monstro: "PERSONAGEM", efeito: "PROTOCOLO", terreno: "DOMÍNIO" })[type] || type;
+    return ({ monstro: "PERSONAGEM", efeito: "EFEITO", terreno: "TERRENO" })[type] || type;
   }
 
   typeIcon(type) {

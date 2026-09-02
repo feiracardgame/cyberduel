@@ -303,7 +303,7 @@ const POOL_CARTAS_MONSTRO = [
     imagem: "dipsp",
     booster: "raspcorp",
     efeito: {
-      tipo: TIPOS_EFEITO.ATACAR,
+      tipo: TIPOS_EFEITO.ATACAR_DOIS_ALVOS,
       valor: 3,
       rangeH: 2,
       rangeV: 2,

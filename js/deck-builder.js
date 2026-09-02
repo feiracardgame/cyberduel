@@ -5,9 +5,13 @@ class CyberduelDeckBuilder {
     this.storageKey = "cyberduel.deck.v3";
     this.maxCards = 20;
     this.minimums = { baixa: 6, media: 4, alta: 2 };
+    this.catalogCache = null;
+    this.catalogByKey = null;
+    this.searchIndex = null;
   }
 
   getCatalog() {
+    if (this.catalogCache) return this.catalogCache;
     const entries = [
       ...POOL_CARTAS_MONSTRO.map((base) => ({ tipo: "monstro", base })),
       ...POOL_CARTAS_EFEITO.map((base) => ({ tipo: "efeito", base })),
@@ -47,13 +51,39 @@ class CyberduelDeckBuilder {
         });
       }
     });
-    return [...unique.values()].sort((a, b) =>
+    this.catalogCache = [...unique.values()].sort((a, b) =>
       a.tipo.localeCompare(b.tipo) || a.nome.localeCompare(b.nome),
     );
+    this.catalogByKey = new Map(
+      this.catalogCache.map((card) => [card.key, card]),
+    );
+    this.searchIndex = new Map(
+      this.catalogCache.map((card) => [
+        card.key,
+        this.normalizeSearchText(
+          [card.nome, card.descricao, card.booster, card.nivel, card.tipo].join(
+            " ",
+          ),
+        ),
+      ]),
+    );
+    return this.catalogCache;
+  }
+
+  normalizeSearchText(value) {
+    return String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLocaleLowerCase("pt-BR");
+  }
+
+  getCatalogByKey() {
+    if (!this.catalogByKey) this.getCatalog();
+    return this.catalogByKey;
   }
 
   normalize(deck) {
-    const catalog = new Map(this.getCatalog().map((card) => [card.key, card]));
+    const catalog = this.getCatalogByKey();
     if (!Array.isArray(deck)) return null;
     const normalized = [];
     for (const entry of deck) {
@@ -75,7 +105,7 @@ class CyberduelDeckBuilder {
   }
 
   composition(deck) {
-    const catalog = new Map(this.getCatalog().map((card) => [card.key, card]));
+    const catalog = this.getCatalogByKey();
     const result = { baixa: 0, media: 0, alta: 0 };
     for (const entry of deck || []) {
       const card = catalog.get(`${entry.tipo}:${entry.nome}`);
@@ -236,13 +266,17 @@ class CyberduelDeckBuilder {
       composition,
       remaining,
       slotsRemaining: Math.max(0, this.maxCards - total),
-      valid: this.isValid(deck),
+      valid:
+        total === this.maxCards &&
+        Object.entries(this.minimums).every(
+          ([level, minimum]) => composition[level] >= minimum,
+        ),
     };
   }
 
   filterCatalog(options = {}) {
     const filter = options.filter || "todos";
-    const query = String(options.query || "").trim().toLocaleLowerCase("pt-BR");
+    const query = this.normalizeSearchText(options.query).trim();
     const direction = options.order === "decrescente" ? -1 : 1;
     const typeOrder = { monstro: 0, efeito: 1, terreno: 2 };
     const levelOrder = { baixa: 0, media: 1, alta: 2, lendaria: 3 };
@@ -251,10 +285,7 @@ class CyberduelDeckBuilder {
       .filter((card) => filter === "todos" || card.tipo === filter)
       .filter((card) => {
         if (!query) return true;
-        return [card.nome, card.descricao, card.booster, card.nivel, card.tipo]
-          .join(" ")
-          .toLocaleLowerCase("pt-BR")
-          .includes(query);
+        return this.searchIndex.get(card.key).includes(query);
       })
       .sort((a, b) => {
         const byType = (typeOrder[a.tipo] ?? 99) - (typeOrder[b.tipo] ?? 99);

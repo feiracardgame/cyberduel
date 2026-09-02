@@ -52,6 +52,18 @@ async function run() {
   assert.equal(page.status, 200);
   assert.match(page.body, /<!doctype html>/i);
 
+  const cachedAsset = await new Promise((resolve, reject) => {
+    const request = http.request(
+      `${url}/assets/cartas/O_rato.png`,
+      { method: "HEAD", agent: false },
+      (response) => resolve(response),
+    );
+    request.on("error", reject);
+    request.end();
+  });
+  assert.equal(cachedAsset.statusCode, 200);
+  assert.match(cachedAsset.headers["cache-control"], /immutable/);
+
   const player1 = await connect();
   const player2 = await connect();
   const intruder = await connect();

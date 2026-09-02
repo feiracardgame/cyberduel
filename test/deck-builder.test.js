@@ -27,6 +27,11 @@ vm.runInContext(
 const { builder, CyberduelDeckBuilderUI } = context.exportsForTest;
 const catalog = builder.getCatalog();
 assert.ok(catalog.length >= 20, "A coleção deve oferecer escolhas para o deck.");
+assert.equal(
+  builder.getCatalog(),
+  catalog,
+  "O catálogo deve ser reutilizado entre renderizações.",
+);
 
 const starter = builder.getStarterDeck();
 const starterStatus = builder.status(starter);
@@ -86,23 +91,36 @@ assert.ok(
     .some((entry) => entry.key === card.key),
   "A busca deve ignorar diferenças entre maiúsculas e minúsculas.",
 );
+assert.ok(
+  builder
+    .filterCatalog({ query: "estagiario" })
+    .some((entry) => entry.nome.includes("Estagiário")),
+  "A busca deve ignorar acentos para responder melhor no celular.",
+);
 assert.equal(
   builder.filterCatalog({ query: "registro inexistente 2067" }).length,
   0,
 );
 
+let textureReads = 0;
 const ui = new CyberduelDeckBuilderUI({
   scene: {
     textures: {
-      get: () => ({ getSourceImage: () => ({ src: "/arte-teste.png" }) }),
+      get: () => {
+        textureReads++;
+        return { getSourceImage: () => ({ src: "/arte-teste.png" }) };
+      },
     },
   },
   builder,
   onExit() {},
 });
 assert.equal(ui.imageSource(card), "/arte-teste.png");
+assert.equal(ui.imageSource(card), "/arte-teste.png");
+assert.equal(textureReads, 1, "A URL da textura deve ser consultada apenas uma vez.");
 assert.equal(ui.levelLabel({ nivel: "lendaria" }), "LENDÁRIA");
-assert.equal(ui.typeLabel("terreno"), "DOMÍNIO");
+assert.equal(ui.typeLabel("efeito"), "EFEITO");
+assert.equal(ui.typeLabel("terreno"), "TERRENO");
 assert.equal(ui.pluralLevel("media", 2), "médias");
 const mobileSummary = ui.mobileSummary(builder.status(starter));
 assert.equal(mobileSummary.count, "20/20");
@@ -117,6 +135,46 @@ assert.deepEqual(
   ],
 );
 
+const railListeners = new Map();
+const railClasses = new Set();
+const filterRail = {
+  scrollLeft: 40,
+  addEventListener(type, listener) {
+    railListeners.set(type, listener);
+  },
+  classList: {
+    add: (className) => railClasses.add(className),
+    remove: (className) => railClasses.delete(className),
+  },
+  setPointerCapture() {},
+};
+ui.enableHorizontalDrag(filterRail);
+railListeners.get("pointerdown")({
+  pointerType: "mouse",
+  button: 0,
+  clientX: 100,
+  pointerId: 1,
+});
+railListeners.get("pointermove")({ clientX: 70 });
+assert.equal(filterRail.scrollLeft, 70, "Arrastar deve mover a faixa de filtros.");
+assert.equal(railClasses.has("is-dragging"), true);
+railListeners.get("pointerup")();
+assert.equal(railClasses.has("is-dragging"), false);
+let clickBlocked = false;
+railListeners.get("click")({
+  preventDefault() { clickBlocked = true; },
+  stopPropagation() {},
+});
+assert.equal(clickBlocked, true, "Arrastar não deve selecionar um filtro sem querer.");
+let wheelBlocked = false;
+railListeners.get("wheel")({
+  deltaX: 0,
+  deltaY: 25,
+  preventDefault() { wheelBlocked = true; },
+});
+assert.equal(filterRail.scrollLeft, 95, "A rodinha deve rolar os filtros para o lado.");
+assert.equal(wheelBlocked, true);
+
 const index = fs.readFileSync("index.html", "utf8");
 assert.ok(
   index.indexOf("js/deck-builder.js") < index.indexOf("js/deck-builder-ui.js") &&
@@ -124,11 +182,19 @@ assert.ok(
   "A lógica, a interface e a cena devem carregar nessa ordem.",
 );
 
+const deckBuilderUiSource = fs.readFileSync("js/deck-builder-ui.js", "utf8");
+assert.doesNotMatch(deckBuilderUiSource, /PROTOCOLO|DOMÍNIO/);
+assert.match(deckBuilderUiSource, /Todos os requisitos atendidos/);
+
 const css = fs.readFileSync("css/style.css", "utf8");
 assert.match(css, /width:\s*min\(100vw, 50vh\)/);
 assert.match(css, /height:\s*min\(100vh, 200vw\)/);
 assert.match(css, /container:\s*forge \/ inline-size/);
 assert.match(css, /data-mobile-view="collection"/);
 assert.match(css, /env\(safe-area-inset-bottom\)/);
+assert.match(css, /\.forge-filters\s*\{[^}]*overflow:\s*auto hidden/s);
+assert.match(css, /\.forge-filters\s*\{[^}]*touch-action:\s*pan-x/s);
+assert.match(css, /\.forge-filters\s*\{[^}]*scroll-snap-type:\s*x proximity/s);
+assert.match(deckBuilderUiSource, /ARRASTE PARA VER MAIS/);
 
 console.log("Deck Forge, regras, filtros e limites validados.");

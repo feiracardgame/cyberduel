@@ -27,6 +27,12 @@ atualizados em tempo real e ficha avançada de cada carta. Os botões `+` e `−
 respeitam o limite de cópias e o deck nunca passa de 20 cartas. Alterações não
 salvas são sinalizadas antes de sair.
 
+A tela inicial segue a mesma linguagem visual e proporção: destaca o modo
+solo, agrupa criação e entrada em salas, mostra a composição do deck salvo e
+bloqueia os modos de combate quando não existe um loadout válido. A entrada em
+sala usa um painel numérico próprio e salas criadas exibem QR Code e código de
+convite dentro da interface do jogo.
+
 Para executar cliente, servidor Socket.IO e proxy com Docker:
 
 ```bash

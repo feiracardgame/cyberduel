@@ -69,6 +69,10 @@ function serveGame(request, response) {
       "content-type": CONTENT_TYPES[path.extname(filePath).toLowerCase()] ||
         "application/octet-stream",
       "content-length": info.size,
+      "cache-control":
+        pathname.startsWith("/assets/") || pathname === "/phaser.js"
+          ? "public, max-age=604800, immutable"
+          : "no-cache",
     });
     if (request.method === "HEAD") response.end();
     else createReadStream(filePath).pipe(response);
