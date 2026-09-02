@@ -147,6 +147,44 @@ class CyberduelDeckBuilder {
       }));
   }
 
+  getRandomDeck(random = Math.random) {
+    const catalog = this.getCatalog();
+    const quantities = new Map(catalog.map((card) => [card.key, 0]));
+    let total = 0;
+
+    const pick = (candidates) => {
+      const available = candidates.filter(
+        (card) => quantities.get(card.key) < card.limite,
+      );
+      if (!available.length || total >= this.maxCards) return false;
+      const roll = Number(random());
+      const normalizedRoll = Number.isFinite(roll)
+        ? Math.min(0.999999, Math.max(0, roll))
+        : 0;
+      const card = available[Math.floor(normalizedRoll * available.length)];
+      quantities.set(card.key, quantities.get(card.key) + 1);
+      total++;
+      return true;
+    };
+
+    for (const [level, minimum] of Object.entries(this.minimums)) {
+      const candidates = catalog.filter((card) => card.nivel === level);
+      for (let added = 0; added < minimum; added++) {
+        if (!pick(candidates)) break;
+      }
+    }
+
+    while (total < this.maxCards && pick(catalog));
+
+    return catalog
+      .filter((card) => quantities.get(card.key) > 0)
+      .map((card) => ({
+        tipo: card.tipo,
+        nome: card.nome,
+        quantidade: quantities.get(card.key),
+      }));
+  }
+
   getDeckForMatch() {
     return this.getSavedDeck() || [];
   }
@@ -156,6 +194,81 @@ class CyberduelDeckBuilder {
     if (!this.isValid(normalized)) return false;
     localStorage.setItem(this.storageKey, JSON.stringify(normalized));
     return true;
+  }
+
+  quantity(deck, card) {
+    const entry = (deck || []).find(
+      (item) => item.tipo === card.tipo && item.nome === card.nome,
+    );
+    return entry?.quantidade || 0;
+  }
+
+  changeQuantity(deck, card, delta) {
+    const normalized = this.normalize(deck) || [];
+    const quantities = new Map(
+      normalized.map((entry) => [`${entry.tipo}:${entry.nome}`, entry.quantidade]),
+    );
+    const current = quantities.get(card.key) || 0;
+    const next = Math.min(card.limite, Math.max(0, current + delta));
+    const totalWithoutCard = this.total(normalized) - current;
+    quantities.set(card.key, Math.min(next, this.maxCards - totalWithoutCard));
+
+    return this.getCatalog()
+      .filter((catalogCard) => (quantities.get(catalogCard.key) || 0) > 0)
+      .map((catalogCard) => ({
+        tipo: catalogCard.tipo,
+        nome: catalogCard.nome,
+        quantidade: quantities.get(catalogCard.key),
+      }));
+  }
+
+  status(deck) {
+    const total = this.total(deck);
+    const composition = this.composition(deck);
+    const remaining = Object.fromEntries(
+      Object.entries(this.minimums).map(([level, minimum]) => [
+        level,
+        Math.max(0, minimum - composition[level]),
+      ]),
+    );
+    return {
+      total,
+      composition,
+      remaining,
+      slotsRemaining: Math.max(0, this.maxCards - total),
+      valid: this.isValid(deck),
+    };
+  }
+
+  filterCatalog(options = {}) {
+    const filter = options.filter || "todos";
+    const query = String(options.query || "").trim().toLocaleLowerCase("pt-BR");
+    const direction = options.order === "decrescente" ? -1 : 1;
+    const typeOrder = { monstro: 0, efeito: 1, terreno: 2 };
+    const levelOrder = { baixa: 0, media: 1, alta: 2, lendaria: 3 };
+
+    return this.getCatalog()
+      .filter((card) => filter === "todos" || card.tipo === filter)
+      .filter((card) => {
+        if (!query) return true;
+        return [card.nome, card.descricao, card.booster, card.nivel, card.tipo]
+          .join(" ")
+          .toLocaleLowerCase("pt-BR")
+          .includes(query);
+      })
+      .sort((a, b) => {
+        const byType = (typeOrder[a.tipo] ?? 99) - (typeOrder[b.tipo] ?? 99);
+        if (byType) return byType;
+        if (a.tipo === "monstro" && b.tipo === "monstro") {
+          const byLevel =
+            ((levelOrder[a.nivel] ?? 99) - (levelOrder[b.nivel] ?? 99)) *
+            direction;
+          if (byLevel) return byLevel;
+          const byPower = ((a.poder || 0) - (b.poder || 0)) * direction;
+          if (byPower) return byPower;
+        }
+        return a.nome.localeCompare(b.nome, "pt-BR");
+      });
   }
 
 }

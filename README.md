@@ -19,10 +19,13 @@ mínimo 6 cartas baixas, 4 médias e 2 altas. Ela respeita o limite de cópias e
 fica salva no navegador para as próximas partidas. Somente cartas cadastradas
 nos pools oficiais de cartas e boosters podem entrar no deck.
 
-O montador funciona como uma cena própria do Phaser: mostra os 20 slots do
-deck com as artes das cartas, oferece auto-deck, coleção paginada e filtros por
-tipo. No modo de edição, os botões `+` e `−` controlam as cópias e tocar na arte
-abre a visualização avançada com atributos, descrição completa e rolagem.
+O **Deck Forge** usa o mesmo palco vertical `1080×2160` (`1:2`) da partida,
+mantendo a proporção e o encaixe do Phaser em qualquer tela. A navegação móvel
+separa coleção e deck em abas acessíveis pela dock inferior. Ele oferece busca
+instantânea, filtros por tipo, ordenação por nível, auto-build, requisitos
+atualizados em tempo real e ficha avançada de cada carta. Os botões `+` e `−`
+respeitam o limite de cópias e o deck nunca passa de 20 cartas. Alterações não
+salvas são sinalizadas antes de sair.
 
 Para executar cliente, servidor Socket.IO e proxy com Docker:
 
@@ -31,13 +34,17 @@ docker compose up
 ```
 
 Depois, abra `http://localhost` em dois dispositivos ou navegadores. Para
-validar o servidor e a sincronização sem abrir o jogo:
+validar todas as funcionalidades cobertas sem abrir o jogo:
 
 ```bash
 npm install
-npm run check
 npm test
 ```
+
+O comando `npm test` verifica automaticamente a sintaxe dos arquivos do jogo e
+executa todos os testes com o padrão `test/*.test.js`. Ao adicionar ou alterar
+uma funcionalidade, inclua também o teste correspondente nessa pasta; o script
+passará a executá-lo sem precisar atualizar uma lista manual.
 
 Também é possível executar sem Docker:
 

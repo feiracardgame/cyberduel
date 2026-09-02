@@ -5,8 +5,8 @@
   "description": "Cyberduel com partidas multiplayer em salas Socket.IO",
   "scripts": {
     "start": "node server/server.js",
-    "check": "node --check server/server.js && node --check js/deck-builder.js && node --check js/multiplayer.js && node --check js/main.js && node --check js/cenas/preload.js && node --check js/cenas/titulo.js && node --check js/cenas/deck-builder.js && node --check js/cenas/jogo.js",
-    "test": "node test/state-sync.test.js && node test/multiplayer.test.js"
+    "check": "node scripts/test-game.js",
+    "test": "node scripts/test-game.js"
   },
   "dependencies": {
     "qrcode": "^1.5.4",

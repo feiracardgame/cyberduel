@@ -27,6 +27,7 @@ const context = vm.createContext({
 for (const file of [
   "js/cartas.js",
   "js/deck-builder.js",
+  "js/deck-builder-ui.js",
   "js/multiplayer.js",
   "js/cenas/jogo.js",
   "js/cenas/deck-builder.js",
@@ -35,12 +36,19 @@ for (const file of [
   vm.runInContext(fs.readFileSync(file, "utf8"), context, { filename: file });
 }
 vm.runInContext(
-  "globalThis.testExports = { Partida, Carta, CenaJogo, CenaDeckBuilder, multiplayer: window.cyberduelMultiplayer, deckBuilder: window.cyberduelDeckBuilder }",
+  "globalThis.testExports = { Partida, Carta, CenaJogo, CenaDeckBuilder, CyberduelDeckBuilderUI, multiplayer: window.cyberduelMultiplayer, deckBuilder: window.cyberduelDeckBuilder }",
   context,
 );
 
-const { Partida, Carta, CenaJogo, CenaDeckBuilder, multiplayer, deckBuilder } =
-  context.testExports;
+const {
+  Partida,
+  Carta,
+  CenaJogo,
+  CenaDeckBuilder,
+  CyberduelDeckBuilderUI,
+  multiplayer,
+  deckBuilder,
+} = context.testExports;
 assert.deepEqual(
   Array.from(deckBuilder.getDeckForMatch()),
   [],
@@ -62,6 +70,50 @@ assert.ok(starterComposition.media >= 4);
 assert.ok(starterComposition.alta >= 2);
 assert.equal(deckBuilder.saveDeck(starterDeck), true);
 assert.equal(deckBuilder.total(deckBuilder.getSavedDeck()), 20);
+
+const initialStatus = deckBuilder.status([]);
+assert.equal(initialStatus.total, 0);
+assert.equal(initialStatus.slotsRemaining, 20);
+assert.deepEqual(
+  { ...initialStatus.remaining },
+  { baixa: 6, media: 4, alta: 2 },
+);
+
+const firstCatalogCard = deckBuilder.getCatalog()[0];
+let editableDeck = deckBuilder.changeQuantity([], firstCatalogCard, 1);
+assert.equal(deckBuilder.quantity(editableDeck, firstCatalogCard), 1);
+editableDeck = deckBuilder.changeQuantity(editableDeck, firstCatalogCard, 99);
+assert.equal(
+  deckBuilder.quantity(editableDeck, firstCatalogCard),
+  firstCatalogCard.limite,
+  "A interface nunca deve ultrapassar o limite de cópias da carta.",
+);
+editableDeck = deckBuilder.changeQuantity(editableDeck, firstCatalogCard, -99);
+assert.equal(deckBuilder.quantity(editableDeck, firstCatalogCard), 0);
+
+const onlyEffects = deckBuilder.filterCatalog({ filter: "efeito" });
+assert.ok(onlyEffects.length > 0);
+assert.ok(onlyEffects.every((card) => card.tipo === "efeito"));
+const searchedCard = deckBuilder.filterCatalog({ query: firstCatalogCard.nome });
+assert.ok(searchedCard.some((card) => card.key === firstCatalogCard.key));
+assert.deepEqual(
+  Array.from(
+    deckBuilder.filterCatalog({ query: "sinal que não existe no catálogo" }),
+  ),
+  [],
+);
+let cappedDeck = [];
+for (const card of deckBuilder.getCatalog())
+  cappedDeck = deckBuilder.changeQuantity(cappedDeck, card, 99);
+assert.equal(deckBuilder.total(cappedDeck), 20);
+assert.equal(
+  new CyberduelDeckBuilderUI({
+    scene: {},
+    builder: deckBuilder,
+    onExit() {},
+  }).pluralLevel("media", 2),
+  "médias",
+);
 
 const deckScene = Object.create(CenaDeckBuilder.prototype);
 deckScene.ordemNivel = "crescente";
