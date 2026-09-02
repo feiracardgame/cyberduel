@@ -17,6 +17,13 @@ Venda Casada → Ao ser colocado em campo, o CyberVendedor faz questão de garan
  <img alt="image" src="assets/cartas/cybervendedor.png" />
 
 
+ #### Assets
+
+ Som: audio que o vivi vai enviar falando "Raspcorp, bom dia"
+
+ Efeito visual: não tem
+
+
 
 ### 2x carta baixa 2 - Estagiário de Machine Learning
 
@@ -27,10 +34,20 @@ Venda Casada → Ao ser colocado em campo, o CyberVendedor faz questão de garan
 Machine learning -> Escolha uma carta aliada. Ela recebe +2 PA. O Estagiário perde 1 PA.
 
 
+
+
+
 * Visual: é um nerdzinho de oculos mexendo no pc, só que a piada é que tem tipo um cartaz de logo da raspcorp dizendo "RaspCorp - Investindo no futuro da humanidade"
  
 
 *  <img alt="image" src="assets/cartas/Estagiario_machine_learning.png" />
+
+
+ #### Assets -> Quando ativar efeito
+
+ Som: som-estagiario
+
+ Efeito visual: sem
 
 
 ### 2x carta baixa 3 - NeoAnalista de Suporte Nível Alpha
@@ -38,12 +55,18 @@ Machine learning -> Escolha uma carta aliada. Ela recebe +2 PA. O Estagiário pe
 * Descrição: : Treinado para lidar com situações que desafiam a lógica, a física e, ocasionalmente, a sanidade, o NeoAnalista de Suporte Nível Alpha dispõe de apenas cinco minutos para solucionar incidentes críticos. Estatisticamente, 87% deles são resolvidos com uma reinicialização do sistema.
 
 * PA: 4
-* Efeito:
+* Efeito: 
 
  SLA de 1º Retorno -> Para cada NeoAnalista de Suporte Nível Alpha em campo, o tempo de turno do oponente é reduzido em 10 segundos, até um mínimo de 20 segundos.
 
 * Arte:
  <img alt="image" src="assets/cartas/NeoAnalista_de_Suporte_Nivel_Alpha.png" />
+
+  #### Assets -> quando invocar no campo
+
+ Som: som-neoanalista
+
+ Efeito visual: efeito-neoanalista -> aparece no meio da tela quando invoca ele
 
 
 ### 2x carta media 1 - Advogado Corporativo
@@ -57,10 +80,16 @@ Machine learning -> Escolha uma carta aliada. Ela recebe +2 PA. O Estagiário pe
 * Arte:
  <img alt="image" src="assets/cartas/AdvogadoDaRaspCorp.png" />
 
+  #### Assets
+
+ Som: som-advogado
+
+ Efeito visual: efeito-advogado -> em cima da carta que sofreu o efeito
+
 
 
 ### 2x carta media 2 - Gestor de Recursos Predominantemente Humanos
-* Descrição: Atualmente, funcionários humanos e máquinas compartilham os mesmos benefícios corporativos. Nenhum dos dois está particularmente satisfeito com isso. O RH garante que todas as reclamações sejam igualmente ignoradas.
+* Descrição: Atualmente, funcionários humanos e máquinas compartilham os mesmos benefícios corporativos. Nenhum dos dois está particularmente satisfeito com isso. O GRPH garante que todas as reclamações sejam igualmente ignoradas.
 * PA: 5
 * Efeito:
 
@@ -68,6 +97,13 @@ Machine learning -> Escolha uma carta aliada. Ela recebe +2 PA. O Estagiário pe
 
  
 * Visual: ->  <img alt="image" src="assets/cartas/Departamento_RH.png" />
+
+
+ #### Assets -> quando ativar efeito
+
+ Som: som-grph
+
+ Efeito visual:
 
 
 ### 2x carta alta 1 - CryptoAcionistas
@@ -83,6 +119,12 @@ Machine learning -> Escolha uma carta aliada. Ela recebe +2 PA. O Estagiário pe
 * Arte:
  <img alt="image" src="assets/cartas/cryptoacionistas.png" />
 
+  #### Assets -> quando ativa a habilidade
+
+ Som: jogo-cyberacionistaefeito
+
+ Efeito visual: sem
+
 
 ### 2x carta alta 2 - Agente da DIPSP
 * Descrição: A Divisão de Interesses Privados na Segurança Pública é a mais recente especialização da RaspCorp. Após dominar a mídia, as redes e, provavelmente, o cérebro de cada ser humano, a empresa passou a investir fortemente na democracia e no livre-arbítrio através de uma equipe militar privada e canhões de plasma.
@@ -95,17 +137,29 @@ Machine learning -> Escolha uma carta aliada. Ela recebe +2 PA. O Estagiário pe
 * Arte:
  <img alt="image" src="assets/cartas/AgenteDIPSP.png" />
 
+  #### Assets -> quando ativa a habilidade
+
+ Som: jogo-dipsptiro
+
+ Efeito visual: pede pra IA fazer animação de umas energias azuis batendo na carta em vez do dano padrão
+
 
 ### 1x carta lendária - RaspClay MonteCorp
 * Descrição: Raspclay trocou seu antigo nome pelo topo dos arranha-céus de Floripa. Atualmente, comanda a irreverente e opressora empresa de tecnologia, serviços, segurança privada e propaganda Raspcorp. Após comprar todos os setores da sociedade, seus advogados passaram a afirmar que a palavra "monopólio" carrega uma conotação desnecessariamente negativa.
 
 * PA: 10
-* Efeito:
+* Efeito: 
 
  Potencialização de Capital -> Escolha até 3 cartas aliadas de nível baixo ou médio em campo. RaspClay absorve a produtividade delas, removendo-as do campo e aumentando seu PA pela soma dos seus valores de PA.
  
 * Arte:
  <img alt="image" src="assets/cartas/RaspClay_MonteCorp.png" />
+
+  #### Assets -> quando invoca ele em campo
+
+ Som: som-raspclay
+
+ Efeito visual: efeito-raspclay
 
 
 ### 2x carta de efeito 1 -> Sugestão Algorítmica 
@@ -114,6 +168,12 @@ Machine learning -> Escolha uma carta aliada. Ela recebe +2 PA. O Estagiário pe
 * Efeito: Escolha uma carta do seu baralho para puxar diretamente para sua mão.
 * Arte:
  <img alt="image" src="assets/cartas/Sugestão_algoritmica.png" />
+
+  #### Assets
+
+ Som: 
+
+ Efeito visual:
 
 ### 1x carta de terreno 1 -> Torre MonteCorp
 
@@ -125,6 +185,12 @@ Jogando em casa -> O ambiente de trabalho competitivo e supostamente confortáve
 * Arte:
  <img alt="image" src="assets/cartas/Torre_MonteCorp.png" />
 
+  #### Assets
+
+ Som: 
+
+ Efeito visual:
+
 #### 1x carta de terreno 2 - Beira-mar norte de NeoFloripa
 
 * Descrição: Depois que a verdadeira Floripa sucumbiu ao aumento do nível do mar, os nostálgicos decidiram recriá-la no mundo virtual. Ironicamente, continua sendo o jeito mais acessível de morar na ilha. O trânsito, contudo, nem aqui foi resolvido.
@@ -135,6 +201,12 @@ Rolê na Beira-Mar: A ida à Beira-Mar é um momento de descanso no meio desse m
 * Arte:
  <img alt="image" src="assets/cartas/Beiramar_Neofloripa.png" />
 
+  #### Assets
+
+ Som: 
+
+ Efeito visual:
+
 ### 1x carta de terreno 3 -> Nexus de Dados Global
 
 * Descrição: Responsável por armazenar aproximadamente 99% dos dados da humanidade. Sua destruição foi comparada à queima da Biblioteca de Alexandria, caso ela armazenasse apenas informações pessoais obtidas por meios semilegais. Ainda bem que tudo é salvo na nuvem atualmente.
@@ -143,6 +215,12 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
 * Arte:
  <img alt="image" src="assets/cartas/NexusNeoFloripa.png" />
+
+  #### Assets
+
+ Som: 
+
+ Efeito visual:
 
 ---
 
@@ -158,18 +236,32 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
    <img alt="image" src="assets/cartas/O_rato.png" />
 
-só que claramente da de ver que é tipo um mlk aleatorio jovem de bigode, tipo o Campos Neto
+
+
+ #### Assets
+
+ Som: 
+
+ Efeito visual:
 
 ### 2x carta baixa 2 -> A Cabra
 
-* Descrição: A Cabra era ginasta olímpica antes da humanidade decidir que esportes tradicionais deixaram de ser uma profissão. Hoje, ela continua escalando estruturas gigantescas, mas finalmente encontrou um público que realmente valoriza seu trabalho: a equipe de segurança do último andar da torre MonteCorp.
+* Descrição: A Cabra era ginasta olímpica antes da humanidade decidir que esportes tradicionais deixaram de ser uma profissão. Hoje, ela continua escalando estruturas gigantescas, mas finalmente encontrou um público que realmente valoriza seu trabalho: a equipe de segurança do último andar da Torre MonteCorp.
 * PA: 3
 * Efeito: Escalada -> A Cabra, devido à sua alta mobilidade, pode, a cada turno, reposicionar-se no campo aliado, trocando de lugar com outra carta ou espaço livre disponível.
 * Visual:
 
 
 
+
+
  <img alt="image" src="assets/cartas/A cabra.png" />
+
+  #### Assets
+
+ Som: 
+
+ Efeito visual:
 
 
 ### 2x carta baixa 3 -> O Cão
@@ -183,6 +275,12 @@ só que claramente da de ver que é tipo um mlk aleatorio jovem de bigode, tipo 
 
  <img alt="image" src="assets/cartas/O_cao.png" />
 
+  #### Assets
+
+ Som: 
+
+ Efeito visual:
+
 
 ### 2x carta media 1 -> O Porco
 
@@ -194,6 +292,12 @@ só que claramente da de ver que é tipo um mlk aleatorio jovem de bigode, tipo 
 
 
  <img alt="image" src="assets/cartas/O_porco.png" />
+
+  #### Assets
+
+ Som: 
+
+ Efeito visual:
 
 
 
@@ -208,6 +312,12 @@ só que claramente da de ver que é tipo um mlk aleatorio jovem de bigode, tipo 
 * Visual:
 
   <img alt="image" src="assets/cartas/Cobra.png" />
+
+   #### Assets
+
+ Som: 
+
+ Efeito visual:
 
 
 
@@ -225,6 +335,12 @@ só que claramente da de ver que é tipo um mlk aleatorio jovem de bigode, tipo 
 
  <img alt="image" src="assets/cartas/el_tigre.png" />
 
+  #### Assets
+
+ Som: 
+
+ Efeito visual:
+
 
 
 ### 1x carta alta 2 -> A Aranha
@@ -238,6 +354,12 @@ só que claramente da de ver que é tipo um mlk aleatorio jovem de bigode, tipo 
 
    <img alt="image" src="assets/cartas/D_Aranha.png" />
 
+    #### Assets
+
+ Som: 
+
+ Efeito visual:
+
 
 ### 1x carta lendária -> O Boi
 
@@ -248,7 +370,13 @@ só que claramente da de ver que é tipo um mlk aleatorio jovem de bigode, tipo 
  
 * Visual:
 
-<img alt="image" src="assets/cartas/Anarcoboi.png" />
+<img alt="image" src="assets/cartas/Anarcoboi.png" />3
+
+ #### Assets
+
+ Som: 
+
+ Efeito visual:
 
 
 ### 2x carta de efeito 1 -> O Trotar do Cavalo
@@ -260,7 +388,15 @@ só que claramente da de ver que é tipo um mlk aleatorio jovem de bigode, tipo 
  
 * Visual: 
 
- <img alt="image" src="assets/cartas/OTROTARDOCAVALO.png" />
+
+
+ <img alt="image" src="assets/cartas/o_cavalo.png" />
+
+  #### Assets
+
+ Som: 
+
+ Efeito visual:
 
 
 ### 2x carta de efeito 2 -> O Canto do Galo
@@ -270,7 +406,13 @@ só que claramente da de ver que é tipo um mlk aleatorio jovem de bigode, tipo 
 * Efeito: A inspiradora voz do Galo fortalece seus companheiros. Escolha duas cartas aliadas. A primeira recebe +2 PA e a segunda +1 PA. 
 * Visual:
 
- <img alt="image" src="assets/cartas/o canto do galo.png" />
+ <img alt="image" src="assets/cartas/O galo.png" />
+
+  #### Assets
+
+ Som: 
+
+ Efeito visual:
 
 
   
@@ -285,6 +427,12 @@ só que claramente da de ver que é tipo um mlk aleatorio jovem de bigode, tipo 
 
 
  <img alt="image" src="assets/cartas/O_macaco.png" />
+
+  #### Assets
+
+ Som: 
+
+ Efeito visual:
 
 
 
@@ -303,6 +451,12 @@ só que claramente da de ver que é tipo um mlk aleatorio jovem de bigode, tipo 
 * Visual:
 
 *  <img alt="image" src="assets/cartas/Toca_do_Coelho.png" />
+
+ #### Assets
+
+ Som: 
+
+ Efeito visual:
 
 
 
@@ -326,6 +480,12 @@ Faz tipo a Elena do HxH, mas essas linhas de traz são verdes e não brancas.
 
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/0f27d1e7-cc1d-497b-b10f-d7cd055cf9ff" />
 
+ #### Assets
+
+ Som: 
+
+ Efeito visual:
+
 
 
 ### 1x carta media 1 -> HAL 9001
@@ -340,6 +500,12 @@ Faz tipo a Elena do HxH, mas essas linhas de traz são verdes e não brancas.
 * Visual: Faz tipo o Hal 9000 mesmo, mas faz ela com a luz verde e muda a cor do led para verde.
 
 <img width="486" height="1000" alt="image" src="https://github.com/user-attachments/assets/efea2c8f-ce1a-42de-be76-09004f4d9a83" />
+
+ #### Assets
+
+ Som: 
+
+ Efeito visual:
 
 
 
@@ -360,6 +526,13 @@ vc escolhe como acha que fica mais legal, mas penso na ideia de uma IA com corpo
 <img width="620" height="800" alt="image" src="https://github.com/user-attachments/assets/5e69371f-8a28-47f9-bbcf-6659a55378cf" />
 
 
+ #### Assets
+
+ Som: 
+
+ Efeito visual:
+
+
 
 ### 1x carta alta 1 ->  Replicantes
 
@@ -376,6 +549,12 @@ vc escolhe como acha que fica mais legal, mas penso na ideia de uma IA com corpo
 
 <img width="455" height="500" alt="image" src="https://github.com/user-attachments/assets/11535df2-941c-493a-aa63-03d46d33a710" />
 
+ #### Assets
+
+ Som: 
+
+ Efeito visual:
+
 
 
 ### 1x carta alta 2 -> UCC "Juggernaut"
@@ -391,6 +570,13 @@ Faz algo na vibe de um Tyrant ou do próprio Adam Smasher
 <img width="979" height="1830" alt="image" src="https://github.com/user-attachments/assets/b86c7c63-216e-4422-905d-f0e981beec2d" />
 
 <img width="226" height="440" alt="image" src="https://github.com/user-attachments/assets/cfd77f4b-3111-4954-aad9-307b4ce6e5d4" />
+
+
+ #### Assets
+
+ Som: 
+
+ Efeito visual:
 
 ### 1x carta alta 3 -> Dragão das Comunicações Móveis
 
@@ -411,6 +597,12 @@ Faz algo na vibe de um Tyrant ou do próprio Adam Smasher
 
 <img width="306" height="450" alt="image" src="https://github.com/user-attachments/assets/f0ce90a4-d3f2-4517-9e3f-99dd5a28a9fb" />
 
+ #### Assets
+
+ Som: 
+
+ Efeito visual:
+
 
 
 
@@ -426,6 +618,11 @@ Faz algo na vibe de um Tyrant ou do próprio Adam Smasher
 * Visual: Faz um rework da carta do Humba Brain... naquele estilo mesmo do Angstrom Levy, mas não deixa ele tão cabeçudo e bizarro... Bota elementos de verde.
 
 
+ #### Assets
+
+ Som: 
+
+ Efeito visual:
 
 
 #### 1x carta de terreno 1 -> DeepClaude ChatGemini
@@ -433,9 +630,17 @@ Faz algo na vibe de um Tyrant ou do próprio Adam Smasher
 * Descrição: As IAs eram gratuitas até todo mundo começar a usá-las. Quando perceberam que havia dinheiro envolvido, seus criadores rapidamente introduziram assinaturas, créditos e limites de utilização. O Humba Brain resolveu o problema de uma maneira simples: reuniu todas elas em um único modelo para que nenhum NeoFlorianopolitano precisasse pagar por elas.
 
  
-* Efeito: Claro, aqui está... -> Enquanto este terreno estiver em campo, você pode ativar seu efeito para comprar 1 carta aleatória do Deck.
+* Efeito: Claro, aqui está... -> Enquanto este terreno estiver em campo, você pode, uma vez por turno, ativar seu efeito para comprar 1 carta aleatória do Deck.
  
 * Visual: Faz tipo uma junção de TODAAS as logos de IA que tu achar e deixa elas brilhando em verde neon.
+
+
+
+ #### Assets
+
+ Som: 
+
+ Efeito visual:
 
 
 
@@ -452,6 +657,12 @@ Faz algo na vibe de um Tyrant ou do próprio Adam Smasher
 
 <img width="960" height="680" alt="image" src="https://github.com/user-attachments/assets/a1dacb05-bff9-4742-9317-2ce623183907" />
 
+ #### Assets
+
+ Som: 
+
+ Efeito visual:
+
 
 ### 1x carta de efeito 1 -> Você Parece Sozinho
 
@@ -463,6 +674,12 @@ Faz algo na vibe de um Tyrant ou do próprio Adam Smasher
 * Visual: Faz tipo aquela cena do BladeRunner 2049, porém a cor predominante é verde e tenta não deixar a boneca pelada
 
 <img width="640" height="480" alt="image" src="https://github.com/user-attachments/assets/b96b5b5b-4c69-46d6-bf68-fe75f6255d86" />
+
+ #### Assets
+
+ Som: 
+
+ Efeito visual:
 
 
 ## Booster 4 Os Remanescentes -> cor-guia: tons leves de amarelo
@@ -479,6 +696,12 @@ Faz algo na vibe de um Tyrant ou do próprio Adam Smasher
 
 <img width="1600" height="900" alt="image" src="https://github.com/user-attachments/assets/fbbc10bb-4952-41d8-90b4-1b701ea3e874" />
 
+ #### Assets
+
+ Som: 
+
+ Efeito visual:
+
 
 
 
@@ -489,9 +712,19 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 * Efeito: Reparo e Melhoria -> A cada turno, escolha até 2 cartas aliadas, cada uma ganha +1 de PA.
 
 
-* Visual: Faz uma mulher trabalhando numa forja, livre pra tu escolher como
+* Visual: Faz uma mulher trabalhando numa forja, livre pra tu escolher como, mas acho que ficava legal fazer ela meio mandaloriana tbm
+
+<img width="545" height="656" alt="image" src="https://github.com/user-attachments/assets/04c69b08-76fa-4620-9b22-974a25ebb5b9" />
+
 
 <img width="528" height="694" alt="image" src="https://github.com/user-attachments/assets/470e409f-fd21-4d60-809c-b3faa3b001c4" />
+
+
+ #### Assets
+
+ Som: 
+
+ Efeito visual:
 
 
 
@@ -504,6 +737,12 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 * Visual: Faz um cara tipo um mandaloriano, com um capacete maneiro e armadura, mas com elementos de cowboy
 
 <img width="447" height="447" alt="image" src="https://github.com/user-attachments/assets/8cceaaa0-5480-4a88-8ba0-2fd1c0e9b939" />
+
+ #### Assets
+
+ Som: 
+
+ Efeito visual:
 
 
 
@@ -522,6 +761,12 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 
 <img width="1484" height="1869" alt="image" src="https://github.com/user-attachments/assets/9bb7f6ca-461a-4ffe-bc6a-f740759c5f4d" />
 
+ #### Assets
+
+ Som: 
+
+ Efeito visual:
+
 
 ### 1x carta alta 2 -> O Bom
 
@@ -536,6 +781,12 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 
 <img width="899" height="1599" alt="image" src="https://github.com/user-attachments/assets/57488c7b-efdd-4975-b9d3-33dfd511de8c" />
 
+ #### Assets
+
+ Som: 
+
+ Efeito visual:
+
 
 
 ### 1x carta lendária -> Dieh'Go, o Xerife
@@ -546,6 +797,12 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 * Visual:
 
  <img alt="image" src="assets/cartas/Di_Ego_caçador_de_recompensas.png"/>
+
+  #### Assets
+
+ Som: 
+
+ Efeito visual:
 
 
 ### 1x carta de efeito 1 -> Vento dos Ermos
@@ -559,6 +816,12 @@ Faz aqueles arbusto seco que voa pelo deserto com alguns riscos indicando vento,
 <img width="1280" height="714" alt="image" src="https://github.com/user-attachments/assets/11702792-2b6a-4165-8729-dd0042ab5b39" />
 
 <img width="753" height="435" alt="image" src="https://github.com/user-attachments/assets/22f57126-5657-4a08-b06e-5e29cba3b4d4" />
+
+ #### Assets
+
+ Som: 
+
+ Efeito visual:
 
 
 ### 1x carta de efeito 2 -> Reciclagem
@@ -575,6 +838,12 @@ Faz aqueles arbusto seco que voa pelo deserto com alguns riscos indicando vento,
 
 <img width="640" height="360" alt="image" src="https://github.com/user-attachments/assets/078b8da3-7b3d-449b-8b0d-ec72fba1a5d3" />
 
+ #### Assets
+
+ Som: 
+
+ Efeito visual:
+
 
 #### 1x carta de  terreno 1 -> Saloon
 
@@ -587,6 +856,12 @@ Faz aqueles arbusto seco que voa pelo deserto com alguns riscos indicando vento,
 * Visual: Faz um salão de velho-oeste muito louco so que com muita gente com implante cibernetico (sem led) e monoculo tipo do diego
 
 <img width="600" height="375" alt="image" src="https://github.com/user-attachments/assets/110bc6e8-fbac-4aa3-9733-5249e148b58b" />
+
+ #### Assets
+
+ Som: 
+
+ Efeito visual:
 
 
 
@@ -601,6 +876,12 @@ Faz aqueles arbusto seco que voa pelo deserto com alguns riscos indicando vento,
 * Visual: Faz tipo um deserto cheio de lixo tecnológico
 
 <img width="640" height="360" alt="image" src="https://github.com/user-attachments/assets/62c2cf52-f688-4e4a-ae83-e7423f65cb6c" />
+
+ #### Assets
+
+ Som: 
+
+ Efeito visual:
 
 
 
@@ -623,6 +904,12 @@ Faz aqueles arbusto seco que voa pelo deserto com alguns riscos indicando vento,
 
 <img width="2560" height="1703" alt="image" src="https://github.com/user-attachments/assets/f1701003-7b1b-4a1d-abef-05973435a192" />
 
+ #### Assets
+
+ Som: 
+
+ Efeito visual:
+
 
 
 ### carta baixa 2 - Montadores de Cabos
@@ -636,6 +923,12 @@ Faz aqueles arbusto seco que voa pelo deserto com alguns riscos indicando vento,
 * Visual: Faz só um cara completamente normal dentro de um servidor super futurista cheio de neon mexendo em um cabo nessa vibe aqui:
 
 <img width="335" height="597" alt="image" src="https://github.com/user-attachments/assets/16e804b5-8590-4583-9620-a49ebf7c5bcf" />
+
+ #### Assets
+
+ Som: 
+
+ Efeito visual:
 
 
 
@@ -652,6 +945,13 @@ Faz aqueles arbusto seco que voa pelo deserto com alguns riscos indicando vento,
 <img width="800" height="534" alt="image" src="https://github.com/user-attachments/assets/e094e7fe-55f7-40fb-9238-28195489f620" />
 
 
+ #### Assets
+
+ Som: 
+
+ Efeito visual:
+
+
 
   
 ### 1x carta media 1 -> WebBombeiros
@@ -662,6 +962,12 @@ Faz aqueles arbusto seco que voa pelo deserto com alguns riscos indicando vento,
 * Visual: Faz tipo uma capa de serie de bombeiro  e escreve "NeoFloripa Fire" mas eles são bombeiros super cyberpunk apagando o fogo na cidade cyberpunk
 
 <img width="190" height="281" alt="image" src="https://github.com/user-attachments/assets/b157ef59-de08-4a46-8d72-bb7717a1b65f" />
+
+ #### Assets
+
+ Som: 
+
+ Efeito visual:
 
 
 
@@ -675,6 +981,12 @@ Faz aqueles arbusto seco que voa pelo deserto com alguns riscos indicando vento,
 Faz tipo o Will Smith com a mão no rosto como se tivesse cansado e o Macaco com 5 caixa de som brilhando um monte brigando com ele
 
 <img width="250" height="300" alt="image" src="https://github.com/user-attachments/assets/2a15540c-4db2-4bd4-8a3f-5e43b580e106" />
+
+ #### Assets
+
+ Som: 
+
+ Efeito visual:
 
 
 
@@ -690,6 +1002,12 @@ Faz tipo o Will Smith com a mão no rosto como se tivesse cansado e o Macaco com
 
 <img width="3840" height="2160" alt="image" src="https://github.com/user-attachments/assets/533638b0-e701-4063-98e7-13422b0242b2" />
 
+ #### Assets
+
+ Som: 
+
+ Efeito visual:
+
 
 
 
@@ -702,6 +1020,12 @@ Faz tipo o Will Smith com a mão no rosto como se tivesse cansado e o Macaco com
 * Visual: Faz tipo o Jae na abertura de Hexatombe, só que com uma carta do cyberduel brilhosa
 
 <img width="472" height="423" alt="image" src="https://github.com/user-attachments/assets/9615a295-fa32-49e6-96f5-4e002caeabe1" />
+
+ #### Assets
+
+ Som: 
+
+ Efeito visual:
 
 
 ### 1x carta alta 1 -> CyberPolíticos
@@ -723,6 +1047,12 @@ Faz tipo o Will Smith com a mão no rosto como se tivesse cansado e o Macaco com
 
 *Visual: Faz a palhoça cyberpunk com um vulcaozao pique o natural disaster, só não faz ela alagada pfv.
 
+ #### Assets
+
+ Som: 
+
+ Efeito visual:
+
 
 
 
@@ -735,3 +1065,9 @@ Faz tipo o Will Smith com a mão no rosto como se tivesse cansado e o Macaco com
 
  
 * Visual: É o Sardá e o Felipe, aí a gente já conversou mais ou menos sobre a ideia, vc tá ligado de como fazer o visual.
+
+ #### Assets
+
+ Som: 
+
+ Efeito visual:
