@@ -38,6 +38,10 @@ if (typeof document !== "undefined" && document.head) {
 }
 const FONTE_LENDARIA = '"Cinzel", Georgia, serif';
 
+const VIDEOS_INVOCACAO_POR_CARTA = Object.freeze({
+  "RaspClay MonteCorp": "efeitoRaspClay",
+});
+
 // Gera o layout completo do campo (posições X/Y de cada uma das 4 fileiras
 // e das 5 colunas) a partir de um punhado de medidas base. Usado para gerar
 // dois layouts: um normal (com a mão visível) e um ampliado (mão escondida,
@@ -477,6 +481,43 @@ class CenaJogo extends Phaser.Scene {
       duration: 600,
       ease: "Sine.easeOut",
     });
+  }
+
+  // Reproduz o clipe especial da carta por cima de todo o campo. Retorna
+  // true quando existe vídeo para a carta; nesse caso, aoConcluir é chamado
+  // somente depois do fim do clipe. Isso permite manter a partida travada e
+  // abrir a seleção de alvos do RaspClay na ordem correta.
+  reproduzirEfeitoInvocacao(carta, aoConcluir = () => {}) {
+    const chaveVideo = VIDEOS_INVOCACAO_POR_CARTA[carta?.nome];
+    if (!chaveVideo) return false;
+
+    const video = this.add
+      .video(GW / 2, GH / 2, chaveVideo)
+      .setOrigin(0.5)
+      // O clipe transparente foi reenquadrado em 2:1: ocupa toda a largura
+      // do jogo como uma faixa baixa e mantém a proporção sem esticar.
+      .setDisplaySize(GW / 2, GW / 2.4)
+      .setDepth(5000)
+      .setInteractive();
+    this.videoInvocacaoAtual = video;
+
+    let finalizado = false;
+    const finalizar = () => {
+      if (finalizado) return;
+      finalizado = true;
+      if (video.active) video.destroy();
+      if (this.videoInvocacaoAtual === video)
+        this.videoInvocacaoAtual = null;
+      aoConcluir();
+    };
+
+    video.once("complete", finalizar);
+    video.once("error", finalizar);
+    video.play(false);
+
+    // Proteção para codecs/navegadores que não emitirem "complete".
+    this.time.delayedCall(1700, finalizar);
+    return true;
   }
 
   // Gera uma cor fixa baseada no ID da carta
@@ -1015,11 +1056,15 @@ class CenaJogo extends Phaser.Scene {
           );
           this.desenharInterface();
           if (sucesso) {
-            if (precisaEscolherAlvosAbsorcao) {
-              this.iniciarSelecaoDeAbsorcao(carta, slotAtingido);
-            } else {
-              this.iniciarSelecaoDeAliadoParaBuff(carta, slotAtingido);
-            }
+            const continuarInvocacao = () => {
+              if (precisaEscolherAlvosAbsorcao) {
+                this.iniciarSelecaoDeAbsorcao(carta, slotAtingido);
+              } else {
+                this.iniciarSelecaoDeAliadoParaBuff(carta, slotAtingido);
+              }
+            };
+            if (!this.reproduzirEfeitoInvocacao(carta, continuarInvocacao))
+              continuarInvocacao();
           } else {
             this.travado = false;
           }
@@ -6644,7 +6689,14 @@ class CenaJogo extends Phaser.Scene {
         tocaJaVisivel = true;
         this.animarFlipCartasInimigasParaBaixo(carta);
       }
-      this.time.delayedCall(950, () => mostrar(indice + 1));
+      const mostrarProxima = () => mostrar(indice + 1);
+      if (
+        !this.reproduzirEfeitoInvocacao(carta, () =>
+          this.time.delayedCall(180, mostrarProxima),
+        )
+      ) {
+        this.time.delayedCall(950, mostrarProxima);
+      }
     };
     this.time.delayedCall(420, () => mostrar(0));
   }

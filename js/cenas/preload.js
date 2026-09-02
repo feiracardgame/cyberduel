@@ -74,6 +74,10 @@ class CenaPreload extends Phaser.Scene {
     this.load.video("videoParte3", "assets/videos/parte_3.mp4");
     //efeitos
     this.load.image("efeitoAdvogado", "assets/efeitos/efeito-advogado.png");
+    this.load.video(
+      "efeitoRaspClay",
+      "assets/efeitos/efeito-raspclay-sem-fundo.webm",
+    );
   }
 
   // Monta o logo + a barra de carregamento (fundo + preenchimento + %)

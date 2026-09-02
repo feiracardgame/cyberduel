@@ -197,4 +197,98 @@ visualEvents = visualScene.detectarEventosVisuaisMultiplayer(
 );
 assert.equal(visualEvents.afetadas[0].delta, -2);
 
+const jogoSource = fs.readFileSync("js/cenas/jogo.js", "utf8");
+const preloadSource = fs.readFileSync("js/cenas/preload.js", "utf8");
+assert.match(
+  preloadSource,
+  /this\.load\.video\(\s*"efeitoRaspClay",\s*"assets\/efeitos\/efeito-raspclay-sem-fundo\.webm"/s,
+  "A versão transparente do clipe do RaspClay deve ser carregada.",
+);
+assert.equal(
+  fs.existsSync("assets/efeitos/efeito-raspclay-sem-fundo.webm"),
+  true,
+  "O clipe transparente do RaspClay deve existir.",
+);
+assert.ok(
+  (jogoSource.match(/reproduzirEfeitoInvocacao\(/g) || []).length >= 3,
+  "O efeito deve estar conectado às invocações local e adversária.",
+);
+
+const invocationScene = Object.create(CenaJogo.prototype);
+const videoEvents = new Map();
+let videoKey = null;
+let videoSize = null;
+let videoDepth = null;
+let videoLoop = null;
+let videoDestroyed = false;
+let fallback = null;
+const fakeVideo = {
+  active: true,
+  setOrigin() { return this; },
+  setDisplaySize(width, height) {
+    videoSize = [width, height];
+    return this;
+  },
+  setDepth(depth) {
+    videoDepth = depth;
+    return this;
+  },
+  setInteractive() { return this; },
+  once(event, handler) {
+    videoEvents.set(event, handler);
+    return this;
+  },
+  play(loop) {
+    videoLoop = loop;
+    return this;
+  },
+  destroy() {
+    this.active = false;
+    videoDestroyed = true;
+  },
+};
+invocationScene.add = {
+  video(_x, _y, key) {
+    videoKey = key;
+    return fakeVideo;
+  },
+};
+invocationScene.time = {
+  delayedCall(delay, handler) {
+    assert.equal(delay, 1700);
+    fallback = handler;
+  },
+};
+let invocationCompleted = 0;
+assert.equal(
+  invocationScene.reproduzirEfeitoInvocacao(
+    { nome: "RaspClay MonteCorp" },
+    () => invocationCompleted++,
+  ),
+  true,
+);
+assert.equal(videoKey, "efeitoRaspClay");
+assert.deepEqual(videoSize, [1080, 540]);
+assert.equal(
+  videoSize[0] / videoSize[1],
+  2,
+  "O efeito deve ocupar a largura da tela sem perder a proporção 2:1.",
+);
+assert.equal(videoDepth, 5000);
+assert.equal(videoLoop, false, "O vídeo de invocação deve tocar apenas uma vez.");
+videoEvents.get("complete")();
+assert.equal(videoDestroyed, true);
+assert.equal(invocationCompleted, 1);
+fallback();
+assert.equal(invocationCompleted, 1, "A conclusão do efeito deve ocorrer uma vez.");
+assert.equal(
+  invocationScene.reproduzirEfeitoInvocacao(
+    { nome: "Outra Carta" },
+    () => invocationCompleted++,
+  ),
+  false,
+  "Outras cartas não devem tocar o clipe do RaspClay.",
+);
+assert.equal(invocationCompleted, 1);
+
 console.log("Serialização e inversão de perspectiva validadas.");
