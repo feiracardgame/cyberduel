@@ -201,13 +201,13 @@ const jogoSource = fs.readFileSync("js/cenas/jogo.js", "utf8");
 const preloadSource = fs.readFileSync("js/cenas/preload.js", "utf8");
 assert.match(
   preloadSource,
-  /this\.load\.video\(\s*"efeitoRaspClay",\s*"assets\/efeitos\/efeito-raspclay-sem-fundo\.webm"/s,
-  "A versão transparente do clipe do RaspClay deve ser carregada.",
+  /this\.load\.video\(\s*"efeitoRaspClayVertical",\s*"assets\/efeitos\/efeito-raspclay-vertical-alpha\.webm"/s,
+  "A versão vertical transparente do clipe do RaspClay deve ser carregada.",
 );
 assert.equal(
-  fs.existsSync("assets/efeitos/efeito-raspclay-sem-fundo.webm"),
+  fs.existsSync("assets/efeitos/efeito-raspclay-vertical-alpha.webm"),
   true,
-  "O clipe transparente do RaspClay deve existir.",
+  "O clipe vertical transparente do RaspClay deve existir.",
 );
 assert.ok(
   (jogoSource.match(/reproduzirEfeitoInvocacao\(/g) || []).length >= 3,
@@ -221,6 +221,7 @@ let videoSize = null;
 let videoDepth = null;
 let videoLoop = null;
 let videoDestroyed = false;
+let videoVisible = null;
 let fallback = null;
 const fakeVideo = {
   active: true,
@@ -231,6 +232,10 @@ const fakeVideo = {
   },
   setDepth(depth) {
     videoDepth = depth;
+    return this;
+  },
+  setVisible(visible) {
+    videoVisible = visible;
     return this;
   },
   setInteractive() { return this; },
@@ -267,12 +272,16 @@ assert.equal(
   ),
   true,
 );
-assert.equal(videoKey, "efeitoRaspClay");
-assert.deepEqual(videoSize, [1080, 540]);
+assert.equal(videoKey, "efeitoRaspClayVertical");
+assert.equal(videoSize, null, "O tamanho deve aguardar a textura real do vídeo.");
+assert.equal(videoVisible, false);
+videoEvents.get("created")();
+assert.deepEqual(videoSize, [920, 1636]);
+assert.equal(videoVisible, true);
 assert.equal(
-  videoSize[0] / videoSize[1],
-  2,
-  "O efeito deve ocupar a largura da tela sem perder a proporção 2:1.",
+  Math.abs(videoSize[0] / videoSize[1] - 9 / 16) < 0.001,
+  true,
+  "O efeito deve preservar a proporção vertical completa com margem lateral.",
 );
 assert.equal(videoDepth, 5000);
 assert.equal(videoLoop, false, "O vídeo de invocação deve tocar apenas uma vez.");

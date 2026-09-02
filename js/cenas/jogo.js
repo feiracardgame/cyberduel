@@ -39,7 +39,7 @@ if (typeof document !== "undefined" && document.head) {
 const FONTE_LENDARIA = '"Cinzel", Georgia, serif';
 
 const VIDEOS_INVOCACAO_POR_CARTA = Object.freeze({
-  "RaspClay MonteCorp": "efeitoRaspClay",
+  "RaspClay MonteCorp": "efeitoRaspClayVertical",
 });
 
 // Gera o layout completo do campo (posições X/Y de cada uma das 4 fileiras
@@ -135,6 +135,10 @@ class CenaJogo extends Phaser.Scene {
     this.somHover = this.sound.add("somHover", {
       loop: false,
       volume: 0.15,
+    });
+    this.somRaspClay = this.sound.add("somRaspClay", {
+      loop: false,
+      volume: 0.3,
     });
     this.musicaFundo.play();
     this.somTorcida.play();
@@ -494,12 +498,20 @@ class CenaJogo extends Phaser.Scene {
     const video = this.add
       .video(GW / 2, GH / 2, chaveVideo)
       .setOrigin(0.5)
-      // O clipe transparente foi reenquadrado em 2:1: ocupa toda a largura
-      // do jogo como uma faixa baixa e mantém a proporção sem esticar.
-      .setDisplaySize(GW / 2, GW / 2.4)
       .setDepth(5000)
+      .setVisible(false)
       .setInteractive();
     this.videoInvocacaoAtual = video;
+
+    // O Phaser troca a textura provisória pelo primeiro frame real e chama
+    // setSizeToFrame() nesse momento. Portanto o display size precisa ser
+    // aplicado DEPOIS do evento `created`; antes disso a escala provisória
+    // vira um zoom gigantesco quando o vídeo 1080x1920 finalmente chega.
+    video.once("created", () => {
+      if (!video.active) return;
+      video.setDisplaySize(1080, 1636);
+      video.setVisible(true);
+    });
 
     let finalizado = false;
     const finalizar = () => {
@@ -621,6 +633,28 @@ class CenaJogo extends Phaser.Scene {
     return [bola, texto];
   }
 
+  criarPainelTatico(x, y, largura, altura, cor = 0x23d7ff, alpha = 0.94) {
+    const sombra = this.add.rectangle(5, 8, largura, altura, 0x000000, 0.42);
+    const fundo = this.add
+      .rectangle(0, 0, largura, altura, 0x070d15, alpha)
+      .setStrokeStyle(2, cor, 0.34);
+    const barra = this.add.rectangle(-largura / 2 + 3, 0, 5, altura - 12, cor, 0.9);
+    const detalhe = this.add.rectangle(
+      largura / 2 - 34, -altura / 2 + 7, 50, 2, cor, 0.65,
+    );
+    return this.add.container(x, y, [sombra, fundo, barra, detalhe]);
+  }
+
+  desenharAtmosferaTatica() {
+    const grade = this.add.graphics().setDepth(-98);
+    grade.lineStyle(1, 0x45a6c4, 0.055);
+    for (let x = 0; x <= GW; x += 72) grade.lineBetween(x, 0, x, GH);
+    for (let y = 0; y <= GH; y += 72) grade.lineBetween(0, y, GW, y);
+    grade.lineStyle(2, 0x23d7ff, 0.12);
+    grade.lineBetween(36, 480, GW - 36, 480);
+    grade.lineBetween(36, 1515, GW - 36, 1515);
+  }
+
   desenharInterface() {
     this.partida.atualizarOverrides();
     // Mata tweens pendentes e remove qualquer texto de resultado que
@@ -698,6 +732,7 @@ class CenaJogo extends Phaser.Scene {
     this.desenharIndicadoresPoder();
     this.desenharIndicadoresDeck();
     this.desenharFundoJogo();
+    this.desenharAtmosferaTatica();
     if (!this.maoEscondida) this.desenharMaoEmLeque();
 
     // A roda só é (re)desenhada quando o jogador pode de fato interagir.
@@ -885,36 +920,33 @@ class CenaJogo extends Phaser.Scene {
   }
 
   criarIndicadorDeck(x, y, quantidade, label, cor) {
-    const larguraCarta = 100;
-    const alturaCarta = 140;
-
-    let sombra = this.add.rectangle(
-      6,
-      8,
-      larguraCarta,
-      alturaCarta,
-      0x000000,
-      0.35,
-    );
+    const larguraCarta = 112;
+    const alturaCarta = 150;
+    const corHex = cor === "#66ff88" ? 0x38f2a0 : 0xff5573;
+    let sombra = this.add.rectangle(6, 8, larguraCarta, alturaCarta, 0x000000, 0.4);
     let costas = this.add
       .image(0, 0, "fundoCarta")
       .setDisplaySize(larguraCarta, alturaCarta);
+    let moldura = this.add
+      .rectangle(0, 0, larguraCarta + 8, alturaCarta + 8, 0x070d15, 0)
+      .setStrokeStyle(2, corHex, 0.65);
     let numero = this.add
       .text(0, 0, `${quantidade}`, {
-        fontSize: "48px",
+        fontSize: "45px",
         color: "#ffffff",
         fontStyle: "bold",
+        fontFamily: "monospace",
       })
       .setOrigin(0.5);
     let rotulo = this.add
-      .text(0, alturaCarta / 2 + 26, label, {
-        fontSize: "24px",
+      .text(0, alturaCarta / 2 + 28, label.toUpperCase(), {
+        fontSize: "18px",
         color: cor,
         fontStyle: "bold",
       })
       .setOrigin(0.5);
 
-    this.add.container(x, y, [sombra, costas, numero, rotulo]);
+    this.add.container(x, y, [sombra, costas, moldura, numero, rotulo]);
   }
 
   // ---------- LÓGICA DE ARRASTAR E SOLTAR ----------
@@ -1056,6 +1088,7 @@ class CenaJogo extends Phaser.Scene {
           );
           this.desenharInterface();
           if (sucesso) {
+            this.somRaspClay.play();
             const continuarInvocacao = () => {
               if (precisaEscolherAlvosAbsorcao) {
                 this.iniciarSelecaoDeAbsorcao(carta, slotAtingido);
@@ -5885,30 +5918,22 @@ class CenaJogo extends Phaser.Scene {
     const yPlacar = centralizado ? Y_MAO_JOGADOR + 30 : 1645;
     const origin = centralizado ? 0.5 : 0;
 
-    this.add
-      .text(
-        x,
-        yTurno,
-        `Turno: ${this.partida.turno}/${this.partida.maxTurnos}`,
-        {
-          fontSize: centralizado ? "52px" : "45px",
-          color: "#ffffff",
-        },
-      )
-      .setOrigin(origin, 0.5);
-
-    this.add
-      .text(
-        x,
-        yPlacar,
-        `🏆 ${this.partida.rodadasJogador} — ${this.partida.rodadasInimigo}`,
-        {
-          fontSize: centralizado ? "40px" : "34px",
-          color: "#ffd966",
-          fontStyle: "bold",
-        },
-      )
-      .setOrigin(origin, 0.5);
+    const painelX = centralizado ? x : 190;
+    const painelY = (yTurno + yPlacar) / 2;
+    const painel = this.criarPainelTatico(
+      painelX, painelY, centralizado ? 570 : 300, centralizado ? 138 : 126,
+    );
+    const alinhamento = centralizado ? 0.5 : 0;
+    const textoX = centralizado ? 0 : -125;
+    const turno = this.add.text(textoX, -31,
+      `TURNO  ${String(this.partida.turno).padStart(2, "0")} / ${String(this.partida.maxTurnos).padStart(2, "0")}`,
+      { fontSize: centralizado ? "42px" : "31px", color: "#f3f8fc", fontStyle: "bold", fontFamily: "monospace" },
+    ).setOrigin(alinhamento, 0.5);
+    const placar = this.add.text(textoX, 29,
+      `RODADAS  ${this.partida.rodadasJogador}  :  ${this.partida.rodadasInimigo}`,
+      { fontSize: centralizado ? "28px" : "23px", color: "#38f2a0", fontStyle: "bold" },
+    ).setOrigin(alinhamento, 0.5);
+    painel.add([turno, placar]);
   }
 
   // Dois ícones de "poder total" (soma do poder de todas as cartas em
@@ -5952,12 +5977,15 @@ class CenaJogo extends Phaser.Scene {
   // Ícone individual: um selo com "⚔" (representando o poder somado) e o
   // número embaixo, entrando com fade + pop.
   criarIndicadorPoder(x, y, valor, tamanho, cor) {
+    const corHex = cor === "#66ff88" ? 0x38f2a0 : 0xff5573;
+    let halo = this.add.circle(0, 0, tamanho / 2 + 12, corHex, 0.07);
     let fundo = this.add
-      .circle(0, 0, tamanho / 2, 0xffffff, 0.55)
-      .setStrokeStyle(4, cor);
+      .circle(0, 0, tamanho / 2, 0x070d15, 0.96)
+      .setStrokeStyle(3, corHex, 0.85);
     let icone = this.add
-      .text(0, -6, "⚔", {
-        fontSize: `${Math.round(tamanho * 0.6)}px`,
+      .text(0, -4, "PA", {
+        fontSize: `${Math.max(14, Math.round(tamanho * 0.22))}px`,
+        color: cor, fontStyle: "bold",
       })
       .setOrigin(0.5);
     let numero = this.add
@@ -5965,10 +5993,11 @@ class CenaJogo extends Phaser.Scene {
         fontSize: "30px",
         color: cor,
         fontStyle: "bold",
+        fontFamily: "monospace",
       })
       .setOrigin(0.5);
 
-    let container = this.add.container(x, y, [fundo, icone, numero]);
+    let container = this.add.container(x, y, [halo, fundo, icone, numero]);
     container.setScale(0);
     this.tweens.add({
       targets: container,
@@ -6005,14 +6034,15 @@ class CenaJogo extends Phaser.Scene {
     const X = GW - RAIO - 30;
     const Y = 90;
 
+    let halo = this.add.circle(0, 0, RAIO + 8, 0x23d7ff, 0.07);
     let bg = this.add
-      .circle(0, 0, RAIO, 0x222222, 0.92)
-      .setStrokeStyle(4, 0xffffff);
+      .circle(0, 0, RAIO, 0x070d15, 0.96)
+      .setStrokeStyle(3, 0x23d7ff, 0.75);
     let icone = this.add
-      .text(0, 0, "☰", { fontSize: "40px", color: "#ffffff" })
+      .text(0, 0, "≡", { fontSize: "42px", color: "#23d7ff", fontStyle: "bold" })
       .setOrigin(0.5);
 
-    let botaoMenu = this.add.container(X, Y, [bg, icone]);
+    let botaoMenu = this.add.container(X, Y, [halo, bg, icone]);
     botaoMenu.setSize(RAIO * 2, RAIO * 2);
     botaoMenu.setInteractive({ useHandCursor: true });
 
@@ -6034,8 +6064,8 @@ class CenaJogo extends Phaser.Scene {
       GH - 65,
       270,
       76,
-      "⏭ Passar Turno",
-      0xff5500,
+      "ENCERRAR TURNO  ›",
+      0x23d7ff,
       () => this.aoClicarPassarTurno(),
     );
 
@@ -6066,13 +6096,13 @@ class CenaJogo extends Phaser.Scene {
 
     const definicoes = [
       {
-        rotulo: "📜 Histórico",
-        cor: 0x2255aa,
+        rotulo: "HISTÓRICO  //  LOG",
+        cor: 0x23d7ff,
         aoClicar: () => this.mostrarHistorico(),
       },
       {
-        rotulo: "🏳 Desistir",
-        cor: 0x883333,
+        rotulo: "ABORTAR DUELO",
+        cor: 0xff5573,
         aoClicar: () => this.aoClicarDesistir(),
       },
     ];
@@ -6141,13 +6171,14 @@ class CenaJogo extends Phaser.Scene {
   // dentro do menu de opções. `x`/`y` são relativos ao container pai.
   criarBotaoDaRoda(x, y, largura, altura, rotulo, cor, aoClicar) {
     let bg = this.add
-      .rectangle(0, 0, largura, altura, cor)
-      .setStrokeStyle(4, 0xffffff);
+      .rectangle(0, 0, largura, altura, 0x070d15, 0.97)
+      .setStrokeStyle(3, cor, 0.8);
+    let barra = this.add.rectangle(-largura / 2 + 4, 0, 7, altura - 14, cor, 0.95);
     let texto = this.add
-      .text(0, 0, rotulo, { fontSize: "27px", color: "#ffffff" })
+      .text(0, 0, rotulo, { fontSize: "24px", color: "#f3f8fc", fontStyle: "bold" })
       .setOrigin(0.5);
 
-    let btn = this.add.container(x, y, [bg, texto]);
+    let btn = this.add.container(x, y, [bg, barra, texto]);
     btn.setSize(largura, altura);
     btn.setInteractive({ useHandCursor: true });
 
