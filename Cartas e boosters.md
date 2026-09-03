@@ -292,7 +292,7 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 * Descrição: A Cobra é uma lendária produtora de venenos que nunca perguntou quem era o cliente, desde que ele pagasse o suficiente. Quando seus próprios compradores decidiram eliminá-la, ela finalmente percebeu que talvez fosse hora de escolher melhor seus parceiros. Agora, ao lado da EchoSsystem, pretende fazer cada um deles provar do próprio veneno.
  
 * PA: 5
-* Efeito: Dose Letal → A Cobra injeta uma de suas substâncias em um inimigo em qualquer ponto do campo. O inimigo escolhido perde 1 PA por turno enquanto estiver envenenado.
+* Efeito: Dose Letal → A Cobra injeta uma de suas substâncias em um inimigo em qualquer ponto do campo. O inimigo escolhido perde 1 PA por turno enquanto estiver envenenado. Este efeito pode acumular, porém só conta enquanto A Cobra estiver em campo
 
  
 * Visual:
@@ -457,7 +457,7 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
 * Descrição: Para tornar a experiência acessível a todos, a HumbaNet criou uma integrante responsável por demonstrar as funcionalidades e explicar as regras da nova simulação. Infelizmente, ninguém descobriu como tornar suas interrupções menos irritantes ou implementar um botão de pular tutorial.
 * PA: 3
-* Efeito: Tutorial Obrigatório: A IA detectou que seu adversário aparentemente não sabe jogar. Para ajudá-lo, ativará um tutorial obrigatório durante seus turnos. Para cada uma desta carta em campo, o tempo de turno do oponente é reduzido em 20 segundos, até o mínimo de 20 segundos.
+* Efeito: Benefício do tutorial: A IA detectou que seus aliados possuem pontos fracos e podem melhorar! Cartas adjacentes à IA de treinamento ganham +2 de PA.
 
  
 * Visual:
@@ -501,7 +501,7 @@ Faz tipo a Elena do HxH, mas essas linhas de traz são verdes e não brancas.
 
  
 * PA: 5
-* Efeito: Sempre de olho -> enquanto H.A.R.V.I.S estiver em campo, as cartas adjacentes a ele ganham +1 PA.
+* Efeito:  -> enquanto H.A.R.V.I.S estiver em campo, as cartas adjacentes a ele ganham +1 PA.
 * Visual:
 
 vc escolhe como acha que fica mais legal, mas penso na ideia de uma IA com corpo humanoide, tipo o visão ou o ultron
@@ -547,7 +547,7 @@ vc escolhe como acha que fica mais legal, mas penso na ideia de uma IA com corpo
 
 * Descrição: A Unidade Cibernética de Combate, apelidada de Juggernaut, é responsável pela defesa e controle de NeoFloripa. Afinal, a liberdade é grande, mas não infinita. Desde sua implementação, a CyberCidade aboliu os firewalls: agora as ameaças são pessoalmente confrontadas.
 
-* PA: 11
+* PA: 10
 * Efeito: Protocolo de Segurança -> O Juggernaut é a última lembrança que os infratores tem. Escolha qualquer carta do campo inimigo, a UCC a ataca e causa 5 pontos de dano de PA.
 * Visual:
 
@@ -569,7 +569,7 @@ Faz algo na vibe de um Tyrant ou do próprio Adam Smasher
 
 * Descrição: Um dos primeiros experimentos do HumbaBrain foi fazer o upload de um indivíduo no fim da vida para a simulação, permitindo que escolhesse sua própria forma. O resultado foi... inusitado. Temendo sua possível ameaça, o criador decidiu mantê-lo desativado até que um sinal específico de radiofrequência seja emitido. Desde então, a plateia aguarda para descobrir se ele será um espetáculo ou um desastre.
  
-* PA: 12
+* PA: 14
 * Efeito: Adormecido -> Esta carta não possui efeitos enquanto estiver adormecida.
 
  
@@ -953,7 +953,7 @@ Faz aqueles arbusto seco que voa pelo deserto com alguns riscos indicando vento,
 
 * Descrição: Enquanto IAs e Firewalls físicos protegem NeoFloripa de ameaças reais, a nova versão dos policiais mantem a paz nas pequenas confusões do dia a dia. Nem sempre é um trabalho glorioso, mas alguém ainda precisa convencer o vizinho a abaixar o volume da música.
 * PA: 5 
-* Efeito: Advertência -> Escolha uma carta inimiga. Ela recebe uma advertência. Se utilizar seu efeito no próximo turno, perde 3 de PA.
+* Efeito: Advertência -> Escolha uma carta inimiga. Ela recebe uma advertência. Cada vez que ela utilizar seu efeito, enquanto o TecnoAgente estiver em campo, perde 3 de PA.
 * Visual:
 
 Faz tipo o Will Smith com a mão no rosto como se tivesse cansado e o Macaco com 5 caixa de som brilhando um monte brigando com ele
