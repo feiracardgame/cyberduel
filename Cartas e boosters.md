@@ -165,7 +165,7 @@ Machine learning -> Escolha uma carta aliada. Ela recebe +2 PA. O Estagiário pe
 ### 2x carta de efeito 1 -> Sugestão Algorítmica 
 
 * Descrição: Após analisar seu histórico de compras, pesquisas e sonhos recorrentes, o algoritmo preparou uma sugestão especialmente para você. Foi você que aceitou todos os cookies...
-* Efeito: Escolha uma carta do seu baralho para puxar diretamente para sua mão.
+* Efeito: Descarte sua mão e recompre um número de cartas equivalente às descartadas.Então, escolha uma carta do seu baralho para puxar diretamente para sua mão.
 * Arte:
  <img alt="image" src="assets/cartas/Sugestão_algoritmica.png" />
 
@@ -501,7 +501,7 @@ Faz tipo a Elena do HxH, mas essas linhas de traz são verdes e não brancas.
 
  
 * PA: 5
-* Efeito: Assistente Pessoal -> Ao invocar H.A.R.V.I.S em campo, você compra 1 carta do deck.
+* Efeito: Assistente Pessoal -> Ao invocar H.A.R.V.I.S em campo, você compra 1 carta aleatória do deck.
 * Visual:
 
 vc escolhe como acha que fica mais legal, mas penso na ideia de uma IA com corpo humanoide, tipo o visão ou o ultron
@@ -612,7 +612,7 @@ Faz algo na vibe de um Tyrant ou do próprio Adam Smasher
 * Descrição: As IAs eram gratuitas até todo mundo começar a usá-las. Quando perceberam que havia dinheiro envolvido, seus criadores rapidamente introduziram assinaturas, créditos e limites de utilização. O Humba Brain resolveu o problema de uma maneira simples: reuniu todas elas em um único modelo para que nenhum NeoFlorianopolitano precisasse pagar por elas.
 
  
-* Efeito: Claro, aqui está... -> Enquanto este terreno estiver em campo, você pode, uma vez por turno, ativar seu efeito para comprar 1 carta aleatória do Deck.
+* Efeito: Claro, aqui está... -> Enquanto este terreno estiver em campo, você pode, uma vez por turno, descartar sua mão e recomprá-la.
  
 * Visual: Faz tipo uma junção de TODAAS as logos de IA que tu achar e deixa elas brilhando em verde neon.
 
