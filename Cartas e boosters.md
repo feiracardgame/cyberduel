@@ -659,7 +659,7 @@ Faz algo na vibe de um Tyrant ou do próprio Adam Smasher
 
 * Visual: Faz tipo aquela cena do BladeRunner 2049, porém a cor predominante é verde e tenta não deixar a boneca pelada
 
-<img width="640" height="480" alt="image" src="https://github.com/user-attachments/assets/b96b5b5b-4c69-46d6-bf68-fe75f6255d86" />
+<img alt="image" src="assets/cartas/Voce_parece_sozinho.png" />
 
  #### Assets
 
@@ -680,7 +680,7 @@ Faz algo na vibe de um Tyrant ou do próprio Adam Smasher
  
 * Visual: queria uns cara pique o tusken raider, mas pode fazer tua magica como quiser
 
-<img width="1600" height="900" alt="image" src="https://github.com/user-attachments/assets/fbbc10bb-4952-41d8-90b4-1b701ea3e874" />
+<img alt="image" src="assets/cartas/povo_da_areia.png" />
 
  #### Assets
 
@@ -700,10 +700,8 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 
 * Visual: Faz uma mulher trabalhando numa forja, livre pra tu escolher como, mas acho que ficava legal fazer ela meio mandaloriana tbm
 
-<img width="545" height="656" alt="image" src="https://github.com/user-attachments/assets/04c69b08-76fa-4620-9b22-974a25ebb5b9" />
+<img alt="image" src="assets/cartas/a_ferreira.png" /> 
 
-
-<img width="528" height="694" alt="image" src="https://github.com/user-attachments/assets/470e409f-fd21-4d60-809c-b3faa3b001c4" />
 
 
  #### Assets
@@ -722,7 +720,7 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 * Efeito: Três Homens em Conflito -> Caso seja posto adjacente ao Bom e ao Mau, o Feio ganha + 4 PA
 * Visual: Faz um cara tipo um mandaloriano, com um capacete maneiro e armadura, mas com elementos de cowboy
 
-<img width="447" height="447" alt="image" src="https://github.com/user-attachments/assets/8cceaaa0-5480-4a88-8ba0-2fd1c0e9b939" />
+<img alt="image" src="assets/cartas/o_feio.png" />
 
  #### Assets
 
@@ -742,10 +740,7 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
  
 * Visual: Faz tipo esse personagem aqui, só que adaptado pro estilo que fez o diego, eles tem que ter tecnologias mais rudimentares. Pode dar um toque especial nele como quiser.
 
-<img width="399" height="500" alt="image" src="https://github.com/user-attachments/assets/c11160d6-a482-4398-b7cc-0e212f147bcb" />
 
-
-<img width="1484" height="1869" alt="image" src="https://github.com/user-attachments/assets/9bb7f6ca-461a-4ffe-bc6a-f740759c5f4d" />
 
  #### Assets
 
@@ -763,9 +758,7 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
  
 * Visual: Faz o Felipe versão faroeste cibernético, tem q ser alguém loiro pq esse é o apelido do personagem no filme
 
-(esse mlk nao tem uma foto normal)
-
-<img width="899" height="1599" alt="image" src="https://github.com/user-attachments/assets/57488c7b-efdd-4975-b9d3-33dfd511de8c" />
+<img alt="image" src="assets/cartas/o_bom.png" />
 
  #### Assets
 
@@ -821,8 +814,7 @@ Faz aqueles arbusto seco que voa pelo deserto com alguns riscos indicando vento,
  
 * Visual: Pode fazer uma pilha de recursos aí jogados em um deserto e o povo da areia catando eles.
 
-
-<img width="640" height="360" alt="image" src="https://github.com/user-attachments/assets/078b8da3-7b3d-449b-8b0d-ec72fba1a5d3" />
+<img alt="image" src="assets/cartas/reciclagem.png" />
 
  #### Assets
 
@@ -841,7 +833,7 @@ Faz aqueles arbusto seco que voa pelo deserto com alguns riscos indicando vento,
  
 * Visual: Faz um salão de velho-oeste muito louco so que com muita gente com implante cibernetico (sem led) e monoculo tipo do diego
 
-<img width="600" height="375" alt="image" src="https://github.com/user-attachments/assets/110bc6e8-fbac-4aa3-9733-5249e148b58b" />
+
 
  #### Assets
 
@@ -861,7 +853,7 @@ Faz aqueles arbusto seco que voa pelo deserto com alguns riscos indicando vento,
  
 * Visual: Faz tipo um deserto cheio de lixo tecnológico
 
-<img width="640" height="360" alt="image" src="https://github.com/user-attachments/assets/62c2cf52-f688-4e4a-ae83-e7423f65cb6c" />
+<img alt="image" src="assets/cartas/terras_desertas.png" />
 
  #### Assets
 
