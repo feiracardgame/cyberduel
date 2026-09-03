@@ -241,7 +241,7 @@ Segredos Ocultos â†’ A RaspCorp respeita sua privacidade. Apenas prefere conhecÃ
 
 
 
- <img alt="image" src="assets/cartas/A cabra.png" />
+ <img alt="image" src="assets/cartas/A_cabra.png" />
 
   #### Assets
 
@@ -376,7 +376,7 @@ Segredos Ocultos â†’ A RaspCorp respeita sua privacidade. Apenas prefere conhecÃ
 
 
 
- <img alt="image" src="assets/cartas/o_cavalo.png" />
+ <img alt="image" src="assets/cartas/O_cavalo.png" />
 
   #### Assets
 
@@ -392,7 +392,7 @@ Segredos Ocultos â†’ A RaspCorp respeita sua privacidade. Apenas prefere conhecÃ
 * Efeito: A inspiradora voz do Galo fortalece seus companheiros. Escolha duas cartas aliadas. A primeira recebe +2 PA e a segunda +1 PA. 
 * Visual:
 
- <img alt="image" src="assets/cartas/O galo.png" />
+ <img alt="image" src="assets/cartas/O_galo.png" />
 
   #### Assets
 
