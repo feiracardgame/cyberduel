@@ -501,7 +501,7 @@ Faz tipo a Elena do HxH, mas essas linhas de traz são verdes e não brancas.
 
  
 * PA: 5
-* Efeito:  -> enquanto H.A.R.V.I.S estiver em campo, as cartas adjacentes a ele ganham +1 PA.
+* Efeito: Assistente Pessoal -> Ao invocar H.A.R.V.I.S em campo, você compra 1 carta do deck.
 * Visual:
 
 vc escolhe como acha que fica mais legal, mas penso na ideia de uma IA com corpo humanoide, tipo o visão ou o ultron
@@ -573,15 +573,11 @@ Faz algo na vibe de um Tyrant ou do próprio Adam Smasher
 * Efeito: Adormecido -> Esta carta não possui efeitos enquanto estiver adormecida.
 
  
-* Visual: A ideia é ele ser nossa versão do dragão branco de olhos azuis. Pode fazer ele como quiser, mas só tem que ter dois detalhes: ele tem que ser um dragão chinês e precisa ter os olhos vermelhos. Se quiser fazer ele como o Rayquaza pode ficar legal.
-
-<img width="475" height="475" alt="image" src="https://github.com/user-attachments/assets/50478a09-e67e-4fc0-bdf4-8d790bc6c3db" />
-
-
-<img width="360" height="515" alt="image" src="https://github.com/user-attachments/assets/848cb6ab-9959-427c-937f-9e731c7635d5" />
+* Visual:
+* <img alt="image" src="assets/cartas/o_dragao.png" />
 
 
-<img width="306" height="450" alt="image" src="https://github.com/user-attachments/assets/f0ce90a4-d3f2-4517-9e3f-99dd5a28a9fb" />
+
 
  #### Assets
 
@@ -738,7 +734,10 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 * Efeito: Alvo Marcado -> Escolha uma carta inimiga. Ela perde 3 de PA. Caso seja removida do campo por este efeito, O Mau recebe +1 de PA.
 
  
-* Visual: Faz tipo esse personagem aqui, só que adaptado pro estilo que fez o diego, eles tem que ter tecnologias mais rudimentares. Pode dar um toque especial nele como quiser.
+* Visual:
+*
+* <img alt="image" src="assets/cartas/o_mau.png" />
+
 
 
 
@@ -781,7 +780,7 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 
  Som: 
 
- Efeito visual:
+ Efeito visual: efeito-diego -> Quando for distribuir os PA de dano do diego, aparece em cima da carta uma quantidade de caveiras proporcional à quantidade de dano desferido na carta (ex: 5 PA de dano, aparece 5 caveiras em cima da carta).
 
 
 ### 1x carta de efeito 1 -> Vento dos Ermos
