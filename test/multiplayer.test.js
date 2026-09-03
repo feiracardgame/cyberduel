@@ -1,13 +1,17 @@
 const assert = require("node:assert/strict");
 const { spawn } = require("node:child_process");
 const http = require("node:http");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
 const { io } = require("socket.io-client");
 
 const port = 31987;
 const url = `http://127.0.0.1:${port}`;
+const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "cyberduel-multiplayer-test-"));
 const server = spawn(process.execPath, ["server/server.js"], {
   cwd: process.cwd(),
-  env: { ...process.env, PORT: String(port) },
+  env: { ...process.env, PORT: String(port), DATA_DIR: dataDir },
   stdio: ["ignore", "pipe", "inherit"],
 });
 
@@ -52,6 +56,18 @@ async function run() {
   assert.equal(page.status, 200);
   assert.match(page.body, /<!doctype html>/i);
 
+  const register = async (username) => {
+    const response = await fetch(`${url}/api/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password: "senha-forte" }),
+    });
+    assert.equal(response.status, 201);
+    return (await response.json()).token;
+  };
+  const token1 = await register("Gabriel");
+  const token2 = await register("Dante");
+
   const cachedAsset = await new Promise((resolve, reject) => {
     const request = http.request(
       `${url}/assets/cartas/O_rato.png`,
@@ -71,6 +87,7 @@ async function run() {
   const deck2 = [{ tipo: "efeito", nome: "Deck P2", quantidade: 2 }];
   const created = await emitAck(player1, "create-room", {
     deck: deck1,
+    accountToken: token1,
     inviteBase: url,
   });
   assert.equal(created.ok, true);
@@ -83,12 +100,15 @@ async function run() {
   const joined = await emitAck(player2, "join-room", {
     code: created.room.code,
     deck: deck2,
+    accountToken: token2,
   });
   assert.equal(joined.ok, true);
   assert.equal(joined.player, 2);
   const [match1, match2] = await Promise.all([ready1, ready2]);
   assert.deepEqual(match1.decks[1], deck1);
   assert.deepEqual(match2.decks[2], deck2);
+  assert.deepEqual(match1.usernames, { 1: "Gabriel", 2: "Dante" });
+  assert.deepEqual(match2.usernames, { 1: "Gabriel", 2: "Dante" });
 
   const rejected = await emitAck(intruder, "join-room", {
     code: created.room.code,
@@ -109,6 +129,14 @@ async function run() {
   });
   assert.equal(liveAck.ok, true);
   assert.equal((await liveUpdate).live, true);
+
+  const opponentTimer = once(player2, "turn-time");
+  player1.emit("turn-time", { remainingMs: 42_350, running: true });
+  assert.deepEqual(await opponentTimer, {
+    activePlayer: 1,
+    remainingMs: 42_350,
+    running: true,
+  });
 
   const update2 = once(player2, "state-update");
   const turn1 = await emitAck(player1, "finish-turn", {
@@ -141,4 +169,7 @@ run()
     console.error(error);
     process.exitCode = 1;
   })
-  .finally(() => server.kill("SIGTERM"));
+  .finally(() => {
+    server.kill("SIGTERM");
+    fs.rmSync(dataDir, { recursive: true, force: true });
+  });

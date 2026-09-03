@@ -18,6 +18,7 @@ const context = vm.createContext({
   Phaser: {
     AUTO: 0,
     Scene: class {},
+    Math: { Clamp: (value, min, max) => Math.min(max, Math.max(min, value)) },
     Scale: { FIT: 0, CENTER_BOTH: 0 },
     Game: class {},
     Utils: { Array: { Shuffle: (cards) => cards.reverse() } },
@@ -36,7 +37,7 @@ for (const file of [
   vm.runInContext(fs.readFileSync(file, "utf8"), context, { filename: file });
 }
 vm.runInContext(
-  "globalThis.testExports = { Partida, Carta, CenaJogo, CenaDeckBuilder, CyberduelDeckBuilderUI, multiplayer: window.cyberduelMultiplayer, deckBuilder: window.cyberduelDeckBuilder }",
+  "globalThis.testExports = { Partida, Carta, CenaJogo, CenaDeckBuilder, CyberduelDeckBuilderUI, TIPOS_EFEITO, multiplayer: window.cyberduelMultiplayer, deckBuilder: window.cyberduelDeckBuilder }",
   context,
 );
 
@@ -48,6 +49,7 @@ const {
   CyberduelDeckBuilderUI,
   multiplayer,
   deckBuilder,
+  TIPOS_EFEITO,
 } = context.testExports;
 assert.deepEqual(
   Array.from(deckBuilder.getDeckForMatch()),
@@ -62,6 +64,100 @@ assert.equal(
   ),
   true,
 );
+assert.equal(deckBuilder.saveDeck(starterDeck), true);
+
+const regras = new Partida();
+regras.jogador.campo.cartas.fill(null);
+regras.inimigo.campo.cartas.fill(null);
+const cartaAtiva = (id, poder, tipo, efeito) =>
+  new Carta(id, poder, "monstro", {
+    nome: tipo,
+    habilidadeAtiva: true,
+    efeito: { tipo, ...efeito },
+  });
+
+const gestor = cartaAtiva(8001, 5, TIPOS_EFEITO.REDISTRIBUIR_PODER, {
+  perda: 2,
+  ganho: 3,
+});
+const doador = new Carta(8002, 1, "monstro", { nome: "Doador" });
+const receptor = new Carta(8003, 4, "monstro", { nome: "Receptor" });
+regras.jogador.campo.cartas.splice(0, 3, gestor, doador, receptor);
+assert.deepEqual(
+  Array.from(
+    regras.alvosParaHabilidadeEmCampo(
+      gestor,
+      regras.jogador,
+      regras.inimigo,
+    ),
+  ),
+  [0, 2],
+  "O Gestor não deve oferecer uma carta com menos de 2 PA como doadora.",
+);
+assert.equal(
+  regras.ativarHabilidade(gestor, regras.jogador, regras.inimigo, 1, 2).sucesso,
+  false,
+);
+assert.equal(receptor.poder, 4);
+doador.poder = 2;
+assert.equal(
+  regras.ativarHabilidade(gestor, regras.jogador, regras.inimigo, 1, 2).sucesso,
+  true,
+);
+assert.equal(doador.poder, 0);
+assert.equal(receptor.poder, 7);
+
+const cobra = cartaAtiva(8010, 5, TIPOS_EFEITO.ENVENENAR, {
+  valor: 1,
+  rangeH: 5,
+  rangeV: 5,
+});
+const alvoVeneno = new Carta(8011, 8, "monstro", { nome: "Alvo Cobra" });
+regras.jogador.campo.cartas.fill(null);
+regras.inimigo.campo.cartas.fill(null);
+regras.jogador.campo.cartas[0] = cobra;
+regras.inimigo.campo.cartas[0] = alvoVeneno;
+regras.ativarHabilidade(cobra, regras.jogador, regras.inimigo, 0);
+cobra.usadaEsteTurno = false;
+regras.ativarHabilidade(cobra, regras.jogador, regras.inimigo, 0);
+assert.equal(alvoVeneno.envenenada.valor, 2, "Veneno da Cobra deve acumular.");
+assert.equal(alvoVeneno.envenenada.stacks, 2);
+
+const aranha = cartaAtiva(8020, 5, TIPOS_EFEITO.OVERRIDE, {});
+const alvoAranha1 = new Carta(8021, 2, "monstro", { nome: "Alvo 1" });
+const alvoAranha2 = new Carta(8022, 3, "monstro", { nome: "Alvo 2" });
+regras.jogador.campo.cartas.fill(null);
+regras.inimigo.campo.cartas.fill(null);
+regras.jogador.campo.cartas[0] = aranha;
+regras.inimigo.campo.cartas[0] = alvoAranha1;
+regras.inimigo.campo.cartas[1] = alvoAranha2;
+assert.equal(
+  regras.ativarHabilidade(aranha, regras.jogador, regras.inimigo, 0).sucesso,
+  true,
+);
+aranha.usadaEsteTurno = false;
+assert.equal(
+  regras.ativarHabilidade(aranha, regras.jogador, regras.inimigo, 1).sucesso,
+  true,
+);
+assert.equal(alvoAranha1.capturadaPorAranha, null);
+assert.equal(alvoAranha2.capturadaPorAranha, aranha);
+
+const neo = new Carta(8030, 4, "monstro", {
+  nome: "NeoAnalista",
+  efeito: {
+    tipo: TIPOS_EFEITO.REDUZIR_TEMPO_OPONENTE,
+    valor: 10,
+    minimo: 20,
+  },
+});
+regras.jogador.campo.cartas.fill(null);
+regras.inimigo.campo.cartas.fill(null);
+regras.inimigo.campo.cartas[0] = neo;
+const cenaTimer = Object.assign(Object.create(CenaJogo.prototype), {
+  partida: regras,
+});
+assert.equal(cenaTimer.duracaoPermitidaPara(regras.jogador), 50_000);
 assert.equal(deckBuilder.total(starterDeck), 20);
 assert.equal(deckBuilder.isValid(starterDeck), true);
 const starterComposition = deckBuilder.composition(starterDeck);
@@ -214,6 +310,29 @@ assert.ok(
   "O efeito deve estar conectado às invocações local e adversária.",
 );
 
+const efeitoSolto = new Carta(9901, 0, "efeito", {
+  nome: "Efeito em qualquer lugar",
+  efeito: { tipo: TIPOS_EFEITO.BUFF_DOIS_ALIADOS, valores: [2, 1] },
+});
+let dropEfeitoProcessado = false;
+const cenaDrop = Object.assign(Object.create(CenaJogo.prototype), {
+  partida: { jogador: { mao: { cartas: [efeitoSolto] } } },
+  tratarSoltarCartaEfeito(_objeto, carta) {
+    dropEfeitoProcessado = carta === efeitoSolto;
+  },
+});
+cenaDrop.tratarSoltarCarta({ dadosCarta: efeitoSolto, destroy() {} });
+assert.equal(
+  dropEfeitoProcessado,
+  true,
+  "Carta de efeito deve ser aceita antes de qualquer teste de slot do campo.",
+);
+assert.match(
+  jogoSource,
+  /animarCompraCarta[\s\S]*?containerCarta\.setScale\(1\)[\s\S]*?onUpdate:[\s\S]*?containerCarta\.setScale\(1\)/,
+  "A compra deve manter escala fixa durante todo o voo.",
+);
+
 const invocationScene = Object.create(CenaJogo.prototype);
 const videoEvents = new Map();
 let videoKey = null;
@@ -276,12 +395,12 @@ assert.equal(videoKey, "efeitoRaspClayVertical");
 assert.equal(videoSize, null, "O tamanho deve aguardar a textura real do vídeo.");
 assert.equal(videoVisible, false);
 videoEvents.get("created")();
-assert.deepEqual(videoSize, [920, 1636]);
+assert.deepEqual(videoSize, [1080, 1636]);
 assert.equal(videoVisible, true);
 assert.equal(
-  Math.abs(videoSize[0] / videoSize[1] - 9 / 16) < 0.001,
+  videoSize[0] <= 1080 && videoSize[1] <= 2160,
   true,
-  "O efeito deve preservar a proporção vertical completa com margem lateral.",
+  "O efeito deve permanecer dentro dos limites da arena.",
 );
 assert.equal(videoDepth, 5000);
 assert.equal(videoLoop, false, "O vídeo de invocação deve tocar apenas uma vez.");
@@ -290,6 +409,81 @@ assert.equal(videoDestroyed, true);
 assert.equal(invocationCompleted, 1);
 fallback();
 assert.equal(invocationCompleted, 1, "A conclusão do efeito deve ocorrer uma vez.");
+
+const timerScene = Object.create(CenaJogo.prototype);
+timerScene.partida = { partidaEncerrada: false };
+timerScene.tempoRestanteTurno = 60_000;
+timerScene.tempoRestanteOponente = 60_000;
+timerScene.timerOponenteRodando = true;
+timerScene.timerTurnoExpirado = false;
+timerScene.ehMeuTurno = true;
+timerScene.multiplayerAtivo = false;
+timerScene.travado = false;
+timerScene.animacaoRemotaEmCurso = false;
+timerScene.atualizarVisualTimerTurno = () => {};
+let encerramentosPorTempo = 0;
+let callbackExpiracao = null;
+timerScene.aoClicarPassarTurno = () => encerramentosPorTempo++;
+timerScene.time = {
+  delayedCall(delay, handler) {
+    assert.equal(delay, 0);
+    callbackExpiracao = handler;
+  },
+};
+
+timerScene.update(0, 1_000);
+assert.equal(timerScene.tempoRestanteTurno, 59_000);
+timerScene.travado = true;
+timerScene.update(0, 5_000);
+assert.equal(
+  timerScene.tempoRestanteTurno,
+  59_000,
+  "O timer deve pausar enquanto a interação estiver travada.",
+);
+timerScene.travado = false;
+timerScene.ehMeuTurno = false;
+timerScene.update(0, 5_000);
+assert.equal(
+  timerScene.tempoRestanteTurno,
+  59_000,
+  "O timer deve pausar durante o turno do oponente.",
+);
+timerScene.multiplayerAtivo = true;
+timerScene.update(0, 5_000);
+assert.equal(
+  timerScene.tempoRestanteOponente,
+  55_000,
+  "No multiplayer, o relógio deve exibir a contagem do oponente.",
+);
+assert.equal(
+  timerScene.tempoRestanteTurno,
+  59_000,
+  "A contagem visual adversária não pode consumir o tempo do jogador.",
+);
+timerScene.animacaoRemotaEmCurso = true;
+timerScene.update(0, 5_000);
+assert.equal(
+  timerScene.tempoRestanteOponente,
+  55_000,
+  "A contagem adversária deve pausar durante animações remotas.",
+);
+timerScene.animacaoRemotaEmCurso = false;
+timerScene.receberTempoOponente(41_250, false);
+assert.equal(timerScene.tempoRestanteOponente, 41_250);
+assert.equal(timerScene.timerOponenteRodando, false);
+timerScene.ehMeuTurno = true;
+timerScene.update(0, 59_000);
+assert.equal(timerScene.tempoRestanteTurno, 0);
+assert.equal(timerScene.timerTurnoExpirado, true);
+callbackExpiracao();
+assert.equal(
+  encerramentosPorTempo,
+  1,
+  "O limite de um minuto deve encerrar o turno automaticamente uma vez.",
+);
+timerScene.reiniciarTimerTurno();
+assert.equal(timerScene.tempoRestanteTurno, 60_000);
+assert.equal(timerScene.timerTurnoExpirado, false);
 assert.equal(
   invocationScene.reproduzirEfeitoInvocacao(
     { nome: "Outra Carta" },

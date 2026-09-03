@@ -388,7 +388,10 @@ class Partida {
     // Cessar e Desistir (Advogado Corporativo) é 1x POR PARTIDA, não 1x
     // por turno — usa usadaNaPartida em vez de usadaEsteTurno pra decidir
     // se já foi gasta (usadaNaPartida nunca é resetado em fimTurno()).
-    const jaFoiUsada = carta.usadaEsteTurno;
+    const jaFoiUsada =
+      carta.usadaEsteTurno ||
+      (carta.efeito?.tipo === TIPOS_EFEITO.DESTRUIR_TERRENO_INIMIGO &&
+        carta.usadaNaPartida);
     if (!carta.efeito || !carta.habilidadeAtiva || jaFoiUsada)
       return { sucesso: false, afetadas: [] };
 
@@ -522,6 +525,11 @@ class Partida {
       const afetadas = [];
 
       const cartaPerda = dono.campo.cartas[alvoEscolhido];
+      // O custo precisa existir por inteiro antes da habilidade acontecer.
+      // Sem esta guarda, uma carta com 1 PA era aceita e ainda gerava o
+      // bônus de +3, criando poder do nada.
+      if (cartaPerda.poder < perda)
+        return { sucesso: false, afetadas: [] };
       cartaPerda.buff(-perda);
       afetadas.push({ carta: cartaPerda, delta: -perda });
 
@@ -651,24 +659,36 @@ class Partida {
       // Override (A Aranha): a carta-alvo CONTINUA no campo do oponente
       // (não muda de dono nem de slot) — só passa a contar ponto pro
       // dono da Aranha, via a flag capturadaPor (ver calcularPoderTotal).
-      const jaHackeiaOutra = !!this.obterCartaHackeadaPor(carta);
+      const hackAnterior = this.obterCartaHackeadaPor(carta);
       const alvoValido =
-        !jaHackeiaOutra &&
         alvoEscolhido !== null &&
         alvoEscolhido !== undefined &&
         oponente.campo.cartas[alvoEscolhido] &&
         oponente.campo.cartas[alvoEscolhido].tipo !== "terreno" &&
+        oponente.campo.cartas[alvoEscolhido] !== hackAnterior &&
         !oponente.campo.cartas[alvoEscolhido].capturadaPorAranha &&
         oponente.campo.cartas[alvoEscolhido].poder < carta.poder;
       if (!alvoValido) return { sucesso: false, afetadas: [] };
 
+      // Troca atômica de alvo: o vínculo antigo só é solto depois que o
+      // novo alvo foi completamente validado. Assim um clique inválido não
+      // faz a Aranha perder o controle que já possuía.
+      if (hackAnterior) {
+        hackAnterior.capturadaPor = null;
+        hackAnterior.capturadaPorAranha = null;
+      }
       const capturada = oponente.campo.cartas[alvoEscolhido];
       capturada.capturadaPor = dono;
       capturada.capturadaPorAranha = carta;
 
       carta.usadaEsteTurno = true;
       carta.revelada = true;
-      return { sucesso: true, afetadas: [], capturada };
+      return {
+        sucesso: true,
+        afetadas: [],
+        capturada,
+        liberadaAnterior: hackAnterior || null,
+      };
     }
 
     if (carta.efeito.tipo === TIPOS_EFEITO.ROUBAR_PODER) {
@@ -730,7 +750,15 @@ class Partida {
       if (!possiveis.includes(alvoEscolhido))
         return { sucesso: false, afetadas: [] };
 
-      oponente.campo.cartas[alvoEscolhido].envenenada = { valor };
+      const alvo = oponente.campo.cartas[alvoEscolhido];
+      const venenoAnterior = Math.max(
+        0,
+        Number(alvo.envenenada?.valor) || 0,
+      );
+      alvo.envenenada = {
+        valor: venenoAnterior + valor,
+        stacks: Math.max(0, Number(alvo.envenenada?.stacks) || 0) + 1,
+      };
 
       carta.usadaEsteTurno = true;
       carta.revelada = true;
@@ -780,8 +808,9 @@ class Partida {
       // TAMBÉM pode ser escolhida como um dos dois alvos — a UI (jogo.js)
       // é quem cuida de excluir o primeiro alvo escolhido da segunda lista.
       const indices = [];
+      const custo = Math.max(0, Number(carta.efeito.perda) || 0);
       dono.campo.cartas.forEach((c, i) => {
-        if (c && c.tipo !== "terreno") indices.push(i);
+        if (c && c.tipo !== "terreno" && c.poder >= custo) indices.push(i);
       });
       return indices;
     }
@@ -824,7 +853,7 @@ class Partida {
 
     if (carta.efeito.tipo === TIPOS_EFEITO.OVERRIDE) {
       this.atualizarOverrides();
-      if (this.obterCartaHackeadaPor(carta)) return [];
+      const hackAtual = this.obterCartaHackeadaPor(carta);
       // Override (A Aranha): só cartas inimigas com poder MENOR que o
       // dela — a carta capturada fica no campo do oponente, então não
       // precisa de slot livre no campo do dono.
@@ -833,6 +862,7 @@ class Partida {
         if (
           c &&
           c.tipo !== "terreno" &&
+          c !== hackAtual &&
           !c.capturadaPorAranha &&
           c.poder < carta.poder
         ) {
@@ -1530,28 +1560,75 @@ class Partida {
   }
 }
 
-// Configuração Phaser para celulares na vertical.
-// Resolução interna elevada para 1080x2160 (mantendo a proporção 1:2
-// original de 360x720) para tirar proveito das telas de alta densidade
-// (Retina/AMOLED) mais comuns em celulares atuais. O modo FIT + CENTER_BOTH
-// garante que o jogo continue se ajustando a qualquer tamanho de tela sem
-// distorcer, só que agora renderizando com muito mais nitidez.
+// O layout continua usando o espaço lógico de 1080x2160, mas celulares
+// renderizam em 720x1440. A câmera faz a conversão sem mudar nenhuma
+// coordenada de jogo ou de input. Isso corta 56% dos pixels processados por
+// frame, uma diferença grande justamente nos aparelhos que mais precisam.
 const usarCanvasParaDiagnostico =
   typeof window !== "undefined" &&
   typeof URLSearchParams !== "undefined" &&
   new URLSearchParams(window.location.search).get("renderer") === "canvas";
 
+const parametrosRender =
+  typeof URLSearchParams !== "undefined"
+    ? new URLSearchParams(window.location?.search || "")
+    : { get: () => null };
+const qualidadeSolicitada = parametrosRender.get("quality");
+const ponteiroGrosso = window.matchMedia?.("(pointer: coarse)")?.matches;
+const telaCompacta =
+  Math.min(window.screen?.width || GW, window.screen?.height || GH) <= 1024;
+const quantidadeToques =
+  typeof navigator !== "undefined" ? navigator.maxTouchPoints || 0 : 0;
+const usarPerfilMovel =
+  qualidadeSolicitada !== "high" &&
+  (qualidadeSolicitada === "mobile" ||
+    (quantidadeToques > 0 && telaCompacta) ||
+    (ponteiroGrosso && telaCompacta));
+const ESCALA_RENDER = usarPerfilMovel ? 2 / 3 : 1;
+const LARGURA_RENDER = Math.round(GW * ESCALA_RENDER);
+const ALTURA_RENDER = Math.round(GH * ESCALA_RENDER);
+
+function configurarCameraLogica(scene) {
+  if (!scene.__cyberduelTextScaleInstalled) {
+    const criarTextoOriginal = scene.add.text.bind(scene.add);
+    scene.add.text = (x, y, texto, estilo = {}) =>
+      criarTextoOriginal(
+        x,
+        y,
+        texto,
+        window.cyberduelSettings?.phaserTextStyle(estilo) || estilo,
+      );
+    scene.__cyberduelTextScaleInstalled = true;
+  }
+  if (ESCALA_RENDER === 1) return;
+  const camera = scene.cameras.main;
+  camera.setZoom(ESCALA_RENDER);
+  camera.centerOn(GW / 2, GH / 2);
+}
+
+window.CYBERDUEL_RENDER_PROFILE = Object.freeze({
+  mobile: usarPerfilMovel,
+  scale: ESCALA_RENDER,
+  width: LARGURA_RENDER,
+  height: ALTURA_RENDER,
+});
+
 const config = {
   type: usarCanvasParaDiagnostico ? Phaser.CANVAS : Phaser.AUTO,
-  width: 1080,
-  height: 2160,
+  width: LARGURA_RENDER,
+  height: ALTURA_RENDER,
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
+    autoRound: true,
   },
   render: {
     antialias: true,
-    roundPixels: false,
+    antialiasGL: false,
+    roundPixels: usarPerfilMovel,
+    powerPreference: "high-performance",
+    batchSize: 4096,
+    skipUnreadyShaders: usarPerfilMovel,
   },
   scene: [CenaPreload, CenaTitulo, CenaDeckBuilder, CenaTransicao, CenaJogo],
 };

@@ -1,0 +1,11 @@
+.git
+.gitignore
+node_modules
+npm-debug.log*
+test
+scripts
+docker-compose*.yml
+README.md
+gdd.md
+Tutorial.md
+Cartas e boosters.md

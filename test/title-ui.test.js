@@ -43,7 +43,8 @@ assert.ok(readySummary.composition.alta >= 2);
 
 const index = fs.readFileSync("index.html", "utf8");
 assert.ok(
-  index.indexOf("js/multiplayer.js") < index.indexOf("js/title-ui.js") &&
+  index.indexOf("js/settings.js") < index.indexOf("js/title-ui.js") &&
+    index.indexOf("js/multiplayer.js") < index.indexOf("js/title-ui.js") &&
     index.indexOf("js/title-ui.js") < index.indexOf("js/cenas/titulo.js"),
   "As dependências da tela inicial devem carregar antes da cena.",
 );

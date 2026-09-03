@@ -22,10 +22,12 @@ class CenaTransicao extends Phaser.Scene {
   }
 
   create() {
+    configurarCameraLogica(this);
     this.cameras.main.setBackgroundColor("#000000");
 
     const video = this.add.video(GW / 2, GH / 2, "videoTransicao");
     video.setOrigin(0.5);
+    video.setVolume?.(window.cyberduelSettings?.music(1) ?? 1);
     // Sem setDisplaySize: o vídeo já nasce 1080x2160, do mesmo tamanho
     // interno do jogo (GW/GH) — toca na resolução original, sem esticar
     // e sem zoom.

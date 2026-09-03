@@ -101,7 +101,7 @@ function descreverEfeito(efeito) {
         ? `Habilidade ativa (1x por turno, em campo): escolha uma carta aliada em campo para ganhar +${efeito.valor} de poder. Esta carta perde ${efeito.custoProprio} de poder.`
         : `Ao ser invocada: escolha uma carta aliada em campo (pode ser esta) para ganhar +${efeito.valor} de poder.`;
     case TIPOS_EFEITO.REDISTRIBUIR_PODER:
-      return `Habilidade ativa (1x por turno, em campo): escolha uma carta aliada para perder ${efeito.perda} de poder, e outra carta aliada para ganhar +${efeito.ganho} de poder.`;
+      return `Habilidade ativa (1x por turno, em campo): escolha uma carta aliada com pelo menos ${efeito.perda} de PA para perder ${efeito.perda} de poder, e outra carta aliada para ganhar +${efeito.ganho} de poder.`;
     case TIPOS_EFEITO.DESTRUIR_TERRENO_INIMIGO:
       return `Habilidade ativa (1x por turno, em campo): escolha um terreno inimigo para ser eliminado.`;
     case TIPOS_EFEITO.BUSCAR_CARTA_DECK:
@@ -113,7 +113,7 @@ function descreverEfeito(efeito) {
     case TIPOS_EFEITO.ATACAR_DOIS_ALVOS:
       return `Habilidade ativa (1x por turno, em campo): escolha 2 cartas inimigas em alcance curto (H${efeito.rangeH}/V${efeito.rangeV}) para perder ${efeito.valor} de PA cada.`;
     case TIPOS_EFEITO.OVERRIDE:
-      return `Habilidade ativa (1x por turno, em campo): escolha uma carta inimiga com poder menor que o desta carta. Ela é capturada para o seu campo, se houver espaço livre.`;
+      return `Habilidade ativa (1x por turno, em campo): controle uma carta inimiga com PA menor que o desta carta. Ao escolher outro alvo, o controle anterior é transferido para o novo.`;
     case TIPOS_EFEITO.ROUBAR_PODER:
       return `Habilidade ativa (1x por turno, em campo): escolha uma carta inimiga em qualquer lugar do campo. Rouba ${efeito.valor} de poder dela, somando esse valor ao próprio poder.`;
     case TIPOS_EFEITO.REPOSICIONAR:
@@ -123,7 +123,7 @@ function descreverEfeito(efeito) {
     case TIPOS_EFEITO.CASCA_GROSSA:
       return `Casca Grossa: o poder desta carta nunca pode ser reduzido abaixo do seu valor original.`;
     case TIPOS_EFEITO.ENVENENAR:
-      return `Habilidade ativa (1x por turno, em campo): escolha uma carta inimiga em alcance curto (à frente ou em espaço adjacente) para envenenar. Ela perde ${efeito.valor} de poder a cada turno enquanto estiver em campo.`;
+      return `Habilidade ativa (1x por turno, em campo): escolha uma carta inimiga em alcance curto para envenenar. Ela perde ${efeito.valor} de PA por turno; aplicações adicionais acumulam o dano.`;
     case TIPOS_EFEITO.ATACAR_COLUNA:
       return `Ao ser conjurada: escolha uma coluna do campo inimigo. Todas as cartas dessa coluna perdem ${efeito.valor} de poder.`;
     case TIPOS_EFEITO.BUFF_DOIS_ALIADOS:
@@ -183,6 +183,7 @@ const POOL_CARTAS_TERRENO = [
     descricao:
       "Recriada no mundo virtual com mais de quatro quilômetros de altura, a Torre MonteCorp permanece como um lembrete constante de que, se a Raspcorp quisesse conquistar os céus, provavelmente encontraria uma forma de monetizá-los.",
     imagem: "torremontecorp",
+    booster: "raspcorp",
     efeitoContinuo: {
       tipo: TIPOS_EFEITO_CONTINUO.BUFF_CAMPO_CONTINUO,
       valor: 2,
@@ -194,6 +195,7 @@ const POOL_CARTAS_TERRENO = [
     descricao:
       "Depois que a verdadeira Floripa sucumbiu ao aumento do nível do mar, os nostálgicos decidiram recriá-la no mundo virtual. Ironicamente, continua sendo o jeito mais acessível de morar na ilha. O trânsito, contudo, nem aqui foi resolvido.",
     imagem: "beiramarneofloripa",
+    booster: "raspcorp",
     efeitoContinuo: {
       tipo: TIPOS_EFEITO_CONTINUO.RECUPERAR_DANO_CONTINUO,
       valor: 1,
@@ -204,6 +206,7 @@ const POOL_CARTAS_TERRENO = [
     descricao:
       "Responsável por armazenar aproximadamente 99% dos dados da humanidade. Sua destruição foi comparada à queima da Biblioteca de Alexandria, caso ela armazenasse apenas informações pessoais obtidas por meios semilegais. Ainda bem que tudo é salvo na nuvem atualmente.",
     imagem: "nexusneofloripa",
+    booster: "raspcorp",
     efeitoContinuo: {
       tipo: TIPOS_EFEITO_CONTINUO.REVELAR_MAO_CONTINUO,
     },
@@ -481,14 +484,9 @@ const POOL_CARTAS_MONSTRO = [
     efeito: {
       tipo: TIPOS_EFEITO.OVERRIDE,
     },
-    // Override: no card original a carta capturada "passa a contar pontos
-    // para sua equipe" mas continua fisicamente no campo inimigo. Esse jogo
-    // pontua por poder total em cada campo (ver Partida.calcularPoderTotal),
-    // sem um conceito de "dono temporário" separado do campo físico — pra
-    // não reescrever esse sistema inteiro, a implementação simplifica o
-    // efeito para uma CAPTURA de verdade: a carta-alvo é movida pro campo
-    // do dono da Aranha (se houver espaço livre), o que já produz o mesmo
-    // resultado prático (o poder dela passa a contar pro outro lado).
+    // Override mantém a carta fisicamente no campo inimigo, mas transfere
+    // os pontos. Em um turno posterior a Aranha pode escolher um alvo novo,
+    // soltando o vínculo anterior.
     habilidadeAtiva: true, // Override: não dispara ao invocar — ativa em campo, 1x por turno
   },
 
@@ -612,6 +610,7 @@ const POOL_CARTAS_EFEITO = [
       "Após analisar seu histórico de compras, pesquisas e sonhos recorrentes, o algoritmo preparou uma sugestão especialmente para você. Foi você que aceitou todos os cookies...",
     // Provisória: reaproveita a arte do Gestor de RH até ter uma própria.
     imagem: "sugalg",
+    booster: "raspcorp",
     efeito: { tipo: TIPOS_EFEITO.BUSCAR_CARTA_DECK },
   },
 

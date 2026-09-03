@@ -63,6 +63,7 @@ class CyberduelDeckBuilderUI {
     document.addEventListener("keydown", this.handleKeydown);
     requestAnimationFrame(() => this.root.classList.add("is-ready"));
     this.render();
+    window.cyberduelSettings?.queueDomTextUpdate(this.root);
   }
 
   createMobileStatus() {
@@ -100,8 +101,12 @@ class CyberduelDeckBuilderUI {
 
   createHeader() {
     const header = this.element("header", "forge-header");
-    const back = this.button("forge-icon-button forge-back", "←", () =>
-      this.tryExit(), "Voltar ao menu");
+    const back = this.button(
+      "forge-icon-button forge-back",
+      "←",
+      () => this.tryExit(),
+      "Voltar ao menu",
+    );
     const identity = this.element("div", "forge-identity");
     const title = this.element("h1", "forge-title");
     title.append(
@@ -111,7 +116,11 @@ class CyberduelDeckBuilderUI {
     identity.append(
       this.element("span", "forge-overline", "CYBERDUEL // ARSENAL"),
       title,
-      this.element("p", "forge-subtitle", "Construa sua estratégia. Domine a audiência."),
+      this.element(
+        "p",
+        "forge-subtitle",
+        "Construa sua estratégia. Domine a audiência.",
+      ),
     );
     this.saveState = this.element("div", "forge-save-state");
     this.saveState.append(
@@ -156,18 +165,27 @@ class CyberduelDeckBuilderUI {
       ["efeito", "Efeitos", "ϟ"],
       ["terreno", "Terrenos", "⌂"],
     ].forEach(([value, label, icon]) => {
-      const filterButton = this.button("forge-filter", `${icon} ${label}`, () => {
-        this.filter = value;
-        this.renderCollection();
-      });
+      const filterButton = this.button(
+        "forge-filter",
+        `${icon} ${label}`,
+        () => {
+          this.filter = value;
+          this.renderCollection();
+        },
+      );
       filterButton.dataset.filter = value;
       this.filters.append(filterButton);
     });
     this.enableHorizontalDrag(this.filters);
-    this.orderButton = this.button("forge-order", "Nível ↑", () => {
-      this.order = this.order === "crescente" ? "decrescente" : "crescente";
-      this.renderCollection();
-    }, "Inverter ordem por nível");
+    this.orderButton = this.button(
+      "forge-order",
+      "Nível ↑",
+      () => {
+        this.order = this.nextOrder(this.order);
+        this.renderCollection();
+      },
+      "Alternar ordenação das cartas",
+    );
     controls.append(this.filters, this.orderButton);
     const swipeHint = this.element(
       "span",
@@ -204,27 +222,35 @@ class CyberduelDeckBuilderUI {
     };
     rail.addEventListener("pointerup", finishDrag);
     rail.addEventListener("pointercancel", finishDrag);
-    rail.addEventListener("click", (event) => {
-      if (!blockClick) return;
-      event.preventDefault();
-      event.stopPropagation();
-      blockClick = false;
-    }, true);
-    rail.addEventListener("wheel", (event) => {
-      if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
-      rail.scrollLeft += event.deltaY;
-      event.preventDefault();
-    }, { passive: false });
+    rail.addEventListener(
+      "click",
+      (event) => {
+        if (!blockClick) return;
+        event.preventDefault();
+        event.stopPropagation();
+        blockClick = false;
+      },
+      true,
+    );
+    rail.addEventListener(
+      "wheel",
+      (event) => {
+        if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+        rail.scrollLeft += event.deltaY;
+        event.preventDefault();
+      },
+      { passive: false },
+    );
   }
 
   render() {
     if (!this.hasRendered || this.mobileView === "collection")
       this.renderCollection();
-    if (!this.hasRendered || this.mobileView === "deck")
-      this.renderDeckPanel();
+    if (!this.hasRendered || this.mobileView === "deck") this.renderDeckPanel();
     this.renderSaveState();
     this.renderMobileChrome();
     this.hasRendered = true;
+    window.cyberduelSettings?.queueDomTextUpdate(this.root);
   }
 
   mobileSummary(status = this.builder.status(this.deck)) {
@@ -256,7 +282,10 @@ class CyberduelDeckBuilderUI {
     const progressFill = this.element("span");
     progressFill.style.width = summary.progress;
     progress.append(progressFill);
-    const requirements = this.element("div", "forge-mobile-status__requirements");
+    const requirements = this.element(
+      "div",
+      "forge-mobile-status__requirements",
+    );
     summary.requirements.forEach(([label, current, minimum]) => {
       const item = this.element(
         "span",
@@ -269,14 +298,18 @@ class CyberduelDeckBuilderUI {
     telemetry.append(progress, requirements);
     this.mobileStatus.append(count, telemetry);
 
-    this.mobileDeckButton.querySelector(".forge-mobile-dock__count").textContent =
-      String(this.builder.total(this.deck));
+    this.mobileDeckButton.querySelector(
+      ".forge-mobile-dock__count",
+    ).textContent = String(this.builder.total(this.deck));
     this.mobileDeckButton.classList.toggle("is-ready", summary.ready);
     this.mobileCollectionButton.classList.toggle(
       "is-active",
       this.mobileView === "collection",
     );
-    this.mobileDeckButton.classList.toggle("is-active", this.mobileView === "deck");
+    this.mobileDeckButton.classList.toggle(
+      "is-active",
+      this.mobileView === "deck",
+    );
     this.mobileCollectionButton.setAttribute(
       "aria-current",
       this.mobileView === "collection" ? "page" : "false",
@@ -297,23 +330,32 @@ class CyberduelDeckBuilderUI {
       else this.renderDeckPanel();
     }
     this.renderMobileChrome();
-    if (options.scroll !== false) this.root.scrollTo({ top: 0, behavior: "smooth" });
+    if (options.scroll !== false)
+      this.root.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   visibleCards() {
-    return this.builder.filterCatalog({
-      filter: this.filter,
-      query: this.query,
-      order: this.order,
-    });
+    return this.builder
+      .filterCatalog({
+        filter: this.filter,
+        query: this.query,
+        order: this.order,
+      })
+      .filter(
+        (card) => !this.builder.account || this.builder.ownedQuantity(card) > 0,
+      );
   }
 
   renderCollection() {
     if (!this.collectionGrid) return;
     const cards = this.visibleCards();
     this.resultCount.textContent = `${cards.length} ${cards.length === 1 ? "registro" : "registros"}`;
-    this.orderButton.textContent = this.order === "crescente" ? "Nível ↑" : "Nível ↓";
-    this.orderButton.classList.toggle("is-descending", this.order === "decrescente");
+    this.orderButton.textContent = this.orderLabel(this.order);
+    this.orderButton.classList.toggle(
+      "is-descending",
+      this.order === "decrescente",
+    );
+    this.orderButton.classList.toggle("is-faction", this.order === "faccao");
     this.filters.querySelectorAll(".forge-filter").forEach((button) => {
       const active = button.dataset.filter === this.filter;
       button.classList.toggle("is-active", active);
@@ -331,22 +373,55 @@ class CyberduelDeckBuilderUI {
       return;
     }
     const fragment = document.createDocumentFragment();
-    cards.forEach((card) => {
-      const cardElement = this.createCollectionCard(card);
-      fragment.append(cardElement);
-    });
+    if (this.order === "faccao") {
+      const groups = new Map();
+      cards.forEach((card) => {
+        const faction = String(card.booster || "neutro");
+        if (!groups.has(faction)) groups.set(faction, []);
+        groups.get(faction).push(card);
+      });
+      for (const [faction, factionCards] of groups) {
+        const section = this.element("section", "forge-faction-group");
+        const heading = this.element(
+          "h3",
+          `forge-faction-group__title is-${faction}`,
+        );
+        heading.textContent = this.factionLabel(faction);
+        const grid = this.element("div", "forge-faction-group__grid");
+        factionCards.forEach((card) =>
+          grid.append(this.createCollectionCard(card)),
+        );
+        section.append(heading, grid);
+        fragment.append(section);
+      }
+    } else {
+      cards.forEach((card) => {
+        const cardElement = this.createCollectionCard(card);
+        fragment.append(cardElement);
+      });
+    }
     this.collectionGrid.append(fragment);
   }
 
   createCollectionCard(card) {
     const quantity = this.builder.quantity(this.deck, card);
+    const owned = this.builder.ownedQuantity(card);
+    const usableLimit = Math.min(card.limite, owned);
     const total = this.builder.total(this.deck);
     const article = this.element(
       "article",
       `forge-card level-${card.nivel}${quantity ? " is-selected" : ""}`,
     );
+    if (this.order === "faccao") {
+      article.classList.add(
+        "is-faction-sorted",
+        `faction-${String(card.booster || "neutro")}`,
+      );
+    }
     article.style.setProperty("--card-color", this.levelColor(card));
-    const artButton = this.button("forge-card__art", "", () => this.openDetail(card));
+    const artButton = this.button("forge-card__art", "", () =>
+      this.openDetail(card),
+    );
     artButton.setAttribute("aria-label", `Ver detalhes de ${card.nome}`);
     const image = this.element("img", "forge-card__image");
     image.src = this.imageSource(card);
@@ -357,22 +432,40 @@ class CyberduelDeckBuilderUI {
       image,
       this.element("span", "forge-card__wash"),
       this.element("span", "forge-card__level", this.levelLabel(card)),
-      this.element("span", "forge-card__power", card.tipo === "monstro" ? String(card.poder) : this.typeIcon(card.tipo)),
+      this.element(
+        "span",
+        "forge-card__power",
+        card.tipo === "monstro" ? String(card.poder) : this.typeIcon(card.tipo),
+      ),
       this.element("span", "forge-card__inspect", "VER FICHA ↗"),
     );
     const body = this.element("div", "forge-card__body");
     body.append(
       this.element("span", "forge-card__type", this.typeLabel(card.tipo)),
       this.element("h3", "forge-card__name", card.nome),
+      this.element("span", "forge-card__owned", `ACERVO ×${owned}`),
       this.element("p", "forge-card__description", card.descricao),
     );
     const controls = this.element("div", "forge-card__controls");
-    const minus = this.button("forge-qty-button", "−", () => this.change(card, -1), `Remover ${card.nome}`);
+    const minus = this.button(
+      "forge-qty-button",
+      "−",
+      () => this.change(card, -1),
+      `Remover ${card.nome}`,
+    );
     minus.disabled = quantity === 0;
     const counter = this.element("div", "forge-card__counter");
-    counter.append(this.element("strong", "", String(quantity)), this.element("span", "", `/ ${card.limite}`));
-    const plus = this.button("forge-qty-button forge-qty-button--add", "+", () => this.change(card, 1), `Adicionar ${card.nome}`);
-    plus.disabled = quantity >= card.limite || total >= this.builder.maxCards;
+    counter.append(
+      this.element("strong", "", String(quantity)),
+      this.element("span", "", `/ ${usableLimit}`),
+    );
+    const plus = this.button(
+      "forge-qty-button forge-qty-button--add",
+      "+",
+      () => this.change(card, 1),
+      `Adicionar ${card.nome}`,
+    );
+    plus.disabled = quantity >= usableLimit || total >= this.builder.maxCards;
     controls.append(minus, counter, plus);
     article.append(artButton, body, controls);
     return article;
@@ -383,14 +476,21 @@ class CyberduelDeckBuilderUI {
     this.deckPanel.replaceChildren();
     const summary = this.element("div", "forge-deck-summary");
     const titleBlock = this.element("div");
-    titleBlock.append(this.element("span", "forge-kicker", "LOADOUT ATIVO"), this.element("h2", "forge-section-title", "Seu deck"));
+    titleBlock.append(
+      this.element("span", "forge-kicker", "LOADOUT ATIVO"),
+      this.element("h2", "forge-section-title", "Seu deck"),
+    );
     const deckActions = this.element("div", "forge-deck-actions");
-    const randomDeck = this.button("forge-text-button forge-text-button--random", "ALEATÓRIO", () => {
-      this.deck = this.builder.getRandomDeck();
-      this.markDirty();
-      this.render();
-      this.toast("Novo deck aleatório gerado. Boa sorte, duelista.");
-    });
+    const randomDeck = this.button(
+      "forge-text-button forge-text-button--random",
+      "ALEATÓRIO",
+      () => {
+        this.deck = this.builder.getRandomDeck();
+        this.markDirty();
+        this.render();
+        this.toast("Novo deck aleatório gerado. Boa sorte, duelista.");
+      },
+    );
     const autoBuild = this.button("forge-text-button", "AUTO-BUILD", () => {
       this.deck = this.builder.getStarterDeck();
       this.markDirty();
@@ -400,8 +500,14 @@ class CyberduelDeckBuilderUI {
     deckActions.append(randomDeck, autoBuild);
     summary.append(titleBlock, deckActions);
     const telemetry = this.element("div", "forge-telemetry");
-    const ring = this.element("div", `forge-progress${status.valid ? " is-complete" : ""}`);
-    ring.style.setProperty("--progress", `${Math.min(100, (status.total / 20) * 100)}%`);
+    const ring = this.element(
+      "div",
+      `forge-progress${status.valid ? " is-complete" : ""}`,
+    );
+    ring.style.setProperty(
+      "--progress",
+      `${Math.min(100, (status.total / 20) * 100)}%`,
+    );
     const ringInner = this.element("div", "forge-progress__inner");
     ringInner.append(
       this.element("strong", "", String(status.total).padStart(2, "0")),
@@ -410,28 +516,46 @@ class CyberduelDeckBuilderUI {
     );
     ring.append(ringInner);
     const requirements = this.element("div", "forge-requirements");
-    [["baixa", "Baixas", 6], ["media", "Médias", 4], ["alta", "Altas", 2]].forEach(([level, label, minimum]) => {
+    [
+      ["baixa", "Baixas", 6],
+      ["media", "Médias", 4],
+      ["alta", "Altas", 2],
+    ].forEach(([level, label, minimum]) => {
       const value = status.composition[level];
       const complete = value >= minimum;
-      const row = this.element("div", `forge-requirement${complete ? " is-complete" : ""}`);
+      const row = this.element(
+        "div",
+        `forge-requirement${complete ? " is-complete" : ""}`,
+      );
       row.append(
         this.element("span", `forge-level-dot level-${level}`),
         this.element("span", "forge-requirement__label", label),
         this.element("strong", "", `${value}/${minimum}`),
-        this.element("span", "forge-requirement__check", complete ? "✓" : String(minimum - value)),
+        this.element(
+          "span",
+          "forge-requirement__check",
+          complete ? "✓" : String(minimum - value),
+        ),
       );
       requirements.append(row);
     });
     telemetry.append(ring, requirements);
     const deckListHeader = this.element("div", "forge-deck-list-header");
-    deckListHeader.append(this.element("span", "", "MANIFESTO DO DECK"), this.button("forge-clear", "LIMPAR", () => this.confirmClear()));
+    deckListHeader.append(
+      this.element("span", "", "MANIFESTO DO DECK"),
+      this.button("forge-clear", "LIMPAR", () => this.confirmClear()),
+    );
     const deckList = this.element("div", "forge-deck-list");
     if (!this.deck.length) {
       const empty = this.element("div", "forge-empty-deck");
       empty.append(
         this.element("div", "forge-empty-deck__mark", "+"),
         this.element("strong", "", "Seu arsenal está vazio"),
-        this.element("p", "", "Adicione cartas da coleção ou use o Auto-build."),
+        this.element(
+          "p",
+          "",
+          "Adicione cartas da coleção ou use o Auto-build.",
+        ),
       );
       deckList.append(empty);
     } else {
@@ -443,8 +567,16 @@ class CyberduelDeckBuilderUI {
       deckList.append(fragment);
     }
     const footer = this.element("div", "forge-deck-footer");
-    this.validationMessage = this.element("p", "forge-validation", this.validationText(status));
-    const save = this.button(`forge-save${status.valid ? " is-ready" : ""}`, status.valid ? "SELAR DECK" : `FALTAM ${status.slotsRemaining} CARTAS`, () => this.save());
+    this.validationMessage = this.element(
+      "p",
+      "forge-validation",
+      this.validationText(status),
+    );
+    const save = this.button(
+      `forge-save${status.valid ? " is-ready" : ""}`,
+      status.valid ? "SELAR DECK" : `FALTAM ${status.slotsRemaining} CARTAS`,
+      () => this.save(),
+    );
     save.disabled = !status.valid;
     footer.append(this.validationMessage, save);
     this.deckPanel.append(summary, telemetry, deckListHeader, deckList, footer);
@@ -453,7 +585,9 @@ class CyberduelDeckBuilderUI {
   createDeckRow(card, quantity) {
     const row = this.element("div", "forge-deck-row");
     row.style.setProperty("--card-color", this.levelColor(card));
-    const preview = this.button("forge-deck-row__preview", "", () => this.openDetail(card));
+    const preview = this.button("forge-deck-row__preview", "", () =>
+      this.openDetail(card),
+    );
     const image = this.element("img");
     image.src = this.imageSource(card);
     image.alt = "";
@@ -461,25 +595,42 @@ class CyberduelDeckBuilderUI {
     image.decoding = "async";
     preview.append(image);
     const identity = this.element("div", "forge-deck-row__identity");
-    identity.append(this.element("strong", "", card.nome), this.element("span", "", `${this.levelLabel(card)} · ${this.typeLabel(card.tipo)}`));
+    identity.append(
+      this.element("strong", "", card.nome),
+      this.element(
+        "span",
+        "",
+        `${this.levelLabel(card)} · ${this.typeLabel(card.tipo)}`,
+      ),
+    );
     const controls = this.element("div", "forge-deck-row__controls");
     controls.append(
       this.button("", "−", () => this.change(card, -1), `Remover ${card.nome}`),
       this.element("strong", "", String(quantity)),
-      this.button("", "+", () => this.change(card, 1), `Adicionar ${card.nome}`),
+      this.button(
+        "",
+        "+",
+        () => this.change(card, 1),
+        `Adicionar ${card.nome}`,
+      ),
     );
-    controls.lastElementChild.disabled = quantity >= card.limite || this.builder.total(this.deck) >= 20;
+    controls.lastElementChild.disabled =
+      quantity >= Math.min(card.limite, this.builder.ownedQuantity(card)) ||
+      this.builder.total(this.deck) >= 20;
     row.append(preview, identity, controls);
     return row;
   }
 
   validationText(status) {
-    if (status.valid) return "Todos os requisitos atendidos. Deck pronto para combate.";
+    if (status.valid)
+      return "Todos os requisitos atendidos. Deck pronto para combate.";
     if (status.total < 20) {
       const missing = Object.entries(status.remaining)
         .filter(([, value]) => value > 0)
         .map(([level, value]) => `${value} ${this.pluralLevel(level, value)}`);
-      return missing.length ? `Prioridade: ${missing.join(", ")}.` : `${status.slotsRemaining} slots livres para sua estratégia.`;
+      return missing.length
+        ? `Prioridade: ${missing.join(", ")}.`
+        : `${status.slotsRemaining} slots livres para sua estratégia.`;
     }
     return "A composição ainda não atende aos níveis mínimos.";
   }
@@ -503,19 +654,34 @@ class CyberduelDeckBuilderUI {
   renderSaveState() {
     if (!this.saveState) return;
     this.saveState.classList.toggle("is-dirty", this.dirty);
-    this.saveState.querySelector(".forge-save-state__text").textContent = this.dirty ? "Alterações locais" : "Deck sincronizado";
+    this.saveState.querySelector(".forge-save-state__text").textContent = this
+      .dirty
+      ? "Alterações locais"
+      : "Deck sincronizado";
   }
 
-  save() {
+  async save() {
     if (!this.builder.saveDeck(this.deck)) {
       this.toast("O deck ainda não passou na validação.", "error");
       return;
     }
-    this.dirty = false;
-    this.renderSaveState();
-    this.toast("Deck selado. O duelo já pode começar.", "success");
-    this.root.classList.add("forge-saved-flash");
-    setTimeout(() => this.root?.classList.remove("forge-saved-flash"), 700);
+    try {
+      await this.builder.lastSavePromise;
+      this.dirty = false;
+      this.renderSaveState();
+      this.toast(
+        this.builder.account
+          ? `Deck salvo na conta ${this.builder.account}.`
+          : "Deck selado. O duelo já pode começar.",
+        "success",
+      );
+      this.root.classList.add("forge-saved-flash");
+      setTimeout(() => this.root?.classList.remove("forge-saved-flash"), 700);
+    } catch (error) {
+      this.dirty = true;
+      this.renderSaveState();
+      this.toast(error.message || "Falha ao salvar o deck na conta.", "error");
+    }
   }
 
   confirmClear() {
@@ -523,7 +689,8 @@ class CyberduelDeckBuilderUI {
     this.openConfirm({
       eyebrow: "RESET DE ARSENAL",
       title: "Limpar o deck inteiro?",
-      message: "As cartas serão removidas do editor. O deck salvo continua intacto até você selar outro.",
+      message:
+        "As cartas serão removidas do editor. O deck salvo continua intacto até você selar outro.",
       confirmLabel: "LIMPAR DECK",
       danger: true,
       onConfirm: () => {
@@ -539,7 +706,8 @@ class CyberduelDeckBuilderUI {
     this.openConfirm({
       eyebrow: "ALTERAÇÕES NÃO SALVAS",
       title: "Sair da forja?",
-      message: "Seu deck salvo não será alterado, mas as mudanças desta sessão serão descartadas.",
+      message:
+        "Seu deck salvo não será alterado, mas as mudanças desta sessão serão descartadas.",
       confirmLabel: "DESCARTAR E SAIR",
       danger: true,
       onConfirm: () => this.onExit(),
@@ -556,27 +724,64 @@ class CyberduelDeckBuilderUI {
     dialog.setAttribute("role", "dialog");
     dialog.setAttribute("aria-modal", "true");
     dialog.setAttribute("aria-label", card.nome);
-    const close = this.button("forge-modal-close", "×", () => this.closeModal(), "Fechar ficha");
+    const close = this.button(
+      "forge-modal-close",
+      "×",
+      () => this.closeModal(),
+      "Fechar ficha",
+    );
     const visual = this.element("div", "forge-detail__visual");
     const image = this.element("img");
     image.src = this.imageSource(card);
     image.alt = `Arte da carta ${card.nome}`;
     image.decoding = "async";
     visual.append(image, this.element("div", "forge-detail__visual-wash"));
-    if (card.tipo === "monstro") visual.append(this.element("strong", "forge-detail__power", String(card.poder)));
+    if (card.tipo === "monstro")
+      visual.append(
+        this.element("strong", "forge-detail__power", String(card.poder)),
+      );
     const content = this.element("div", "forge-detail__content");
-    content.append(this.element("span", "forge-kicker", `${this.typeLabel(card.tipo)} // ${this.levelLabel(card)}`), this.element("h2", "", card.nome));
+    content.append(
+      this.element(
+        "span",
+        "forge-kicker",
+        `${this.typeLabel(card.tipo)} // ${this.levelLabel(card)}`,
+      ),
+      this.element("h2", "", card.nome),
+    );
     const description = this.element("div", "forge-detail__description");
-    (card.partesDescricao || [{ tipo: "flavor", texto: card.descricao }]).forEach((part) => description.append(this.element("p", `is-${part.tipo}`, part.texto)));
+    (
+      card.partesDescricao || [{ tipo: "flavor", texto: card.descricao }]
+    ).forEach((part) =>
+      description.append(this.element("p", `is-${part.tipo}`, part.texto)),
+    );
     const quantityControls = this.element("div", "forge-detail__quantity");
-    const minus = this.button("forge-qty-button", "−", () => this.change(card, -1));
+    const minus = this.button("forge-qty-button", "−", () =>
+      this.change(card, -1),
+    );
     minus.disabled = quantity === 0;
     const count = this.element("div");
-    count.append(this.element("span", "", "NO DECK"), this.element("strong", "", `${quantity} / ${card.limite}`));
-    const plus = this.button("forge-qty-button forge-qty-button--add", "+", () => this.change(card, 1));
-    plus.disabled = quantity >= card.limite || this.builder.total(this.deck) >= 20;
+    count.append(
+      this.element("span", "", "NO DECK"),
+      this.element("strong", "", `${quantity} / ${card.limite}`),
+    );
+    const plus = this.button(
+      "forge-qty-button forge-qty-button--add",
+      "+",
+      () => this.change(card, 1),
+    );
+    plus.disabled =
+      quantity >= card.limite || this.builder.total(this.deck) >= 20;
     quantityControls.append(minus, count, plus);
-    content.append(this.element("span", "forge-detail__booster", `ORIGEM: ${String(card.booster).toUpperCase()}`), description, quantityControls);
+    content.append(
+      this.element(
+        "span",
+        "forge-detail__booster",
+        `ORIGEM: ${String(card.booster).toUpperCase()}`,
+      ),
+      description,
+      quantityControls,
+    );
     dialog.append(close, visual, content);
     overlay.append(dialog);
     requestAnimationFrame(() => overlay.classList.add("is-visible"));
@@ -596,11 +801,17 @@ class CyberduelDeckBuilderUI {
       this.element("p", "", message),
     );
     const actions = this.element("div", "forge-confirm__actions");
-    const cancel = this.button("forge-confirm__cancel", "CANCELAR", () => this.closeModal());
-    const confirm = this.button(`forge-confirm__accept${danger ? " is-danger" : ""}`, confirmLabel, () => {
-      this.closeModal();
-      onConfirm();
-    });
+    const cancel = this.button("forge-confirm__cancel", "CANCELAR", () =>
+      this.closeModal(),
+    );
+    const confirm = this.button(
+      `forge-confirm__accept${danger ? " is-danger" : ""}`,
+      confirmLabel,
+      () => {
+        this.closeModal();
+        onConfirm();
+      },
+    );
     actions.append(cancel, confirm);
     dialog.append(actions);
     overlay.append(dialog);
@@ -631,7 +842,10 @@ class CyberduelDeckBuilderUI {
   toast(message, type = "info") {
     this.root.querySelector(".forge-toast")?.remove();
     const toast = this.element("div", `forge-toast is-${type}`);
-    toast.append(this.element("span", "forge-toast__icon", type === "error" ? "!" : "✓"), this.element("span", "", message));
+    toast.append(
+      this.element("span", "forge-toast__icon", type === "error" ? "!" : "✓"),
+      this.element("span", "", message),
+    );
     this.root.append(toast);
     requestAnimationFrame(() => toast.classList.add("is-visible"));
     setTimeout(() => {
@@ -650,6 +864,18 @@ class CyberduelDeckBuilderUI {
     const textureKey = card.imagem || "fundoCarta";
     if (this.imageSourceCache.has(textureKey))
       return this.imageSourceCache.get(textureKey);
+
+    // O deck builder é HTML e deve usar a URL estável do servidor. No
+    // Chrome a fonte interna da textura pode ser um ImageBitmap, que não
+    // possui `src` nem `currentSrc` e fazia todas as artes caírem no verso.
+    const assetPath = window.CYBERDUEL_IMAGE_ASSETS?.[textureKey];
+    if (assetPath) {
+      const url = new URL(assetPath, document.baseURI).href;
+      this.imageSourceCache.set(textureKey, url);
+      return url;
+    }
+
+    // Compatibilidade com texturas adicionadas dinamicamente.
     const texture = this.scene.textures.get(textureKey);
     const source = texture?.getSourceImage?.();
     const url =
@@ -659,23 +885,72 @@ class CyberduelDeckBuilderUI {
   }
 
   levelColor(card) {
-    return ({ baixa: "#17c9ff", media: "#a970ff", alta: "#ff9f43", lendaria: "#ffe16a", efeito: "#34e6a1", terreno: "#e66cff" })[card.nivel] || "#87a8bd";
+    return (
+      {
+        baixa: "#17c9ff",
+        media: "#a970ff",
+        alta: "#ff9f43",
+        lendaria: "#ffe16a",
+        efeito: "#34e6a1",
+        terreno: "#e66cff",
+      }[card.nivel] || "#87a8bd"
+    );
   }
 
   levelLabel(card) {
-    return ({ baixa: "NÍVEL BAIXO", media: "NÍVEL MÉDIO", alta: "NÍVEL ALTO", lendaria: "LENDÁRIA", efeito: "EFEITO", terreno: "TERRENO" })[card.nivel] || String(card.nivel).toUpperCase();
+    return (
+      {
+        baixa: "NÍVEL BAIXO",
+        media: "NÍVEL MÉDIO",
+        alta: "NÍVEL ALTO",
+        lendaria: "LENDÁRIA",
+        efeito: "EFEITO",
+        terreno: "TERRENO",
+      }[card.nivel] || String(card.nivel).toUpperCase()
+    );
   }
 
   typeLabel(type) {
-    return ({ monstro: "PERSONAGEM", efeito: "EFEITO", terreno: "TERRENO" })[type] || type;
+    return (
+      { monstro: "PERSONAGEM", efeito: "EFEITO", terreno: "TERRENO" }[type] ||
+      type
+    );
   }
 
   typeIcon(type) {
-    return ({ monstro: "◈", efeito: "ϟ", terreno: "⌂" })[type] || "✦";
+    return { monstro: "◈", efeito: "ϟ", terreno: "⌂" }[type] || "✦";
   }
 
   pluralLevel(level, value) {
-    return ({ baixa: value === 1 ? "baixa" : "baixas", media: value === 1 ? "média" : "médias", alta: value === 1 ? "alta" : "altas" })[level];
+    return {
+      baixa: value === 1 ? "baixa" : "baixas",
+      media: value === 1 ? "média" : "médias",
+      alta: value === 1 ? "alta" : "altas",
+    }[level];
+  }
+
+  nextOrder(currentOrder) {
+    if (currentOrder === "crescente") return "decrescente";
+    if (currentOrder === "decrescente") return "faccao";
+    return "crescente";
+  }
+
+  orderLabel(order) {
+    if (order === "decrescente") return "Nível ↓";
+    if (order === "faccao") return "Facção A-Z";
+    return "Nível ↑";
+  }
+
+  factionLabel(faction) {
+    const labels = {
+      raspcorp: "RASPCORP",
+      echossystem: "ECHOSSYSTEM",
+      humbanet: "HUMBANET",
+      sindicato: "SINDICATO",
+      remanescentes: "REMANESCENTES",
+      neutro: "NEUTRO",
+    };
+    return labels[faction] || String(faction).toUpperCase();
   }
 
   destroy() {

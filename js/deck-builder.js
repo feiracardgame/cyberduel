@@ -8,6 +8,10 @@ class CyberduelDeckBuilder {
     this.catalogCache = null;
     this.catalogByKey = null;
     this.searchIndex = null;
+    this.account = null;
+    this.accountDeck = null;
+    this.collection = null;
+    this.lastSavePromise = Promise.resolve();
   }
 
   getCatalog() {
@@ -51,8 +55,8 @@ class CyberduelDeckBuilder {
         });
       }
     });
-    this.catalogCache = [...unique.values()].sort((a, b) =>
-      a.tipo.localeCompare(b.tipo) || a.nome.localeCompare(b.nome),
+    this.catalogCache = [...unique.values()].sort(
+      (a, b) => a.tipo.localeCompare(b.tipo) || a.nome.localeCompare(b.nome),
     );
     this.catalogByKey = new Map(
       this.catalogCache.map((card) => [card.key, card]),
@@ -124,8 +128,14 @@ class CyberduelDeckBuilder {
   }
 
   getSavedDeck() {
+    if (this.account) {
+      const deck = this.normalize(this.accountDeck);
+      return deck && this.isValid(deck) ? deck : null;
+    }
     try {
-      const deck = this.normalize(JSON.parse(localStorage.getItem(this.storageKey)));
+      const deck = this.normalize(
+        JSON.parse(localStorage.getItem(this.storageKey)),
+      );
       return deck && this.isValid(deck) ? deck : null;
     } catch {
       return null;
@@ -140,7 +150,8 @@ class CyberduelDeckBuilder {
     const add = (card) => {
       if (!card || total >= this.maxCards) return false;
       const current = quantities.get(card.key);
-      if (current >= card.limite) return false;
+      if (current >= Math.min(card.limite, this.ownedQuantity(card)))
+        return false;
       quantities.set(card.key, current + 1);
       total++;
       return true;
@@ -184,7 +195,9 @@ class CyberduelDeckBuilder {
 
     const pick = (candidates) => {
       const available = candidates.filter(
-        (card) => quantities.get(card.key) < card.limite,
+        (card) =>
+          quantities.get(card.key) <
+          Math.min(card.limite, this.ownedQuantity(card)),
       );
       if (!available.length || total >= this.maxCards) return false;
       const roll = Number(random());
@@ -222,8 +235,32 @@ class CyberduelDeckBuilder {
   saveDeck(deck) {
     const normalized = this.normalize(deck);
     if (!this.isValid(normalized)) return false;
+    if (this.account) {
+      this.accountDeck = normalized;
+      this.lastSavePromise = window.cyberduelAccount
+        .saveDeck(normalized)
+        .then((saved) => {
+          this.accountDeck = this.normalize(saved);
+          return this.accountDeck;
+        });
+      return true;
+    }
     localStorage.setItem(this.storageKey, JSON.stringify(normalized));
     return true;
+  }
+
+  setAccountSession(user, deck, collection = null) {
+    this.account = user || null;
+    this.accountDeck = this.account ? this.normalize(deck) : null;
+    this.collection =
+      this.account && collection && typeof collection === "object"
+        ? { ...collection }
+        : null;
+  }
+
+  ownedQuantity(card) {
+    if (!this.account || !this.collection) return card.limite;
+    return Math.max(0, Number(this.collection[card.key]) || 0);
   }
 
   quantity(deck, card) {
@@ -236,10 +273,17 @@ class CyberduelDeckBuilder {
   changeQuantity(deck, card, delta) {
     const normalized = this.normalize(deck) || [];
     const quantities = new Map(
-      normalized.map((entry) => [`${entry.tipo}:${entry.nome}`, entry.quantidade]),
+      normalized.map((entry) => [
+        `${entry.tipo}:${entry.nome}`,
+        entry.quantidade,
+      ]),
     );
     const current = quantities.get(card.key) || 0;
-    const next = Math.min(card.limite, Math.max(0, current + delta));
+    const next = Math.min(
+      card.limite,
+      this.ownedQuantity(card),
+      Math.max(0, current + delta),
+    );
     const totalWithoutCard = this.total(normalized) - current;
     quantities.set(card.key, Math.min(next, this.maxCards - totalWithoutCard));
 
@@ -278,6 +322,7 @@ class CyberduelDeckBuilder {
     const filter = options.filter || "todos";
     const query = this.normalizeSearchText(options.query).trim();
     const direction = options.order === "decrescente" ? -1 : 1;
+    const byFaction = options.order === "faccao";
     const typeOrder = { monstro: 0, efeito: 1, terreno: 2 };
     const levelOrder = { baixa: 0, media: 1, alta: 2, lendaria: 3 };
 
@@ -288,6 +333,16 @@ class CyberduelDeckBuilder {
         return this.searchIndex.get(card.key).includes(query);
       })
       .sort((a, b) => {
+        if (byFaction) {
+          const byBooster = String(a.booster || "").localeCompare(
+            String(b.booster || ""),
+            "pt-BR",
+          );
+          if (byBooster) return byBooster;
+          const byType = (typeOrder[a.tipo] ?? 99) - (typeOrder[b.tipo] ?? 99);
+          if (byType) return byType;
+          return a.nome.localeCompare(b.nome, "pt-BR");
+        }
         const byType = (typeOrder[a.tipo] ?? 99) - (typeOrder[b.tipo] ?? 99);
         if (byType) return byType;
         if (a.tipo === "monstro" && b.tipo === "monstro") {
@@ -301,7 +356,6 @@ class CyberduelDeckBuilder {
         return a.nome.localeCompare(b.nome, "pt-BR");
       });
   }
-
 }
 
 window.cyberduelDeckBuilder = new CyberduelDeckBuilder();

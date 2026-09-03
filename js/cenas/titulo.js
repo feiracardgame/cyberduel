@@ -4,10 +4,60 @@ class CenaTitulo extends Phaser.Scene {
   }
 
   create() {
+    configurarCameraLogica(this);
     this.cameras.main.setBackgroundColor("#020409");
     this.multiplayer = window.cyberduelMultiplayer;
+    this.account = window.cyberduelAccount;
+    window.cyberduelDeckBuilder.setAccountSession(
+      this.account?.user,
+      this.account?.deck,
+      this.account?.collection,
+    );
+    this.montarInterfaceTitulo();
+
+    this.removerListenerConta = this.account?.onChange(({ user, deck, collection, faction }) => {
+      window.cyberduelDeckBuilder.setAccountSession(user, deck, collection);
+      if (!this.scene.isActive()) return;
+      this.titleUI?.destroy();
+      this.montarInterfaceTitulo();
+      this.atualizarStatus(
+        user
+          ? `Conta ${user} conectada. Deck sincronizado com o servidor.`
+          : "Sessão local ativa. Entre para sincronizar seu deck.",
+        user ? "success" : "info",
+      );
+      if (user && !faction)
+        this.time.delayedCall(0, () => this.titleUI?.openFactionDialog());
+    });
+    this.account?.restore().then(() => {
+      const roomFromLink = new URLSearchParams(location.search).get("room");
+      if (roomFromLink && this.scene.isActive()) this.entrarNaSala(roomFromLink);
+    });
+
+    this.multiplayer.onStatus = (message) => this.atualizarStatus(message);
+    this.multiplayer.onReady = () => this.iniciarPartidaMultiplayer();
+    this.events.once("shutdown", () => {
+      this.removerListenerConta?.();
+      this.titleUI?.destroy();
+      this.titleUI = null;
+    });
+
+    if (!window.cyberduelDeckBuilder.getSavedDeck()) {
+      this.atualizarStatus(
+        this.account?.user
+          ? "Monte e sele seu deck para liberar os modos de combate."
+          : "Entre ou crie uma conta para receber sua coleção inicial.",
+        "warning",
+      );
+    }
+
+  }
+
+  montarInterfaceTitulo() {
     this.titleUI = new CyberduelTitleUI({
       deckBuilder: window.cyberduelDeckBuilder,
+      account: this.account,
+      settings: window.cyberduelSettings,
       callbacks: {
         onSolo: () => this.iniciarPartida(false),
         onCreateRoom: () => this.criarSala(),
@@ -15,23 +65,6 @@ class CenaTitulo extends Phaser.Scene {
         onDeck: () => this.scene.start("CenaDeckBuilder"),
       },
     }).mount();
-
-    this.multiplayer.onStatus = (message) => this.atualizarStatus(message);
-    this.multiplayer.onReady = () => this.iniciarPartidaMultiplayer();
-    this.events.once("shutdown", () => {
-      this.titleUI?.destroy();
-      this.titleUI = null;
-    });
-
-    if (!window.cyberduelDeckBuilder.getSavedDeck()) {
-      this.atualizarStatus(
-        "Monte e sele seu deck para liberar os modos de combate.",
-        "warning",
-      );
-    }
-
-    const roomFromLink = new URLSearchParams(location.search).get("room");
-    if (roomFromLink) this.entrarNaSala(roomFromLink);
   }
 
   atualizarStatus(message, tone = "info") {
@@ -39,6 +72,10 @@ class CenaTitulo extends Phaser.Scene {
   }
 
   iniciarPartida(multiplayer) {
+    if (!this.account?.user || !this.account?.faction) {
+      this.atualizarStatus("Entre e escolha sua facção antes de jogar.", "warning");
+      return;
+    }
     if (!window.cyberduelDeckBuilder.getSavedDeck()) {
       this.atualizarStatus("Um deck válido é obrigatório para jogar.", "warning");
       return;
@@ -57,6 +94,10 @@ class CenaTitulo extends Phaser.Scene {
   }
 
   criarSala() {
+    if (!this.account?.user || !this.account?.faction) {
+      this.atualizarStatus("Entre e escolha sua facção antes de criar uma sala.", "warning");
+      return;
+    }
     if (!window.cyberduelDeckBuilder.getSavedDeck()) {
       this.atualizarStatus("Sele um deck antes de criar uma sala.", "warning");
       return;
@@ -90,6 +131,10 @@ class CenaTitulo extends Phaser.Scene {
   }
 
   entrarNaSala(initialCode) {
+    if (!this.account?.user || !this.account?.faction) {
+      this.atualizarStatus("Entre e escolha sua facção antes de entrar na sala.", "warning");
+      return;
+    }
     if (!window.cyberduelDeckBuilder.getSavedDeck()) {
       this.atualizarStatus("Sele um deck antes de entrar em uma sala.", "warning");
       return;

@@ -1,27 +1,38 @@
 services:
-  nginx:
-    image: nginx:latest
-    container_name: cyberduel
-    ports:
-      - "80:80"
+  server:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.server
+    container_name: cyberduel-server
+    environment:
+      PORT: 3000
+      PUBLIC_URL: ${PUBLIC_URL:-}
+      DATA_DIR: /app/data
+      BOOSTER_WEIGHT_BAIXA: ${BOOSTER_WEIGHT_BAIXA:-20}
+      BOOSTER_WEIGHT_MEDIA: ${BOOSTER_WEIGHT_MEDIA:-12}
+      BOOSTER_WEIGHT_UTILIDADE: ${BOOSTER_WEIGHT_UTILIDADE:-10}
+      BOOSTER_WEIGHT_ALTA: ${BOOSTER_WEIGHT_ALTA:-10}
+      BOOSTER_WEIGHT_LENDARIA: ${BOOSTER_WEIGHT_LENDARIA:-4}
+      BOOSTER_WEIGHT_EFEITO: ${BOOSTER_WEIGHT_EFEITO:-10}
+      BOOSTER_WEIGHT_TERRENO: ${BOOSTER_WEIGHT_TERRENO:-10}
+      BOOSTER_LEGENDARY_MIN_GAMES: ${BOOSTER_LEGENDARY_MIN_GAMES:-10}
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./:/usr/share/nginx/html:ro
-    depends_on:
-      - server
+      - cyberduel-data:/app/data
+    expose:
+      - "3000"
     restart: unless-stopped
 
-  server:
-    image: node:22-alpine
-    container_name: cyberduel-server
-    working_dir: /app
-    command: sh -c "npm install --omit=dev && npm start"
-    environment:
-      - PORT=3000
-    volumes:
-      - ./:/app
-      - cyberduel_node_modules:/app/node_modules
+  nginx:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.web
+    container_name: cyberduel
+    ports:
+      - "${CYBERDUEL_PORT:-80}:80"
+    depends_on:
+      server:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:
-  cyberduel_node_modules:
+  cyberduel-data:

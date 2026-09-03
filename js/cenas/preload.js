@@ -9,54 +9,70 @@
 // preload() — não precisa mexer em mais nada, a barra já reage a
 // qualquer coisa que passe por this.load.
 // ============================================================================
+window.CYBERDUEL_IMAGE_ASSETS = Object.freeze({
+  fundoCarta: "assets/fundo/fundo_carta_2.png",
+  cryptoacionistas: "assets/cartas/cryptoacionistas.png",
+  dipsp: "assets/cartas/AgenteDIPSP.png",
+  juggernaut: "assets/cartas/juggernautplaceholder.png",
+  cybervendedor: "assets/cartas/cybervendedor.png",
+  estagiarioml: "assets/cartas/Estagiario_machine_learning.png",
+  rh: "assets/cartas/Departamento_RH.png",
+  beiramarneofloripa: "assets/cartas/Beiramar_Neofloripa.png",
+  torremontecorp: "assets/cartas/Torre_MonteCorp.png",
+  nexusneofloripa: "assets/cartas/NexusNeoFloripa.png",
+  sugalg: "assets/cartas/Sugestão_algoritmica.png",
+  adv: "assets/cartas/AdvogadoDaRaspCorp.png",
+  raspclay: "assets/cartas/RaspClay_MonteCorp.png",
+  rato: "assets/cartas/O_rato.png",
+  cabra: "assets/cartas/A_cabra.png",
+  cao: "assets/cartas/O_cao.png",
+  porco: "assets/cartas/O_porco.png",
+  cobra: "assets/cartas/Cobra.png",
+  cavalo: "assets/cartas/O_cavalo.png",
+  galo: "assets/cartas/O_galo.png",
+  macaco: "assets/cartas/O_macaco.png",
+  tocacoelho: "assets/cartas/Toca_do_Coelho.png",
+  neoanalista: "assets/cartas/NeoAnalista_de_Suporte_Nivel_Alpha.png",
+  humbabrain: "assets/cartas/HumbaBrain.png",
+  voceparecesozinho: "assets/cartas/Voce_parece_sozinho.png",
+  diehgo: "assets/cartas/Di_Ego_caçador_de_recompensas.png",
+  eltigre: "assets/cartas/el_tigre.png",
+  daranha: "assets/cartas/D_Aranha.png",
+  oboi: "assets/cartas/Anarcoboi.png",
+  jogoFundo: "assets/fundo/jogo-fundo.png",
+  efeitoAdvogado: "assets/efeitos/efeito-advogado.png",
+});
+
+// O DOM do deck builder continua usando as artes originais acima. Dentro do
+// Phaser, onde nenhuma carta normal precisa exceder 720px de largura, usamos
+// WebP dimensionado: o download das cartas cai de dezenas de MB para poucos
+// MB e a memória de textura da GPU também diminui bastante.
+window.CYBERDUEL_GAME_IMAGE_ASSETS = Object.freeze(
+  Object.fromEntries(
+    Object.entries(window.CYBERDUEL_IMAGE_ASSETS).map(([key, url]) => [
+      key,
+      url.startsWith("assets/cartas/")
+        ? url
+            .replace("assets/cartas/", "assets/cartas/game/")
+            .replace(/\.png$/i, ".webp?v=20260902a")
+        : url,
+    ]),
+  ),
+);
+
 class CenaPreload extends Phaser.Scene {
   constructor() {
     super("CenaPreload");
   }
 
   preload() {
+    configurarCameraLogica(this);
     this.criarBarraDeCarregamento();
 
     // ---------- ASSETS DO JOGO ----------
-    this.load.image("fundoCarta", "assets/fundo/fundo_carta_2.png");
-    //cartas
-    this.load.image("cryptoacionistas", "assets/cartas/cryptoacionistas.png");
-    this.load.image("dipsp", "assets/cartas/AgenteDIPSP.png");
-    this.load.image("juggernaut", "assets/cartas/juggernautplaceholder.png");
-    this.load.image("cybervendedor", "assets/cartas/cybervendedor.png");
-    this.load.image(
-      "estagiarioml",
-      "assets/cartas/Estagiario_machine_learning.png",
+    Object.entries(window.CYBERDUEL_GAME_IMAGE_ASSETS).forEach(([key, url]) =>
+      this.load.image(key, url),
     );
-    this.load.image("rh", "assets/cartas/Departamento_RH.png");
-    this.load.image(
-      "beiramarneofloripa",
-      "assets/cartas/Beiramar_Neofloripa.png",
-    );
-    this.load.image("torremontecorp", "assets/cartas/Torre_MonteCorp.png");
-    this.load.image("nexusneofloripa", "assets/cartas/NexusNeoFloripa.png");
-    this.load.image("sugalg", "assets/cartas/Sugestão_algoritmica.png");
-    this.load.image("adv", "assets/cartas/AdvogadoDaRaspCorp.png");
-    this.load.image("raspclay", "assets/cartas/RaspClay_MonteCorp.png");
-    this.load.image("rato", "assets/cartas/O_rato.png") 
-    this.load.image("cabra", "assets/cartas/A_cabra.png")
-    this.load.image("cao", "assets/cartas/O_cao.png")
-    this.load.image("porco", "assets/cartas/O_porco.png")
-    this.load.image("cobra", "assets/cartas/Cobra.png");
-    this.load.image("cavalo", "assets/cartas/O_cavalo.png");
-    this.load.image("galo", "assets/cartas/O_galo.png");
-    this.load.image("macaco", "assets/cartas/O_macaco.png");
-    this.load.image("tocacoelho", "assets/cartas/Toca_do_Coelho.png");
-    this.load.image("neoanalista", "assets/cartas/NeoAnalista_de_Suporte_Nivel_Alpha.png");
-    this.load.image("humbabrain", "assets/cartas/HumbaBrain.png");
-    this.load.image("voceparecesozinho", "assets/cartas/Voce_parece_sozinho.png");
-    this.load.image("diehgo", "assets/cartas/Di_Ego_caçador_de_recompensas.png");
-    // EchoSsystem (booster 2)
-    this.load.image("eltigre", "assets/cartas/el_tigre.png");
-    this.load.image("daranha", "assets/cartas/D_Aranha.png");
-    this.load.image("oboi", "assets/cartas/Anarcoboi.png");
-    //fundos
-    this.load.image("jogoFundo", "assets/fundo/jogo-fundo.png");
     //musicas
     this.load.audio("musicaFundo", "assets/sons/jogo-musica.wav");
     this.load.audio("somJogarCarta", "assets/sons/jogo-cartawhoosh.wav");
@@ -72,9 +88,11 @@ class CenaPreload extends Phaser.Scene {
     this.load.audio("somRaspClay", "assets/sons/som-raspclay.mp3");
     //videos
     this.load.video("videoTransicao", "assets/videos/transicaocerta.mp4");
-    this.load.video("videoParte3", "assets/videos/parte_3.mp4");
+    this.load.video(
+      "videoParte3",
+      "assets/videos/game/parte_3-720p.mp4?v=20260902a",
+    );
     //efeitos
-    this.load.image("efeitoAdvogado", "assets/efeitos/efeito-advogado.png");
     this.load.video(
       "efeitoRaspClayVertical",
       "assets/efeitos/efeito-raspclay-vertical-alpha.webm",

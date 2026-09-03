@@ -13,31 +13,42 @@ class CyberduelMultiplayer {
     this.onReady = null;
     this.localDeck = [];
     this.opponentDeck = [];
+    this.localUsername = null;
+    this.opponentUsername = null;
     this.lastLiveState = null;
+    this.lastTurnTime = null;
   }
 
   connect() {
     if (this.socket) return this.socket;
     if (typeof io === "undefined") throw new Error("Socket.IO não carregou.");
-    const developmentUrl =
-      location.hostname.match(/localhost|127\.0\.0\.1/) &&
-      location.port !== "80" &&
-      location.port !== ""
-        ? "http://localhost:3000"
-        : undefined;
-    this.socket = io(developmentUrl);
+    const serverUrl = this.resolveServerUrl();
+    this.socket = io(serverUrl, {
+      timeout: 6000,
+      reconnectionAttempts: 4,
+    });
     this.socket.on("connect", () => this.status("Conectado ao servidor."));
-    this.socket.on("connect_error", () =>
-      this.status("Não foi possível conectar ao servidor multiplayer."),
-    );
-    this.socket.on("match-ready", ({ room, decks }) => {
+    this.socket.on("connect_error", () => {
+      const destino = serverUrl || location.origin;
+      this.status(`Servidor multiplayer indisponível em ${destino}.`);
+    });
+    this.socket.on("match-ready", ({ room, decks, usernames }) => {
       this.room = room;
       this.active = true;
       this.localDeck = decks?.[this.player] || this.localDeck;
       this.opponentDeck = decks?.[this.player === 1 ? 2 : 1] || [];
+      this.localUsername = usernames?.[this.player] || null;
+      this.opponentUsername =
+        usernames?.[this.player === 1 ? 2 : 1] || "INIMIGO";
       if (this.onReady) this.onReady();
     });
     this.socket.on("state-update", (update) => this.receiveUpdate(update));
+    this.socket.on("turn-time", ({ activePlayer, remainingMs, running }) => {
+      this.activePlayer = activePlayer;
+      if (this.scene && activePlayer !== this.player) {
+        this.scene.receberTempoOponente(remainingMs, running);
+      }
+    });
     this.socket.on("opponent-surrendered", () => {
       if (this.scene) this.scene.oponenteDesistiuMultiplayer();
     });
@@ -46,6 +57,25 @@ class CyberduelMultiplayer {
       if (this.scene) this.scene.oponenteSaiuMultiplayer();
     });
     return this.socket;
+  }
+
+  resolveServerUrl() {
+    const parametro = new URLSearchParams(location.search).get("server");
+    const configurado = window.CYBERDUEL_SERVER_URL || parametro;
+    if (configurado && /^https?:\/\//i.test(configurado)) {
+      return configurado.replace(/\/$/, "");
+    }
+
+    // Live Server/Vite servem apenas arquivos estáticos. Neste projeto o
+    // Docker publica o Socket.IO pelo nginx na porta HTTP padrão do mesmo
+    // host, enquanto a página estática costuma estar em :5500/:5173.
+    const portasEstaticas = new Set(["4173", "5173", "5500", "5501"]);
+    if (portasEstaticas.has(location.port)) {
+      return `${location.protocol}//${location.hostname}`;
+    }
+
+    // npm start, Docker/nginx e produção usam o mesmo origin da página.
+    return undefined;
   }
 
   status(message) {
@@ -58,6 +88,7 @@ class CyberduelMultiplayer {
       "create-room",
       {
         deck: this.localDeck,
+        accountToken: window.cyberduelAccount?.token || null,
         inviteBase: `${location.origin}${location.pathname}`,
       },
       (response) => {
@@ -71,7 +102,11 @@ class CyberduelMultiplayer {
 
   joinRoom(code, callback) {
     this.localDeck = window.cyberduelDeckBuilder.getDeckForMatch();
-    this.connect().emit("join-room", { code, deck: this.localDeck }, (response) => {
+    this.connect().emit("join-room", {
+      code,
+      deck: this.localDeck,
+      accountToken: window.cyberduelAccount?.token || null,
+    }, (response) => {
       if (!response.ok) return callback(response);
       this.room = response.room.code;
       this.player = response.player;
@@ -123,11 +158,26 @@ class CyberduelMultiplayer {
     this.socket.emit("live-state", { state });
   }
 
+  sendTurnTime(remainingMs, running) {
+    if (
+      !this.active ||
+      !this.socket ||
+      this.activePlayer !== this.player
+    )
+      return;
+    const clamped = Math.max(0, Math.min(60_000, Number(remainingMs) || 0));
+    const fingerprint = `${Math.ceil(clamped / 1000)}:${running ? 1 : 0}`;
+    if (fingerprint === this.lastTurnTime) return;
+    this.lastTurnTime = fingerprint;
+    this.socket.emit("turn-time", { remainingMs: clamped, running: !!running });
+  }
+
   surrender() {
     if (this.socket) this.socket.emit("surrender");
   }
 
   receiveUpdate(update) {
+    if (this.activePlayer !== update.activePlayer) this.lastTurnTime = null;
     this.activePlayer = update.activePlayer;
     if (!this.scene) {
       this.pendingUpdate = update;
