@@ -29,7 +29,8 @@ class Mao {
 }
 
 class Campo {
-  constructor() {
+  constructor(dono = null) {
+    this.dono = dono;
     // 10 posições por jogador (layout 2x5: 2 fileiras de 5 slots cada,
     // por jogador — ou seja, 4 fileiras no total: 2 do inimigo em cima,
     // 2 do jogador embaixo). Índices 0-4 = fileira de trás, 5-9 =
@@ -55,8 +56,15 @@ class Campo {
   removerMortas() {
     for (let i = 0; i < this.cartas.length; i++) {
       const c = this.cartas[i];
-      if (c && c.tipo !== "terreno" && c.poder <= 0) this.cartas[i] = null;
+      if (c && c.tipo !== "terreno" && c.poder <= 0) this.removerCarta(i);
     }
+  }
+  removerCarta(posicao) {
+    const carta = this.cartas[posicao];
+    if (!carta) return null;
+    this.cartas[posicao] = null;
+    this.dono?.registrarDescarte(carta);
+    return carta;
   }
 }
 
@@ -87,7 +95,9 @@ class Jogador {
   constructor() {
     this.deck = new Deck();
     this.mao = new Mao();
-    this.campo = new Campo();
+    this.campo = new Campo(this);
+    this.descarte = [];
+    this.cartasPerdidas = 0;
     this.vitorias = 0;
 
     // Cartas compradas desde a última vez que a cena consumiu essa
@@ -116,8 +126,15 @@ class Jogador {
     const indice = this.mao.cartas.indexOf(carta);
     if (indice !== -1) {
       this.mao.cartas.splice(indice, 1);
+      this.registrarDescarte(carta, false);
     }
     return true;
+  }
+
+  registrarDescarte(carta, contarPerda = true) {
+    if (!carta || this.descarte.includes(carta)) return;
+    this.descarte.push(carta);
+    if (contarPerda) this.cartasPerdidas += 1;
   }
 
   criarDeckConfigurado(configuracao) {
@@ -252,6 +269,7 @@ class Partida {
       // Terreno não tem efeito de invocação — só ativa o efeito contínuo,
       // que fica sendo recalculado do zero (ver resolverEfeitosContinuos).
       this.resolverEfeitosContinuos(this.jogador);
+      this.resolverEfeitosContinuos(this.inimigo);
     } else if (sucesso) {
       afetadas = this.aplicarEfeitoInvocacao(
         carta,
@@ -282,6 +300,10 @@ class Partida {
       if (c && c.bonusDiehGo) {
         c.poder -= c.bonusDiehGo;
         c.bonusDiehGo = 0;
+      }
+      if (c && c.bonusEfeitoContinuo) {
+        c.poder -= c.bonusEfeitoContinuo;
+        c.bonusEfeitoContinuo = 0;
       }
     });
 
@@ -333,6 +355,49 @@ class Partida {
         cartaAtras.bonusDiehGo = (cartaAtras.bonusDiehGo || 0) + 2;
       }
     });
+
+    dono.campo.cartas.forEach((carta, indice) => {
+      if (!carta || carta.tipo === "terreno") return;
+      let bonus = 0;
+      if (carta.efeito?.tipo === TIPOS_EFEITO.BONUS_POR_PERDIDAS) {
+        bonus += dono.cartasPerdidas * (carta.efeito.valor || 1);
+      }
+      if (carta.efeito?.tipo === TIPOS_EFEITO.BONUS_TRIO_ADJACENTE) {
+        const vizinhos = [indice - 1, indice + 1].filter(
+          (i) => i >= 0 && i < dono.campo.cartas.length && Math.floor(i / 5) === Math.floor(indice / 5),
+        );
+        const nomes = new Set(vizinhos.map((i) => dono.campo.cartas[i]?.nome));
+        if (carta.efeito.nomes.every((nome) => nomes.has(nome)))
+          bonus += carta.efeito.valor || 0;
+      }
+      carta.poder += bonus;
+      carta.bonusEfeitoContinuo = bonus;
+    });
+
+    const terrenoHostilAtivo = oponente.campo.cartas.some(
+      (c) =>
+        c?.efeitoContinuo?.tipo === TIPOS_EFEITO_CONTINUO.DEBUFF_CAMPO_INIMIGO,
+    );
+    const terrenoHostilNeutralizado = dono.campo.cartas.some(
+      (c) => c?.efeito?.tipo === TIPOS_EFEITO.HUMATRIX,
+    );
+    if (terrenoHostilAtivo && !terrenoHostilNeutralizado) {
+      const valor = Math.max(
+        ...oponente.campo.cartas
+          .filter(
+            (c) =>
+              c?.efeitoContinuo?.tipo ===
+              TIPOS_EFEITO_CONTINUO.DEBUFF_CAMPO_INIMIGO,
+          )
+          .map((c) => c.efeitoContinuo.valor || 0),
+      );
+      dono.campo.cartas.forEach((c) => {
+        if (!c || c.tipo === "terreno") return;
+        c.poder -= valor;
+        c.bonusEfeitoContinuo -= valor;
+      });
+      dono.campo.removerMortas();
+    }
   }
 
   // true se o "dono" tiver algum terreno com REVELAR_MAO_CONTINUO em campo
@@ -414,6 +479,10 @@ class Partida {
         const c = oponente.campo.cartas[i];
         c.buff(-valor);
         afetadas.push({ carta: c, delta: -valor });
+        if (c.poder <= 0 && carta.efeito.bonusAoEliminar) {
+          carta.buff(carta.efeito.bonusAoEliminar);
+          afetadas.push({ carta, delta: carta.efeito.bonusAoEliminar });
+        }
       });
       oponente.campo.removerMortas();
 
@@ -476,6 +545,11 @@ class Partida {
             oponente.campo.cartas[i].tipo !== "terreno",
         );
       if (
+        carta.efeito.alvosUnicos &&
+        new Set(indicesValidos).size !== indicesValidos.length
+      )
+        return { sucesso: false, afetadas: [] };
+      if (
         indicesValidos.length === 0 ||
         indicesValidos.length !== distribuicao.length ||
         indicesValidos.length > totalDisponivel
@@ -498,6 +572,25 @@ class Partida {
         afetadas.push({ carta: alvo, delta: alvo.poder - antes });
       });
       oponente.campo.removerMortas();
+      carta.usadaEsteTurno = true;
+      carta.revelada = true;
+      return { sucesso: true, afetadas };
+    }
+
+    if (carta.efeito.tipo === TIPOS_EFEITO.BUFF_ATE_DOIS_ALIADOS) {
+      const indices = Array.isArray(alvoEscolhido)
+        ? [...new Set(alvoEscolhido)]
+        : [alvoEscolhido];
+      const validos = indices.filter(
+        (i) => Number.isInteger(i) && dono.campo.cartas[i]?.tipo !== "terreno",
+      );
+      if (!validos.length || validos.length > carta.efeito.maxAlvos)
+        return { sucesso: false, afetadas: [] };
+      const afetadas = validos.map((i) => {
+        const alvo = dono.campo.cartas[i];
+        alvo.buff(carta.efeito.valor);
+        return { carta: alvo, delta: carta.efeito.valor };
+      });
       carta.usadaEsteTurno = true;
       carta.revelada = true;
       return { sucesso: true, afetadas };
@@ -558,8 +651,7 @@ class Partida {
       );
       if (protegidoPorHumba) return { sucesso: false, afetadas: [] };
 
-      const terrenoDestruido = oponente.campo.cartas[alvoEscolhido];
-      oponente.campo.cartas[alvoEscolhido] = null;
+      const terrenoDestruido = oponente.campo.removerCarta(alvoEscolhido);
 
       // Bônus contínuo do terreno destruído deixa de existir — recalcula
       // do zero pro lado do oponente (mesmo mecanismo do bug corrigido
@@ -801,6 +893,12 @@ class Partida {
         if (c && i !== posicao && c.tipo !== "terreno") indices.push(i);
       });
       return indices;
+    }
+
+    if (carta.efeito.tipo === TIPOS_EFEITO.BUFF_ATE_DOIS_ALIADOS) {
+      return dono.campo.cartas
+        .map((c, i) => (c && c.tipo !== "terreno" ? i : null))
+        .filter((i) => i !== null);
     }
 
     if (carta.efeito.tipo === TIPOS_EFEITO.REDISTRIBUIR_PODER) {
@@ -1096,6 +1194,18 @@ class Partida {
         this.ultimaRevelacaoFaro = poolInimigo.slice(0, valor);
         break;
       }
+      case TIPOS_EFEITO.RECICLAR_DESCARTE: {
+        const disponiveis = dono.descarte.filter((descartada) => descartada !== carta);
+        const escolhida = Number.isInteger(alvoEscolhido)
+          ? disponiveis[alvoEscolhido]
+          : disponiveis[disponiveis.length - 1];
+        if (escolhida) {
+          dono.descarte.splice(dono.descarte.indexOf(escolhida), 1);
+          dono.mao.adicionarCarta(escolhida);
+          dono.cartasRecemCompradas.push(escolhida);
+        }
+        break;
+      }
     }
 
     return afetadas;
@@ -1376,7 +1486,13 @@ class Partida {
             ? this.alvosParaHabilidadeEmCampo(c, this.inimigo, this.jogador)[0]
             : c.efeito?.tipo === TIPOS_EFEITO.DISTRIBUIR_DANO
               ? this.montarDistribuicaoDanoIA(c, this.jogador)
-            : null;
+              : c.efeito?.tipo === TIPOS_EFEITO.BUFF_ATE_DOIS_ALIADOS
+                ? this.alvosParaHabilidadeEmCampo(
+                    c,
+                    this.inimigo,
+                    this.jogador,
+                  ).slice(0, c.efeito.maxAlvos || 2)
+                : null;
         this.ativarHabilidade(c, this.inimigo, this.jogador, alvoTerrenoIA);
       }
     });
@@ -1387,7 +1503,9 @@ class Partida {
     const distribuicao = [];
     oponente.campo.cartas.forEach((alvo, indice) => {
       if (!alvo || alvo.tipo === "terreno" || restante <= 0) return;
-      const dano = Math.min(alvo.poder, restante);
+      const dano = carta.efeito.alvosUnicos
+        ? 1
+        : Math.min(alvo.poder, restante);
       for (let i = 0; i < dano; i++) distribuicao.push(indice);
       restante -= dano;
     });

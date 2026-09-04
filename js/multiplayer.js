@@ -270,6 +270,8 @@ class CyberduelMultiplayer {
       deck: player.deck.cartas.map(serializeCard),
       hand: player.mao.cartas.map(serializeCard),
       field: player.campo.cartas.map(serializeCard),
+      discard: player.descarte.map(serializeCard),
+      lostCards: player.cartasPerdidas,
       traps: [...player.campo.armadilhas],
       victories: player.vitorias,
       recentlyDrawn: player.cartasRecemCompradas.map((card) => card.id),
@@ -313,6 +315,9 @@ class CyberduelMultiplayer {
         limite: 10,
         armadilhas: new Set(plain.traps || []),
       });
+      player.campo.dono = player;
+      player.descarte = (plain.discard || []).map(hydrateCard);
+      player.cartasPerdidas = Math.max(0, Number(plain.lostCards) || 0);
       player.vitorias = plain.victories || 0;
       player.cartasRecemCompradas = (plain.recentlyDrawn || [])
         .map((id) => player.mao.cartas.find((card) => card.id === id))
@@ -345,11 +350,17 @@ class CyberduelMultiplayer {
       [snapshot.inimigo, match.inimigo],
     ];
     pairs.forEach(([plainPlayer, player]) => {
-      const plainCards = [...plainPlayer.deck, ...plainPlayer.hand, ...plainPlayer.field];
+      const plainCards = [
+        ...plainPlayer.deck,
+        ...plainPlayer.hand,
+        ...plainPlayer.field,
+        ...(plainPlayer.discard || []),
+      ];
       const cards = [
         ...player.deck.cartas,
         ...player.mao.cartas,
         ...player.campo.cartas,
+        ...player.descarte,
       ];
       plainCards.forEach((plainCard, index) => {
         if (!plainCard || !cards[index] || !plainCard.__capturedBy) return;

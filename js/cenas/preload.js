@@ -17,6 +17,7 @@ window.CYBERDUEL_IMAGE_ASSETS = Object.freeze({
   cybervendedor: "assets/cartas/cybervendedor.png",
   estagiarioml: "assets/cartas/Estagiario_machine_learning.png",
   rh: "assets/cartas/Departamento_RH.png",
+  resenha: "assets/cartas/o_feio.png",
   beiramarneofloripa: "assets/cartas/Beiramar_Neofloripa.png",
   torremontecorp: "assets/cartas/Torre_MonteCorp.png",
   nexusneofloripa: "assets/cartas/NexusNeoFloripa.png",
@@ -36,6 +37,13 @@ window.CYBERDUEL_IMAGE_ASSETS = Object.freeze({
   humbabrain: "assets/cartas/HumbaBrain.png",
   voceparecesozinho: "assets/cartas/Voce_parece_sozinho.png",
   diehgo: "assets/cartas/Di_Ego_caçador_de_recompensas.png",
+  povodaareia: "assets/cartas/povo_da_areia.png",
+  ferreira: "assets/cartas/a_ferreira.png",
+  ofeio: "assets/cartas/o_feio.png",
+  omau: "assets/cartas/o_mau.png",
+  obom: "assets/cartas/o_bom.png",
+  reciclagem: "assets/cartas/reciclagem.png",
+  terrasdesertas: "assets/cartas/terras_desertas.png",
   eltigre: "assets/cartas/el_tigre.png",
   daranha: "assets/cartas/D_Aranha.png",
   oboi: "assets/cartas/Anarcoboi.png",
@@ -120,12 +128,16 @@ class CenaPreload extends Phaser.Scene {
     this.add.rectangle(GW / 2, 72, GW - 96, 1, 0x7cd3ff, 0.18);
     this.add
       .text(60, 38, "CD  //  NEOFLORIPA OS", {
-        fontSize: "19px", color: "#6f8593", fontStyle: "bold",
+        fontSize: "19px",
+        color: "#6f8593",
+        fontStyle: "bold",
       })
       .setOrigin(0, 0.5);
     this.add
       .text(GW - 60, 38, "●  REDE ATIVA", {
-        fontSize: "17px", color: "#38f2a0", fontStyle: "bold",
+        fontSize: "17px",
+        color: "#38f2a0",
+        fontStyle: "bold",
       })
       .setOrigin(1, 0.5);
 
@@ -143,21 +155,28 @@ class CenaPreload extends Phaser.Scene {
     this.add
       .text(GW / 2, GH / 2 - 170, "DUEL", {
         fontFamily: "Impact, Arial Narrow, sans-serif",
-        fontSize: "150px", color: "#030509", fontStyle: "bold italic",
-        stroke: "#23d7ff", strokeThickness: 3,
+        fontSize: "150px",
+        color: "#030509",
+        fontStyle: "bold italic",
+        stroke: "#23d7ff",
+        strokeThickness: 3,
       })
       .setOrigin(0.5);
 
     this.add
       .text(GW / 2, GH / 2 - 50, "AUDIÊNCIA É PODER", {
-        fontSize: "19px", color: "#8291a3", fontStyle: "bold",
+        fontSize: "19px",
+        color: "#8291a3",
+        fontStyle: "bold",
         letterSpacing: 8,
       })
       .setOrigin(0.5);
 
     let textoStatus = this.add
       .text(x, y - 54, "INICIALIZANDO SIMULAÇÃO", {
-        fontSize: "19px", color: "#23d7ff", fontStyle: "bold",
+        fontSize: "19px",
+        color: "#23d7ff",
+        fontStyle: "bold",
       })
       .setOrigin(0, 0.5);
 
@@ -184,14 +203,17 @@ class CenaPreload extends Phaser.Scene {
 
     let textoPorcentagem = this.add
       .text(GW - x, y - 54, "00%", {
-        fontSize: "21px", color: "#f3f8fc", fontStyle: "bold",
+        fontSize: "21px",
+        color: "#f3f8fc",
+        fontStyle: "bold",
         fontFamily: "monospace",
       })
       .setOrigin(1, 0.5);
 
     const textoModulo = this.add
       .text(GW / 2, y + 66, "Sincronizando protocolos de duelo", {
-        fontSize: "18px", color: "#607180",
+        fontSize: "18px",
+        color: "#607180",
       })
       .setOrigin(0.5);
 
@@ -199,7 +221,9 @@ class CenaPreload extends Phaser.Scene {
       const larguraAtual = Math.max(4, larguraBarra * valor);
       barraFill.width = larguraAtual;
       brilhoFill.width = larguraAtual;
-      textoPorcentagem.setText(`${String(Math.round(valor * 100)).padStart(2, "0")}%`);
+      textoPorcentagem.setText(
+        `${String(Math.round(valor * 100)).padStart(2, "0")}%`,
+      );
       if (valor > 0.78) textoModulo.setText("Calibrando arena tática");
       else if (valor > 0.42) textoModulo.setText("Indexando cartas e efeitos");
     });

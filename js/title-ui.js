@@ -375,9 +375,46 @@ class CyberduelTitleUI {
       }
     };
 
+    const grantAllCards = async () => {
+      error.textContent = "";
+      result.textContent = "";
+      const target = withUsername();
+      if (!target) return;
+      toggleBusy(true);
+      try {
+        const payload = await this.account.grantCardsByUsername(target, [], {
+          allAvailable: true,
+          adminToken: adminToken.value,
+        });
+        result.textContent = `Coleção completa concedida para ${target}: ${payload.granted.length} cartas.`;
+      } catch (exception) {
+        error.textContent = exception.message || "Falha ao conceder coleção completa.";
+      } finally {
+        toggleBusy(false);
+      }
+    };
+
+    const resetCollection = async () => {
+      error.textContent = "";
+      result.textContent = "";
+      const target = withUsername();
+      if (!target) return;
+      toggleBusy(true);
+      try {
+        await this.account.resetCollection(target, { adminToken: adminToken.value });
+        result.textContent = `Coleção resetada para ${target}.`;
+      } catch (exception) {
+        error.textContent = exception.message || "Falha ao resetar coleção.";
+      } finally {
+        toggleBusy(false);
+      }
+    };
+
     actionButtons.append(
       this.button("title-dialog__cancel", "DECK FACCAO", grantDeck),
       this.button("title-dialog__confirm", "CARTA AVULSA", grantSingleCard),
+      this.button("title-dialog__cancel", "TODAS AS CARTAS", grantAllCards),
+      this.button("title-dialog__confirm", "RESETAR COLEÇÃO", resetCollection),
       this.button("title-dialog__cancel", "VOLTAR", () => this.closeModal()),
     );
 

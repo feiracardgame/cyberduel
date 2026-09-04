@@ -24,6 +24,11 @@ const NIVEIS_CARTAS = {
   "O Boi": "lendaria",
   HumbaBrain: "lendaria",
   "Dieh'Go, o Xerife": "lendaria",
+  "Povo da Areia": "baixa",
+  "A Ferreira": "media",
+  "Tuh'Coh, O Feio": "media",
+  "Sen'Tenzhah, O Mau": "alta",
+  "O Bom": "alta",
 };
 
 function classificarNivelCarta(nome, poder, tipo, lendaria) {
@@ -77,6 +82,11 @@ const TIPOS_EFEITO = {
   REDUZIR_TEMPO_OPONENTE: "reduzir_tempo_oponente", // NeoAnalista: reduz o turno adversário quando houver cronômetro ativo
   HUMATRIX: "humbatrix", // HumbaBrain: neutraliza terrenos inimigos e protege terrenos aliados
   DISTRIBUIR_DANO: "distribuir_dano", // Dieh'Go: distribui livremente uma reserva de dano entre inimigos
+  RECICLAR_DESCARTE: "reciclar_descarte",
+  BONUS_POR_PERDIDAS: "bonus_por_perdidas",
+  BONUS_TRIO_ADJACENTE: "bonus_trio_adjacente",
+  BUFF_ATE_DOIS_ALIADOS: "buff_ate_dois_aliados",
+  TEXTO_REGRA: "texto_regra", // regra catalogada enquanto sua interação própria ainda não possui resolvedor
 };
 
 // O campo `nivel` é a fonte oficial para regras de baixa, média, alta e
@@ -108,6 +118,16 @@ function descreverEfeito(efeito) {
       return `Ao ser conjurada: escolha uma carta do seu baralho para puxar diretamente para sua mão.`;
     case TIPOS_EFEITO.ABSORVER_ALIADOS:
       return `Ao ser invocada: escolha até ${efeito.maxAlvos} carta${efeito.maxAlvos > 1 ? "s" : ""} aliada${efeito.maxAlvos > 1 ? "s" : ""} de nível baixo ou médio em campo. Elas são removidas do campo, e esta carta ganha poder igual à soma dos poderes delas.`;
+    case TIPOS_EFEITO.TEXTO_REGRA:
+      return efeito.texto || "";
+    case TIPOS_EFEITO.RECICLAR_DESCARTE:
+      return "Ao ser conjurada: devolva uma carta do seu descarte para sua mão.";
+    case TIPOS_EFEITO.BONUS_POR_PERDIDAS:
+      return `Enquanto estiver em campo: recebe +${efeito.valor} PA para cada carta aliada destruída ou removida.`;
+    case TIPOS_EFEITO.BONUS_TRIO_ADJACENTE:
+      return `Enquanto estiver adjacente a ${efeito.nomes.join(" e ")}: ganha +${efeito.valor} PA.`;
+    case TIPOS_EFEITO.BUFF_ATE_DOIS_ALIADOS:
+      return `Habilidade ativa (1x por turno): até ${efeito.maxAlvos} cartas aliadas ganham +${efeito.valor} PA cada.`;
     case TIPOS_EFEITO.RESETAR_PODER:
       return `Habilidade ativa (1x por turno, em campo): escolha uma carta aliada em campo para retornar ao seu poder original, perdendo todos os bônus e reduções que tiver recebido.`;
     case TIPOS_EFEITO.ATACAR_DOIS_ALVOS:
@@ -135,7 +155,9 @@ function descreverEfeito(efeito) {
     case TIPOS_EFEITO.HUMATRIX:
       return `Enquanto estiver em campo: terrenos inimigos não têm efeito e seus terrenos não podem ser destruídos.`;
     case TIPOS_EFEITO.DISTRIBUIR_DANO:
-      return `Habilidade ativa (1x por turno): distribua até ${efeito.total} pontos de dano livremente entre as cartas inimigas. A carta aliada diretamente atrás desta recebe +2 de PA enquanto ela permanecer em campo.`;
+      return efeito.alvosUnicos
+        ? `Habilidade ativa (1x por turno): escolha até ${efeito.total} cartas inimigas; cada uma perde 1 PA.`
+        : `Habilidade ativa (1x por turno): distribua até ${efeito.total} pontos de dano livremente entre as cartas inimigas. A carta aliada diretamente atrás desta recebe +2 de PA enquanto ela permanecer em campo.`;
     default:
       return "";
   }
@@ -153,6 +175,7 @@ const TIPOS_EFEITO_CONTINUO = {
   RECUPERAR_DANO_CONTINUO: "recuperar_dano_continuo", // enquanto em campo: aliadas que perderam PA recuperam um pouco ao fim de cada turno
   REVELAR_MAO_CONTINUO: "revelar_mao_continuo", // enquanto em campo: mão do oponente fica revelada
   OCULTAR_ALIADOS: "ocultar_aliados", // Toca do Coelho: aliados ficam virados para baixo até sofrer dano ou ativar efeito
+  DEBUFF_CAMPO_INIMIGO: "debuff_campo_inimigo",
 };
 
 function descreverEfeitoContinuo(efeito) {
@@ -166,6 +189,8 @@ function descreverEfeitoContinuo(efeito) {
       return `Enquanto estiver em campo: a mão do oponente permanece revelada.`;
     case TIPOS_EFEITO_CONTINUO.OCULTAR_ALIADOS:
       return `Enquanto estiver em campo: cartas aliadas ficam viradas para baixo até sofrerem dano ou ativarem seus efeitos.`;
+    case TIPOS_EFEITO_CONTINUO.DEBUFF_CAMPO_INIMIGO:
+      return `Enquanto estiver em campo: todas as cartas inimigas perdem ${efeito.valor} PA.`;
     default:
       return "";
   }
@@ -219,6 +244,17 @@ const POOL_CARTAS_TERRENO = [
     foco: { x: 0.5, y: 0 },
     booster: "echossystem",
     efeitoContinuo: { tipo: TIPOS_EFEITO_CONTINUO.OCULTAR_ALIADOS },
+  },
+  {
+    nome: "Terras Desertas",
+    descricao:
+      "As Terras Desertas são inóspitas para todos que não aprenderam a sobreviver nelas. A terra rejeita aqueles que vivem nas grandes cidades, assim como eles um dia a rejeitaram.",
+    imagem: "terrasdesertas",
+    booster: "remanescentes",
+    efeitoContinuo: {
+      tipo: TIPOS_EFEITO_CONTINUO.DEBUFF_CAMPO_INIMIGO,
+      valor: 1,
+    },
   },
 
   // Adicione novas cartas de terreno aqui, seguindo o mesmo formato acima.
@@ -337,6 +373,26 @@ const POOL_CARTAS_MONSTRO = [
     habilidadeAtiva: true, // Protocolo de Segurança: não dispara ao invocar — ativa em campo, 1x por turno
     somAtaque: "somTiro",
   },
+  {
+    nome: 'resenha games"',
+    poder: 1100,
+    descricao: "resenha.",
+    imagem: "resenha",
+    booster: "raspcorp",
+    efeito: {
+      tipo: TIPOS_EFEITO.ATACAR,
+      valor: 500,
+      // rangeH:5 e rangeV:3 cobrem o campo inimigo inteiro (5 colunas,
+      // 2 fileiras de profundidade), o que na prática implementa
+      // "escolha qualquer carta do campo inimigo" (Protocolo de
+      // Segurança) reaproveitando 100% do sistema de ATACAR existente.
+      rangeH: 9,
+      rangeV: 9,
+      atingeTodos: true,
+    },
+    habilidadeAtiva: true, // Protocolo de Segurança: não dispara ao invocar — ativa em campo, 1x por turno
+    somAtaque: "somTiro",
+  },
 
   {
     nome: "Estagiário de Machine Learning",
@@ -409,6 +465,77 @@ const POOL_CARTAS_MONSTRO = [
     efeito: {
       tipo: TIPOS_EFEITO.DISTRIBUIR_DANO,
       total: 6,
+    },
+    habilidadeAtiva: true,
+  },
+
+  // ---------- Os Remanescentes (booster 4) ----------
+  {
+    nome: "Povo da Areia",
+    poder: 4,
+    descricao:
+      "Os Remanescentes são conhecidos como “Povo da Areia”, famosos pela brutalidade, reciclagem e capacidade de sobreviver onde poucos conseguiriam. Entre eles, ninguém é deixado para trás: os que partem continuam vivendo através daqueles que permanecem.",
+    imagem: "povodaareia",
+    booster: "remanescentes",
+    efeito: {
+      tipo: TIPOS_EFEITO.BONUS_POR_PERDIDAS,
+      valor: 1,
+    },
+  },
+  {
+    nome: "A Ferreira",
+    poder: 5,
+    descricao:
+      "No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Ferreira transforma restos do velho mundo em armas, ferramentas e equipamentos capazes de manter seu povo vivo por mais um dia. Sua oficina é parada obrigatória para qualquer um que quer sobreviver no deserto.",
+    imagem: "ferreira",
+    booster: "remanescentes",
+    efeito: {
+      tipo: TIPOS_EFEITO.BUFF_ATE_DOIS_ALIADOS,
+      valor: 1,
+      maxAlvos: 2,
+    },
+    habilidadeAtiva: true,
+  },
+  {
+    nome: "Tuh'Coh, O Feio",
+    poder: 5,
+    descricao:
+      "Tuh'Coh é um sobrevivente. Oscilando entre o certo e o errado, sempre tenta fazer o seu melhor, mesmo que precise recorrer a esquemas cada vez mais complexos para sobreviver. Engraçado, impulsivo e caótico, O Feio mostra que até os mais habilidosos continuam sendo humanos.",
+    imagem: "ofeio",
+    booster: "remanescentes",
+    efeito: {
+      tipo: TIPOS_EFEITO.BONUS_TRIO_ADJACENTE,
+      nomes: ["O Bom", "Sen'Tenzhah, O Mau"],
+      valor: 4,
+    },
+  },
+  {
+    nome: "Sen'Tenzhah, O Mau",
+    poder: 6,
+    descricao:
+      "Sen'Tenzhah ocupa uma zona cinzenta até mesmo entre os Remanescentes. Como caçador de recompensas, emprega métodos pouco ortodoxos e muda de lado sempre que a recompensa compensa. Seu apelido, “O Mau”, contrasta curiosamente com sua aparência, especialmente com seus olhos angelicais.",
+    imagem: "omau",
+    booster: "remanescentes",
+    efeito: {
+      tipo: TIPOS_EFEITO.ATACAR,
+      valor: 3,
+      rangeH: 5,
+      rangeV: 3,
+      bonusAoEliminar: 1,
+    },
+    habilidadeAtiva: true,
+  },
+  {
+    nome: "O Bom",
+    poder: 7,
+    descricao:
+      "Apesar de também ser um fora da lei, o rígido código moral do Bom faz com que ele sempre busque a justiça ética, mesmo quando ela entra em conflito com as próprias leis dos Remanescentes. Seu verdadeiro nome nunca foi descoberto.",
+    imagem: "obom",
+    booster: "remanescentes",
+    efeito: {
+      tipo: TIPOS_EFEITO.DISTRIBUIR_DANO,
+      total: 6,
+      alvosUnicos: true,
     },
     habilidadeAtiva: true,
   },
@@ -601,8 +728,6 @@ const POOL_CARTAS_MONSTRO = [
 //   efeito     -> { tipo: TIPOS_EFEITO.<algum>, valor: <número> }
 // ----------------------------------------------------------------------------
 const POOL_CARTAS_EFEITO = [
-  
-
   {
     nome: "Sugestão Algorítmica",
     poder: 1,
@@ -658,6 +783,17 @@ const POOL_CARTAS_EFEITO = [
       exigeAlvoIsolado: true,
     },
   },
+  {
+    nome: "Reciclagem",
+    poder: 1,
+    descricao:
+      "Restos de plástico, eletrônicos antigos e robôs destruídos. Nas mãos dos Remanescentes, tudo pode ganhar uma nova utilidade. O lixo de uns é o tesouro dos outros.",
+    imagem: "reciclagem",
+    booster: "remanescentes",
+    efeito: {
+      tipo: TIPOS_EFEITO.RECICLAR_DESCARTE,
+    },
+  },
 
   // Adicione novas cartas de efeito aqui, seguindo o mesmo formato acima.
 ];
@@ -694,6 +830,7 @@ class Carta {
     this.usadaNaPartida = false; // trava habilidades "1x por jogo" (ex: Cessar e Desistir) até o fim da partida, sem resetar por turno
     this.poderBase = this.poder; // teto de recuperação (ex: terreno Beira-mar) e base p/ bônus de terreno
     this.bonusTerreno = 0; // soma de bônus contínuos aplicados por terrenos (revertida/reaplicada a cada recálculo)
+    this.bonusEfeitoContinuo = 0;
     this.envenenada = null; // Dose Letal (A Cobra): { valor } enquanto envenenada — perde poder a cada turno (ver Partida.resolverEfeitosDeTurno)
   }
 

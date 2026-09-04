@@ -132,6 +132,21 @@ async function run() {
   assert.equal(giveSingleCard.status, 200);
   assert.equal(giveSingleCard.payload.account.collection["monstro:O Rato"], 4);
 
+  const grantAllCards = await api("/api/admin/accounts/grant-cards", {
+    method: "POST",
+    body: { username: "Gabriel", cards: [], allAvailable: true },
+  });
+  assert.equal(grantAllCards.status, 200);
+  assert.ok(grantAllCards.payload.granted.length >= 30);
+  assert.equal(
+    grantAllCards.payload.account.collection["monstro:Povo da Areia"],
+    1,
+  );
+  assert.equal(
+    grantAllCards.payload.account.collection["efeito:Reciclagem"],
+    1,
+  );
+
   const deck = faction.payload.deck;
   const saved = await api("/api/deck", {
     method: "PUT",
@@ -149,6 +164,14 @@ async function run() {
   });
   assert.equal(session.status, 200);
   assert.deepEqual(session.payload.deck, saved.payload.deck);
+
+  const resetCollection = await api("/api/admin/accounts/reset-collection", {
+    method: "POST",
+    body: { conta: "Gabriel" },
+  });
+  assert.equal(resetCollection.status, 200);
+  assert.deepEqual(resetCollection.payload.account.collection, {});
+  assert.equal(resetCollection.payload.account.deck, null);
 
   const persisted = fs.readFileSync(
     path.join(dataDir, "accounts.json"),

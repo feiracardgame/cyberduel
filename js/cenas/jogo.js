@@ -1485,6 +1485,10 @@ class CenaJogo extends Phaser.Scene {
       this.iniciarSelecaoDeCartaDoBaralho(gameObject, carta);
       return;
     }
+    if (carta.efeito?.tipo === TIPOS_EFEITO.RECICLAR_DESCARTE) {
+      this.iniciarSelecaoDeCartaDoBaralho(gameObject, carta, "descarte");
+      return;
+    }
     if (
       carta.efeito?.tipo === TIPOS_EFEITO.BUFF_ALIADO_ESCOLHIDO &&
       carta.efeito.exigeAlvoIsolado
@@ -3651,7 +3655,8 @@ class CenaJogo extends Phaser.Scene {
         carta.efeito.tipo === TIPOS_EFEITO.ROUBAR_PODER ||
         carta.efeito.tipo === TIPOS_EFEITO.REPOSICIONAR ||
         carta.efeito.tipo === TIPOS_EFEITO.ENVENENAR ||
-        carta.efeito.tipo === TIPOS_EFEITO.DISTRIBUIR_DANO) &&
+        carta.efeito.tipo === TIPOS_EFEITO.DISTRIBUIR_DANO ||
+        carta.efeito.tipo === TIPOS_EFEITO.BUFF_ATE_DOIS_ALIADOS) &&
       this.partida.jogador.campo.cartas.includes(carta);
     // Cessar e Desistir (Advogado Corporativo) é 1x por PARTIDA, não 1x
     // por turno — o botão fica travado pra sempre depois de usado, mesmo
@@ -3968,7 +3973,8 @@ class CenaJogo extends Phaser.Scene {
         carta.efeito.tipo === TIPOS_EFEITO.ROUBAR_PODER ||
         carta.efeito.tipo === TIPOS_EFEITO.REPOSICIONAR ||
         carta.efeito.tipo === TIPOS_EFEITO.ENVENENAR ||
-        carta.efeito.tipo === TIPOS_EFEITO.DISTRIBUIR_DANO) &&
+        carta.efeito.tipo === TIPOS_EFEITO.DISTRIBUIR_DANO ||
+        carta.efeito.tipo === TIPOS_EFEITO.BUFF_ATE_DOIS_ALIADOS) &&
       this.partida.jogador.campo.cartas.includes(carta);
     const habilidadeJaUsada =
       podeMostrarBotaoHabilidade &&
@@ -4704,6 +4710,8 @@ class CenaJogo extends Phaser.Scene {
       carta.efeito && carta.efeito.tipo === TIPOS_EFEITO.ENVENENAR;
     const ehDistribuirDano =
       carta.efeito && carta.efeito.tipo === TIPOS_EFEITO.DISTRIBUIR_DANO;
+    const ehBuffAteDois =
+      carta.efeito && carta.efeito.tipo === TIPOS_EFEITO.BUFF_ATE_DOIS_ALIADOS;
 
     this.travado = true;
     this.esconderRodaBotoes();
@@ -4722,7 +4730,9 @@ class CenaJogo extends Phaser.Scene {
     // Mesmo com um único alvo possível, o jogador escolhe ativamente
     // tocando nele — assim ele sempre confirma a ação, em vez do jogo
     // disparar sozinho.
-    if (ehDistribuirDano) {
+    if (ehBuffAteDois) {
+      this.iniciarSelecaoDeBuffAteDois(carta, alvos);
+    } else if (ehDistribuirDano) {
       this.iniciarDistribuicaoDeDano(carta, alvos);
     } else if (ehRedistribuir) {
       // Precisa de pelo menos 2 aliadas em campo (o Gestor + mais uma) pra
@@ -4792,10 +4802,13 @@ class CenaJogo extends Phaser.Scene {
     const total = carta.efeito.total || 6;
     const totalDistribuivel = Math.min(
       total,
-      alvos.reduce(
-        (soma, indice) => soma + this.partida.inimigo.campo.cartas[indice].poder,
-        0,
-      ),
+      carta.efeito.alvosUnicos
+        ? alvos.length
+        : alvos.reduce(
+            (soma, indice) =>
+              soma + this.partida.inimigo.campo.cartas[indice].poder,
+            0,
+          ),
     );
     const distribuicao = [];
     const contagens = new Map();
@@ -4903,6 +4916,7 @@ class CenaJogo extends Phaser.Scene {
         const vidaDoAlvo = this.partida.inimigo.campo.cartas[indice].poder;
         if (
           distribuicao.length >= totalDistribuivel ||
+          (carta.efeito.alvosUnicos && (contagens.get(indice) || 0) >= 1) ||
           (contagens.get(indice) || 0) >= vidaDoAlvo
         )
           return;
@@ -5065,8 +5079,11 @@ class CenaJogo extends Phaser.Scene {
   // ainda NÃO foi consumida nesse ponto — só é jogada de fato quando o
   // jogador confirma uma escolha (ver confirmarEscolhaCartaDoBaralho).
   // Cancelar (toque fora) devolve a carta arrastada pro leque, sem gastá-la.
-  iniciarSelecaoDeCartaDoBaralho(gameObject, carta) {
-    const deck = this.partida.jogador.deck.cartas;
+  iniciarSelecaoDeCartaDoBaralho(gameObject, carta, origem = "deck") {
+    const deck =
+      origem === "descarte"
+        ? this.partida.jogador.descarte.filter((item) => item !== carta)
+        : this.partida.jogador.deck.cartas;
 
     if (deck.length === 0) {
       this.animarRetornoAoLeque(gameObject, true);
@@ -5096,22 +5113,34 @@ class CenaJogo extends Phaser.Scene {
     objetos.push(painel);
 
     let textoInstr = this.add
-      .text(GW / 2, 520, "SUGESTÃO ALGORÍTMICA", {
+      .text(
+        GW / 2,
+        520,
+        origem === "descarte" ? "RECICLAGEM" : "SUGESTÃO ALGORÍTMICA",
+        {
         fontSize: "46px",
         color: "#ffcc00",
         fontStyle: "bold",
         stroke: "#000000",
         strokeThickness: 6,
-      })
+        },
+      )
       .setOrigin(0.5)
       .setDepth(3950);
     objetos.push(textoInstr);
 
     let textoCancelar = this.add
-      .text(GW / 2, 580, "Escolha uma carta para adicionar à sua mão", {
+      .text(
+        GW / 2,
+        580,
+        origem === "descarte"
+          ? "Escolha uma carta do descarte para recuperar"
+          : "Escolha uma carta para adicionar à sua mão",
+        {
         fontSize: "27px",
         color: "#dddddd",
-      })
+        },
+      )
       .setOrigin(0.5)
       .setDepth(3950);
     objetos.push(textoCancelar);
@@ -5672,6 +5701,66 @@ class CenaJogo extends Phaser.Scene {
       objetos.push(anel, zonaToque);
     });
 
+    this.objetosSelecaoAlvo = objetos;
+  }
+
+  iniciarSelecaoDeBuffAteDois(carta, alvos, primeiroAlvo = null) {
+    if (this.objetosSelecaoAlvo) {
+      this.objetosSelecaoAlvo.forEach((o) => o.destroy());
+      this.objetosSelecaoAlvo = null;
+    }
+    const L = this.layout;
+    const objetos = [];
+    const overlay = this.add
+      .rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.35)
+      .setDepth(3700)
+      .setInteractive();
+    overlay.on("pointerup", () =>
+      primeiroAlvo === null
+        ? this.cancelarSelecaoDeAlvo()
+        : this.executarHabilidade(carta, [primeiroAlvo]),
+    );
+    objetos.push(overlay);
+    const instrucao = this.add
+      .text(
+        GW / 2,
+        140,
+        primeiroAlvo === null
+          ? "Escolha a primeira aliada para reparar (1/2)"
+          : "Escolha a segunda aliada (2/2)",
+        {
+          fontSize: "40px",
+          color: "#88ff99",
+          fontStyle: "bold",
+          stroke: "#000000",
+          strokeThickness: 6,
+        },
+      )
+      .setOrigin(0.5)
+      .setDepth(3900);
+    objetos.push(instrucao);
+    alvos
+      .filter((indice) => indice !== primeiroAlvo)
+      .forEach((indice) => {
+        const col = indice % 5;
+        const fileira = Math.floor(indice / 5);
+        const xPos = L.x[col];
+        const yPos = L.yJogador[fileira];
+        const anel = this.add
+          .rectangle(xPos, yPos, L.slotW, L.slotH, 0x88ff99, 0)
+          .setStrokeStyle(8, 0x88ff99, 1)
+          .setDepth(3800);
+        const zona = this.add
+          .rectangle(xPos, yPos, L.slotW, L.slotH, 0xffffff, 0.001)
+          .setDepth(3801)
+          .setInteractive({ useHandCursor: true });
+        zona.on("pointerup", () => {
+          if (primeiroAlvo === null)
+            this.iniciarSelecaoDeBuffAteDois(carta, alvos, indice);
+          else this.executarHabilidade(carta, [primeiroAlvo, indice]);
+        });
+        objetos.push(anel, zona);
+      });
     this.objetosSelecaoAlvo = objetos;
   }
 

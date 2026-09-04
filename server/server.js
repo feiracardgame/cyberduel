@@ -86,6 +86,27 @@ const FACTION_CARDS = Object.freeze({
   ],
 });
 
+const EXTRA_GAME_CARDS = Object.freeze([
+  ["monstro", 'UCC "Juggernaut"'],
+  ["monstro", 'resenha games"'],
+  ["monstro", "HumbaBrain"],
+  ["efeito", "Você Parece Sozinho"],
+  ["monstro", "Dieh'Go, o Xerife"],
+  ["monstro", "Povo da Areia"],
+  ["monstro", "A Ferreira"],
+  ["monstro", "Tuh'Coh, O Feio"],
+  ["monstro", "Sen'Tenzhah, O Mau"],
+  ["monstro", "O Bom"],
+  ["efeito", "Reciclagem"],
+  ["terreno", "Terras Desertas"],
+]);
+
+const ALL_AVAILABLE_CARDS = Object.freeze(
+  [...Object.values(FACTION_CARDS).flat(), ...EXTRA_GAME_CARDS].map(
+    ([tipo, nome]) => ({ tipo, nome, quantidade: 1 }),
+  ),
+);
+
 const ADMIN_API_TOKEN = String(process.env.ADMIN_API_TOKEN || "").trim();
 
 function cardKey(tipo, nome) {
@@ -601,6 +622,10 @@ async function handleApi(request, response, pathname) {
       });
 
     const granted = sanitizeGrantedCards(body.cards);
+    if (body.allAvailable === true) {
+      granted.length = 0;
+      granted.push(...ALL_AVAILABLE_CARDS);
+    }
     if (body.fullDeck === true) {
       const faction = String(
         body.faction || account.faction || "",
@@ -641,6 +666,7 @@ async function handleApi(request, response, pathname) {
       });
 
     const body = await readJson(request);
+
     const conta = String(body.conta || body.username || "").trim();
     const nomeDaCarta = String(body.nomeDaCarta || body.cardName || "").trim();
     const quantidade = Math.max(
@@ -683,6 +709,40 @@ async function handleApi(request, response, pathname) {
       }
       throw error;
     }
+  }
+
+  if (
+    request.method === "POST" &&
+    pathname === "/api/admin/accounts/reset-collection"
+  ) {
+    if (!hasAdminAccess(request))
+      return sendJson(response, 401, {
+        ok: false,
+        error: "Acesso administrativo negado.",
+      });
+
+    const body = await readJson(request);
+    const conta = String(body.conta || body.username || "").trim();
+    if (!conta)
+      return sendJson(response, 400, {
+        ok: false,
+        error: "Informe conta ou username.",
+      });
+    const account = accountStore.accounts[normalizeUsername(conta)];
+    if (!account)
+      return sendJson(response, 404, {
+        ok: false,
+        error: "Conta não encontrada.",
+      });
+    ensureAccountDefaults(account);
+    account.collection = {};
+    account.deck = null;
+    account.updatedAt = new Date().toISOString();
+    saveAccounts();
+    return sendJson(response, 200, {
+      ok: true,
+      account: publicAccount(account),
+    });
   }
 
   if (request.method === "POST" && pathname === "/api/account/match-complete") {

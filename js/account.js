@@ -148,11 +148,24 @@ class CyberduelAccount {
         username,
         cards,
         fullDeck: options.fullDeck === true,
+        allAvailable: options.allAvailable === true,
         faction: options.faction || null,
       },
       auth: false,
       headers: adminToken ? { "x-admin-token": adminToken } : {},
     });
+    if (
+      payload.account &&
+      String(payload.account.username || "").toLocaleLowerCase("pt-BR") ===
+        String(this.user || "").toLocaleLowerCase("pt-BR")
+    ) {
+      this.applyAuth(payload.account, false);
+      window.cyberduelDeckBuilder?.setAccountSession(
+        this.user,
+        this.deck,
+        this.collection,
+      );
+    }
     return payload;
   }
 
@@ -167,6 +180,19 @@ class CyberduelAccount {
         nomeDaCarta,
         quantidade: Math.max(1, Math.min(20, Number(options.quantidade) || 1)),
       },
+      auth: false,
+      headers: adminToken ? { "x-admin-token": adminToken } : {},
+    });
+    return payload;
+  }
+
+  async resetCollection(conta, options = {}) {
+    const adminToken = String(
+      options.adminToken || window.CYBERDUEL_ADMIN_TOKEN || "",
+    ).trim();
+    const payload = await this.request("/api/admin/accounts/reset-collection", {
+      method: "POST",
+      body: { conta, username: conta },
       auth: false,
       headers: adminToken ? { "x-admin-token": adminToken } : {},
     });
