@@ -1489,6 +1489,26 @@ class CenaJogo extends Phaser.Scene {
       this.iniciarSelecaoDeCartaDoBaralho(gameObject, carta, "descarte");
       return;
     }
+    if (carta.efeito?.tipo === TIPOS_EFEITO.REMOVER_TERRENO) {
+      const alvos = this.partida.inimigo.campo.cartas
+        .map((alvo, indice) => (alvo?.tipo === "terreno" ? indice : null))
+        .filter((indice) => indice !== null);
+      if (!alvos.length) {
+        this.animarRetornoAoLeque(gameObject, true);
+        return;
+      }
+      this.iniciarSelecaoDeAlvo(
+        carta,
+        alvos,
+        "Escolha um terreno inimigo para remover",
+        (indice) => {
+          this.cancelarSelecaoDeAlvo();
+          this.conjurarCartaDeEfeitoJogador(gameObject, carta, indice);
+        },
+        () => this.animarRetornoAoLeque(gameObject, false),
+      );
+      return;
+    }
     if (
       carta.efeito?.tipo === TIPOS_EFEITO.BUFF_ALIADO_ESCOLHIDO &&
       carta.efeito.exigeAlvoIsolado
@@ -4995,6 +5015,8 @@ class CenaJogo extends Phaser.Scene {
     carta,
     alvos,
     textoInstrucao = "Escolha um alvo para atacar",
+    aoEscolher = null,
+    aoCancelar = null,
   ) {
     const L = this.layout;
     const objetos = [];
@@ -5006,7 +5028,10 @@ class CenaJogo extends Phaser.Scene {
       .rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.35)
       .setDepth(3700)
       .setInteractive();
-    overlay.on("pointerup", () => this.cancelarSelecaoDeAlvo());
+    overlay.on("pointerup", () => {
+      this.cancelarSelecaoDeAlvo();
+      if (aoCancelar) aoCancelar();
+    });
     objetos.push(overlay);
 
     let textoInstr = this.add
@@ -5056,7 +5081,11 @@ class CenaJogo extends Phaser.Scene {
         .rectangle(xPos, yPos, L.slotW, L.slotH, 0xffffff, 0.001)
         .setDepth(3801)
         .setInteractive({ useHandCursor: true });
-      zonaToque.on("pointerup", () => this.executarHabilidade(carta, indice));
+      zonaToque.on("pointerup", () =>
+        aoEscolher
+          ? aoEscolher(indice)
+          : this.executarHabilidade(carta, indice),
+      );
 
       objetos.push(anel, zonaToque);
     });

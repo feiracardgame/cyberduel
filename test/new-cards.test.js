@@ -79,6 +79,41 @@ partida.inimigo.campo.cartas[0] = inimigo;
 partida.resolverEfeitosContinuos(partida.inimigo);
 assert.equal(inimigo.poder, 2);
 
+const saloon = new Carta(13, 0, "terreno", {
+  nome: "Saloon",
+  efeitoContinuo: {
+    tipo: TIPOS_EFEITO_CONTINUO.BUFF_MESMA_LINHA,
+    valor: 2,
+  },
+});
+const mesmaLinha = new Carta(14, 3, "monstro", { nome: "Mesma linha" });
+const outraLinha = new Carta(15, 3, "monstro", { nome: "Outra linha" });
+partida.jogador.campo.cartas.fill(null);
+partida.jogador.campo.cartas[0] = saloon;
+partida.jogador.campo.cartas[1] = mesmaLinha;
+partida.jogador.campo.cartas[6] = outraLinha;
+partida.resolverEfeitosContinuos(partida.jogador);
+assert.equal(mesmaLinha.poder, 5);
+assert.equal(outraLinha.poder, 3);
+
+partida.inimigo.campo.cartas.fill(null);
+partida.inimigo.campo.cartas[0] = new Carta(16, 0, "terreno", {
+  nome: "Terreno inimigo",
+});
+const vento = new Carta(17, 1, "efeito", {
+  nome: "Vento dos Ermos",
+  efeito: { tipo: TIPOS_EFEITO.REMOVER_TERRENO },
+});
+partida.aplicarEfeitoInvocacao(
+  vento,
+  partida.jogador,
+  partida.inimigo,
+  null,
+  0,
+);
+assert.equal(partida.inimigo.campo.cartas[0], null);
+assert.equal(partida.inimigo.descarte.at(-1).nome, "Terreno inimigo");
+
 const ferreira = new Carta(8, 5, "monstro", {
   nome: "A Ferreira",
   habilidadeAtiva: true,

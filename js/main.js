@@ -317,12 +317,19 @@ class Partida {
       .forEach((terreno) => {
         if (terrenosNeutralizados) return;
         const { tipo, valor, booster } = terreno.efeitoContinuo;
-        if (tipo !== TIPOS_EFEITO_CONTINUO.BUFF_CAMPO_CONTINUO) return;
-        dono.campo.cartas.forEach((c) => {
+        if (
+          tipo !== TIPOS_EFEITO_CONTINUO.BUFF_CAMPO_CONTINUO &&
+          tipo !== TIPOS_EFEITO_CONTINUO.BUFF_MESMA_LINHA
+        )
+          return;
+        const posicaoTerreno = dono.campo.cartas.indexOf(terreno);
+        dono.campo.cartas.forEach((c, posicaoCarta) => {
           if (
             c &&
             c.tipo !== "terreno" &&
-            (!booster || c.booster === booster)
+            (!booster || c.booster === booster) &&
+            (tipo !== TIPOS_EFEITO_CONTINUO.BUFF_MESMA_LINHA ||
+              Math.floor(posicaoCarta / 5) === Math.floor(posicaoTerreno / 5))
           ) {
             c.poder += valor;
             c.bonusTerreno += valor;
@@ -1203,6 +1210,16 @@ class Partida {
           dono.descarte.splice(dono.descarte.indexOf(escolhida), 1);
           dono.mao.adicionarCarta(escolhida);
           dono.cartasRecemCompradas.push(escolhida);
+        }
+        break;
+      }
+      case TIPOS_EFEITO.REMOVER_TERRENO: {
+        const indice = Number(alvoEscolhido);
+        const alvo = oponente.campo.cartas[indice];
+        if (Number.isInteger(indice) && alvo?.tipo === "terreno") {
+          oponente.campo.removerCarta(indice);
+          this.resolverEfeitosContinuos(oponente);
+          this.resolverEfeitosContinuos(dono);
         }
         break;
       }

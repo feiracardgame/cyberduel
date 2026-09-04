@@ -98,7 +98,9 @@ const EXTRA_GAME_CARDS = Object.freeze([
   ["monstro", "Sen'Tenzhah, O Mau"],
   ["monstro", "O Bom"],
   ["efeito", "Reciclagem"],
+  ["efeito", "Vento dos Ermos"],
   ["terreno", "Terras Desertas"],
+  ["terreno", "Saloon"],
 ]);
 
 const ALL_AVAILABLE_CARDS = Object.freeze(

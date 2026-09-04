@@ -44,6 +44,8 @@ window.CYBERDUEL_IMAGE_ASSETS = Object.freeze({
   obom: "assets/cartas/o_bom.png",
   reciclagem: "assets/cartas/reciclagem.png",
   terrasdesertas: "assets/cartas/terras_desertas.png",
+  saloon: "assets/cartas/saloon.png",
+  ventodosermos: "assets/cartas/vento_dos_ermos.png",
   eltigre: "assets/cartas/el_tigre.png",
   daranha: "assets/cartas/D_Aranha.png",
   oboi: "assets/cartas/Anarcoboi.png",

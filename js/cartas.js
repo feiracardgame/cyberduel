@@ -83,6 +83,7 @@ const TIPOS_EFEITO = {
   HUMATRIX: "humbatrix", // HumbaBrain: neutraliza terrenos inimigos e protege terrenos aliados
   DISTRIBUIR_DANO: "distribuir_dano", // Dieh'Go: distribui livremente uma reserva de dano entre inimigos
   RECICLAR_DESCARTE: "reciclar_descarte",
+  REMOVER_TERRENO: "remover_terreno",
   BONUS_POR_PERDIDAS: "bonus_por_perdidas",
   BONUS_TRIO_ADJACENTE: "bonus_trio_adjacente",
   BUFF_ATE_DOIS_ALIADOS: "buff_ate_dois_aliados",
@@ -122,6 +123,8 @@ function descreverEfeito(efeito) {
       return efeito.texto || "";
     case TIPOS_EFEITO.RECICLAR_DESCARTE:
       return "Ao ser conjurada: devolva uma carta do seu descarte para sua mão.";
+    case TIPOS_EFEITO.REMOVER_TERRENO:
+      return "Ao ser conjurada: escolha um terreno inimigo e remova-o do campo.";
     case TIPOS_EFEITO.BONUS_POR_PERDIDAS:
       return `Enquanto estiver em campo: recebe +${efeito.valor} PA para cada carta aliada destruída ou removida.`;
     case TIPOS_EFEITO.BONUS_TRIO_ADJACENTE:
@@ -176,6 +179,7 @@ const TIPOS_EFEITO_CONTINUO = {
   REVELAR_MAO_CONTINUO: "revelar_mao_continuo", // enquanto em campo: mão do oponente fica revelada
   OCULTAR_ALIADOS: "ocultar_aliados", // Toca do Coelho: aliados ficam virados para baixo até sofrer dano ou ativar efeito
   DEBUFF_CAMPO_INIMIGO: "debuff_campo_inimigo",
+  BUFF_MESMA_LINHA: "buff_mesma_linha",
 };
 
 function descreverEfeitoContinuo(efeito) {
@@ -191,6 +195,8 @@ function descreverEfeitoContinuo(efeito) {
       return `Enquanto estiver em campo: cartas aliadas ficam viradas para baixo até sofrerem dano ou ativarem seus efeitos.`;
     case TIPOS_EFEITO_CONTINUO.DEBUFF_CAMPO_INIMIGO:
       return `Enquanto estiver em campo: todas as cartas inimigas perdem ${efeito.valor} PA.`;
+    case TIPOS_EFEITO_CONTINUO.BUFF_MESMA_LINHA:
+      return `Enquanto estiver em campo: todas as cartas aliadas da mesma linha ganham +${efeito.valor} PA.`;
     default:
       return "";
   }
@@ -254,6 +260,17 @@ const POOL_CARTAS_TERRENO = [
     efeitoContinuo: {
       tipo: TIPOS_EFEITO_CONTINUO.DEBUFF_CAMPO_INIMIGO,
       valor: 1,
+    },
+  },
+  {
+    nome: "Saloon",
+    descricao:
+      "Chão de madeira velha, dobradiças que rangem e cheiro de fumaça. Nem a destruição das terras agricultáveis nem o maior desenvolvimento tecnológico conseguiram acabar com a essência do verdadeiro Velho Oeste.",
+    imagem: "saloon",
+    booster: "remanescentes",
+    efeitoContinuo: {
+      tipo: TIPOS_EFEITO_CONTINUO.BUFF_MESMA_LINHA,
+      valor: 2,
     },
   },
 
@@ -793,6 +810,15 @@ const POOL_CARTAS_EFEITO = [
     efeito: {
       tipo: TIPOS_EFEITO.RECICLAR_DESCARTE,
     },
+  },
+  {
+    nome: "Vento dos Ermos",
+    poder: 1,
+    descricao:
+      "A forte ventania nas terras destruídas ajuda a acelerar a desertificação no local. Como dizem os anciões remanescentes: o vento tudo leva, menos as lembranças daqueles que passaram.",
+    imagem: "ventodosermos",
+    booster: "remanescentes",
+    efeito: { tipo: TIPOS_EFEITO.REMOVER_TERRENO },
   },
 
   // Adicione novas cartas de efeito aqui, seguindo o mesmo formato acima.
