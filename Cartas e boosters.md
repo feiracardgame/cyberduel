@@ -931,12 +931,12 @@ Faz aqueles arbusto seco que voa pelo deserto com alguns riscos indicando vento,
 
 
   
-### 1x carta media 1 -> WebBombeiros
+### 1x carta media 1 -> CyberUnidades de Emergência
 
-* Descrição: Os bombeiros continuam sendo alguns dos profissionais mais importantes da sociedade, enfrentando incêndios, acidentes e desastres para salvar vidas. Ainda assim, infelizmente, a maioria das pessoas conhece melhor o elenco da série sobre bombeiros do que os valorosos profissionais que trabalham na própria cidade.
+* Descrição: Os bombeiros continuam enfrentando incêndios, acidentes e desastres para salvar vidas. Em uma sociedade dominada por IAs, tornaram-se símbolos daqueles que ainda defendem a superioridade humana. Afinal, até agora, nenhuma IA parece ter entendido por que alguém escolheria entrar voluntariamente em um prédio em chamas para salvar um simples humano.
 * Efeito: Extintor -> Extintor: Uma vez por turno, escolha uma carta inimiga. Até o fim da rodada, ela não pode receber bônus de PA.
  PA: 5
-* Visual: Faz tipo uma capa de serie de bombeiro  e escreve "NeoFloripa Fire" mas eles são bombeiros super cyberpunk apagando o fogo na cidade cyberpunk
+* Visual: 
 
 <img width="190" height="281" alt="image" src="https://github.com/user-attachments/assets/b157ef59-de08-4a46-8d72-bb7717a1b65f" />
 
