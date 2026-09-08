@@ -986,7 +986,7 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 * PA: 6
 * Efeito: Troca de Favores -> Ao invocá-lo, escolha uma carta aliada. Enquanto ela ainda estiver em campo, o Político recebe +6 de PA. Caso ela seja destruída, o político é eliminado junto.
  
-* Visual: Faz tipo uma charge de um monte de trabalhador olhando o politico com cartas do cyberduel
+* Visual: 
 
 <img alt="image" src="assets/cartas/cyber_politico.png" />
 
@@ -997,7 +997,7 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 
 *Efeito: Todas as cartas do Sindicato ganham +3 de PA
 
-*Visual: <img alt="image" src="assets/cartas/neo_palhoça.png" />
+*Visual: <img alt="image" src="assets/cartas/neo_palhoca.png" />
 
  #### Assets
 
@@ -1016,7 +1016,8 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 * Efeito: Recuperação -> Uma vez por turno, escolha uma carta aliada que já tenha usado seu efeito. Ela pode utilizá-lo novamente.
 
  
-* Visual: <img alt="image" src="assets/cartas/professores_de_duelo.png" />
+* Visual:
+<img alt="image" src="assets/cartas/professores_de_duelo.png" />
 
  #### Assets
 
