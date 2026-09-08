@@ -15,6 +15,7 @@ const {
 } = require("crypto");
 const { promisify } = require("util");
 const path = require("path");
+const { runInNewContext } = require("node:vm");
 const { Server } = require("socket.io");
 const QRCode = require("qrcode");
 
@@ -40,7 +41,7 @@ function environmentInteger(name, fallback, minimum = 0, maximum = 100000) {
 }
 
 const BOOSTER_CONFIG = Object.freeze({
-  cardsPerPack: 20,
+  cardsPerPack: 4,
   legendaryMinGames: environmentInteger("BOOSTER_LEGENDARY_MIN_GAMES", 10),
   levelWeights: Object.freeze({
     baixa: environmentInteger("BOOSTER_WEIGHT_BAIXA", 20),
@@ -86,26 +87,18 @@ const FACTION_CARDS = Object.freeze({
   ],
 });
 
-const EXTRA_GAME_CARDS = Object.freeze([
-  ["monstro", 'UCC "Juggernaut"'],
-  ["monstro", 'resenha games"'],
-  ["monstro", "HumbaBrain"],
-  ["efeito", "Você Parece Sozinho"],
-  ["monstro", "Dieh'Go, o Xerife"],
-  ["monstro", "Povo da Areia"],
-  ["monstro", "A Ferreira"],
-  ["monstro", "Tuh'Coh, O Feio"],
-  ["monstro", "Sen'Tenzhah, O Mau"],
-  ["monstro", "O Bom"],
-  ["efeito", "Reciclagem"],
-  ["efeito", "Vento dos Ermos"],
-  ["terreno", "Terras Desertas"],
-  ["terreno", "Saloon"],
-]);
-
+// O painel administrativo concede exatamente as cartas implementadas no jogo.
+// O catálogo é código local do projeto, carregado uma vez na inicialização.
 const ALL_AVAILABLE_CARDS = Object.freeze(
-  [...Object.values(FACTION_CARDS).flat(), ...EXTRA_GAME_CARDS].map(
-    ([tipo, nome]) => ({ tipo, nome, quantidade: 1 }),
+  runInNewContext(
+    `${readFileSync(path.join(PUBLIC_ROOT, "js/cartas.js"), "utf8")}
+    [
+      ...POOL_CARTAS_MONSTRO.map(({ nome }) => ({ tipo: "monstro", nome, quantidade: 1 })),
+      ...POOL_CARTAS_EFEITO.map(({ nome }) => ({ tipo: "efeito", nome, quantidade: 1 })),
+      ...POOL_CARTAS_TERRENO.map(({ nome }) => ({ tipo: "terreno", nome, quantidade: 1 })),
+    ];`,
+    { console: { log() {} } },
+    { filename: "js/cartas.js", timeout: 1000 },
   ),
 );
 
@@ -284,9 +277,9 @@ function normalizeText(value) {
 }
 
 const ADMIN_CARD_INDEX = Object.freeze(
-  Object.values(FACTION_CARDS)
-    .flat()
-    .map(([tipo, nome]) => ({ tipo, nome, lookup: normalizeText(nome) })),
+  ALL_AVAILABLE_CARDS.map(({ tipo, nome }) => ({
+    tipo, nome, lookup: normalizeText(nome),
+  })),
 );
 
 function resolveCardByName(nomeDaCarta) {

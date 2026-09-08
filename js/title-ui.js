@@ -286,6 +286,20 @@ class CyberduelTitleUI {
     cardName.placeholder = "NOME EXATO DA CARTA";
     cardName.maxLength = 120;
     cardName.setAttribute("aria-label", "Nome da carta");
+    const cardSuggestions = this.element("datalist", "");
+    cardSuggestions.id = "admin-card-catalog";
+    cardName.setAttribute("list", cardSuggestions.id);
+    const catalog = this.deckBuilder.getCatalog();
+    catalog.forEach((card) => {
+      const option = this.element("option", "");
+      option.value = card.nome;
+      option.label = `${card.booster} / ${card.tipo}`;
+      cardSuggestions.append(option);
+    });
+    cardName.addEventListener("change", () => {
+      const card = catalog.find((entry) => entry.nome === cardName.value.trim());
+      if (card) cardType.value = card.tipo;
+    });
     const cardQuantity = this.element("input", "title-auth-input");
     cardQuantity.type = "number";
     cardQuantity.min = "1";
@@ -293,7 +307,7 @@ class CyberduelTitleUI {
     cardQuantity.step = "1";
     cardQuantity.value = "1";
     cardQuantity.setAttribute("aria-label", "Quantidade");
-    cardSection.append(cardType, cardName, cardQuantity);
+    cardSection.append(cardType, cardName, cardSuggestions, cardQuantity);
 
     const error = this.element("span", "title-dialog__error");
     const result = this.element("p", "title-admin-result");
@@ -774,7 +788,7 @@ class CyberduelTitleUI {
       this.element(
         "p",
         "",
-        `Cada compra concede um deck completo de 20 cartas da facção escolhida e custa ${this.account.boosterPrice} tijolinhos.`,
+        `Cada booster concede 4 cartas da facção escolhida e custa ${this.account.boosterPrice} tijolinhos.`,
       ),
       balance,
     );

@@ -10,6 +10,18 @@
 // qualquer coisa que passe por this.load.
 // ============================================================================
 window.CYBERDUEL_IMAGE_ASSETS = Object.freeze({
+  "refrigerador_de_datacenter": "assets/cartas/refrigerador_de_datacenter.png",
+  "montador_de_cabos": "assets/cartas/montador_de_cabos.png",
+  "estudante_tecnico": "assets/cartas/estudante_tecnico.png",
+  "bombeiro_neofloripa": "assets/cartas/bombeiro_neofloripa.png",
+  "tecno_agente": "assets/cartas/tecno_agente.png",
+  "neomedicanico": "assets/cartas/neomedicanico.png",
+  "neo_influencer": "assets/cartas/neo_influencer.png",
+  "cyber_politico": "assets/cartas/cyber_politico.png",
+  "professores_de_duelo": "assets/cartas/professores_de_duelo.png",
+  "o_dragao": "assets/cartas/dragão.png",
+  "neo_palhoca": "assets/cartas/neo_palhoca.png",
+
   fundoCarta: "assets/fundo/fundo_carta_2.png",
   cryptoacionistas: "assets/cartas/cryptoacionistas.png",
   dipsp: "assets/cartas/AgenteDIPSP.png",
@@ -17,7 +29,6 @@ window.CYBERDUEL_IMAGE_ASSETS = Object.freeze({
   cybervendedor: "assets/cartas/cybervendedor.png",
   estagiarioml: "assets/cartas/Estagiario_machine_learning.png",
   rh: "assets/cartas/Departamento_RH.png",
-  resenha: "assets/cartas/o_feio.png",
   beiramarneofloripa: "assets/cartas/Beiramar_Neofloripa.png",
   torremontecorp: "assets/cartas/Torre_MonteCorp.png",
   nexusneofloripa: "assets/cartas/NexusNeoFloripa.png",

@@ -5,6 +5,17 @@ console.log("cartas.js carregado");
 // ============================================================================
 
 const NIVEIS_CARTAS = {
+  NeoPalhoça: "terreno",
+  "Dragão das Comunicações Móveis": "alta",
+  "Professores de Duelo": "lendaria",
+  CyberPolíticos: "alta",
+  "Influenciador Digital": "media",
+  NeoMedicânico: "media",
+  "TecnoAgentes de Segurança": "media",
+  "CyberUnidades de Emergência": "media",
+  "Estudante de Curso Técnico": "baixa",
+  "Montadores de Cabos": "baixa",
+  "Refrigeradores de DataCenter": "baixa",
   "CyberVendedor da RaspCorp": "baixa",
   "Estagiário de Machine Learning": "baixa",
   "NeoAnalista de Suporte Nível Alpha": "baixa",
@@ -56,6 +67,8 @@ function classificarNivelCarta(nome, poder, tipo, lendaria) {
 // ativadas manualmente — isso mantém o fluxo do jogo simples e automático.
 
 const TIPOS_EFEITO = {
+  SINDICATO: "sindicato",
+  VINCULO_ALIADO: "vinculo_aliado",
   BUFF_ALIADOS: "buff_aliados", // fortalece as outras cartas aliadas já em campo
   DEBUFF_INIMIGOS: "debuff_inimigos", // enfraquece as cartas inimigas em campo
   COMPRAR_CARTA: "comprar_carta", // dono compra carta(s) extra do deck
@@ -63,7 +76,7 @@ const TIPOS_EFEITO = {
   ATACAR: "atacar", // dano em alvo(s) inimigo(s) dentro de um range H/V a partir da posição
   BUFF_ALIADO_ESCOLHIDO: "buff_aliado_escolhido", // dono escolhe UMA carta aliada em campo (pode ser esta mesma) pra ganhar poder
   REDISTRIBUIR_PODER: "redistribuir_poder", // dono escolhe DUAS cartas aliadas distintas em campo: uma perde poder, a outra ganha
-  DESTRUIR_TERRENO_INIMIGO: "destruir_terreno_inimigo", // habilidade ativa, 1x POR PARTIDA (não reseta por turno): elimina um terreno inimigo escolhido
+  DESTRUIR_TERRENO_INIMIGO: "destruir_terreno_inimigo", // habilidade ativa, 1x por turno: elimina um terreno inimigo escolhido
   BUSCAR_CARTA_DECK: "buscar_carta_deck", // ao conjurar: dono escolhe uma carta do próprio baralho e a compra direto pra mão
   ABSORVER_ALIADOS: "absorver_aliados", // dono escolhe ATÉ N cartas aliadas de nível baixo/médio em campo: elas somem, e esta carta ganha o poder somado delas
 
@@ -74,7 +87,7 @@ const TIPOS_EFEITO = {
   ROUBAR_PODER: "roubar_poder", // O Rato (Mãos Leves): escolhe uma carta inimiga em qualquer lugar do campo e rouba poder dela, somando ao próprio poder
   REPOSICIONAR: "reposicionar", // A Cabra (Escalada): troca de lugar com outra carta aliada (ou se move pra um espaço livre) no próprio campo
   REVELAR_CARTAS_INIMIGO: "revelar_cartas_inimigo", // O Cão (Faro): ao ser invocado, revela até N cartas da mão/baralho do inimigo
-  CASCA_GROSSA: "casca_grossa", // O Porco (Casca Grossa): passivo permanente — o poder desta carta nunca reduz abaixo do poder original (poderBase), mesmo com múltiplas reduções (ver Carta.buff())
+  CASCA_GROSSA: "casca_grossa", // O Porco (Casca Grossa): passivo permanente — impede reduções de PA por efeitos (ver Carta.buff())
   ENVENENAR: "envenenar", // A Cobra (Dose Letal): escolhe uma carta inimiga em alcance curto (à frente ou espaço adjacente) e a envenena — ela perde poder a cada turno enquanto estiver em campo
   ATACAR_COLUNA: "atacar_coluna", // O Trotar do Cavalo (carta de efeito): escolhe uma coluna do campo inimigo; TODAS as cartas dessa coluna (as duas fileiras) perdem poder
   BUFF_DOIS_ALIADOS: "buff_dois_aliados", // O Canto do Galo (carta de efeito): +2 PA no primeiro aliado escolhido e +1 PA no segundo
@@ -87,7 +100,7 @@ const TIPOS_EFEITO = {
   BONUS_POR_PERDIDAS: "bonus_por_perdidas",
   BONUS_TRIO_ADJACENTE: "bonus_trio_adjacente",
   BUFF_ATE_DOIS_ALIADOS: "buff_ate_dois_aliados",
-  TEXTO_REGRA: "texto_regra", // regra catalogada enquanto sua interação própria ainda não possui resolvedor
+  TEXTO_REGRA: "texto_regra", // texto de regras sem interação, como Adormecido
 };
 
 // O campo `nivel` é a fonte oficial para regras de baixa, média, alta e
@@ -97,6 +110,9 @@ const TIPOS_EFEITO = {
 function descreverEfeito(efeito) {
   if (!efeito) return "";
   switch (efeito.tipo) {
+    case TIPOS_EFEITO.SINDICATO:
+    case TIPOS_EFEITO.VINCULO_ALIADO:
+      return efeito.texto;
     case TIPOS_EFEITO.BUFF_ALIADOS:
       return `Ao ser invocada: todos os aliados em campo ganham +${efeito.valor} de poder.`;
     case TIPOS_EFEITO.DEBUFF_INIMIGOS:
@@ -116,7 +132,7 @@ function descreverEfeito(efeito) {
     case TIPOS_EFEITO.DESTRUIR_TERRENO_INIMIGO:
       return `Habilidade ativa (1x por turno, em campo): escolha um terreno inimigo para ser eliminado.`;
     case TIPOS_EFEITO.BUSCAR_CARTA_DECK:
-      return `Ao ser conjurada: escolha uma carta do seu baralho para puxar diretamente para sua mão.`;
+      return `Ao ser conjurada: descarte sua mão, compre a mesma quantidade de cartas e então escolha uma carta do baralho para adicionar à mão.`;
     case TIPOS_EFEITO.ABSORVER_ALIADOS:
       return `Ao ser invocada: escolha até ${efeito.maxAlvos} carta${efeito.maxAlvos > 1 ? "s" : ""} aliada${efeito.maxAlvos > 1 ? "s" : ""} de nível baixo ou médio em campo. Elas são removidas do campo, e esta carta ganha poder igual à soma dos poderes delas.`;
     case TIPOS_EFEITO.TEXTO_REGRA:
@@ -132,7 +148,7 @@ function descreverEfeito(efeito) {
     case TIPOS_EFEITO.BUFF_ATE_DOIS_ALIADOS:
       return `Habilidade ativa (1x por turno): até ${efeito.maxAlvos} cartas aliadas ganham +${efeito.valor} PA cada.`;
     case TIPOS_EFEITO.RESETAR_PODER:
-      return `Habilidade ativa (1x por turno, em campo): escolha uma carta aliada em campo para retornar ao seu poder original, perdendo todos os bônus e reduções que tiver recebido.`;
+      return `Habilidade ativa (1x por turno, em campo): escolha uma carta em campo para retornar ao seu poder original, perdendo todos os bônus e reduções que tiver recebido.`;
     case TIPOS_EFEITO.ATACAR_DOIS_ALVOS:
       return `Habilidade ativa (1x por turno, em campo): escolha 2 cartas inimigas em alcance curto (H${efeito.rangeH}/V${efeito.rangeV}) para perder ${efeito.valor} de PA cada.`;
     case TIPOS_EFEITO.OVERRIDE:
@@ -144,9 +160,9 @@ function descreverEfeito(efeito) {
     case TIPOS_EFEITO.REVELAR_CARTAS_INIMIGO:
       return `Ao ser invocado: revela até ${efeito.valor} cartas da mão ou do baralho do inimigo.`;
     case TIPOS_EFEITO.CASCA_GROSSA:
-      return `Casca Grossa: o poder desta carta nunca pode ser reduzido abaixo do seu valor original.`;
+      return `Casca Grossa: os PA desta carta não podem ser reduzidos por efeitos de outras cartas.`;
     case TIPOS_EFEITO.ENVENENAR:
-      return `Habilidade ativa (1x por turno, em campo): escolha uma carta inimiga em alcance curto para envenenar. Ela perde ${efeito.valor} de PA por turno; aplicações adicionais acumulam o dano.`;
+      return `Habilidade ativa (1x por turno, em campo): escolha uma carta inimiga em qualquer ponto do campo para envenenar. Ela perde ${efeito.valor} de PA por turno enquanto a fonte estiver em campo; aplicações adicionais acumulam o dano.`;
     case TIPOS_EFEITO.ATACAR_COLUNA:
       return `Ao ser conjurada: escolha uma coluna do campo inimigo. Todas as cartas dessa coluna perdem ${efeito.valor} de poder.`;
     case TIPOS_EFEITO.BUFF_DOIS_ALIADOS:
@@ -209,6 +225,19 @@ function descreverEfeitoContinuo(efeito) {
 // (terrenos são sempre 0 PA — ver classe Carta).
 // ----------------------------------------------------------------------------
 const POOL_CARTAS_TERRENO = [
+  {
+    nome: "NeoPalhoça",
+    poder: 0,
+    descricao: "Para combater o alto custo de vida de NeoFloripa, a solução encontrada foi criar NeoPalhoça: uma região barata, distante e convenientemente localizada longe de tudo que importa. A simulação foi tão fiel que seus moradores enfrentam diariamente trânsito, longos deslocamentos e falta de infraestrutura. A única novidade foi o vulcão.",
+    imagem: "neo_palhoca",
+    booster: "sindicato",
+    nivel: "terreno",
+    efeitoContinuo: {
+      tipo: "buff_campo_continuo",
+      valor: 2,
+      booster: "sindicato"
+    }
+  },
   {
     nome: "Torre MonteCorp",
     descricao:
@@ -311,6 +340,153 @@ function descreverEfeitoTurno(efeito) {
 // ----------------------------------------------------------------------------
 const POOL_CARTAS_MONSTRO = [
   {
+    nome: "Dragão das Comunicações Móveis",
+    poder: 14,
+    descricao: "Um dos primeiros experimentos do HumbaBrain foi fazer o upload de um indivíduo no fim da vida para a simulação, permitindo que escolhesse sua própria forma. O resultado foi... inusitado. Temendo sua possível ameaça, o criador decidiu mantê-lo desativado até que um sinal específico de radiofrequência seja emitido. Desde então, a plateia aguarda para descobrir se ele será um espetáculo ou um desastre.",
+    imagem: "o_dragao",
+    booster: "humbanet",
+    nivel: "alta",
+    efeito: {
+      tipo: "texto_regra",
+      texto: "Adormecido -> Esta carta não possui efeitos enquanto estiver adormecida."
+    }
+  },
+  {
+    nome: "Professores de Duelo",
+    poder: 8,
+    descricao: "Apesar de todo o desenvolvimento tecnológico, NeoFloripa parece valorizar mais o entretenimento do que a educação. Por isso, professores precisam associar suas matérias ao CyberDuel para manter a atenção dos alunos. Curiosamente, a estratégia parece ter tido o efeito contrário: uma dupla de professores já chegou ao topo do ranking de CyberDuel e agora tenta guiar a sociedade com base em acontecimentos históricos e dados geográficos.",
+    imagem: "professores_de_duelo",
+    booster: "sindicato",
+    nivel: "lendaria",
+    lendaria: true,
+    efeito: {
+      tipo: "sindicato",
+      acao: "reativar",
+      alvo: "aliado",
+      texto: "Recuperação -> Uma vez por turno, escolha uma carta aliada que já tenha usado seu efeito. Ela pode utilizá-lo novamente."
+    },
+    habilidadeAtiva: true
+  },
+  {
+    nome: "CyberPolíticos",
+    poder: 6,
+    descricao: "Outrora decisores do futuro da sociedade, os políticos agora disputam influência através de duelos de cartas em vez de discursos elaborados. Continuam prometendo colocar NeoFloripa nas mãos do povo, mas a promessa parece perder força quando surge uma mão mais conveniente, especialmente se ela vier acompanhada de uma carta brilhante.",
+    imagem: "cyber_politico",
+    booster: "sindicato",
+    nivel: "alta",
+    efeito: {
+      tipo: "vinculo_aliado",
+      acao: "vinculo",
+      alvo: "aliado",
+      texto: "Troca de Favores -> Ao invocá-lo, escolha uma carta aliada. Enquanto ela ainda estiver em campo, o Político recebe +4 de PA. Caso ela seja destruída, o político é eliminado junto."
+    }
+  },
+  {
+    nome: "Influenciador Digital",
+    poder: 6,
+    descricao: "Dentre as chamadas \"pessoas normais\", o Influenciador é aquele que acredita ser mais especial. Dita tendências, opiniões e comportamentos, embora suas convicções possam mudar diante de uma proposta melhor. Não produz nada além de conteúdo, engajamento e publicidade, mas finalmente encontrou uma forma de vender a própria existência e chamar isso de trabalho.",
+    imagem: "neo_influencer",
+    booster: "sindicato",
+    nivel: "media",
+    efeito: {
+      tipo: "sindicato",
+      acao: "opiniao",
+      alvo: "qualquer",
+      texto: "Opinião Pública -> Uma vez por turno, escolha duas cartas em campo. Se for aliada, ela recebe engajamento e ganha +1 de PA. Se for inimiga, ela sofre um cancelamento e perde essa mesma quantidade."
+    },
+    habilidadeAtiva: true
+  },
+  {
+    nome: "NeoMedicânico",
+    poder: 5,
+    descricao: "Com o avanço da medicina, envelhecer deixou de ser um dos maiores problemas da humanidade. Em compensação, implantes cibernéticos começaram a apresentar falhas cada vez mais frequentes. Por isso, as faculdades de medicina tiveram que atualizar seus currículos: além de anatomia, agora é necessário saber um pouco de engenharia eletrônica e mecânica.",
+    imagem: "neomedicanico",
+    booster: "sindicato",
+    nivel: "media",
+    efeito: {
+      tipo: "sindicato",
+      acao: "curar",
+      alvo: "aliado",
+      texto: "Uma vez por turno, escolha uma carta aliada que tenha perdido PA. Ela recupera 4 de PA."
+    },
+    habilidadeAtiva: true
+  },
+  {
+    nome: "TecnoAgentes de Segurança",
+    poder: 5,
+    descricao: "Enquanto IAs e Firewalls físicos protegem NeoFloripa de ameaças reais, a nova versão dos policiais mantem a paz nas pequenas confusões do dia a dia. Nem sempre é um trabalho glorioso, mas alguém ainda precisa convencer o vizinho a abaixar o volume da música.",
+    imagem: "tecno_agente",
+    booster: "sindicato",
+    nivel: "media",
+    efeito: {
+      tipo: "sindicato",
+      acao: "advertir",
+      alvo: "inimigo",
+      texto: "Advertência -> Escolha uma carta inimiga. Ela recebe uma advertência. Cada vez que ela utilizar seu efeito, enquanto o TecnoAgente estiver em campo, perde 3 de PA."
+    },
+    habilidadeAtiva: true
+  },
+  {
+    nome: "CyberUnidades de Emergência",
+    poder: 5,
+    descricao: "Os bombeiros continuam enfrentando incêndios, acidentes e desastres para salvar vidas. Em uma sociedade dominada por IAs, tornaram-se símbolos daqueles que ainda defendem a superioridade humana. Afinal, até agora, nenhuma IA parece ter entendido por que alguém escolheria entrar voluntariamente em um prédio em chamas para salvar um simples humano.",
+    imagem: "bombeiro_neofloripa",
+    booster: "sindicato",
+    nivel: "media",
+    efeito: {
+      tipo: "sindicato",
+      acao: "bloquear_bonus",
+      alvo: "inimigo",
+      texto: "Extintor -> Uma vez por turno, escolha uma carta inimiga. Até o fim da rodada, ela não pode receber bônus de PA."
+    },
+    habilidadeAtiva: true
+  },
+  {
+    nome: "Estudante de Curso Técnico",
+    poder: 3,
+    descricao: "O estudante de curso técnico possui potencial infinito. Não há quase nada que ele não possa aprender a fazer, embora às vezes o preço envolva seu tempo, esforço e sanidade mental. Seu maior desafio, porém, continua sendo descobrir como fazer qualquer coisa sem pesquisar no CyberSmartPhone primeiro.",
+    imagem: "estudante_tecnico",
+    booster: "sindicato",
+    nivel: "baixa",
+    efeito: {
+      tipo: "sindicato",
+      acao: "aprender",
+      alvo: "aliado",
+      texto: "Escolha uma carta aliada que tenha habilidade ativável e perca 2 de PA. O Estudante aprende permanentemente a habilidade da carta escolhida. Este efeito só pode ser utilizado uma vez."
+    },
+    habilidadeAtiva: true
+  },
+  {
+    nome: "Montadores de Cabos",
+    poder: 4,
+    descricao: "Quem falou que as máquinas e as IAs roubariam nossos empregos não poderia estar mais errado. Na verdade, hoje trabalhamos cinco vezes mais **para elas**. Afinal, até mesmo as máquinas mais avançadas do planeta continuam incapazes de explicar por que todo cabo é exatamente 10 centímetros curto demais ou 20 metros longo demais.",
+    imagem: "montador_de_cabos",
+    booster: "sindicato",
+    nivel: "baixa",
+    efeito: {
+      tipo: "sindicato",
+      acao: "mover",
+      alvo: "aliado",
+      texto: "Extensão ->Uma vez por turno, escolha uma carta aliada. Você pode movê-la para qualquer outro espaço livre em seu campo."
+    },
+    habilidadeAtiva: true
+  },
+  {
+    nome: "Refrigeradores de DataCenter",
+    poder: 4,
+    descricao: "Com a média da temperatura global já em 30°C, o processo de implementação e manutenção de sistemas de refrigeração em servidores de megacorporações tem sido cada vez frequente. Para isso, os técnicos em refrigeração precisam encontrar soluções inovadoras para a resolução desse problema, já que a criatividade é o único recurso que atualmente ainda não se encontra em escassez.",
+    imagem: "refrigerador_de_datacenter",
+    booster: "sindicato",
+    nivel: "baixa",
+    efeito: {
+      tipo: "sindicato",
+      acao: "proteger",
+      alvo: "aliado",
+      texto: "Manutenção Preventiva -> O técnico previne que o servidor superaqueça. Uma vez por turno, escolha uma carta aliada, ela não pode perder PA até o início do seu próximo turno."
+    },
+    habilidadeAtiva: true
+  },
+  {
     nome: "CryptoAcionistas",
     poder: 6,
     descricao:
@@ -390,26 +566,6 @@ const POOL_CARTAS_MONSTRO = [
     habilidadeAtiva: true, // Protocolo de Segurança: não dispara ao invocar — ativa em campo, 1x por turno
     somAtaque: "somTiro",
   },
-  {
-    nome: 'resenha games"',
-    poder: 1100,
-    descricao: "resenha.",
-    imagem: "resenha",
-    booster: "raspcorp",
-    efeito: {
-      tipo: TIPOS_EFEITO.ATACAR,
-      valor: 500,
-      // rangeH:5 e rangeV:3 cobrem o campo inimigo inteiro (5 colunas,
-      // 2 fileiras de profundidade), o que na prática implementa
-      // "escolha qualquer carta do campo inimigo" (Protocolo de
-      // Segurança) reaproveitando 100% do sistema de ATACAR existente.
-      rangeH: 9,
-      rangeV: 9,
-      atingeTodos: true,
-    },
-    habilidadeAtiva: true, // Protocolo de Segurança: não dispara ao invocar — ativa em campo, 1x por turno
-    somAtaque: "somTiro",
-  },
 
   {
     nome: "Estagiário de Machine Learning",
@@ -433,7 +589,7 @@ const POOL_CARTAS_MONSTRO = [
     poder: 5,
     descricao:
       "Atualmente, funcionários humanos e máquinas compartilham os mesmos benefícios corporativos. Nenhum dos dois está particularmente satisfeito com isso. O RH garante que todas as reclamações sejam igualmente ignoradas.",
-    imagem: "rh", // arte ainda não adicionada (ver Cartas_e_boosters.md) — cai no retângulo placeholder
+    imagem: "rh",
     booster: "raspcorp",
     efeito: {
       tipo: TIPOS_EFEITO.REDISTRIBUIR_PODER,
@@ -454,7 +610,7 @@ const POOL_CARTAS_MONSTRO = [
     efeito: {
       tipo: TIPOS_EFEITO.REDUZIR_TEMPO_OPONENTE,
       valor: 10,
-      minimo: 20,
+      minimo: 15,
     },
   },
 
@@ -653,7 +809,7 @@ const POOL_CARTAS_MONSTRO = [
     poder: 1,
     descricao:
       "O Rato é o membro mais jovem da EchoSsystem. Sua habilidade de infiltração é tão impressionante que poucos acreditam que ele de fato exista. O mesmo não pode ser dito sobre as piadas envolvendo seu nome, que aparecem em praticamente todas as reuniões do grupo.",
-    imagem: "rato", // arte ainda não adicionada — cai no placeholder até assets/cartas/O_rato.png existir
+    imagem: "rato",
     foco: { x: 0.5, y: 0.15 },
     booster: "echossystem",
     efeito: {
@@ -668,8 +824,8 @@ const POOL_CARTAS_MONSTRO = [
     poder: 3,
     descricao:
       "A Cabra era ginasta olímpica antes da humanidade decidir que esportes tradicionais deixaram de ser uma profissão. Hoje, ela continua escalando estruturas gigantescas, mas finalmente encontrou um público que realmente valoriza seu trabalho: a equipe de segurança do último andar da torre MonteCorp.",
-    imagem: "cabra", // arte ainda não adicionada — cai no placeholder até assets/cartas/A_cabra.png existir
-    foco: { x: 0.5, y: 0.8 }, // arte ainda não adicionada — cai no placeholder até assets/cartas/A_cabra.png existir
+    imagem: "cabra",
+    foco: { x: 0.5, y: 0.8 },
     booster: "echossystem",
     efeito: {
       tipo: TIPOS_EFEITO.REPOSICIONAR,
@@ -682,7 +838,7 @@ const POOL_CARTAS_MONSTRO = [
     poder: 4,
     descricao:
       "Antes mesmo de entrar para o grupo anarquista, o Cão já era um mercenário especializado em rastrear alvos. Seus implantes cibernéticos de olfato permitem encontrar praticamente qualquer pessoa pelo menor dos rastros. O único problema é que a idade já está afetando seus sentidos: recentemente, ele passou três horas seguindo o próprio cheiro.",
-    imagem: "cao", // arte ainda não adicionada — cai no placeholder até assets/cartas/O_cão.png existir
+    imagem: "cao",
     foco: { x: 0.5, y: 0.9 },
     booster: "echossystem",
     efeito: {
@@ -698,15 +854,12 @@ const POOL_CARTAS_MONSTRO = [
     poder: 6,
     descricao:
       "O Porco acredita que nenhum trabalho é nojento demais. Entre esgotos, lixões industriais e montanhas de sucata, tornou-se especialista em encontrar recursos onde ninguém mais pisaria. Anos de exposição aos ambientes mais inóspitos de NeoFloripa fizeram seu corpo desenvolver uma resistência impressionante. Felizmente, o olfato também foi perdido no processo.",
-    imagem: "porco", // arte ainda não adicionada — cai no placeholder até assets/cartas/O_porco.png existir
+    imagem: "porco",
     booster: "echossystem",
     efeito: {
       tipo: TIPOS_EFEITO.CASCA_GROSSA,
     },
-    // Casca Grossa: passivo permanente, sem gatilho — não dispara ao
-    // invocar nem é habilidade ativa. O piso é resolvido direto em
-    // Carta.buff() (abaixo): reduções normais, mas nunca abaixo de 6 (o
-    // poderBase dela).
+    // Casca Grossa é um passivo permanente, aplicado por Carta.buff().
   },
 
   {
@@ -714,7 +867,7 @@ const POOL_CARTAS_MONSTRO = [
     poder: 5,
     descricao:
       "A Cobra é uma lendária produtora de venenos que nunca perguntou quem era o cliente, desde que ele pagasse o suficiente. Quando seus próprios compradores decidiram eliminá-la, ela finalmente percebeu que talvez fosse hora de escolher melhor seus parceiros. Agora, ao lado da EchoSsystem, pretende fazer cada um deles provar do próprio veneno.",
-    imagem: "cobra", // arte ainda não adicionada — cai no placeholder até assets/cartas/Cobra.png existir
+    imagem: "cobra",
     booster: "echossystem",
     efeito: {
       tipo: TIPOS_EFEITO.ENVENENAR,
@@ -750,7 +903,6 @@ const POOL_CARTAS_EFEITO = [
     poder: 1,
     descricao:
       "Após analisar seu histórico de compras, pesquisas e sonhos recorrentes, o algoritmo preparou uma sugestão especialmente para você. Foi você que aceitou todos os cookies...",
-    // Provisória: reaproveita a arte do Gestor de RH até ter uma própria.
     imagem: "sugalg",
     booster: "raspcorp",
     efeito: { tipo: TIPOS_EFEITO.BUSCAR_CARTA_DECK },
@@ -761,7 +913,7 @@ const POOL_CARTAS_EFEITO = [
     poder: 2,
     descricao:
       "Há muito tempo, a humanidade admirava seus maiores atletas. Depois descobriu que podia construir robôs mais rápidos. Assim, os humanos desapareceram das pistas. Um deles foi O Cavalo. Tricampeão olímpico, hoje presta serviços à EchoSsystem realizando entregas, causando distrações e se arremessando contra ciborgues.",
-    imagem: "cavalo", // arte ainda não adicionada — cai no placeholder até assets/cartas/OTROTARDOCAVALO.png existir
+    imagem: "cavalo",
     booster: "echossystem",
     efeito: { tipo: TIPOS_EFEITO.ATACAR_COLUNA, valor: 3 },
   },
@@ -865,19 +1017,22 @@ class Carta {
   }
 
   buff(valor) {
+    if (valor < 0 && this.protegidaPA) return 0;
+    if (valor > 0 && this.bonusBloqueado) return 0;
     if (valor < 0) this.revelada = true;
-    // Casca Grossa (O Porco): reduções normais, mas o poder nunca desce
-    // abaixo do valor original (poderBase) — ganhos continuam sem teto.
+    // Casca Grossa protege também o PA recebido por bônus anteriores.
     if (
       valor < 0 &&
       this.efeito &&
       this.efeito.tipo === TIPOS_EFEITO.CASCA_GROSSA
     ) {
-      this.poder = Math.max(this.poderBase, this.poder + valor);
-      return;
+      // Casca Grossa impede qualquer redução por efeito, inclusive de bônus.
+      return 0;
     }
     // Poder nunca fica negativo, mesmo após vários debuffs
+    const antes = this.poder;
     this.poder = Math.max(0, this.poder + valor);
+    return this.poder - antes;
   }
 
   // Texto completo mostrado na visualização detalhada da carta

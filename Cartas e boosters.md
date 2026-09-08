@@ -574,7 +574,7 @@ Faz algo na vibe de um Tyrant ou do próprio Adam Smasher
 
  
 * Visual:
-* <img alt="image" src="assets/cartas/o_dragao.png" />
+* <img alt="image" src="assets/cartas/dragão.png" />
 
 
 

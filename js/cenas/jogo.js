@@ -652,6 +652,7 @@ class CenaJogo extends Phaser.Scene {
   }
 
   iniciarNovoTurnoDoJogador() {
+    this.partida.iniciarTurno(this.partida.jogador);
     this.ehMeuTurno = true;
     this.reiniciarTimerTurno();
   }
@@ -1434,7 +1435,7 @@ class CenaJogo extends Phaser.Scene {
         // disparava a seleção de aliado assim que entrava em campo.
         const precisaEscolherAlvo =
           carta.efeito &&
-          carta.efeito.tipo === TIPOS_EFEITO.BUFF_ALIADO_ESCOLHIDO &&
+          (carta.efeito.tipo === TIPOS_EFEITO.BUFF_ALIADO_ESCOLHIDO || carta.efeito.tipo === TIPOS_EFEITO.VINCULO_ALIADO) &&
           !carta.habilidadeAtiva;
 
         // RaspClay MonteCorp (Potencialização de Capital): pode absorver
@@ -1800,10 +1801,10 @@ class CenaJogo extends Phaser.Scene {
         );
         if (!alvo) return;
         // delta negativo = dano de verdade (rasgo vermelho); delta
-        // positivo/zero = fortalecimento (pulso verde) — ver
+        // positivo = fortalecimento; zero não produz animação de ganho — ver
         // animarDanoCarta/animarBuffCarta logo abaixo.
         if (delta < 0) this.animarDanoCarta(alvo, delta);
-        else this.animarBuffCarta(alvo, delta);
+        else if (delta > 0) this.animarBuffCarta(alvo, delta);
       });
     });
   }
@@ -1819,13 +1820,20 @@ class CenaJogo extends Phaser.Scene {
   // Cartas que só foram feridas (mas sobreviveram) recebem a animação
   // normal de dano/buff depois do redesenho, como sempre.
   processarCartasAfetadas(afetadas, redesenharFn) {
+    afetadas = [...(afetadas || [])];
+    const campo = [...this.partida.jogador.campo.cartas, ...this.partida.inimigo.campo.cartas];
+    this.children.list.forEach((objeto) => {
+      const carta = objeto.dadosCartaCampo;
+      if (carta?.efeito?.tipo === TIPOS_EFEITO.VINCULO_ALIADO && !campo.includes(carta) && !afetadas.some((e) => e.carta === carta))
+        afetadas.push({ carta, delta: 0, removida: true });
+    });
     if (!afetadas || afetadas.length === 0) {
       redesenharFn();
       return;
     }
 
-    const mortas = afetadas.filter(({ carta }) => carta.poder <= 0);
-    const vivas = afetadas.filter(({ carta }) => carta.poder > 0);
+    const mortas = afetadas.filter(({ carta, removida }) => removida || carta.poder <= 0);
+    const vivas = afetadas.filter(({ carta, removida }) => !removida && carta.poder > 0);
 
     if (mortas.length === 0) {
       redesenharFn();
@@ -1979,12 +1987,39 @@ class CenaJogo extends Phaser.Scene {
   // são criados cacos gráficos independentes.
   // ============================================================================
 
+  animarMorteCyberPolitico(container, concluir) {
+    this.tweens.killTweensOf(container);
+    const { x, y } = container;
+    const selo = this.add.text(x, y, "CONTRATO\nROMPIDO", {
+      fontSize: "28px", color: "#ffbbff", fontStyle: "bold", align: "center",
+      backgroundColor: "#301040", padding: { x: 12, y: 8 },
+    }).setOrigin(0.5).setDepth(4500).setAngle(-12).setAlpha(0);
+    this.tweens.add({ targets: selo, alpha: 1, duration: 180, yoyo: true, hold: 450 });
+    for (let i = 0; i < 12; i++) {
+      const papel = this.add.rectangle(x, y, 14 + i % 3 * 4, 26, i % 2 ? 0xf3d9ff : 0xb68cff)
+        .setDepth(4499).setAngle(i * 30);
+      const angulo = i * Math.PI / 6;
+      this.tweens.add({ targets: papel, x: x + Math.cos(angulo) * 160,
+        y: y + Math.sin(angulo) * 120 + 110, angle: i * 90,
+        alpha: 0, scale: 0.3, duration: 850, delay: 180,
+        ease: "Cubic.Out", onComplete: () => papel.destroy() });
+    }
+    this.tweens.add({ targets: container, angle: -8, duration: 70, yoyo: true, repeat: 2 });
+    this.tweens.add({ targets: container, y: y + 100, scaleX: 0.05, scaleY: 0.7,
+      alpha: 0, duration: 550, delay: 350, ease: "Cubic.In",
+      onComplete: () => { selo.destroy(); container.destroy(); concluir?.(); } });
+  }
+
   animarMorteCarta(containerCampo, aoConcluir) {
     if (!containerCampo || !containerCampo.active) {
       if (aoConcluir) aoConcluir();
       return;
     }
 
+    if (containerCampo.dadosCartaCampo?.efeito?.tipo === TIPOS_EFEITO.VINCULO_ALIADO) {
+      this.animarMorteCyberPolitico(containerCampo, aoConcluir);
+      return;
+    }
     // Cancela qualquer tween antigo que ainda esteja controlando a carta.
     this.tweens.killTweensOf(containerCampo);
 
@@ -2648,7 +2683,7 @@ class CenaJogo extends Phaser.Scene {
         .setStrokeStyle(2, 0x552222)
         .setAlpha(0.4);
 
-      if (this.partida.inimigo.campo.armadilhas.has(i)) {
+      if (!this.multiplayer?.spectator && this.partida.inimigo.campo.armadilhas.has(i)) {
         this.criarIndicadorArmadilha(xPos, yPos, L);
       }
 
@@ -2688,9 +2723,7 @@ class CenaJogo extends Phaser.Scene {
         .setAlpha(0.4);
       slot.isSlot = true; // Identificador para a colisão do Drag & Drop
 
-      if (this.partida.jogador.campo.armadilhas.has(i)) {
-        this.criarIndicadorArmadilha(xPos, yPos, L);
-      }
+
 
       let carta = this.partida.jogador.campo.cartas[i];
       if (carta) {
@@ -2710,7 +2743,6 @@ class CenaJogo extends Phaser.Scene {
     if (
       !carta?.habilidadeAtiva ||
       carta.usadaEsteTurno ||
-      carta.usadaNaPartida ||
       this.partida?.partidaEncerrada ||
       !this.ehMeuTurno ||
       !this.partida?.jogador.campo.cartas.includes(carta)
@@ -2850,6 +2882,8 @@ class CenaJogo extends Phaser.Scene {
       filhos.push(seloAranha, iconeAranha);
     }
 
+    filhos.push(...this.criarIndicadorExtintor(carta, CW, CH, escala));
+
     const chaveCarta = this.chaveCartaMultiplayer(carta);
     const animarEntrada =
       !this.renderizandoInterface ||
@@ -2922,6 +2956,21 @@ class CenaJogo extends Phaser.Scene {
         onComplete: () => anel.destroy(),
       });
     }
+  }
+
+  // O marcador acompanha a carta em ambos os campos até o bloqueio expirar.
+  criarIndicadorExtintor(carta, largura, altura, escala) {
+    if (!carta.bonusBloqueado) return [];
+    const borda = this.add.rectangle(0, 0, largura, altura, 0xff9933, 0)
+      .setStrokeStyle(Math.max(3, Math.round(3 * escala)), 0xff9933, 1);
+    const faixa = this.add.rectangle(0, -altura / 2 + 26 * escala,
+      largura - 8, 42 * escala, 0x351800, 0.96);
+    const texto = this.add.text(0, -altura / 2 + 26 * escala,
+      "EXTINTOR\nSEM BÔNUS", {
+        fontSize: `${Math.round(13 * escala)}px`, color: "#ffcc88",
+        fontStyle: "bold", align: "center",
+      }).setOrigin(0.5);
+    return [borda, faixa, texto];
   }
 
   // Marcador persistente da Travessura do Macaco. Ele é redesenhado junto
@@ -3665,7 +3714,8 @@ class CenaJogo extends Phaser.Scene {
       !this.partida.partidaEncerrada &&
       !!carta.habilidadeAtiva &&
       carta.efeito &&
-      (carta.efeito.tipo === TIPOS_EFEITO.ATACAR ||
+      (carta.efeito.tipo === TIPOS_EFEITO.SINDICATO ||
+        carta.efeito.tipo === TIPOS_EFEITO.ATACAR ||
         carta.efeito.tipo === TIPOS_EFEITO.BUFF_ALIADO_ESCOLHIDO ||
         carta.efeito.tipo === TIPOS_EFEITO.REDISTRIBUIR_PODER ||
         carta.efeito.tipo === TIPOS_EFEITO.DESTRUIR_TERRENO_INIMIGO ||
@@ -3678,14 +3728,9 @@ class CenaJogo extends Phaser.Scene {
         carta.efeito.tipo === TIPOS_EFEITO.DISTRIBUIR_DANO ||
         carta.efeito.tipo === TIPOS_EFEITO.BUFF_ATE_DOIS_ALIADOS) &&
       this.partida.jogador.campo.cartas.includes(carta);
-    // Cessar e Desistir (Advogado Corporativo) é 1x por PARTIDA, não 1x
-    // por turno — o botão fica travado pra sempre depois de usado, mesmo
-    // em turnos seguintes (usadaNaPartida nunca reseta).
     const habilidadeJaUsada =
       podeMostrarBotaoHabilidade &&
-      (carta.efeito.tipo === TIPOS_EFEITO.DESTRUIR_TERRENO_INIMIGO
-        ? carta.usadaNaPartida
-        : carta.usadaEsteTurno);
+      carta.usadaEsteTurno;
 
     const PAINEL_LARGURA = 840;
     const PAINEL_ALTURA = 1320;
@@ -3983,7 +4028,8 @@ class CenaJogo extends Phaser.Scene {
       !this.partida.partidaEncerrada &&
       !!carta.habilidadeAtiva &&
       carta.efeito &&
-      (carta.efeito.tipo === TIPOS_EFEITO.ATACAR ||
+      (carta.efeito.tipo === TIPOS_EFEITO.SINDICATO ||
+        carta.efeito.tipo === TIPOS_EFEITO.ATACAR ||
         carta.efeito.tipo === TIPOS_EFEITO.BUFF_ALIADO_ESCOLHIDO ||
         carta.efeito.tipo === TIPOS_EFEITO.REDISTRIBUIR_PODER ||
         carta.efeito.tipo === TIPOS_EFEITO.DESTRUIR_TERRENO_INIMIGO ||
@@ -3998,9 +4044,7 @@ class CenaJogo extends Phaser.Scene {
       this.partida.jogador.campo.cartas.includes(carta);
     const habilidadeJaUsada =
       podeMostrarBotaoHabilidade &&
-      (carta.efeito.tipo === TIPOS_EFEITO.DESTRUIR_TERRENO_INIMIGO
-        ? carta.usadaNaPartida
-        : carta.usadaEsteTurno);
+      carta.usadaEsteTurno;
 
     // Cartão bem grande, quase do tamanho da tela — é essa a diferença
     // principal em relação ao modal normal (840x1320).
@@ -4750,7 +4794,9 @@ class CenaJogo extends Phaser.Scene {
     // Mesmo com um único alvo possível, o jogador escolhe ativamente
     // tocando nele — assim ele sempre confirma a ação, em vez do jogo
     // disparar sozinho.
-    if (ehBuffAteDois) {
+    if (carta.efeito.tipo === TIPOS_EFEITO.SINDICATO) {
+      this.iniciarSelecaoSindicato(carta, alvos);
+    } else if (ehBuffAteDois) {
       this.iniciarSelecaoDeBuffAteDois(carta, alvos);
     } else if (ehDistribuirDano) {
       this.iniciarDistribuicaoDeDano(carta, alvos);
@@ -4813,6 +4859,38 @@ class CenaJogo extends Phaser.Scene {
     } else {
       this.iniciarSelecaoDeAlvo(carta, alvos);
     }
+  }
+
+  iniciarSelecaoSindicato(carta, alvos) {
+    const { acao, alvo } = carta.efeito;
+    const tam = this.partida.jogador.campo.cartas.length;
+    const limpar = () => {
+      this.objetosSelecaoAlvo?.forEach((o) => o.destroy());
+      this.objetosSelecaoAlvo = null;
+    };
+    const escolher = (indices, texto, callback) => {
+      limpar();
+      this.iniciarSelecaoDeQualquerCartaParaHabilidade(carta, indices, texto, callback);
+    };
+    const instrucoes = {
+      proteger: "Escolha uma aliada para proteger até o próximo turno",
+      mover: "Escolha a aliada que deseja mover",
+      aprender: "Escolha a habilidade para aprender (esta carta perde 2 PA)",
+      bloquear_bonus: "Escolha uma inimiga para bloquear seus bônus",
+      advertir: "Escolha uma inimiga para advertir",
+      curar: "Escolha uma aliada para recuperar até 4 PA",
+      opiniao: "Escolha a primeira carta: aliada +1 PA, inimiga −1 PA",
+      reativar: "Escolha uma aliada para liberar sua habilidade novamente",
+    };
+    escolher(alvos.map((i) => alvo === "inimigo" ? i + tam : i), instrucoes[acao], (indice) => {
+      const primeiro = alvo === "inimigo" ? indice - tam : indice;
+      if (acao === "mover") {
+        const livres = this.partida.jogador.campo.cartas.flatMap((c, i) => c === null ? [i] : []);
+        escolher(livres, "Escolha o espaço livre de destino", (destino) => this.executarHabilidade(carta, primeiro, destino));
+      } else if (acao === "opiniao") {
+        escolher(alvos.filter((i) => i !== primeiro), "Escolha a segunda carta: aliada +1 PA, inimiga −1 PA", (segundo) => this.executarHabilidade(carta, primeiro, segundo));
+      } else this.executarHabilidade(carta, primeiro);
+    });
   }
 
   // Dieh'Go — Eu Sou a Lei: cada toque aplica um ponto da reserva ao alvo.
@@ -5112,9 +5190,15 @@ class CenaJogo extends Phaser.Scene {
     const deck =
       origem === "descarte"
         ? this.partida.jogador.descarte.filter((item) => item !== carta)
-        : this.partida.jogador.deck.cartas;
+        : carta.efeito?.tipo === TIPOS_EFEITO.BUSCAR_CARTA_DECK
+          ? this.partida.jogador.deck.cartas.slice(0, Math.max(0, this.partida.jogador.deck.cartas.length - this.partida.jogador.mao.cartas.filter((c) => c !== carta).length))
+          : this.partida.jogador.deck.cartas;
 
     if (deck.length === 0) {
+      if (carta.efeito?.tipo === TIPOS_EFEITO.BUSCAR_CARTA_DECK) {
+        this.conjurarCartaDeEfeitoJogador(gameObject, carta, null);
+        return;
+      }
       this.animarRetornoAoLeque(gameObject, true);
       return;
     }
@@ -5802,6 +5886,7 @@ class CenaJogo extends Phaser.Scene {
     carta,
     alvos,
     textoInstrucao = "Escolha uma carta para redefinir o poder",
+    aoEscolher = null,
   ) {
     const L = this.layout;
     const objetos = [];
@@ -5864,7 +5949,7 @@ class CenaJogo extends Phaser.Scene {
         .setDepth(3801)
         .setInteractive({ useHandCursor: true });
       zonaToque.on("pointerup", () =>
-        this.executarHabilidade(carta, indiceDeslocado),
+        aoEscolher ? aoEscolher(indiceDeslocado) : this.executarHabilidade(carta, indiceDeslocado),
       );
 
       objetos.push(anel, zonaToque);
@@ -5911,7 +5996,7 @@ class CenaJogo extends Phaser.Scene {
       this.desenharRodaBotoes();
     }
   }
-  animarEfeitoAdvogado(alvoEscolhido, aoConcluir) {
+  animarEfeitoAdvogado(alvoEscolhido, aoConcluir, campoAliado = false) {
     // Posição padrão no centro, caso algo dê errado
     let xPos = GW / 2;
     let yPos = GH / 2;
@@ -5922,7 +6007,7 @@ class CenaJogo extends Phaser.Scene {
       const col = alvoEscolhido % 5;
       const fileira = Math.floor(alvoEscolhido / 5);
       xPos = L.x[col];
-      yPos = L.yInimigo[fileira]; // Posição do terreno no campo do oponente
+      yPos = (campoAliado ? L.yJogador : L.yInimigo)[fileira];
     }
 
     // 1. Cria a imagem na posição exata do terreno alvo
@@ -6276,29 +6361,35 @@ class CenaJogo extends Phaser.Scene {
   // verde) cada carta ALIADA em campo — incluindo o CyberVendedor recém
   // colocado — pra o jogador escolher quem ganha o +poder. A carta já está
   // em campo nesse momento (colocarCartaDoJogador já rodou), então não tem
-  // "cancelar": tocar fora simplesmente confirma o alvo padrão (a própria
-  // carta recém-jogada), pra garantir que o efeito sempre seja resolvido.
+  // "cancelar". Para Troca de Favores, tocar fora mantém a seleção aberta:
+  // o vínculo exige um toque explícito em outra carta aliada.
   iniciarSelecaoDeAliadoParaBuff(carta, posicaoPropria) {
     const L = this.layout;
     const objetos = [];
 
-    const indicesAliados = this.partida.jogador.campo.cartas
-      .map((c, i) => (c && c.tipo !== "terreno" ? i : null))
-      .filter((i) => i !== null);
+    const exigeEscolhaExplicita = carta.efeito.tipo === TIPOS_EFEITO.VINCULO_ALIADO;
+    const indicesAliados = exigeEscolhaExplicita
+      ? this.partida.alvosParaVinculoAliado(carta, this.partida.jogador)
+      : this.partida.jogador.campo.cartas.flatMap((c, i) => c && c.tipo !== "terreno" ? [i] : []);
 
+    if (!indicesAliados.length) {
+      this.confirmarEscolhaBuffAliado(carta, posicaoPropria, null);
+      return;
+    }
     this.travado = true;
 
     let overlay = this.add
       .rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.35)
       .setDepth(3700)
       .setInteractive();
-    overlay.on("pointerup", () =>
-      this.confirmarEscolhaBuffAliado(carta, posicaoPropria, posicaoPropria),
-    );
+    overlay.on("pointerup", () => {
+      if (!exigeEscolhaExplicita)
+        this.confirmarEscolhaBuffAliado(carta, posicaoPropria, indicesAliados[0]);
+    });
     objetos.push(overlay);
 
     let textoInstr = this.add
-      .text(GW / 2, 140, "Escolha uma aliada para fortalecer", {
+      .text(GW / 2, 140, carta.efeito.tipo === TIPOS_EFEITO.VINCULO_ALIADO ? "Escolha a aliada que sustenta a Troca de Favores" : "Escolha uma aliada para fortalecer", {
         fontSize: "40px",
         color: "#88ff99",
         fontStyle: "bold",
@@ -7006,7 +7097,7 @@ class CenaJogo extends Phaser.Scene {
     const podeJogar = update.activePlayer === this.multiplayer.player;
     const eraMeuTurno = this.ehMeuTurno;
     this.ehMeuTurno = podeJogar;
-    if (podeJogar && !eraMeuTurno) this.reiniciarTimerTurno();
+    if (podeJogar && !eraMeuTurno) this.iniciarNovoTurnoDoJogador();
     else if (!podeJogar && eraMeuTurno) this.reiniciarTimerOponente();
     else if (!podeJogar) this.atualizarVisualTimerTurno(true);
     this.travado = !podeJogar || !!resultado?.resultadoRodada;
@@ -7065,11 +7156,12 @@ class CenaJogo extends Phaser.Scene {
 
     const ativacoes = [];
     campoNovoInimigo.forEach((cartaNova) => {
-      if (!cartaNova?.habilidadeAtiva || !cartaNova.usadaEsteTurno) return;
+      if (!cartaNova?.habilidadeAtiva) return;
       const cartaAnterior = campoAnteriorInimigo.find(
         (carta) => chave(carta) === chave(cartaNova),
       );
-      if (cartaAnterior && !cartaAnterior.usadaEsteTurno)
+      if (cartaAnterior && ((cartaNova.ativacoes || 0) > (cartaAnterior.ativacoes || 0) ||
+        (cartaNova.usadaEsteTurno && !cartaAnterior.usadaEsteTurno)))
         ativacoes.push(cartaNova);
     });
 
@@ -7113,6 +7205,8 @@ class CenaJogo extends Phaser.Scene {
     const removidas = campoAnteriorInimigo.filter(
       (carta) => carta && !chavesNovasDoInimigo.has(chave(carta)),
     );
+    const chavesNovasAliadas = new Set([...nova.jogador.campo.cartas, ...nova.jogador.mao.cartas, ...nova.jogador.deck.cartas].filter(Boolean).map(chave));
+    removidas.push(...anterior.jogador.campo.cartas.filter((c) => c && !chavesNovasAliadas.has(chave(c))));
 
     return {
       jogadasCampo,
@@ -7176,7 +7270,13 @@ class CenaJogo extends Phaser.Scene {
       );
     };
 
-    this.animarRemocoesInimigas(eventos.removidas, aplicarNovoEstado);
+    const advogados = eventos.ativacoes.filter((c) => c.efeito?.tipo === TIPOS_EFEITO.DESTRUIR_TERRENO_INIMIGO);
+    const remover = () => this.animarRemocoesInimigas(eventos.removidas, aplicarNovoEstado);
+    const animarAdvogado = (indice) => {
+      if (indice >= advogados.length) return remover();
+      this.animarEfeitoAdvogado(advogados[indice].ultimoAlvoHabilidade, () => animarAdvogado(indice + 1), true);
+    };
+    animarAdvogado(0);
   }
 
   animarRemocoesInimigas(cartas, aoConcluir) {
@@ -7215,8 +7315,9 @@ class CenaJogo extends Phaser.Scene {
         .image(origem.x, origem.y, "fundoCarta")
         .setDisplaySize(140, 200)
         .setDepth(3700 + indice)
-        .setScale(0.45)
         .setAlpha(0);
+      const escalaX = verso.scaleX;
+      const escalaY = verso.scaleY;
       this.time.delayedCall(indice * 190, () => {
         if (this.somComprarCarta) this.somComprarCarta.play();
         this.tweens.add({
@@ -7224,8 +7325,8 @@ class CenaJogo extends Phaser.Scene {
           x: destinoX,
           y: destinoY,
           alpha: 1,
-          scaleX: 1,
-          scaleY: 1,
+          scaleX: escalaX,
+          scaleY: escalaY,
           angle: offset * 2,
           duration: 430,
           ease: "Back.Out",
@@ -7648,8 +7749,21 @@ class CenaJogo extends Phaser.Scene {
   // já que a partida acaba aqui — fica por cima de tudo até o jogador
   // recarregar a página.
   mostrarTelaFimDeJogo(resultadoCombate) {
-    if (!resultadoCombate) return;
-    if (!this.partidaRegistradaNaConta) {
+    if (!resultadoCombate || this.telaFinalExibida) return;
+    this.telaFinalExibida = true;
+    const voltar = () => {
+      this.retornoMenuTimer?.remove();
+      this.multiplayer?.leaveRoom?.();
+      this.scene.start("CenaTitulo");
+    };
+    this.add.text(GW / 2, GH - 170, "VOLTAR AO MENU", {
+      fontSize: "40px", color: "#ffffff", backgroundColor: "#24243d",
+      padding: { x: 28, y: 18 },
+    }).setOrigin(0.5).setDepth(5100).setInteractive({ useHandCursor: true }).on("pointerup", voltar);
+    this.add.text(GW / 2, GH - 95, "Retorno automático em 10 segundos", { fontSize: "25px", color: "#dddddd" })
+      .setOrigin(0.5).setDepth(5100);
+    this.retornoMenuTimer = this.time.delayedCall(10000, voltar);
+    if (!this.multiplayer?.spectator && !this.partidaRegistradaNaConta) {
       this.partidaRegistradaNaConta = true;
       window.cyberduelAccount?.recordMatch().catch(() => {});
     }

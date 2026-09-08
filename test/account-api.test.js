@@ -104,7 +104,7 @@ async function run() {
       (total, card) => total + (card.quantidade || 0),
       0,
     ),
-    20,
+    4,
   );
   assert.equal(booster.payload.currency, 400);
 
@@ -146,6 +146,31 @@ async function run() {
     grantAllCards.payload.account.collection["efeito:Reciclagem"],
     1,
   );
+
+  const newCards = [
+    ["monstro", "Refrigeradores de DataCenter"],
+    ["monstro", "Montadores de Cabos"],
+    ["monstro", "Estudante de Curso Técnico"],
+    ["monstro", "CyberUnidades de Emergência"],
+    ["monstro", "TecnoAgentes de Segurança"],
+    ["monstro", "NeoMedicânico"],
+    ["monstro", "Influenciador Digital"],
+    ["monstro", "CyberPolíticos"],
+    ["monstro", "Professores de Duelo"],
+    ["monstro", "Dragão das Comunicações Móveis"],
+    ["terreno", "NeoPalhoça"],
+  ];
+  for (const [tipo, nome] of newCards) {
+    const key = `${tipo}:${nome}`;
+    assert.equal(grantAllCards.payload.account.collection[key], 1, key);
+    const single = await api("/api/admin/accounts/give-card", {
+      method: "POST",
+      body: { conta: "Gabriel", nomeDaCarta: nome, quantidade: 2 },
+    });
+    assert.equal(single.status, 200, nome);
+    assert.equal(single.payload.account.collection[key], 3, key);
+  }
+  assert.ok(!grantAllCards.payload.granted.some((card) => card.nome === 'resenha games"'));
 
   const deck = faction.payload.deck;
   const saved = await api("/api/deck", {

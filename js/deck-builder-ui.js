@@ -412,6 +412,7 @@ class CyberduelDeckBuilderUI {
       "article",
       `forge-card level-${card.nivel}${quantity ? " is-selected" : ""}`,
     );
+    article.dataset.cardKey = card.key;
     if (this.order === "faccao") {
       article.classList.add(
         "is-faction-sorted",
@@ -639,9 +640,23 @@ class CyberduelDeckBuilderUI {
     const previousQuantity = this.builder.quantity(this.deck, card);
     const next = this.builder.changeQuantity(this.deck, card, delta);
     if (this.builder.quantity(next, card) === previousQuantity) return;
+    const scroll = Array.from(this.root.querySelectorAll("*"))
+      .filter((element) => element.scrollTop || element.scrollLeft)
+      .map((element) => ({ element, top: element.scrollTop, left: element.scrollLeft,
+        cardKey: element.closest("[data-card-key]")?.dataset.cardKey,
+        className: element.className }));
+    const top = this.root.scrollTop;
     this.deck = next;
     this.markDirty();
     this.render();
+    scroll.forEach((saved) => {
+      const element = saved.element.isConnected ? saved.element :
+        Array.from(this.root.querySelectorAll("[data-card-key]"))
+          .find((card) => card.dataset.cardKey === saved.cardKey)
+          ?.querySelector(`[class="${saved.className}"]`);
+      if (element) { element.scrollTop = saved.top; element.scrollLeft = saved.left; }
+    });
+    this.root.scrollTop = top;
     if (typeof navigator !== "undefined") navigator.vibrate?.(10);
     if (this.modal?.dataset.kind === "detail") this.openDetail(card, true);
   }
