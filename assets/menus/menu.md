@@ -25,4 +25,10 @@
 - Visualizar Regras
 - Repetir tutorial
 
+# Demais artes:
+
+
+Arte da tela de carregamento inicial (tipo a arte principal do jogo)
+
+arte do icone do jogo
 
