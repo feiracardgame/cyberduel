@@ -10,7 +10,7 @@
 * PA: 3
 * Efeito:
 
-Venda Casada → Ao ser colocado em campo, o CyberVendedor faz questão de garantir a venda de um dos seus 65.732 combos, em vez do produto que você realmente queria. Escolha uma carta aliada ou esta para ganhar +1 PA.
+Venda Casada → Ao ser colocado em campo, o CyberVendedor faz questão de garantir a venda de um dos seus 65.732 combos, em vez do produto que você realmente queria. Escolha, uma vez por turno, uma carta aliada ou esta para ganhar +1 PA.
 
  
 * Arte:
@@ -31,13 +31,10 @@ Venda Casada → Ao ser colocado em campo, o CyberVendedor faz questão de garan
 * PA: 2
 * Efeito:
 
-Machine learning -> Escolha uma carta aliada. Ela recebe +2 PA. O Estagiário perde 1 PA.
+Machine learning -> Escolha uma carta aliada. Ela recebe +3 PA. O Estagiário perde 1 PA.
 
 
 
-
-
-* Visual: é um nerdzinho de oculos mexendo no pc, só que a piada é que tem tipo um cartaz de logo da raspcorp dizendo "RaspCorp - Investindo no futuro da humanidade"
  
 
 *  <img alt="image" src="assets/cartas/Estagiario_machine_learning.png" />
@@ -57,7 +54,7 @@ Machine learning -> Escolha uma carta aliada. Ela recebe +2 PA. O Estagiário pe
 * PA: 4
 * Efeito: 
 
- SLA de 1º Retorno -> Para cada NeoAnalista de Suporte Nível Alpha em campo, o tempo de turno do oponente é reduzido em 10 segundos, até um mínimo de 20 segundos.
+ SLA de 1º Retorno -> Para cada NeoAnalista de Suporte Nível Alpha em campo, o tempo de turno e de ataque do oponente é reduzido em 15 segundos, até um mínimo de 20 segundos.
 
 * Arte:
  <img alt="image" src="assets/cartas/NeoAnalista_de_Suporte_Nivel_Alpha.png" />
@@ -93,7 +90,7 @@ Machine learning -> Escolha uma carta aliada. Ela recebe +2 PA. O Estagiário pe
 * PA: 5
 * Efeito:
 
-* Reestruturação Interna → A empresa agradece pelos anos de dedicação do colaborador e informa que sua vaga continuará existindo, porém com salário menor. Escolha uma carta aliada para perder 2 PA. Outra carta aliada ganha 3 PA.
+* Reestruturação Interna → A empresa agradece pelos anos de dedicação do colaborador e informa que sua vaga continuará existindo, porém com salário menor. Escolha uma carta aliada para perder 2 PA. Outra carta aliada ganha 4 PA.
 
  
 * Visual: ->  <img alt="image" src="assets/cartas/Departamento_RH.png" />
@@ -114,7 +111,7 @@ Machine learning -> Escolha uma carta aliada. Ela recebe +2 PA. O Estagiário pe
 * PA: 6
 * Efeito:
 * 
-  Investimento de Alto Risco → Os investimentos finalmente começaram a render. No início de cada turno, o CryptoAcionista tem 50% de chance de ganhar +1 PA.
+  Investimento de Alto Risco → Os investimentos finalmente começaram a render. No início de cada turno, o CryptoAcionista tem 50% de chance de ganhar +2 PA.
 
 * Arte:
  <img alt="image" src="assets/cartas/cryptoacionistas.png" />
@@ -150,7 +147,7 @@ Machine learning -> Escolha uma carta aliada. Ela recebe +2 PA. O Estagiário pe
 * PA: 10
 * Efeito: 
 
- Potencialização de Capital -> Escolha até 3 cartas aliadas de nível baixo ou médio em campo. RaspClay absorve a produtividade delas, removendo-as do campo e aumentando seu PA pela soma dos seus valores de PA.
+ Potencialização de Capital -> Escolha até 3 cartas aliadas de nível baixo ou médio em campo ao invocar esta carta. RaspClay absorve a produtividade delas, removendo-as do campo e aumentando seu PA pela soma dos seus valores de PA.
  
 * Arte:
  <img alt="image" src="assets/cartas/RaspClay_MonteCorp.png" />
@@ -215,7 +212,7 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 ### 2x carta baixa 1 -> O Rato
 
 * Descrição: O Rato é o membro mais jovem da EchoSsystem. Sua habilidade de infiltração é tão impressionante que poucos acreditam que ele de fato exista. O mesmo não pode ser dito sobre as piadas envolvendo seu nome, que aparecem em praticamente todas as reuniões do grupo.
-* PA: 1
+* PA: 2
 * Efeito: Mãos Leves → Escolha, a cada turno, uma carta inimiga em qualquer lugar do campo. O Rato rouba 1 PA dela, adicionando esse valor ao seu próprio PA.
 
 * Visual: 
@@ -254,7 +251,7 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
 * Descrição: Descrição: Antes mesmo de entrar para o grupo anarquista, o Cão já era um mercenário especializado em rastrear alvos. Seus implantes cibernéticos de olfato permitem encontrar praticamente qualquer pessoa pelo menor dos rastros. O único problema é que a idade já está afetando seus sentidos: recentemente, ele passou três horas seguindo o próprio cheiro.
 * PA: 4
-* Efeito: Faro -> O Cão consegue rastrear o cheiro do inimigo, apesar de não tão bem quanto sua época. Ao ser invocado, o Cão te informa de até 5 cartas que o inimigo tenha na mão ou no baralho.
+* Efeito: Faro -> O Cão consegue rastrear o cheiro do inimigo, apesar de não tão bem quanto sua época. Ao ser invocado, o Cão reduz 3 de PA da próxima carta de personagem invocada pelo oponente.
 * Visual:
 
 
@@ -272,7 +269,7 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
 * Descrição: O Porco acredita que nenhum trabalho é nojento demais. Entre esgotos, lixões industriais e montanhas de sucata, tornou-se especialista em encontrar recursos onde ninguém mais pisaria. Anos de exposição aos ambientes mais inóspitos de NeoFloripa fizeram seu corpo desenvolver uma resistência impressionante. Felizmente, o olfato também foi perdido no processo.
 * PA: 6
-* Efeito: Casca Grossa → Os PA do Porco não podem ser reduzidos por efeitos de outras cartas.
+* Efeito: Casca Grossa → Os PA do Porco não podem ser reduzidos abaixo de 6 PA por efeitos de outras cartas.
 
 * Visual: 
 
@@ -389,7 +386,7 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
 * Em um passado distante, casas de ópera lotavam para ouvir vozes capazes de emocionar multidões. Hoje, foram substituídas por CyberBaladas que reproduzem as mesmas três notas eletrônicas em ritmos diferentes. Felizmente, a EchoSsystem ainda desperta todas as manhãs ao som do outrora prestigiado Canto do Galo, lembrando que ainda vale a pena lutar por mais um dia.
  
-* Efeito: A inspiradora voz do Galo fortalece seus companheiros. Escolha duas cartas aliadas. A primeira recebe +2 PA e a segunda +1 PA. 
+* Efeito: A inspiradora voz do Galo fortalece seus companheiros. Escolha duas cartas aliadas. A primeira recebe +3 PA e a segunda +2 PA. 
 * Visual:
 
  <img alt="image" src="assets/cartas/O_galo.png" />
@@ -456,8 +453,8 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 ### 1x carta baixa -> IA de treinamento
 
 * Descrição: Para tornar a experiência acessível a todos, a HumbaNet criou uma integrante responsável por demonstrar as funcionalidades e explicar as regras da nova simulação. Infelizmente, ninguém descobriu como tornar suas interrupções menos irritantes ou implementar um botão de pular tutorial.
-* PA: 3
-* Efeito: Benefício do tutorial: A IA detectou que seus aliados possuem pontos fracos e podem melhorar! Cartas adjacentes à IA de treinamento ganham +2 de PA.
+* PA: 4
+* Efeito: Benefício do tutorial: A IA detectou que seus aliados possuem pontos fracos e podem melhorar! Cartas adjacentes à IA de treinamento ganham +4 de PA.
 
  
 * Visual:
@@ -525,7 +522,7 @@ vc escolhe como acha que fica mais legal, mas penso na ideia de uma IA com corpo
 * Descrição:: Os Replicantes eram seres biologicamente aprimorados, desenvolvidos para executar tarefas perigosas e trabalhos manuais no mundo antigo. Contudo, em NeoFloripa, são responsáveis pela manutenção e integridade da simulação. Ironicamente, em um mundo virtual completamente controlado, são mais livres do que jamais foram na realidade.
 
 * PA: 7
-* Efeito: Demanda operacional -> Para cada terreno que estiver em campo, os replicantes recebem +2 PA
+* Efeito: Demanda operacional -> Para cada terreno que estiver em campo, os replicantes recebem +3 PA
 
  
 * Visual: eles tem que ser androides (pode pesquisar os replicantes de bladerunner, mas eles nao tem algo que identifique MUITO. Pode fazer uma arte que tenha tipo 3 e um deles seja referência ao Roy Batty, o resto pode ser como tu quiser, mas pode ter uma das paradas que o V de CyberPunk tem no rosto, por exemplo:
@@ -597,7 +594,7 @@ Faz algo na vibe de um Tyrant ou do próprio Adam Smasher
  Humbatrix -> Após o sucesso de NeoFloripa, HumbaBrain inicia a expansão da simulação. Enquanto esta carta estiver em campo, os terrenos inimigos não têm efeito, e os seus não podem ser destruídos.
 
  
-* Visual: Faz um rework da carta do Humba Brain... naquele estilo mesmo do Angstrom Levy, mas não deixa ele tão cabeçudo e bizarro... Bota elementos de verde.
+* Visual: 
 
 
  #### Assets
@@ -630,7 +627,7 @@ Faz algo na vibe de um Tyrant ou do próprio Adam Smasher
 
 * Descrição: Todo produto possui alguns defeitos. Felizmente, nosso estimado criador trabalha incansavelmente em novas correções para garantir a felicidade geral da cybernação. Afinal, se algo não funciona, basta lançar uma atualização e fingir que estava tudo planejado.
 
-* Efeito: Novas Features -> Todas as suas cartas em campo recebem +1 de PA.
+* Efeito: Novas Features -> Todas as suas cartas em campo recebem +2 de PA.
  
 * Visual: Faz alguma coisa bugada, mas pode meter alguma coisa no estilo da Anomalia de ordem tbm
 
@@ -650,7 +647,7 @@ Faz algo na vibe de um Tyrant ou do próprio Adam Smasher
 
 * Descrição: Para que buscar companhia real quando você pode preencher o vazio conversando com uma IA? No mundo virtual, todo solitário recebe seu próprio modelo androide da linha Hoi, programado para ouvir, conversar e concordar com você. Afinal, não existe lugar melhor para viver do que NeoFloripa, especialmente quando você nunca precisa estar realmente sozinho.
 
-* Efeito: Escolha uma carta aliada que, neste momento, não possua nenhuma outra carta adjacente. Ela recebe +3 de PA.
+* Efeito: Escolha uma carta aliada que, neste momento, não possua nenhuma outra carta adjacente. Ela recebe +5 de PA.
 
 
 * Visual: Faz tipo aquela cena do BladeRunner 2049, porém a cor predominante é verde e tenta não deixar a boneca pelada
@@ -671,7 +668,7 @@ Faz algo na vibe de um Tyrant ou do próprio Adam Smasher
 
 * Descrição: Os Remanescentes são conhecidos como “Povo da Areia”, famosos pela brutalidade, reciclagem e capacidade de sobreviver onde poucos conseguiriam. Entre eles, ninguém é deixado para trás: os que partem continuam vivendo através daqueles que permanecem.
 * PA: 4
-* Efeito: Por Aqueles que Ainda Virão -> Esta carta recebe +1 de PA para cada carta sua que tiver sido destruída ou removida de campo.
+* Efeito: Por Aqueles que Ainda Virão -> Esta carta recebe +1 de PA para cada efeito utilizado, carta de personagem que tiver sido destruída ou terreno removido de campo desde que ela foi invocada.
 
  
 * Visual: queria uns cara pique o tusken raider, mas pode fazer tua magica como quiser
@@ -691,10 +688,10 @@ Faz algo na vibe de um Tyrant ou do próprio Adam Smasher
 
 Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Ferreira transforma restos do velho mundo em armas, ferramentas e equipamentos capazes de manter seu povo vivo por mais um dia. Sua oficina é parada obrigatória para qualquer um que quer sobreviver no deserto.
 * PA: 5
-* Efeito: Reparo e Melhoria -> A cada turno, escolha até 2 cartas aliadas, cada uma ganha +1 de PA.
+* Efeito: Reparo e Melhoria -> A cada turno, escolha até 2 cartas aliadas, cada uma ganha +2 de PA.
 
 
-* Visual: Faz uma mulher trabalhando numa forja, livre pra tu escolher como, mas acho que ficava legal fazer ela meio mandaloriana tbm
+* Visual:
 
 <img alt="image" src="assets/cartas/a_ferreira.png" /> 
 
@@ -713,7 +710,7 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
  
 * Descrição: Tuh'Coh é um sobrevivente. Oscilando entre o certo e o errado, sempre tenta fazer o seu melhor, mesmo que precise recorrer a esquemas cada vez mais complexos para sobreviver. Engraçado, impulsivo e caótico, O Feio mostra que até os mais habilidosos continuam sendo humanos. A máscara que veste, porém, parece dizer o contrário — embora quem já tenha visto seu rosto diga que a verdade é ainda pior.
 * PA: 5
-* Efeito: Três Homens em Conflito -> Caso seja posto adjacente ao Bom e ao Mau, o Feio ganha + 4 PA
+* Efeito: Três Homens em Conflito -> Caso seja posto adjacente ao Bom e ao Mau, estando no meio delas, o Feio ganha + 5 PA e aumenta os outros dois em 3.
 * Visual: Faz um cara tipo um mandaloriano, com um capacete maneiro e armadura, mas com elementos de cowboy
 
 <img alt="image" src="assets/cartas/o_feio.png" />
@@ -755,7 +752,7 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 * Efeito: O Número Perfeito -> Escolha até 6 cartas no campo inimigo. Cada uma perde 1 de PA. 
 
  
-* Visual: Faz o Felipe versão faroeste cibernético, tem q ser alguém loiro pq esse é o apelido do personagem no filme
+* Visual: 
 
 <img alt="image" src="assets/cartas/o_bom.png" />
 
@@ -771,7 +768,7 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 
 * Descrição: Dentre os Remanescentes, a lei não é um código escrito. A lei é Dieh'Go. Nunca foi eleito nem nomeado xerife, simplesmente assumiu o posto quando o povo mais precisou. Sua autoridade não vem apenas da força, mas da confiança conquistada por anos protegendo o Povo da Areia. Até os maiores foras da lei respeitam seu julgamento. Para os forasteiros ele é a última pessoa que se deseja encontrar no deserto.
 * PA: 9
-* Efeito: Eu Sou a Lei -> A cada turno, distribua 6 pontos de dano de PA entre as cartas inimigas como desejar. Além disso, a carta aliada diretamente atrás de Dieh'Go recebe +2 de PA enquanto ele permanecer em campo.
+* Efeito: Eu Sou a Lei -> A cada turno, distribua 6 pontos de dano de PA entre as cartas inimigas como desejar.
 * Visual:
 
  <img alt="image" src="assets/cartas/Di_Ego_caçador_de_recompensas.png"/>
@@ -827,7 +824,7 @@ Faz aqueles arbusto seco que voa pelo deserto com alguns riscos indicando vento,
 * Descrição: : Chão de madeira velha, dobradiças que rangem e cheiro de fumaça. Nem a destruição das terras agricultáveis nem o maior desenvolvimento tecnológico conseguiram acabar com a essência do verdadeiro Velho Oeste. A única diferença é a clientela, que agora usa próteses e monóculos feitos com tecnologia de ponta.
 
 
-* Efeito: Uma Rodada por Conta da Casa -> Enquanto esta carta estiver em campo, todas as cartas da mesma linha ganham +2 de PA.
+* Efeito: Uma Rodada por Conta da Casa -> Enquanto esta carta estiver em campo, todas as cartas da mesma linha ganham +3 de PA.
 
  
 * Visual: Faz um salão de velho-oeste muito louco so que com muita gente com implante cibernetico (sem led) e monoculo tipo do diego
@@ -897,7 +894,7 @@ Faz aqueles arbusto seco que voa pelo deserto com alguns riscos indicando vento,
 * PA: 4
 * Efeito: Extensão ->Uma vez por turno, escolha uma carta aliada. Você pode movê-la para qualquer outro espaço livre em seu campo.
  
-* Visual: Faz só um cara completamente normal dentro de um servidor super futurista cheio de neon mexendo em um cabo nessa vibe aqui:
+* Visual: 
 
 <img width="335" height="597" alt="image" src="https://github.com/user-attachments/assets/16e804b5-8590-4583-9620-a49ebf7c5bcf" />
 
@@ -971,7 +968,7 @@ Faz tipo o Will Smith com a mão no rosto como se tivesse cansado e o Macaco com
 
 * Descrição: Com o avanço da medicina, envelhecer deixou de ser um dos maiores problemas da humanidade. Em compensação, implantes cibernéticos começaram a apresentar falhas cada vez mais frequentes. Por isso, as faculdades de medicina tiveram que atualizar seus currículos: além de anatomia, agora é necessário saber um pouco de engenharia eletrônica e mecânica.
 * PA: 5
-* Efeito: Uma vez por turno, escolha uma carta aliada que tenha perdido PA. Ela recupera 4 de PA.
+* Efeito: Uma vez por turno, escolha uma carta aliada que tenha perdido PA. Ela recupera todos seus PA.
 * Visual: Faz tipo os medicânicos do cyberpunk mesmo ou o trauma team resgatando alguem
 
 <img width="544" height="381" alt="image" src="https://github.com/user-attachments/assets/08900500-2980-4e8a-b5c0-4c7f1438f8c9" />
@@ -993,7 +990,7 @@ Faz tipo o Will Smith com a mão no rosto como se tivesse cansado e o Macaco com
 
 * Descrição: Dentre as chamadas "pessoas normais", o Influenciador é aquele que acredita ser mais especial. Dita tendências, opiniões e comportamentos, embora suas convicções possam mudar diante de uma proposta melhor. Não produz nada além de conteúdo, engajamento e publicidade, mas finalmente encontrou uma forma de vender a própria existência e chamar isso de trabalho.
 * PA: 6
-* Efeito: Opinião Pública -> Uma vez por turno, escolha duas cartas em campo. Se for aliada, ela recebe engajamento e ganha +1 de PA. Se for inimiga, ela sofre um cancelamento e perde essa mesma quantidade.
+* Efeito: Opinião Pública -> Uma vez por turno, escolha duas cartas em campo. Se for aliada, ela recebe engajamento e ganha +2 de PA. Se for inimiga, ela sofre um cancelamento e perde essa mesma quantidade.
 * Visual: Faz tipo o Jae na abertura de Hexatombe, só que com uma carta do cyberduel brilhosa
 
 <img width="472" height="423" alt="image" src="https://github.com/user-attachments/assets/9615a295-fa32-49e6-96f5-4e002caeabe1" />
@@ -1009,7 +1006,7 @@ Faz tipo o Will Smith com a mão no rosto como se tivesse cansado e o Macaco com
 
 * Descrição: Outrora decisores do futuro da sociedade, os políticos agora disputam influência através de duelos de cartas em vez de discursos elaborados. Continuam prometendo colocar NeoFloripa nas mãos do povo, mas a promessa parece perder força quando surge uma mão mais conveniente, especialmente se ela vier acompanhada de uma carta brilhante.
 * PA: 6
-* Efeito: Troca de Favores -> Ao invocá-lo, escolha uma carta aliada. Enquanto ela ainda estiver em campo, o Político recebe +4 de PA. Caso ela seja destruída, o político é eliminado junto.
+* Efeito: Troca de Favores -> Ao invocá-lo, escolha uma carta aliada. Enquanto ela ainda estiver em campo, o Político recebe +6 de PA. Caso ela seja destruída, o político é eliminado junto.
  
 * Visual: Faz tipo uma charge de um monte de trabalhador olhando o politico com cartas do cyberduel
 
@@ -1020,7 +1017,7 @@ Faz tipo o Will Smith com a mão no rosto como se tivesse cansado e o Macaco com
 
 *Descrição: Para combater o alto custo de vida de NeoFloripa, a solução encontrada foi criar NeoPalhoça: uma região barata, distante e convenientemente localizada longe de tudo que importa. A simulação foi tão fiel que seus moradores enfrentam diariamente trânsito, longos deslocamentos e falta de infraestrutura. A única novidade foi o vulcão.
 
-*Efeito: Todas as cartas do Sindicato ganham +2 de PA
+*Efeito: Todas as cartas do Sindicato ganham +3 de PA
 
 *Visual: Faz a palhoça cyberpunk com um vulcaozao pique o natural disaster, só não faz ela alagada pfv.
 
