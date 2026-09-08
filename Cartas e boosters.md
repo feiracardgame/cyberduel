@@ -459,9 +459,8 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
  
 * Visual:
 
-Faz tipo a Elena do HxH, mas essas linhas de traz são verdes e não brancas.
 
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/0f27d1e7-cc1d-497b-b10f-d7cd055cf9ff" />
+<img alt="image" src="assets/cartas/ia_de_treinamento.png" />
 
  #### Assets
 
@@ -480,9 +479,9 @@ Faz tipo a Elena do HxH, mas essas linhas de traz são verdes e não brancas.
 * Efeito: Controle de Risco -> Escolha uma carta do campo inimigo. O efeito dela é desabilitado enquanto o Hal 9001 estiver em campo. Este efeito não pode ser mantido pela mesma carta em duas cartas simultaneamente.
 
  
-* Visual: Faz tipo o Hal 9000 mesmo, mas faz ela com a luz verde e muda a cor do led para verde.
+* Visual: 
 
-<img width="486" height="1000" alt="image" src="https://github.com/user-attachments/assets/efea2c8f-ce1a-42de-be76-09004f4d9a83" />
+<img alt="image" src="assets/cartas/hal_9001.png" />
 
  #### Assets
 
@@ -501,12 +500,9 @@ Faz tipo a Elena do HxH, mas essas linhas de traz são verdes e não brancas.
 * Efeito: Assistente Pessoal -> Ao invocar H.A.R.V.I.S em campo, você compra 1 carta aleatória do deck.
 * Visual:
 
-vc escolhe como acha que fica mais legal, mas penso na ideia de uma IA com corpo humanoide, tipo o visão ou o ultron
-
-<img width="1624" height="2360" alt="image" src="https://github.com/user-attachments/assets/44d2db9b-57b2-40c0-b0d4-c4d80d598247" />
+<img alt="image" src="assets/cartas/harvis.png" />
 
 
-<img width="620" height="800" alt="image" src="https://github.com/user-attachments/assets/5e69371f-8a28-47f9-bbcf-6659a55378cf" />
 
 
  #### Assets
@@ -525,12 +521,7 @@ vc escolhe como acha que fica mais legal, mas penso na ideia de uma IA com corpo
 * Efeito: Demanda operacional -> Para cada terreno que estiver em campo, os replicantes recebem +3 PA
 
  
-* Visual: eles tem que ser androides (pode pesquisar os replicantes de bladerunner, mas eles nao tem algo que identifique MUITO. Pode fazer uma arte que tenha tipo 3 e um deles seja referência ao Roy Batty, o resto pode ser como tu quiser, mas pode ter uma das paradas que o V de CyberPunk tem no rosto, por exemplo:
-
-
-<img width="594" height="796" alt="image" src="https://github.com/user-attachments/assets/8738d3cd-2f26-433c-ae7c-977cc27e93ab" />
-
-<img width="455" height="500" alt="image" src="https://github.com/user-attachments/assets/11535df2-941c-493a-aa63-03d46d33a710" />
+* Visual: <img alt="image" src="assets/cartas/replicantes.png" />
 
  #### Assets
 
@@ -548,11 +539,7 @@ vc escolhe como acha que fica mais legal, mas penso na ideia de uma IA com corpo
 * Efeito: Protocolo de Segurança -> O Juggernaut é a última lembrança que os infratores tem. Escolha qualquer carta do campo inimigo, a UCC a ataca e causa 5 pontos de dano de PA.
 * Visual:
 
-Faz algo na vibe de um Tyrant ou do próprio Adam Smasher
-
-<img width="979" height="1830" alt="image" src="https://github.com/user-attachments/assets/b86c7c63-216e-4422-905d-f0e981beec2d" />
-
-<img width="226" height="440" alt="image" src="https://github.com/user-attachments/assets/cfd77f4b-3111-4954-aad9-307b4ce6e5d4" />
+<img alt="image" src="assets/cartas/juggernaut.png" />
 
 
  #### Assets
@@ -596,6 +583,7 @@ Faz algo na vibe de um Tyrant ou do próprio Adam Smasher
  
 * Visual: 
 
+<img alt="image" src="assets/cartas/humba_brain.png" />
 
  #### Assets
 
@@ -611,7 +599,7 @@ Faz algo na vibe de um Tyrant ou do próprio Adam Smasher
  
 * Efeito: Claro, aqui está... -> Enquanto este terreno estiver em campo, você pode, uma vez por turno, descartar sua mão e recomprá-la.
  
-* Visual: Faz tipo uma junção de TODAAS as logos de IA que tu achar e deixa elas brilhando em verde neon.
+* Visual: <img alt="image" src="assets/cartas/deepclaudechatgemini.png" />
 
 
 
@@ -623,18 +611,17 @@ Faz algo na vibe de um Tyrant ou do próprio Adam Smasher
 
 
 
-### 1x carta de terreno 2 -> Atualização de Patch
+### 1x carta de terreno 2 -> Bug na Matrix
 
 * Descrição: Todo produto possui alguns defeitos. Felizmente, nosso estimado criador trabalha incansavelmente em novas correções para garantir a felicidade geral da cybernação. Afinal, se algo não funciona, basta lançar uma atualização e fingir que estava tudo planejado.
 
 * Efeito: Novas Features -> Todas as suas cartas em campo recebem +2 de PA.
  
-* Visual: Faz alguma coisa bugada, mas pode meter alguma coisa no estilo da Anomalia de ordem tbm
+* Visual:
 
-<img width="1216" height="1544" alt="image" src="https://github.com/user-attachments/assets/4f717f17-84dd-4bab-a38e-547c07cfbc8e" />
+<img alt="image" src="assets/cartas/bug2.png" />
 
 
-<img width="960" height="680" alt="image" src="https://github.com/user-attachments/assets/a1dacb05-bff9-4742-9317-2ce623183907" />
 
  #### Assets
 
@@ -786,11 +773,8 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 * Descrição: A forte ventania nas terras destruídas ajuda a acelerar a desertificação no local. De acordo com os anciões remanescentes "o vento tudo leva, menos as lembranças daqueles que passaram"
 * Efeito: Escolha um terreno inimigo. Ele será removido.
 * Visual:
-Faz aqueles arbusto seco que voa pelo deserto com alguns riscos indicando vento, mas o arbusto seco faz ele meio metalico tlg, como se fosse resto de sucata
+<img alt="image" src="assets/cartas/vento_dos_ermos.png" />
 
-<img width="1280" height="714" alt="image" src="https://github.com/user-attachments/assets/11702792-2b6a-4165-8729-dd0042ab5b39" />
-
-<img width="753" height="435" alt="image" src="https://github.com/user-attachments/assets/22f57126-5657-4a08-b06e-5e29cba3b4d4" />
 
  #### Assets
 
@@ -808,7 +792,7 @@ Faz aqueles arbusto seco que voa pelo deserto com alguns riscos indicando vento,
 * Efeito: Escolha 1 terreno removido, efeito já utilizado ou personagem destruído. Coloque-o novamente em sua mão.
 
  
-* Visual: Pode fazer uma pilha de recursos aí jogados em um deserto e o povo da areia catando eles.
+* Visual: 
 
 <img alt="image" src="assets/cartas/reciclagem.png" />
 
@@ -827,7 +811,7 @@ Faz aqueles arbusto seco que voa pelo deserto com alguns riscos indicando vento,
 * Efeito: Uma Rodada por Conta da Casa -> Enquanto esta carta estiver em campo, todas as cartas da mesma linha ganham +3 de PA.
 
  
-* Visual: Faz um salão de velho-oeste muito louco so que com muita gente com implante cibernetico (sem led) e monoculo tipo do diego
+* Visual: <img alt="image" src="assets/cartas/saloon.png" />
 
 
 
@@ -874,9 +858,9 @@ Faz aqueles arbusto seco que voa pelo deserto com alguns riscos indicando vento,
 
 
 
-* Visual:  Faz um cara completamente normal dentro de um servidor super futurista cheio de neon mexendo num ar-condicionado, sistema de refrigeração ou qualquer coisa assim:
+* Visual:  <img alt="image" src="assets/cartas/refrigerador_de_datacenter.png" />
 
-<img width="2560" height="1703" alt="image" src="https://github.com/user-attachments/assets/f1701003-7b1b-4a1d-abef-05973435a192" />
+
 
  #### Assets
 
@@ -896,7 +880,7 @@ Faz aqueles arbusto seco que voa pelo deserto com alguns riscos indicando vento,
  
 * Visual: 
 
-<img width="335" height="597" alt="image" src="https://github.com/user-attachments/assets/16e804b5-8590-4583-9620-a49ebf7c5bcf" />
+<img alt="image" src="assets/cartas/montador_de_cabos.png" />
 
  #### Assets
 
@@ -916,7 +900,7 @@ Faz aqueles arbusto seco que voa pelo deserto com alguns riscos indicando vento,
  
 * Visual: Faz um mlk com uma camisa pro IFSC todo distraído olhando pro celular enquanto o mundo ACABA atrás dele.
 
-<img width="800" height="534" alt="image" src="https://github.com/user-attachments/assets/e094e7fe-55f7-40fb-9238-28195489f620" />
+<img alt="image" src="assets/cartas/estudante_tecnico.png" />
 
 
  #### Assets
@@ -935,7 +919,7 @@ Faz aqueles arbusto seco que voa pelo deserto com alguns riscos indicando vento,
  PA: 5
 * Visual: 
 
-<img width="190" height="281" alt="image" src="https://github.com/user-attachments/assets/b157ef59-de08-4a46-8d72-bb7717a1b65f" />
+<img alt="image" src="assets/cartas/cyberunidade_emergencia.png" />
 
  #### Assets
 
@@ -952,9 +936,7 @@ Faz aqueles arbusto seco que voa pelo deserto com alguns riscos indicando vento,
 * Efeito: Advertência -> Escolha uma carta inimiga. Ela recebe uma advertência. Cada vez que ela utilizar seu efeito, enquanto o TecnoAgente estiver em campo, perde 3 de PA.
 * Visual:
 
-Faz tipo o Will Smith com a mão no rosto como se tivesse cansado e o Macaco com 5 caixa de som brilhando um monte brigando com ele
-
-<img width="250" height="300" alt="image" src="https://github.com/user-attachments/assets/2a15540c-4db2-4bd4-8a3f-5e43b580e106" />
+<img alt="image" src="assets/cartas/tecno_agente.png" />
 
  #### Assets
 
@@ -971,10 +953,7 @@ Faz tipo o Will Smith com a mão no rosto como se tivesse cansado e o Macaco com
 * Efeito: Uma vez por turno, escolha uma carta aliada que tenha perdido PA. Ela recupera todos seus PA.
 * Visual: Faz tipo os medicânicos do cyberpunk mesmo ou o trauma team resgatando alguem
 
-<img width="544" height="381" alt="image" src="https://github.com/user-attachments/assets/08900500-2980-4e8a-b5c0-4c7f1438f8c9" />
-
-
-<img width="3840" height="2160" alt="image" src="https://github.com/user-attachments/assets/533638b0-e701-4063-98e7-13422b0242b2" />
+<img alt="image" src="assets/cartas/neomedicanico.png" />
 
  #### Assets
 
@@ -991,9 +970,8 @@ Faz tipo o Will Smith com a mão no rosto como se tivesse cansado e o Macaco com
 * Descrição: Dentre as chamadas "pessoas normais", o Influenciador é aquele que acredita ser mais especial. Dita tendências, opiniões e comportamentos, embora suas convicções possam mudar diante de uma proposta melhor. Não produz nada além de conteúdo, engajamento e publicidade, mas finalmente encontrou uma forma de vender a própria existência e chamar isso de trabalho.
 * PA: 6
 * Efeito: Opinião Pública -> Uma vez por turno, escolha duas cartas em campo. Se for aliada, ela recebe engajamento e ganha +2 de PA. Se for inimiga, ela sofre um cancelamento e perde essa mesma quantidade.
-* Visual: Faz tipo o Jae na abertura de Hexatombe, só que com uma carta do cyberduel brilhosa
-
-<img width="472" height="423" alt="image" src="https://github.com/user-attachments/assets/9615a295-fa32-49e6-96f5-4e002caeabe1" />
+* Visual:
+<img alt="image" src="assets/cartas/neo_influencer.png" />
 
  #### Assets
 
@@ -1010,7 +988,7 @@ Faz tipo o Will Smith com a mão no rosto como se tivesse cansado e o Macaco com
  
 * Visual: Faz tipo uma charge de um monte de trabalhador olhando o politico com cartas do cyberduel
 
-<img width="320" height="280" alt="image" src="https://github.com/user-attachments/assets/2a4921a9-6b89-4bb9-ad87-a2e10c08ecb6" />
+<img alt="image" src="assets/cartas/cyber_politico.png" />
 
 
 #### 1x carta de terreno - NeoPalhoça
@@ -1019,7 +997,7 @@ Faz tipo o Will Smith com a mão no rosto como se tivesse cansado e o Macaco com
 
 *Efeito: Todas as cartas do Sindicato ganham +3 de PA
 
-*Visual: Faz a palhoça cyberpunk com um vulcaozao pique o natural disaster, só não faz ela alagada pfv.
+*Visual: <img alt="image" src="assets/cartas/neo_palhoça.png" />
 
  #### Assets
 
@@ -1033,12 +1011,12 @@ Faz tipo o Will Smith com a mão no rosto como se tivesse cansado e o Macaco com
 
 ### 1x carta lendária -> Professores de Duelo
 
-* Descrição: Apesar de todo o desenvolvimento tecnológico, NeoFloripa parece valorizar mais o entretenimento do que a educação. Por isso, professores precisam associar suas matérias ao CyberDuel para manter a atenção dos alunos. Curiosamente, a estratégia parece ter tido o efeito contrário: uma dupla de professores já chegou ao topo do ranking de CyberDuel e agora tenta guiar a sociedade com base em acontecimentos históricos e dados geográficos.
+* Descrição: Apesar de todo o desenvolvimento tecnológico, NeoFloripa parece valorizar mais o entretenimento do que a educação. Por isso, professores precisam associar suas matérias ao CyberDuel para manter a atenção dos alunos. Curiosamente, a estratégia parece ter tido o efeito contrário: uma dupla de professores já chegou ao topo do ranking de CyberDuel, integrando o Conselho, e agora tenta guiar a sociedade com base em acontecimentos históricos e dados geográficos.
 * PA: 8
 * Efeito: Recuperação -> Uma vez por turno, escolha uma carta aliada que já tenha usado seu efeito. Ela pode utilizá-lo novamente.
 
  
-* Visual: É o Sardá e o Felipe, aí a gente já conversou mais ou menos sobre a ideia, vc tá ligado de como fazer o visual.
+* Visual: <img alt="image" src="assets/cartas/professores_de_duelo.png" />
 
  #### Assets
 
