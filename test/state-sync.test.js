@@ -157,7 +157,7 @@ regras.inimigo.campo.cartas[0] = neo;
 const cenaTimer = Object.assign(Object.create(CenaJogo.prototype), {
   partida: regras,
 });
-assert.equal(cenaTimer.duracaoPermitidaPara(regras.jogador), 50_000);
+assert.equal(cenaTimer.duracaoPermitidaPara(regras.jogador), 30_000);
 assert.equal(deckBuilder.total(starterDeck), 20);
 assert.equal(deckBuilder.isValid(starterDeck), true);
 const starterComposition = deckBuilder.composition(starterDeck);
@@ -316,6 +316,7 @@ const efeitoSolto = new Carta(9901, 0, "efeito", {
 });
 let dropEfeitoProcessado = false;
 const cenaDrop = Object.assign(Object.create(CenaJogo.prototype), {
+  ehMeuTurno: true, faseAtual: "colocar",
   partida: { jogador: { mao: { cartas: [efeitoSolto] } } },
   tratarSoltarCartaEfeito(_objeto, carta) {
     dropEfeitoProcessado = carta === efeitoSolto;
@@ -412,78 +413,35 @@ assert.equal(invocationCompleted, 1, "A conclusão do efeito deve ocorrer uma ve
 
 const timerScene = Object.create(CenaJogo.prototype);
 timerScene.partida = { partidaEncerrada: false };
-timerScene.tempoRestanteTurno = 60_000;
-timerScene.tempoRestanteOponente = 60_000;
-timerScene.timerOponenteRodando = true;
-timerScene.timerTurnoExpirado = false;
 timerScene.ehMeuTurno = true;
-timerScene.multiplayerAtivo = false;
-timerScene.travado = false;
-timerScene.animacaoRemotaEmCurso = false;
-timerScene.atualizarVisualTimerTurno = () => {};
-let encerramentosPorTempo = 0;
-let callbackExpiracao = null;
-timerScene.aoClicarPassarTurno = () => encerramentosPorTempo++;
-timerScene.time = {
-  delayedCall(delay, handler) {
-    assert.equal(delay, 0);
-    callbackExpiracao = handler;
-  },
-};
-
-timerScene.update(0, 1_000);
-assert.equal(timerScene.tempoRestanteTurno, 59_000);
-timerScene.travado = true;
-timerScene.update(0, 5_000);
-assert.equal(
-  timerScene.tempoRestanteTurno,
-  59_000,
-  "O timer deve pausar enquanto a interação estiver travada.",
-);
-timerScene.travado = false;
-timerScene.ehMeuTurno = false;
-timerScene.update(0, 5_000);
-assert.equal(
-  timerScene.tempoRestanteTurno,
-  59_000,
-  "O timer deve pausar durante o turno do oponente.",
-);
 timerScene.multiplayerAtivo = true;
-timerScene.update(0, 5_000);
-assert.equal(
-  timerScene.tempoRestanteOponente,
-  55_000,
-  "No multiplayer, o relógio deve exibir a contagem do oponente.",
-);
-assert.equal(
-  timerScene.tempoRestanteTurno,
-  59_000,
-  "A contagem visual adversária não pode consumir o tempo do jogador.",
-);
+timerScene.travado = true;
+timerScene.modalAberto = true;
+let remaining = 35_000;
+timerScene.multiplayer = { initialized: true, remainingMs: () => remaining };
+timerScene.atualizarVisualTimerTurno = () => {};
+timerScene.encerrarSelecoesDaFase = () => { timerScene.travado = false; };
+let encerramentosPorTempo = 0;
+let callbackExpiracao;
+timerScene.aoClicarPassarTurno = () => encerramentosPorTempo++;
+timerScene.time = { delayedCall(delay, callback) { callbackExpiracao = callback; } };
+timerScene.update();
+assert.equal(timerScene.tempoRestanteTurno, 35_000);
+remaining = 20_000;
+timerScene.update();
+assert.equal(timerScene.tempoRestanteTurno, 20_000, "Seleções não pausam o relógio.");
+timerScene.ehMeuTurno = false;
 timerScene.animacaoRemotaEmCurso = true;
-timerScene.update(0, 5_000);
-assert.equal(
-  timerScene.tempoRestanteOponente,
-  55_000,
-  "A contagem adversária deve pausar durante animações remotas.",
-);
-timerScene.animacaoRemotaEmCurso = false;
-timerScene.receberTempoOponente(41_250, false);
-assert.equal(timerScene.tempoRestanteOponente, 41_250);
-assert.equal(timerScene.timerOponenteRodando, false);
+remaining = 12_000;
+timerScene.update();
+assert.equal(timerScene.tempoRestanteOponente, 12_000, "Animações não pausam o relógio remoto.");
 timerScene.ehMeuTurno = true;
-timerScene.update(0, 59_000);
-assert.equal(timerScene.tempoRestanteTurno, 0);
+remaining = 0;
+timerScene.update();
 assert.equal(timerScene.timerTurnoExpirado, true);
 callbackExpiracao();
-assert.equal(
-  encerramentosPorTempo,
-  1,
-  "O limite de um minuto deve encerrar o turno automaticamente uma vez.",
-);
-timerScene.reiniciarTimerTurno();
-assert.equal(timerScene.tempoRestanteTurno, 60_000);
-assert.equal(timerScene.timerTurnoExpirado, false);
+assert.equal(encerramentosPorTempo, 1);
+assert.equal(timerScene.travado, false);
 assert.equal(
   invocationScene.reproduzirEfeitoInvocacao(
     { nome: "Outra Carta" },

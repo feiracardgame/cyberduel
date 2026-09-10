@@ -218,7 +218,7 @@ class CyberduelTitleUI {
       this.element(
         "p",
         "",
-        "Adicione cartas por username. Pode conceder deck completo por facção ou carta avulsa.",
+        "Adicione cartas por username: carta avulsa, cartas da facção ou todo o catálogo disponível.",
       ),
     );
 
@@ -239,15 +239,15 @@ class CyberduelTitleUI {
 
     const deckSection = this.element("section", "title-admin-section");
     deckSection.append(
-      this.element("h3", "", "Deck completo por facção"),
+      this.element("h3", "", "Cartas por facção"),
       this.element(
         "p",
         "title-admin-note",
-        "Concede 20 cartas da facção escolhida para o username.",
+        "Concede as cartas da facção escolhida para o username.",
       ),
     );
     const faction = this.element("select", "title-auth-input");
-    faction.setAttribute("aria-label", "Facção do deck concedido");
+    faction.setAttribute("aria-label", "Facção das cartas concedidas");
     [
       ["raspcorp", "RASPCORP"],
       ["echossystem", "ECHOSSYSTEM"],
@@ -349,9 +349,9 @@ class CyberduelTitleUI {
           (sum, entry) => sum + (Number(entry.quantidade) || 0),
           0,
         );
-        result.textContent = `Deck concedido para ${target}: ${total} cartas.`;
+        result.textContent = `Cartas concedidas para ${target}: ${total}.`;
       } catch (exception) {
-        error.textContent = exception.message || "Falha ao conceder deck.";
+        error.textContent = exception.message || "Falha ao conceder cartas da facção.";
       } finally {
         toggleBusy(false);
       }
@@ -425,7 +425,7 @@ class CyberduelTitleUI {
     };
 
     actionButtons.append(
-      this.button("title-dialog__cancel", "DECK FACCAO", grantDeck),
+      this.button("title-dialog__cancel", "CARTAS DA FACCAO", grantDeck),
       this.button("title-dialog__confirm", "CARTA AVULSA", grantSingleCard),
       this.button("title-dialog__cancel", "TODAS AS CARTAS", grantAllCards),
       this.button("title-dialog__confirm", "RESETAR COLEÇÃO", resetCollection),
@@ -580,6 +580,11 @@ class CyberduelTitleUI {
       }),
     );
     actions.append(multiplayer);
+    actions.append(this.createAction({
+      className: "title-action title-action--compact", kicker: "ASSISTIR",
+      title: "ESPECTAR SALA", description: "Acompanhe pelo código", icon: "◉",
+      handler: () => this.openJoinDialog(this.callbacks.onSpectate),
+    }));
 
     actions.append(
       this.createAction({
@@ -660,6 +665,13 @@ class CyberduelTitleUI {
     if (!this.statusText) return;
     this.statusText.textContent = String(message || "Pronto para iniciar.");
     this.statusBar.dataset.tone = tone;
+  }
+
+  showResumeMatch(code, resume) {
+    const target = this.root || this.statusBar?.parentElement;
+    if (!target || target.querySelector(".title-resume-match")) return;
+    const button = this.button("title-action title-resume-match", `VOLTAR À PARTIDA ${code}`, resume);
+    target.prepend(button);
   }
 
   openJoinDialog(onSubmit) {
@@ -756,7 +768,7 @@ class CyberduelTitleUI {
     requestAnimationFrame(() => overlay.classList.add("is-visible"));
   }
 
-  createFactionChoice(faction, title, description, handler) {
+  createFactionChoice(faction, title, description, handler, action = "RECEBER DECK DE 20 CARTAS  ›") {
     const button = this.button(
       `title-faction title-faction--${faction}`,
       "",
@@ -766,7 +778,7 @@ class CyberduelTitleUI {
     button.append(
       this.element("strong", "", title),
       this.element("span", "", description),
-      this.element("small", "", "RECEBER DECK DE 20 CARTAS  ›"),
+      this.element("small", "", action),
     );
     return button;
   }
@@ -816,16 +828,21 @@ class CyberduelTitleUI {
       this.createFactionChoice(
         "raspcorp",
         "BOOSTER RASPCORP",
-        "Deck completo da facção",
+        "4 cartas da facção",
         () => buy("raspcorp"),
+        "ABRIR BOOSTER · 4 CARTAS  ›",
       ),
       this.createFactionChoice(
         "echossystem",
         "BOOSTER ECHOSSYSTEM",
-        "Deck completo da facção",
+        "4 cartas da facção",
         () => buy("echossystem"),
+        "ABRIR BOOSTER · 4 CARTAS  ›",
       ),
     );
+    for (const [faction, label] of [["humbanet", "HUMBANET"], ["remanescentes", "REMANESCENTES"], ["sindicato", "SINDICATO"]]) {
+      shop.append(this.createFactionChoice(faction, `BOOSTER ${label}`, "4 cartas da facção", () => buy(faction), "ABRIR BOOSTER · 4 CARTAS  ›"));
+    }
     const close = this.button("title-dialog__confirm", "VOLTAR AO MENU", () => {
       this.closeModal(true);
       this.account.notify();

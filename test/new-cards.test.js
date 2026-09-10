@@ -37,7 +37,7 @@ const povo = new Carta(1, 4, "monstro", {
   efeito: { tipo: TIPOS_EFEITO.BONUS_POR_PERDIDAS, valor: 1 },
 });
 const baixa = new Carta(2, 1, "monstro", { nome: "Baixa" });
-partida.jogador.campo.cartas[0] = povo;
+partida.jogador.campo.adicionarCarta(povo, 0);
 partida.jogador.campo.cartas[1] = baixa;
 baixa.buff(-1);
 partida.jogador.campo.removerMortas();

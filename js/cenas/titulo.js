@@ -32,6 +32,10 @@ class CenaTitulo extends Phaser.Scene {
     this.account?.restore().then(() => {
       const roomFromLink = new URLSearchParams(location.search).get("room");
       if (roomFromLink && this.scene.isActive()) this.entrarNaSala(roomFromLink);
+      this.multiplayer.findActiveMatch((response) => {
+        if (response.room && this.scene.isActive()) this.titleUI?.showResumeMatch(response.room, () =>
+          this.multiplayer.resumeMatch((result) => { if (!result.ok) this.atualizarStatus(result.error, "error"); }));
+      });
     });
 
     this.multiplayer.onStatus = (message) => this.atualizarStatus(message);
@@ -62,6 +66,9 @@ class CenaTitulo extends Phaser.Scene {
         onSolo: () => this.iniciarPartida(false),
         onCreateRoom: () => this.criarSala(),
         onJoinRoom: (code) => this.entrarNaSala(code),
+        onSpectate: (code) => this.multiplayer.spectateRoom(code, (response) => {
+          if (!response.ok) this.atualizarStatus(response.error, "error");
+        }),
         onDeck: () => this.scene.start("CenaDeckBuilder"),
       },
     }).mount();
@@ -72,6 +79,11 @@ class CenaTitulo extends Phaser.Scene {
   }
 
   iniciarPartida(multiplayer) {
+    if (multiplayer && this.multiplayer.initialized) {
+      this.titleUI?.destroy(); this.titleUI = null;
+      this.scene.start("CenaTransicao");
+      return;
+    }
     if (!this.account?.user || !this.account?.faction) {
       this.atualizarStatus("Entre e escolha sua facção antes de jogar.", "warning");
       return;

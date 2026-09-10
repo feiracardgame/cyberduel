@@ -74,28 +74,28 @@ const ativar = (p, c, a, b) => p.ativarHabilidade(c, p.jogador, p.inimigo, a, b)
   const p = mesa(); const bombeiro = colocar(p, 'CyberUnidades de Emergência', 0);
   const alvo = colocar(p, 'Refrigeradores de DataCenter', 0, true);
   colocar(p, 'NeoPalhoça', 1, true);
-  p.resolverEfeitosContinuos(p.inimigo); assert.equal(alvo.poder, 6);
+  p.resolverEfeitosContinuos(p.inimigo); assert.equal(alvo.poder, 7);
   assert.equal(ativar(p, bombeiro, 0).sucesso, true);
-  alvo.buff(4); assert.equal(alvo.poder, 6);
-  colocar(p, 'NeoPalhoça', 2, true); p.resolverEfeitosContinuos(p.inimigo); assert.equal(alvo.poder, 6);
-  alvo.bonusBloqueado = false; p.resolverEfeitosContinuos(p.inimigo); assert.equal(alvo.poder, 8);
+  alvo.buff(4); assert.equal(alvo.poder, 7);
+  colocar(p, 'NeoPalhoça', 2, true); p.resolverEfeitosContinuos(p.inimigo); assert.equal(alvo.poder, 7);
+  alvo.bonusBloqueado = false; p.resolverEfeitosContinuos(p.inimigo); assert.equal(alvo.poder, 10);
 }
 {
   const p = mesa(); const agente = colocar(p, 'TecnoAgentes de Segurança', 0);
   const atacante = colocar(p, 'O Rato', 0, true); atacante.buff(8);
   assert.equal(ativar(p, agente, 0).sucesso, true);
   assert.equal(p.ativarHabilidade(atacante, p.inimigo, p.jogador, 0).sucesso, true);
-  assert.equal(atacante.poder, 7);
+  assert.equal(atacante.poder, 8);
   p.jogador.campo.removerCarta(0); colocar(p, 'O Tigre', 1);
   atacante.usadaEsteTurno = false;
-  p.ativarHabilidade(atacante, p.inimigo, p.jogador, 1); assert.equal(atacante.poder, 8);
+  p.ativarHabilidade(atacante, p.inimigo, p.jogador, 1); assert.equal(atacante.poder, 9);
 }
 {
   const p = mesa(); const influencer = colocar(p, 'Influenciador Digital', 0);
   const inimigo = colocar(p, 'O Tigre', 0, true);
   assert.equal(ativar(p, influencer, 0, 0).sucesso, false);
   assert.equal(ativar(p, influencer, 0, 10).sucesso, true);
-  assert.equal(influencer.poder, 7); assert.equal(inimigo.poder, 8);
+  assert.equal(influencer.poder, 8); assert.equal(inimigo.poder, 7);
   const professor = colocar(p, 'Professores de Duelo', 1);
   assert.equal(ativar(p, professor, 0).sucesso, true);
   assert.equal(influencer.usadaEsteTurno, false);
@@ -104,14 +104,14 @@ const ativar = (p, c, a, b) => p.ativarHabilidade(c, p.jogador, p.inimigo, a, b)
   const p = mesa(); const politico = colocar(p, 'CyberPolíticos', 0);
   const aliado = colocar(p, 'NeoMedicânico', 1);
   p.aplicarEfeitoInvocacao(politico, p.jogador, p.inimigo, 0, 1);
-  assert.equal(politico.poder, 10);
-  p.resolverEfeitosContinuos(p.jogador); assert.equal(politico.poder, 10);
+  assert.equal(politico.poder, 12);
+  p.resolverEfeitosContinuos(p.jogador); assert.equal(politico.poder, 12);
   p.jogador.campo.removerCarta(1); p.resolverEfeitosContinuos(p.jogador);
   assert.equal(p.jogador.campo.cartas[0], null);
   assert.ok(p.jogador.descarte.includes(politico));
 }
 {
-  const p = mesa(); const porco = colocar(p, 'O Porco', 0); porco.buff(3); porco.buff(-2); assert.equal(porco.poder, 9);
+  const p = mesa(); const porco = colocar(p, 'O Porco', 0); porco.buff(3); porco.buff(-2); assert.equal(porco.poder, 7);
   const cobra = colocar(p, 'A Cobra', 1); const alvo = colocar(p, 'O Tigre', 5, true);
   ativar(p, cobra, 5); p.resolverEfeitosDeTurno(); assert.equal(alvo.poder, 8);
   p.jogador.campo.removerCarta(1); p.resolverEfeitosDeTurno(); assert.equal(alvo.poder, 8);
@@ -177,8 +177,9 @@ vm.runInContext(fs.readFileSync('js/multiplayer.js', 'utf8'), context);
   p.ativarHabilidade(boi, p.inimigo, p.jogador, 0);
   assert.equal(alvo.poder, 5, 'Novo Começo não pode aumentar PA sob Extintor.');
   const vendedor = colocar(p, 'CyberVendedor da RaspCorp', 3, true);
-  const invocacao = p.aplicarEfeitoInvocacao(vendedor, p.inimigo, p.jogador, 3, 0);
-  assert.equal(invocacao[0].delta, 0);
+  const venda = p.ativarHabilidade(vendedor, p.inimigo, p.jogador, 0);
+  assert.equal(venda.sucesso, true);
+  assert.equal(venda.afetadas.find(e => e.carta === alvo).delta, 0);
   assert.equal(alvo.poder, 5);
   colocar(p, 'Saloon', 4, true);
   p.resolverEfeitosContinuos(p.inimigo);
@@ -210,7 +211,7 @@ vm.runInContext(fs.readFileSync('js/multiplayer.js', 'utf8'), context);
   assert.equal(politico.aliadoVinculadoId, undefined, 'Escolher a si mesmo não cria vínculo nem escolhe outro alvo em silêncio.');
   p.aplicarEfeitoInvocacao(politico, p.jogador, p.inimigo, 0, 1);
   assert.equal(politico.aliadoVinculadoId, aliado.id);
-  assert.equal(politico.poder, 10);
+  assert.equal(politico.poder, 12);
 }
 // O marcador visual nasce e desaparece com o mesmo estado que bloqueia o PA.
 context.Phaser.Scene = class {};
@@ -270,7 +271,7 @@ vm.runInContext('globalThis.CenaTesteExtintor = CenaJogo', context);
   assert.equal(zonas.length, 1, 'Apenas o outro aliado recebe uma zona de seleção.');
   zonas[0].eventos.pointerup();
   assert.equal(politico.aliadoVinculadoId, aliado.id);
-  assert.equal(politico.poder, 10);
+  assert.equal(politico.poder, 12);
   assert.equal(cena.travado, false);
   assert.equal(overlay.destruido, true);
 

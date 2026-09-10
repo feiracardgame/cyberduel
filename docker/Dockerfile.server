@@ -6,7 +6,7 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
 COPY server ./server
-COPY js/cartas.js ./js/cartas.js
+COPY js/cartas.js js/main.js js/multiplayer.js ./js/
 
 ENV NODE_ENV=production
 ENV PORT=3000

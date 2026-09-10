@@ -31,8 +31,8 @@ for (const [key, originalUrl] of cardEntries) {
 }
 
 assert.ok(
-  optimizedBytes < 5 * 1024 * 1024,
-  "O conjunto de texturas da partida deve permanecer abaixo de 5 MiB.",
+  optimizedBytes < 6 * 1024 * 1024,
+  "O conjunto de texturas da partida deve permanecer abaixo de 6 MiB, incluindo as novas artes da HumbaNet.",
 );
 assert.ok(fs.existsSync("assets/videos/game/parte_3-720p.mp4"));
 assert.ok(

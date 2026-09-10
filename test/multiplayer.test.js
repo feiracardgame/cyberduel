@@ -116,51 +116,101 @@ async function run() {
   });
   assert.equal(rejected.ok, false);
 
+  const emptyPlayer = () => ({
+    deck: [], hand: [], field: Array(10).fill(null), discard: [], lostCards: 0,
+    traps: [], victories: 0, recentlyDrawn: [],
+  });
+  let state = { jogador: emptyPlayer(), inimigo: emptyPlayer(), turno: 1,
+    maxTurnos: 7, rodadasParaVencer: 4, rodadasJogador: 0, rodadasInimigo: 0,
+    partidaEncerrada: false, historico: [] };
+  state.jogador.hand.push({ id: 700, tipo: "monstro", nome: "Segredo", poder: 4, poderBase: 4 });
+  state.jogador.traps = [3];
+  state.sequenciaEfeito = 1;
+  state.eventosEfeito = [{ id: 1, lado: "jogador", momento: "invocacao", fonte: {
+    id: 777, nome: "Personagem secreto", imagem: "segredo", indice: 2, oculto: true,
+  }, alvos: [{ lado: "jogador", id: 778, indice: 3, nome: "Alvo secreto", oculto: true, delta: 3 }] }];
   const initialUpdate = once(player2, "state-update");
-  const initialAck = await emitAck(player1, "initial-state", {
-    state: { turno: 1 },
-  });
+  const initialAck = await emitAck(player1, "initial-state", { state });
   assert.equal(initialAck.ok, true);
-  assert.equal((await initialUpdate).initial, true);
+  let update = await initialUpdate;
+  assert.equal(update.initial, true);
+  assert.ok([1, 2].includes(update.starter));
+  assert.equal(update.activePlayer, update.starter);
+  assert.equal(update.phase, "colocar");
+  assert.ok(update.deadline - update.serverNow <= 40_000);
+  assert.ok(update.deadline - update.serverNow > 39_000);
+  const starter = update.starter;
+  const sockets = { 1: player1, 2: player2 };
 
-  const liveUpdate = once(player2, "state-update");
-  const liveAck = await emitAck(player1, "live-state", {
-    state: { turno: 1, jogada: "carta-colocada" },
-  });
+  const spectated = await emitAck(intruder, "spectate-room", { code: created.room.code });
+  assert.equal(spectated.ok, true);
+  assert.equal(spectated.update.state.jogador.hand[0].nome, "Carta oculta");
+  assert.deepEqual(spectated.update.state.jogador.traps, []);
+  assert.equal(spectated.update.state.eventosEfeito[0].fonte.nome, "Carta oculta");
+  assert.equal(spectated.update.state.eventosEfeito[0].alvos[0].nome, "Carta oculta");
+  assert.equal(spectated.update.state.eventosEfeito[0].alvos[0].delta, undefined);
+  assert.equal((await emitAck(intruder, "finish-turn", { state, step: 0, round: 1 })).ok, false);
+  assert.equal((await emitAck(intruder, "live-state", { state, step: 0, round: 1 })).ok, false);
+
+  const active = sockets[update.activePlayer];
+  const other = sockets[3 - update.activePlayer];
+  const liveUpdate = once(other, "state-update");
+  const liveAck = await emitAck(active, "live-state", { state, step: 0, round: 1 });
   assert.equal(liveAck.ok, true);
   assert.equal((await liveUpdate).live, true);
+  const opponentTimer = once(other, "turn-time");
+  active.emit("turn-time", { remainingMs: 999_999, running: false });
+  const clock = await opponentTimer;
+  assert.equal(clock.running, true, "Menus não pausam o relógio do servidor.");
+  assert.ok(clock.remainingMs <= 40_000);
 
-  const opponentTimer = once(player2, "turn-time");
-  player1.emit("turn-time", { remainingMs: 42_350, running: true });
-  assert.deepEqual(await opponentTimer, {
-    activePlayer: 1,
-    remainingMs: 42_350,
-    running: true,
-  });
+  for (let step = 0; step < 4; step++) {
+    assert.equal(update.step, step);
+    assert.equal(update.phase, step < 2 ? "colocar" : "habilidades");
+    assert.equal(update.activePlayer, step % 2 === 0 ? starter : 3 - starter);
+    const actor = sockets[update.activePlayer];
+    const listener = once(sockets[3 - update.activePlayer], "state-update");
+    const finished = await emitAck(actor, "finish-turn", { state, step, round: 1 });
+    assert.equal(finished.ok, true);
+    update = await listener;
+    state = update.state;
+    const stale = await emitAck(actor, "finish-turn", { state, step, round: 1 });
+    assert.equal(stale.ok, false);
+  }
+  assert.equal(update.round, 2);
+  assert.equal(update.starter, 3 - starter, "A ordem deve inverter na rodada seguinte.");
+  assert.equal(state.turno, 2);
 
-  const update2 = once(player2, "state-update");
-  const turn1 = await emitAck(player1, "finish-turn", {
-    state: { turno: 1 },
-  });
-  assert.equal(turn1.activePlayer, 2);
-  assert.equal((await update2).activePlayer, 2);
-
-  const repeated = await emitAck(player1, "finish-turn", {
-    state: { turno: 1 },
-  });
-  assert.equal(repeated.ok, false);
-
-  const update1 = once(player1, "state-update");
-  const turn2 = await emitAck(player2, "finish-turn", {
-    state: { turno: 2 },
-    result: { resultadoRodada: { vencedor: "jogador" } },
-  });
-  assert.equal(turn2.activePlayer, 1);
-  assert.equal((await update1).activePlayer, 1);
-
+  const oldDeadline = update.deadline;
   player1.disconnect();
-  player2.disconnect();
-  intruder.disconnect();
+  const reconnected = await connect();
+  sockets[1] = reconnected;
+  const found = await emitAck(reconnected, "find-active-match", { resumeToken: created.resumeToken });
+  assert.equal(found.room, created.room.code);
+  const deniedResume = await emitAck(reconnected, "resume-match", { resumeToken: "invalido" });
+  assert.equal(deniedResume.ok, false);
+  const resumed = await emitAck(reconnected, "resume-match", { resumeToken: created.resumeToken });
+  assert.equal(resumed.ok, true);
+  assert.equal(resumed.player, 1);
+  assert.equal(resumed.update.deadline, oldDeadline, "Recarregar não renova o tempo da fase.");
+  assert.equal(resumed.update.state.turno, 2);
+
+  // Três NeoAnalistas reduzem ambas as fases ao piso de 20 segundos.
+  const foe = update.activePlayer === 1 ? state.inimigo : state.jogador;
+  for (let i = 0; i < 3; i++) foe.field[i] = {
+    id: 800 + i, nome: "NeoAnalista de Suporte Nível Alpha", tipo: "monstro", poder: 4, poderBase: 4,
+    efeito: { tipo: "reduzir_tempo_oponente", valor: 15, minimo: 20 },
+  };
+  const timed = await emitAck(sockets[update.activePlayer], "live-state", { state, step: 0, round: 2 });
+  assert.equal(timed.ok, true);
+  assert.ok(timed.deadline - timed.serverNow <= 20_000);
+  const expired = once(sockets[3 - update.activePlayer], "state-update");
+  // Fecha o ator: o prazo continua correndo mesmo sem o cliente conectado.
+  sockets[update.activePlayer].disconnect();
+  const timedUpdate = await Promise.race([expired,
+    new Promise((_, reject) => { const t = setTimeout(() => reject(Error("Timeout não avançou a fase")), 22_000); t.unref(); })]);
+  assert.equal(timedUpdate.step, 1);
+  for (const socket of [player1, player2, intruder, reconnected]) socket.disconnect();
   console.log("Fluxo multiplayer validado.");
 }
 

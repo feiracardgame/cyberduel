@@ -10,10 +10,16 @@
 // qualquer coisa que passe por this.load.
 // ============================================================================
 window.CYBERDUEL_IMAGE_ASSETS = Object.freeze({
+  ia_treinamento: "assets/cartas/ia_de_treinamento.png",
+  hal9001: "assets/cartas/hal_9001.png",
+  harvis: "assets/cartas/harvis.png",
+  replicantes: "assets/cartas/replicantes.png",
+  deepclaude: "assets/cartas/deepclaudechatgemini.png",
+  bug_matrix: "assets/cartas/bug2.png",
   "refrigerador_de_datacenter": "assets/cartas/refrigerador_de_datacenter.png",
   "montador_de_cabos": "assets/cartas/montador_de_cabos.png",
   "estudante_tecnico": "assets/cartas/estudante_tecnico.png",
-  "bombeiro_neofloripa": "assets/cartas/bombeiro_neofloripa.png",
+  "bombeiro_neofloripa": "assets/cartas/cyberunidade_emergencia.png",
   "tecno_agente": "assets/cartas/tecno_agente.png",
   "neomedicanico": "assets/cartas/neomedicanico.png",
   "neo_influencer": "assets/cartas/neo_influencer.png",
@@ -25,7 +31,7 @@ window.CYBERDUEL_IMAGE_ASSETS = Object.freeze({
   fundoCarta: "assets/fundo/fundo_carta_2.png",
   cryptoacionistas: "assets/cartas/cryptoacionistas.png",
   dipsp: "assets/cartas/AgenteDIPSP.png",
-  juggernaut: "assets/cartas/juggernautplaceholder.png",
+  juggernaut: "assets/cartas/juggernaut.png",
   cybervendedor: "assets/cartas/cybervendedor.png",
   estagiarioml: "assets/cartas/Estagiario_machine_learning.png",
   rh: "assets/cartas/Departamento_RH.png",
@@ -45,7 +51,7 @@ window.CYBERDUEL_IMAGE_ASSETS = Object.freeze({
   macaco: "assets/cartas/O_macaco.png",
   tocacoelho: "assets/cartas/Toca_do_Coelho.png",
   neoanalista: "assets/cartas/NeoAnalista_de_Suporte_Nivel_Alpha.png",
-  humbabrain: "assets/cartas/HumbaBrain.png",
+  humbabrain: "assets/cartas/humba_brain.png",
   voceparecesozinho: "assets/cartas/Voce_parece_sozinho.png",
   diehgo: "assets/cartas/Di_Ego_caçador_de_recompensas.png",
   povodaareia: "assets/cartas/povo_da_areia.png",
@@ -61,6 +67,7 @@ window.CYBERDUEL_IMAGE_ASSETS = Object.freeze({
   daranha: "assets/cartas/D_Aranha.png",
   oboi: "assets/cartas/Anarcoboi.png",
   jogoFundo: "assets/fundo/jogo-fundo.png",
+  efeitoDiego: "assets/efeitos/efeito-diego.png",
   efeitoAdvogado: "assets/efeitos/efeito-advogado.png",
 });
 
@@ -107,6 +114,11 @@ class CenaPreload extends Phaser.Scene {
     this.load.audio("somTigreAtaque", "assets/sons/som-tigregarra.mp3");
     this.load.audio("somAdvogado", "assets/sons/som-advogado.mp3");
     this.load.audio("somRaspClay", "assets/sons/som-raspclay.mp3");
+    this.load.audio("somNeoAnalista", "assets/sons/som-neoanalista.mp3");
+    this.load.audio("somEstagiario", "assets/sons/som-estagiario.mp3");
+    this.load.audio("somGRPH", "assets/sons/som-grph.mp3");
+    this.load.audio("somCryptoAcionistas", "assets/sons/jogo-cyberacionistaefeito.wav");
+    this.load.video("efeitoNeoAnalista", "assets/efeitos/efeito-neoanalista.mp4");
     //videos
     this.load.video("videoTransicao", "assets/videos/transicaocerta.mp4");
     this.load.video(

@@ -7,6 +7,15 @@ class CyberduelMultiplayer {
     this.player = null;
     this.active = false;
     this.activePlayer = 1;
+    this.phase = "colocar";
+    this.step = 0;
+    this.round = 1;
+    this.starter = 1;
+    this.spectator = false;
+    this.initialized = false;
+    this.deadline = null;
+    this.clockOffset = 0;
+    try { this.resumeToken = window.sessionStorage?.getItem("cyberduel.resume") || null; } catch {}
     this.scene = null;
     this.pendingUpdate = null;
     this.onStatus = null;
@@ -27,12 +36,20 @@ class CyberduelMultiplayer {
       timeout: 6000,
       reconnectionAttempts: 4,
     });
-    this.socket.on("connect", () => this.status("Conectado ao servidor."));
+    this.socket.on("connect", () => {
+      this.status("Conectado ao servidor.");
+      if (this.active && this.resumeToken && !this.spectator) this.resumeMatch((response) => {
+        if (!response.ok) this.status(response.error);
+      });
+    });
     this.socket.on("connect_error", () => {
       const destino = serverUrl || location.origin;
       this.status(`Servidor multiplayer indisponível em ${destino}.`);
     });
-    this.socket.on("match-ready", ({ room, decks, usernames }) => {
+    this.socket.on("match-ready", ({ room, decks, usernames, ...phase }) => {
+      this.applyPhase(phase);
+      this.initialized = false;
+      this.spectator = false;
       this.room = room;
       this.active = true;
       this.localDeck = decks?.[this.player] || this.localDeck;
@@ -44,14 +61,16 @@ class CyberduelMultiplayer {
     });
     this.socket.on("state-update", (update) => this.receiveUpdate(update));
     this.socket.on("turn-time", ({ activePlayer, remainingMs, running }) => {
-      this.activePlayer = activePlayer;
+      if (this.activePlayer !== activePlayer) return;
       if (this.scene && activePlayer !== this.player) {
         this.scene.receberTempoOponente(remainingMs, running);
       }
     });
-    this.socket.on("opponent-surrendered", () => {
-      if (this.scene) this.scene.oponenteDesistiuMultiplayer();
+    this.socket.on("opponent-surrendered", (payload) => {
+      if (this.scene) this.scene.oponenteDesistiuMultiplayer(payload?.player);
     });
+    this.socket.on("opponent-offline", () => this.status("Oponente desconectado. A partida permanece disponível para retorno."));
+    this.socket.on("opponent-online", () => this.status("Oponente reconectado."));
     this.socket.on("opponent-left", () => {
       this.status("O oponente saiu da sala.");
       if (this.scene) this.scene.oponenteSaiuMultiplayer();
@@ -95,6 +114,7 @@ class CyberduelMultiplayer {
         if (!response.ok) return callback(response);
         this.room = response.room.code;
         this.player = response.player;
+        this.saveResumeToken(response.resumeToken);
         callback(response);
       },
     );
@@ -110,8 +130,74 @@ class CyberduelMultiplayer {
       if (!response.ok) return callback(response);
       this.room = response.room.code;
       this.player = response.player;
+      this.saveResumeToken(response.resumeToken);
       callback(response);
     });
+  }
+
+  saveResumeToken(token) {
+    this.resumeToken = token || null;
+    try {
+      if (token) window.sessionStorage?.setItem("cyberduel.resume", token);
+      else window.sessionStorage?.removeItem("cyberduel.resume");
+    } catch {}
+  }
+
+  applyPhase(update) {
+    this.activePlayer = update.activePlayer ?? this.activePlayer;
+    this.phase = update.phase || this.phase;
+    this.step = update.step ?? this.step;
+    this.round = update.round ?? this.round;
+    this.starter = update.starter ?? this.starter;
+    if (update.serverNow) this.clockOffset = update.serverNow - Date.now();
+    if (update.deadline) this.deadline = update.deadline;
+  }
+
+  remainingMs() { return Math.max(0, (this.deadline || 0) - Date.now() - this.clockOffset); }
+
+  findActiveMatch(callback) {
+    this.connect().emit("find-active-match", {
+      resumeToken: this.resumeToken, accountToken: window.cyberduelAccount?.token,
+    }, callback);
+  }
+
+  resumeMatch(callback = () => {}) {
+    this.connect().emit("resume-match", {
+      resumeToken: this.resumeToken, accountToken: window.cyberduelAccount?.token,
+    }, (response) => {
+      if (response.ok) {
+        this.player = response.player; this.spectator = false;
+        this.saveResumeToken(response.resumeToken);
+        this.enterExisting(response);
+      }
+      callback(response);
+    });
+  }
+
+  spectateRoom(code, callback) {
+    this.connect().emit("spectate-room", { code }, (response) => {
+      if (response.ok) {
+        this.player = null; this.spectator = true;
+        this.enterExisting(response);
+      }
+      callback?.(response);
+    });
+  }
+
+  enterExisting(response) {
+    this.room = response.room.code; this.active = true; this.initialized = true;
+    this.localDeck = response.decks?.[this.player] || [];
+    this.opponentDeck = response.decks?.[this.player === 2 ? 1 : 2] || [];
+    this.localUsername = response.usernames?.[this.player === 2 ? 2 : 1];
+    this.opponentUsername = response.usernames?.[this.player === 2 ? 1 : 2];
+    this.receiveUpdate(response.update);
+    if (!this.scene) this.onReady?.();
+  }
+
+  leaveRoom() {
+    this.socket?.emit("leave-room");
+    this.active = false; this.initialized = false; this.pendingUpdate = null;
+    this.spectator = false; this.lastLiveState = null; this.saveResumeToken(null);
   }
 
   attachScene(scene) {
@@ -128,25 +214,25 @@ class CyberduelMultiplayer {
   }
 
   sendInitialState(partida) {
-    if (this.player !== 1) return;
+    if (this.player !== 1 || this.initialized) return;
     this.socket.emit("initial-state", { state: this.canonicalSnapshot(partida) });
   }
 
   finishTurn(partida, result) {
     const payload = {
       state: this.canonicalSnapshot(partida),
-      result: result ? this.canonicalResult(result) : null,
+      step: this.step, round: this.round,
     };
     this.socket.emit("finish-turn", payload, (response) => {
       if (!response.ok) this.status(response.error || "A jogada foi recusada.");
-      else this.activePlayer = response.activePlayer;
+      else this.applyPhase(response);
     });
   }
 
   sendLiveState(partida) {
     if (
       !this.active ||
-      !this.socket ||
+      !this.socket || !this.initialized || this.spectator ||
       this.activePlayer !== this.player ||
       partida.partidaEncerrada
     )
@@ -155,7 +241,9 @@ class CyberduelMultiplayer {
     const fingerprint = JSON.stringify(state);
     if (fingerprint === this.lastLiveState) return;
     this.lastLiveState = fingerprint;
-    this.socket.emit("live-state", { state });
+    this.socket.emit("live-state", { state, step: this.step, round: this.round }, (response) => {
+      if (response?.ok && response.step === this.step && response.round === this.round) this.applyPhase(response);
+    });
   }
 
   sendTurnTime(remainingMs, running) {
@@ -165,7 +253,7 @@ class CyberduelMultiplayer {
       this.activePlayer !== this.player
     )
       return;
-    const clamped = Math.max(0, Math.min(60_000, Number(remainingMs) || 0));
+    const clamped = Math.max(0, Math.min(40_000, Number(remainingMs) || 0));
     const fingerprint = `${Math.ceil(clamped / 1000)}:${running ? 1 : 0}`;
     if (fingerprint === this.lastTurnTime) return;
     this.lastTurnTime = fingerprint;
@@ -178,7 +266,8 @@ class CyberduelMultiplayer {
 
   receiveUpdate(update) {
     if (this.activePlayer !== update.activePlayer) this.lastTurnTime = null;
-    this.activePlayer = update.activePlayer;
+    this.applyPhase(update);
+    this.initialized = true;
     if (!this.scene) {
       this.pendingUpdate = update;
       return;
@@ -238,10 +327,20 @@ class CyberduelMultiplayer {
       snapshot.rodadasInimigo,
       snapshot.rodadasJogador,
     ];
+    (snapshot.eventosEfeito || []).forEach((event) => {
+      event.lado = event.lado === "jogador" ? "inimigo" : "jogador";
+      event.alvos.forEach((alvo) => { alvo.lado = alvo.lado === "jogador" ? "inimigo" : "jogador"; });
+    });
     snapshot.historico.forEach((entry) => {
       entry.quem = entry.quem === "jogador" ? "inimigo" : "jogador";
     });
     for (const player of [snapshot.jogador, snapshot.inimigo]) {
+      player.contribuicoesEfeito = Object.fromEntries(Object.entries(player.contribuicoesEfeito || {}).map(([chave, entry]) => {
+        const inverter = (key) => key.replace(/^(jogador|inimigo):/, (lado) => lado === "jogador:" ? "inimigo:" : "jogador:");
+        entry.lado = entry.lado === "jogador" ? "inimigo" : "jogador";
+        entry.alvos = Object.fromEntries(Object.entries(entry.alvos).map(([key, value]) => [inverter(key), value]));
+        return [inverter(chave), entry];
+      }));
       for (const card of [...player.deck, ...player.hand, ...player.field]) {
         if (!card || !card.__capturedBy) continue;
         card.__capturedBy =
@@ -272,6 +371,9 @@ class CyberduelMultiplayer {
       field: player.campo.cartas.map(serializeCard),
       discard: player.descarte.map(serializeCard),
       lostCards: player.cartasPerdidas,
+      efeitosUtilizados: player.efeitosUtilizados || 0,
+      penalidadesInvocacao: JSON.parse(JSON.stringify(player.penalidadesInvocacao || [])),
+      contribuicoesEfeito: JSON.parse(JSON.stringify(player.contribuicoesEfeito || {})),
       traps: [...player.campo.armadilhas],
       victories: player.vitorias,
       recentlyDrawn: player.cartasRecemCompradas.map((card) => card.id),
@@ -285,6 +387,8 @@ class CyberduelMultiplayer {
       rodadasJogador: partida.rodadasJogador,
       rodadasInimigo: partida.rodadasInimigo,
       partidaEncerrada: partida.partidaEncerrada,
+      sequenciaEfeito: partida.sequenciaEfeito || 0,
+      eventosEfeito: JSON.parse(JSON.stringify(partida.eventosEfeito || [])),
       historico: partida.historico.map((entry) => ({
         turno: entry.turno,
         quem: entry.quem,
@@ -317,6 +421,9 @@ class CyberduelMultiplayer {
       });
       player.campo.dono = player;
       player.descarte = (plain.discard || []).map(hydrateCard);
+      player.contribuicoesEfeito = JSON.parse(JSON.stringify(plain.contribuicoesEfeito || {}));
+      player.efeitosUtilizados = plain.efeitosUtilizados || 0;
+      player.penalidadesInvocacao = JSON.parse(JSON.stringify(plain.penalidadesInvocacao || []));
       player.cartasPerdidas = Math.max(0, Number(plain.lostCards) || 0);
       player.vitorias = plain.victories || 0;
       player.cartasRecemCompradas = (plain.recentlyDrawn || [])
@@ -334,6 +441,8 @@ class CyberduelMultiplayer {
     match.rodadasJogador = snapshot.rodadasJogador;
     match.rodadasInimigo = snapshot.rodadasInimigo;
     match.partidaEncerrada = snapshot.partidaEncerrada;
+    match.sequenciaEfeito = snapshot.sequenciaEfeito || 0;
+    match.eventosEfeito = JSON.parse(JSON.stringify(snapshot.eventosEfeito || []));
     match.cartaSelecionada = null;
     match.efeitosDeTurno = [];
     match.efeitoInimigoTurno = null;
@@ -363,10 +472,10 @@ class CyberduelMultiplayer {
         ...player.descarte,
       ];
       plainCards.forEach((plainCard, index) => {
-        if (!plainCard || !cards[index] || !plainCard.__capturedBy) return;
-        const owner =
-          plainCard.__capturedBy === "jogador" ? match.jogador : match.inimigo;
-        cards[index].capturadaPor = owner;
+        if (!plainCard || !cards[index] || (!plainCard.__capturedBy && plainCard.__capturedBySpiderId == null)) return;
+        const ownerSide = plainCard.__capturedBy || (player === match.jogador ? "inimigo" : "jogador");
+        const owner = ownerSide === "jogador" ? match.jogador : match.inimigo;
+        cards[index].capturadaPor = plainCard.__capturedBy ? owner : null;
         cards[index].capturadaPorAranha = owner.campo.cartas.find(
           (card) => card && card.id === plainCard.__capturedBySpiderId,
         );

@@ -2170,6 +2170,15 @@ body.title-terminal-open > canvas {
 .title-faction--echossystem {
   border-color: rgba(255, 85, 115, 0.58);
 }
+.title-faction--humbanet {
+  border-color: rgba(56, 242, 160, 0.58);
+}
+.title-faction--remanescentes {
+  border-color: rgba(255, 210, 105, 0.58);
+}
+.title-faction--sindicato {
+  border-color: rgba(188, 130, 255, 0.58);
+}
 .title-faction strong {
   font-size: 13px;
 }

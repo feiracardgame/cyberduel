@@ -130,7 +130,8 @@ async function run() {
     },
   });
   assert.equal(giveSingleCard.status, 200);
-  assert.equal(giveSingleCard.payload.account.collection["monstro:O Rato"], 4);
+  assert.equal(giveSingleCard.payload.account.collection["monstro:O Rato"],
+    (booster.payload.collection["monstro:O Rato"] || 0) + 2);
 
   const grantAllCards = await api("/api/admin/accounts/grant-cards", {
     method: "POST",
@@ -148,6 +149,12 @@ async function run() {
   );
 
   const newCards = [
+    ["monstro", "IA de treinamento"],
+    ["monstro", "HAL 9001"],
+    ["monstro", "H.A.R.V.I.S"],
+    ["monstro", "Replicantes"],
+    ["terreno", "DeepClaude ChatGemini"],
+    ["terreno", "Bug na Matrix"],
     ["monstro", "Refrigeradores de DataCenter"],
     ["monstro", "Montadores de Cabos"],
     ["monstro", "Estudante de Curso Técnico"],
@@ -171,6 +178,22 @@ async function run() {
     assert.equal(single.payload.account.collection[key], 3, key);
   }
   assert.ok(!grantAllCards.payload.granted.some((card) => card.nome === 'resenha games"'));
+
+  for (const factionName of ["humbanet", "remanescentes", "sindicato"]) {
+    const expected = new Set(grantAllCards.payload.granted.filter(c => c.booster === factionName).map(c => `${c.tipo}:${c.nome}`));
+    assert.ok(expected.size > 0);
+    const pack = await api("/api/boosters/open", {
+      method: "POST", token: created.payload.token, body: { faction: factionName },
+    });
+    assert.equal(pack.status, 200, factionName);
+    assert.equal(pack.payload.cards.reduce((sum, c) => sum + c.quantidade, 0), 4);
+    assert.ok(pack.payload.cards.every(c => expected.has(`${c.tipo}:${c.nome}`)));
+    const grantFaction = await api("/api/admin/accounts/grant-cards", {
+      method: "POST", body: { username: "Gabriel", fullDeck: true, faction: factionName },
+    });
+    assert.equal(grantFaction.status, 200);
+    assert.deepEqual(new Set(grantFaction.payload.granted.map(c => `${c.tipo}:${c.nome}`)), expected);
+  }
 
   const deck = faction.payload.deck;
   const saved = await api("/api/deck", {

@@ -93,14 +93,19 @@ const ALL_AVAILABLE_CARDS = Object.freeze(
   runInNewContext(
     `${readFileSync(path.join(PUBLIC_ROOT, "js/cartas.js"), "utf8")}
     [
-      ...POOL_CARTAS_MONSTRO.map(({ nome }) => ({ tipo: "monstro", nome, quantidade: 1 })),
-      ...POOL_CARTAS_EFEITO.map(({ nome }) => ({ tipo: "efeito", nome, quantidade: 1 })),
-      ...POOL_CARTAS_TERRENO.map(({ nome }) => ({ tipo: "terreno", nome, quantidade: 1 })),
+      ...POOL_CARTAS_MONSTRO.map((c) => ({ tipo: "monstro", nome: c.nome, booster: c.booster, nivel: classificarNivelCarta(c.nome, c.poder, "monstro", c.lendaria), quantidade: 1 })),
+      ...POOL_CARTAS_EFEITO.map(({ nome, booster }) => ({ tipo: "efeito", nome, booster, nivel: "utilidade", quantidade: 1 })),
+      ...POOL_CARTAS_TERRENO.map(({ nome, booster }) => ({ tipo: "terreno", nome, booster, nivel: "utilidade", quantidade: 1 })),
     ];`,
     { console: { log() {} } },
     { filename: "js/cartas.js", timeout: 1000 },
   ),
 );
+
+const BOOSTER_CARDS = Object.freeze(Object.fromEntries(
+  [...new Set(ALL_AVAILABLE_CARDS.map((c) => c.booster))].map((faction) => [faction,
+    ALL_AVAILABLE_CARDS.filter((c) => c.booster === faction).map((c) => [c.tipo, c.nome, c.nivel, 1])]),
+));
 
 const ADMIN_API_TOKEN = String(process.env.ADMIN_API_TOKEN || "").trim();
 
@@ -340,7 +345,7 @@ function hasAdminAccess(request) {
 }
 
 function rollBooster(faction, gamesPlayed) {
-  const definitions = FACTION_CARDS[faction] || [];
+  const definitions = BOOSTER_CARDS[faction] || [];
   const configuredWeights = Object.entries(BOOSTER_CONFIG.levelWeights).filter(
     ([level]) =>
       level !== "lendaria" || gamesPlayed >= BOOSTER_CONFIG.legendaryMinGames,
@@ -574,17 +579,14 @@ async function handleApi(request, response, pathname) {
       });
     const body = await readJson(request);
     const faction = String(body.faction || "").toLowerCase();
-    if (!FACTION_CARDS[faction])
+    if (!BOOSTER_CARDS[faction])
       return sendJson(response, 400, { ok: false, error: "Booster inválido." });
     if (session.account.currency < BOOSTER_PRICE)
       return sendJson(response, 400, {
         ok: false,
         error: "Tijolinhos insuficientes.",
       });
-    const cards = starterForFaction(faction).map((entry) => ({
-      ...entry,
-      nivel: "deck",
-    }));
+    const cards = rollBooster(faction, session.account.gamesPlayed);
     session.account.currency -= BOOSTER_PRICE;
     grantCards(session.account, cards);
     session.account.updatedAt = new Date().toISOString();
@@ -625,13 +627,13 @@ async function handleApi(request, response, pathname) {
       const faction = String(
         body.faction || account.faction || "",
       ).toLowerCase();
-      if (!FACTION_CARDS[faction]) {
+      if (!BOOSTER_CARDS[faction]) {
         return sendJson(response, 400, {
           ok: false,
           error: "Facção inválida para conceder deck completo.",
         });
       }
-      granted.push(...starterForFaction(faction));
+      granted.push(...(FACTION_CARDS[faction] ? starterForFaction(faction) : ALL_AVAILABLE_CARDS.filter((c) => c.booster === faction)));
     }
 
     if (!granted.length)
@@ -885,16 +887,115 @@ function buildInviteUrl(base, code) {
   }
 }
 
-function removeFromRoom(socket) {
-  const code = socket.data.room;
-  const player = socket.data.player;
-  if (!code || !rooms.has(code)) return;
-
-  const room = rooms.get(code);
-  room.players.delete(player);
-  socket.to(code).emit("opponent-left");
-  rooms.delete(code);
+function phaseInfo(room) {
+  return { activePlayer: room.turn, phase: room.step < 2 ? "colocar" : "habilidades",
+    step: room.step, starter: room.starter, round: room.round,
+    deadline: room.deadline, serverNow: Date.now() };
 }
+
+function spectatorState(snapshot) {
+  if (!snapshot) return null;
+  const copy = JSON.parse(JSON.stringify(snapshot));
+  const hidden = (card, i) => card ? { id: card.id ?? i, nome: "Carta oculta", tipo: "monstro", poder: 0, poderBase: 0 } : null;
+  for (const player of [copy.jogador, copy.inimigo]) {
+    player.deck = player.deck.map(hidden);
+    player.hand = player.hand.map(hidden);
+    player.field = player.field.map((card, i) => card?.ocultadaPelaToca && !card.revelada ?
+      { ...hidden(card, i), ocultadaPelaToca: true, revelada: false } : card);
+    player.traps = [];
+    player.contribuicoesEfeito = {};
+    player.recentlyDrawn = [];
+  }
+  for (const evento of copy.eventosEfeito || []) {
+    if (evento.fonte.oculto) evento.fonte = { id: evento.fonte.id, nome: "Carta oculta", indice: evento.fonte.indice, oculto: true };
+    evento.alvos = (evento.alvos || []).map((alvo) => alvo.oculto ? { lado: alvo.lado, indice: alvo.indice, id: alvo.id, nome: "Carta oculta", oculto: true, mudouEstado: true } : alvo);
+  }
+  return copy;
+}
+
+function broadcastState(room, extra = {}, except = null) {
+  const update = { state: room.state, ...phaseInfo(room), ...extra };
+  for (const id of room.players.values()) if (id && id !== except) io.to(id).emit("state-update", update);
+  for (const id of room.spectators) io.to(id).emit("state-update", { ...update, state: spectatorState(room.state) });
+}
+
+function phaseDuration(room) {
+  const enemy = room.turn === 1 ? room.state?.inimigo : room.state?.jogador;
+  const analysts = (enemy?.field || []).filter((c) => c?.efeito?.tipo === "reduzir_tempo_oponente");
+  const reduction = analysts.reduce((sum, c) => sum + Math.max(0, Number(c.efeito.valor) || 0), 0);
+  const floor = Math.max(15, ...analysts.map((c) => Number(c.efeito.minimo) || 0));
+  return Math.max(floor, 40 - reduction) * 1000;
+}
+
+function armPhaseClock(room, reset = true) {
+  clearTimeout(room.timer);
+  if (reset) room.phaseStartedAt = Date.now();
+  room.deadline = room.phaseStartedAt + phaseDuration(room);
+  if (room.state?.partidaEncerrada) return;
+  room.timer = setTimeout(() => advancePhase(room), Math.max(0, room.deadline - Date.now()));
+  room.timer.unref();
+}
+
+function advancePhase(room) {
+  if (!room.state || room.state.partidaEncerrada || !rooms.has(room.code)) return;
+  let result = null;
+  if (room.step === 3) {
+    const resolved = require("./duel-runtime").closeRound(room.state);
+    room.state = resolved.state;
+    room.result = result = resolved.result;
+    room.round++;
+    room.starter = 3 - room.starter;
+    room.step = 0;
+  } else room.step++;
+  room.turn = room.step % 2 === 0 ? room.starter : 3 - room.starter;
+  // A proteção termina no início da próxima fase de colocação do dono.
+  if (room.step < 2) {
+    const owner = room.turn === 1 ? room.state.jogador : room.state.inimigo;
+    owner.field.forEach((c) => { if (c) c.protegidaPA = false; });
+  }
+  armPhaseClock(room);
+  broadcastState(room, { result, phaseChanged: true });
+}
+
+function removeFromRoom(socket, disconnect = false) {
+  const code = socket.data.room;
+  const room = rooms.get(code);
+  if (!room) return;
+  if (!socket.data.player) {
+    room.spectators.delete(socket.id);
+  } else if (room.players.get(socket.data.player) === socket.id) {
+    if (disconnect) {
+      room.players.set(socket.data.player, null);
+      socket.to(code).emit("opponent-offline");
+    } else {
+      clearTimeout(room.timer);
+      socket.to(code).emit("opponent-left");
+      rooms.delete(code);
+    }
+  }
+  socket.leave(code);
+  socket.data.room = null;
+  socket.data.player = null;
+}
+
+function findResumable(payload) {
+  const username = accountFromToken(payload.accountToken)?.username;
+  for (const room of rooms.values()) {
+    if (!room.state || room.state.partidaEncerrada) continue;
+    for (const player of [1, 2]) {
+      if ((payload.resumeToken && room.resumeTokens.get(player) === payload.resumeToken) ||
+          (username && room.usernames.get(player) === username)) return { room, player };
+    }
+  }
+  return null;
+}
+
+const roomCleanup = setInterval(() => {
+  for (const room of rooms.values()) if (Date.now() - room.createdAt > 6 * 60 * 60 * 1000) {
+    clearTimeout(room.timer); io.to(room.code).emit("opponent-left"); rooms.delete(room.code);
+  }
+}, 60_000);
+roomCleanup.unref();
 
 io.on("connection", (socket) => {
   socket.on("create-room", async (payload = {}, ack = () => {}) => {
@@ -907,7 +1008,9 @@ io.on("connection", (socket) => {
       usernames: new Map([
         [1, accountFromToken(payload.accountToken)?.username || "Duelista 1"],
       ]),
-      turn: 1,
+      turn: 1, starter: 1, step: 0, round: 1, state: null,
+      spectators: new Set(), resumeTokens: new Map([[1, randomBytes(32).toString("hex")]]),
+      createdAt: Date.now(), deadline: null,
     };
     rooms.set(code, room);
     socket.join(code);
@@ -934,6 +1037,7 @@ io.on("connection", (socket) => {
       ok: true,
       room: publicRoom(room),
       player: 1,
+      resumeToken: room.resumeTokens.get(1),
       inviteUrl,
       qrCode,
     });
@@ -950,6 +1054,9 @@ io.on("connection", (socket) => {
 
     removeFromRoom(socket);
     room.players.set(2, socket.id);
+    room.resumeTokens.set(2, randomBytes(32).toString("hex"));
+    room.starter = randomInt(1, 3);
+    room.turn = room.starter;
     room.decks.set(2, sanitizeDeck(payload.deck));
     room.usernames.set(
       2,
@@ -958,83 +1065,97 @@ io.on("connection", (socket) => {
     socket.join(code);
     socket.data.room = code;
     socket.data.player = 2;
-    ack({ ok: true, room: publicRoom(room), player: 2 });
+    ack({ ok: true, room: publicRoom(room), player: 2, resumeToken: room.resumeTokens.get(2) });
     io.to(code).emit("match-ready", {
       room: code,
+      ...phaseInfo(room),
       decks: { 1: room.decks.get(1), 2: room.decks.get(2) },
       usernames: { 1: room.usernames.get(1), 2: room.usernames.get(2) },
     });
   });
 
-  socket.on("initial-state", (payload, ack = () => {}) => {
+  socket.on("find-active-match", (payload = {}, ack = () => {}) => {
+    const found = findResumable(payload);
+    ack({ ok: true, room: found?.room.code || null });
+  });
+
+  socket.on("resume-match", (payload = {}, ack = () => {}) => {
+    const found = findResumable(payload);
+    if (!found) return ack({ ok: false, error: "Nenhuma partida ativa encontrada." });
+    const { room, player } = found;
+    const previous = room.players.get(player);
+    if (previous && previous !== socket.id) {
+      const old = io.sockets.sockets.get(previous);
+      if (old) { old.leave(room.code); old.data.room = null; old.data.player = null; }
+    }
+    socket.join(room.code); socket.data.room = room.code; socket.data.player = player;
+    room.players.set(player, socket.id);
+    ack({ ok: true, room: publicRoom(room), player, resumeToken: room.resumeTokens.get(player),
+      decks: Object.fromEntries(room.decks), usernames: Object.fromEntries(room.usernames),
+      update: { state: room.state, ...phaseInfo(room), initial: true } });
+    socket.to(room.code).emit("opponent-online");
+  });
+
+  socket.on("spectate-room", (payload = {}, ack = () => {}) => {
+    const room = rooms.get(String(payload.code || "").replace(/\D/g, "").slice(0, 6));
+    if (!room?.state) return ack({ ok: false, error: "Esta sala ainda não iniciou uma partida." });
+    if (socket.data.player) return ack({ ok: false, error: "Saia da sua partida antes de espectar." });
+    removeFromRoom(socket);
+    socket.join(room.code); socket.data.room = room.code; socket.data.player = null;
+    room.spectators.add(socket.id);
+    ack({ ok: true, room: publicRoom(room), usernames: Object.fromEntries(room.usernames),
+      update: { state: spectatorState(room.state), ...phaseInfo(room), initial: true } });
+  });
+
+  const validState = (state) => state && [state.jogador, state.inimigo].every((p) =>
+    p && Array.isArray(p.field) && p.field.length === 10 && Array.isArray(p.hand) && Array.isArray(p.deck));
+
+  socket.on("initial-state", (payload = {}, ack = () => {}) => {
     const room = rooms.get(socket.data.room);
-    if (!room || socket.data.player !== 1 || room.players.size !== 2)
+    if (!room || socket.data.player !== 1 || room.players.size !== 2 || room.state || !validState(payload.state))
       return ack({ ok: false });
-    socket.to(room.code).emit("state-update", {
-      state: payload.state,
-      activePlayer: 1,
-      initial: true,
-    });
-    ack({ ok: true });
+    room.state = payload.state;
+    armPhaseClock(room);
+    broadcastState(room, { initial: true });
+    ack({ ok: true, ...phaseInfo(room) });
   });
 
-  socket.on("finish-turn", (payload, ack = () => {}) => {
+  socket.on("finish-turn", (payload = {}, ack = () => {}) => {
     const room = rooms.get(socket.data.room);
-    const player = socket.data.player;
-    if (!room || room.players.size !== 2)
-      return ack({ ok: false, error: "A partida não está completa." });
-    if (room.turn !== player)
+    if (!room?.state || room.state.partidaEncerrada || room.turn !== socket.data.player)
       return ack({ ok: false, error: "Não é a sua vez." });
-
-    room.turn = player === 1 ? 2 : 1;
-    socket.to(room.code).emit("state-update", {
-      state: payload.state,
-      result: payload.result || null,
-      activePlayer: room.turn,
-      initial: false,
-    });
-    ack({ ok: true, activePlayer: room.turn });
+    if (payload.step !== room.step || payload.round !== room.round)
+      return ack({ ok: false, error: "Esta fase já terminou." });
+    if (!validState(payload.state)) return ack({ ok: false, error: "Estado inválido." });
+    room.state = payload.state;
+    advancePhase(room);
+    ack({ ok: true, ...phaseInfo(room) });
   });
 
-  socket.on("live-state", (payload, ack = () => {}) => {
+  socket.on("live-state", (payload = {}, ack = () => {}) => {
     const room = rooms.get(socket.data.room);
-    const player = socket.data.player;
-    if (!room || room.players.size !== 2)
-      return ack({ ok: false, error: "A partida não está completa." });
-    if (room.turn !== player)
-      return ack({ ok: false, error: "Não é a sua vez." });
-    socket.to(room.code).emit("state-update", {
-      state: payload.state,
-      activePlayer: room.turn,
-      live: true,
-      initial: false,
-    });
-    ack({ ok: true });
+    if (!room?.state || room.state.partidaEncerrada || room.turn !== socket.data.player ||
+        payload.step !== room.step || payload.round !== room.round || !validState(payload.state))
+      return ack({ ok: false, error: "A fase não permite esta atualização." });
+    room.state = payload.state;
+    armPhaseClock(room, false);
+    broadcastState(room, { live: true }, socket.id);
+    ack({ ok: true, ...phaseInfo(room) });
   });
 
-  // Sincroniza apenas a exibição do relógio no cliente adversário. A
-  // autoridade para encerrar o turno continua no jogador ativo; o servidor
-  // valida a sala e a vez para um cliente nunca poder falsificar o timer do
-  // outro lado.
-  socket.on("turn-time", (payload = {}) => {
+  socket.on("turn-time", () => {
     const room = rooms.get(socket.data.room);
-    const player = socket.data.player;
-    if (!room || room.players.size !== 2 || room.turn !== player) return;
-    const remainingMs = Math.max(
-      0,
-      Math.min(60_000, Number(payload.remainingMs) || 0),
-    );
-    socket.to(room.code).emit("turn-time", {
-      activePlayer: player,
-      remainingMs,
-      running: payload.running !== false,
-    });
+    if (!room?.state || room.turn !== socket.data.player) return;
+    socket.to(room.code).emit("turn-time", { activePlayer: room.turn,
+      remainingMs: Math.max(0, room.deadline - Date.now()), running: true, ...phaseInfo(room) });
   });
 
   socket.on("surrender", () => {
     const room = rooms.get(socket.data.room);
-    if (!room) return;
-    socket.to(room.code).emit("opponent-surrendered");
+    if (!room || !socket.data.player) return;
+    if (room.state) room.state.partidaEncerrada = true;
+    clearTimeout(room.timer);
+    socket.to(room.code).emit("opponent-surrendered", { player: socket.data.player });
   });
 
   socket.on("leave-room", () => {
@@ -1043,7 +1164,7 @@ io.on("connection", (socket) => {
     socket.data.player = null;
   });
 
-  socket.on("disconnect", () => removeFromRoom(socket));
+  socket.on("disconnect", () => removeFromRoom(socket, true));
 });
 
 httpServer.listen(PORT, () => {

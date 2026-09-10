@@ -730,10 +730,21 @@ class CyberduelDeckBuilderUI {
   }
 
   openDetail(card, replace = false) {
+    const quantity = this.builder.quantity(this.deck, card);
+    if (replace && this.modal?.dataset.cardKey === card.key) {
+      // Atualiza só os controles: recriar a ficha recarrega a arte e altera a rolagem.
+      const controls = this.modal.querySelector(".forge-detail__quantity");
+      controls.querySelector("strong").textContent = `${quantity} / ${card.limite}`;
+      controls.querySelector("button").disabled = quantity === 0;
+      controls.querySelector(".forge-qty-button--add").disabled =
+        quantity >= Math.min(card.limite, this.builder.ownedQuantity(card)) ||
+        this.builder.total(this.deck) >= 20;
+      return;
+    }
     if (replace) this.closeModal(true);
     else if (this.modal) return;
-    const quantity = this.builder.quantity(this.deck, card);
     const overlay = this.createModal("detail");
+    overlay.dataset.cardKey = card.key;
     const dialog = this.element("section", `forge-detail level-${card.nivel}`);
     dialog.style.setProperty("--card-color", this.levelColor(card));
     dialog.setAttribute("role", "dialog");
@@ -786,7 +797,8 @@ class CyberduelDeckBuilderUI {
       () => this.change(card, 1),
     );
     plus.disabled =
-      quantity >= card.limite || this.builder.total(this.deck) >= 20;
+      quantity >= Math.min(card.limite, this.builder.ownedQuantity(card)) ||
+      this.builder.total(this.deck) >= 20;
     quantityControls.append(minus, count, plus);
     content.append(
       this.element(
@@ -800,7 +812,7 @@ class CyberduelDeckBuilderUI {
     dialog.append(close, visual, content);
     overlay.append(dialog);
     requestAnimationFrame(() => overlay.classList.add("is-visible"));
-    close.focus();
+    close.focus({ preventScroll: true });
   }
 
   openConfirm({ eyebrow, title, message, confirmLabel, danger, onConfirm }) {

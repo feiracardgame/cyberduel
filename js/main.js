@@ -42,6 +42,12 @@ class Campo {
   adicionarCarta(carta, posicao) {
     if (this.cartas[posicao] === null) {
       this.cartas[posicao] = carta;
+      delete carta.marcoPerdasOponente;
+      carta.marcoPerdas = (this.dono?.cartasPerdidas || 0) + (this.dono?.efeitosUtilizados || 0);
+      if (carta.tipo === "monstro" && this.dono?.penalidadesInvocacao?.length) {
+        carta.penalidadesRecebidas = this.dono.penalidadesInvocacao.map((penalidade) => ({ ...penalidade, indice: posicao, delta: carta.buff(-penalidade.valor) }));
+        this.dono.penalidadesInvocacao = [];
+      }
       if (carta.tipo !== "terreno" && this.armadilhas.has(posicao)) {
         this.armadilhas.delete(posicao);
         carta.buff(-2);
@@ -98,6 +104,8 @@ class Jogador {
     this.campo = new Campo(this);
     this.descarte = [];
     this.cartasPerdidas = 0;
+    this.efeitosUtilizados = 0;
+    this.penalidadesInvocacao = [];
     this.vitorias = 0;
 
     // Cartas compradas desde a última vez que a cena consumiu essa
@@ -127,6 +135,7 @@ class Jogador {
     if (indice !== -1) {
       this.mao.cartas.splice(indice, 1);
       this.registrarDescarte(carta, false);
+      this.efeitosUtilizados = (this.efeitosUtilizados || 0) + 1;
     }
     return true;
   }
@@ -243,9 +252,51 @@ class Partida {
     this.historico = [];
   }
 
+  // Eventos de apresentação são dados da partida, não inferências da interface.
+  capturarCampoEfeitos() {
+    return ["jogador", "inimigo"].flatMap((lado) => this[lado].campo.cartas.flatMap((c, indice) => c ? [{
+      lado, indice, id: c.id, nome: c.nome, imagem: c.imagem, poder: c.poder,
+      oculto: !!c.ocultadaPelaToca && !c.revelada,
+      estado: JSON.stringify([c.usadaEsteTurno, c.protegidaPA, c.bonusBloqueado, c.envenenada,
+        c.alvosAdvertidos, c.aliadoVinculadoId, c.efeitoDesabilitado, c.efeito, c.capturadaPorAranha?.id]),
+    }] : []));
+  }
+
+  registrarEventoEfeito(carta, dono, momento, antes = [], extra = {}) {
+    if (!carta) return;
+    const lado = dono === this.inimigo ? "inimigo" : "jogador";
+    const depois = this.capturarCampoEfeitos();
+    const fonteReal = dono.campo.cartas.find((c) => c?.id === carta.id && c.nome === carta.nome) || carta;
+    const alvos = antes.flatMap((anterior) => {
+      const atual = depois.find((c) => c.lado === anterior.lado && c.id === anterior.id);
+      if (atual && atual.poder === anterior.poder && atual.estado === anterior.estado && atual.indice === anterior.indice) return [];
+      return [{ lado: anterior.lado, indice: atual?.indice ?? anterior.indice, id: anterior.id,
+        nome: anterior.nome, imagem: anterior.imagem, oculto: anterior.oculto && (atual?.oculto ?? true),
+        delta: (atual?.poder ?? 0) - anterior.poder, removida: !atual,
+        mudouEstado: !atual || atual.estado !== anterior.estado }];
+    });
+    this.sequenciaEfeito = (this.sequenciaEfeito || 0) + 1;
+    this.eventosEfeito ||= [];
+    this.eventosEfeito.push({ id: this.sequenciaEfeito, turno: this.turno || 1, lado, momento,
+      fonte: { id: carta.id, nome: carta.nome, imagem: carta.imagem, tipo: carta.tipo,
+        efeito: carta.efeito ? JSON.parse(JSON.stringify(carta.efeito)) : null,
+        efeitoTurno: carta.efeitoTurno, efeitoContinuo: carta.efeitoContinuo,
+        habilidadeAprendidaDe: carta.habilidadeAprendidaDe,
+        oculto: !!fonteReal.ocultadaPelaToca && !fonteReal.revelada,
+        indice: dono.campo.cartas.includes(fonteReal) ? dono.campo.cartas.indexOf(fonteReal) : (antes.find((c) => c.lado === lado && c.id === carta.id)?.indice ?? -1) }, alvos, ...extra });
+  }
+
   // Registra uma jogada no histórico. "quem" é 'jogador' ou 'inimigo'.
   registrarHistorico(carta, quem) {
     this.historico.push({ turno: this.turno, quem, carta });
+    for (const penalidade of carta.penalidadesRecebidas || []) {
+      this.registrarEventoEfeito(penalidade.fonte, this[quem === "jogador" ? "inimigo" : "jogador"], "passiva", [], {
+        mensagem: "Faro — penalidade na próxima invocação",
+        alvos: [{ lado: quem, indice: penalidade.indice, id: carta.id, nome: carta.nome, delta: penalidade.delta }],
+      });
+    }
+    delete carta.penalidadesRecebidas;
+    if (carta.tipo !== "efeito") this.registrarEventoEfeito(carta, this[quem], "invocacao");
   }
 
   // Variante de jogarCartaDoJogador() usada quando o efeito da carta exige
@@ -255,6 +306,7 @@ class Partida {
   // de seleção de alvo, e só então chama aplicarEfeitoInvocacao() (abaixo,
   // já público) com o alvoEscolhido de fato.
   colocarCartaDoJogador(carta, posicao) {
+    if (this.fase && this.fase !== "colocar") return false;
     const sucesso = this.jogador.jogarCarta(carta, posicao);
     if (sucesso) this.registrarHistorico(carta, "jogador");
     return sucesso;
@@ -263,6 +315,7 @@ class Partida {
   // Ponto único de entrada para o jogador jogar uma carta de monstro: garante
   // que o efeito passivo de invocação seja aplicado sempre que a jogada for válida.
   jogarCartaDoJogador(carta, posicao, alvoEscolhido = null) {
+    if (this.fase && this.fase !== "colocar") return { sucesso: false, afetadas: [] };
     const sucesso = this.jogador.jogarCarta(carta, posicao);
     let afetadas = [];
     if (sucesso && carta.tipo === "terreno") {
@@ -291,7 +344,85 @@ class Partida {
   // terrenos que saem de campo, entram, ou se somam não acumulam bônus à
   // toa. Deve ser chamado sempre que o campo do "dono" mudar (jogar carta,
   // fim de turno, etc.).
+  atualizarSupressoes() {
+    const campos = [this.jogador, this.inimigo];
+    const cartas = campos.flatMap((d) => d.campo.cartas.filter(Boolean));
+    const antes = this.capturarCampoEfeitos();
+    const anteriores = new Map(cartas.map((c) => [c, c.fonteSupressao]));
+    for (const carta of cartas) {
+      if (carta.efeitosSuspensos) Object.assign(carta, carta.efeitosSuspensos);
+      carta.efeitosSuspensos = null;
+      carta.efeitoDesabilitado = false;
+      carta.silenciadaPorNome = null;
+      carta.fonteSupressao = null;
+    }
+    const silenciar = (alvo, fonte) => {
+      if (!alvo || alvo.efeitoDesabilitado) return;
+      alvo.efeitosSuspensos = { efeito: alvo.efeito, efeitoTurno: alvo.efeitoTurno,
+        efeitoContinuo: alvo.efeitoContinuo, habilidadeAtiva: alvo.habilidadeAtiva };
+      alvo.efeito = null; alvo.efeitoTurno = null; alvo.efeitoContinuo = null; alvo.habilidadeAtiva = false;
+      alvo.efeitoDesabilitado = true; alvo.silenciadaPorNome = fonte.nome;
+      alvo.fonteSupressao = { id: fonte.id, nome: fonte.nome, imagem: fonte.imagem, tipo: fonte.tipo, efeito: fonte.efeito,
+        ocultadaPelaToca: fonte.ocultadaPelaToca, revelada: fonte.revelada };
+    };
+    const fontes = cartas.filter((c) => c.efeito?.tipo === TIPOS_EFEITO.SILENCIAR_CARTA)
+      .sort((a, b) => (b.ordemControle || 0) - (a.ordemControle || 0));
+    for (const fonte of fontes) {
+      if (fonte.efeitoDesabilitado || fonte.alvoSilenciadoId == null) continue;
+      const adversario = this.jogador.campo.cartas.includes(fonte) ? this.inimigo : this.jogador;
+      silenciar(adversario.campo.cartas.find((c) => c?.id === fonte.alvoSilenciadoId), fonte);
+    }
+    for (const dono of campos) {
+      const humba = dono.campo.cartas.find((c) => c?.efeito?.tipo === TIPOS_EFEITO.HUMATRIX);
+      if (humba) (dono === this.jogador ? this.inimigo : this.jogador).campo.cartas.forEach((c) => {
+        if (c?.tipo === "terreno") silenciar(c, humba);
+      });
+    }
+    const alteracoes = new Map();
+    for (const dono of campos) for (const carta of dono.campo.cartas.filter(Boolean)) {
+      const anterior = anteriores.get(carta), atual = carta.fonteSupressao;
+      if (anterior?.id === atual?.id && anterior?.nome === atual?.nome) continue;
+      const fonte = atual || anterior;
+      const ladoAlvo = dono === this.jogador ? "jogador" : "inimigo";
+      const chave = `${ladoAlvo}:${fonte.id}:${!!atual}`;
+      const alteracao = alteracoes.get(chave) || { fonte, dono: dono === this.jogador ? this.inimigo : this.jogador, antes: [], ativa: !!atual };
+      alteracao.antes.push(...antes.filter((c) => c.lado === ladoAlvo && c.id === carta.id));
+      alteracoes.set(chave, alteracao);
+    }
+    for (const { fonte, dono, antes: alvosAntes, ativa } of alteracoes.values())
+      this.registrarEventoEfeito(fonte, dono, "continuo", alvosAntes, {
+        mensagem: ativa ? "Efeitos desabilitados" : "Efeitos restaurados",
+      });
+  }
+
   resolverEfeitosContinuos(dono) {
+    this.atualizarSupressoes();
+    const antes = this.capturarCampoEfeitos();
+    const anteriores = dono.contribuicoesEfeito || {};
+    this.recalcularEfeitosContinuos(dono);
+    const atuais = dono.contribuicoesEfeito || {};
+    for (const chave of new Set([...Object.keys(anteriores), ...Object.keys(atuais)])) {
+      const anterior = anteriores[chave], atual = atuais[chave];
+      if (JSON.stringify(anterior) === JSON.stringify(atual)) continue;
+      const contribuicao = atual || anterior;
+      const ids = new Set([...Object.keys(anterior?.alvos || {}), ...Object.keys(atual?.alvos || {})]);
+      this.registrarEventoEfeito(contribuicao.fonte, this[contribuicao.lado], "continuo",
+        antes.filter((c) => ids.has(`${c.lado}:${c.id}`)),
+        { mensagem: atual ? "Efeito contínuo atualizado" : "Efeito contínuo encerrado" });
+    }
+  }
+
+  recalcularEfeitosContinuos(dono) {
+    dono.contribuicoesEfeito = {};
+    const contribuir = (fonte, alvo, valor, ladoFonte = dono) => {
+      const lado = ladoFonte === this.jogador ? "jogador" : "inimigo";
+      const chave = `${lado}:${fonte.id}`;
+      const entry = dono.contribuicoesEfeito[chave] ||= {
+        lado, fonte: { id: fonte.id, nome: fonte.nome, imagem: fonte.imagem, tipo: fonte.tipo,
+          efeito: fonte.efeito, efeitoContinuo: fonte.efeitoContinuo }, alvos: {},
+      };
+      entry.alvos[`${dono === this.jogador ? "jogador" : "inimigo"}:${alvo.id}`] = valor;
+    };
     const bonusAnteriores = new Map(dono.campo.cartas.filter(Boolean).map((c) => [c, (c.bonusTerreno || 0) + (c.bonusDiehGo || 0) + (c.bonusEfeitoContinuo || 0)]));
     dono.campo.cartas.forEach((c) => {
       if (c && c.bonusTerreno) {
@@ -334,6 +465,7 @@ class Partida {
           ) {
             c.poder += valor;
             c.bonusTerreno += valor;
+            contribuir(terreno, c, valor);
           }
         });
       });
@@ -346,6 +478,10 @@ class Partida {
       );
     dono.campo.cartas.forEach((c) => {
       if (!c || c.tipo === "terreno") return;
+      if (tocaAtiva) {
+        const toca = dono.campo.cartas.find((t) => t?.efeitoContinuo?.tipo === TIPOS_EFEITO_CONTINUO.OCULTAR_ALIADOS);
+        contribuir(toca, c, "ocultacao");
+      }
       if (tocaAtiva && !c.ocultadaPelaToca) {
         c.ocultadaPelaToca = true;
         c.revelada = false;
@@ -355,27 +491,22 @@ class Partida {
       }
     });
 
-    dono.campo.cartas.forEach((c, i) => {
-      if (c?.nome !== "Dieh'Go, o Xerife" || i < 5) return;
-      const cartaAtras = dono.campo.cartas[i - 5];
-      if (cartaAtras && cartaAtras.tipo !== "terreno") {
-        cartaAtras.poder += 2;
-        cartaAtras.bonusDiehGo = (cartaAtras.bonusDiehGo || 0) + 2;
-      }
-    });
-
     dono.campo.cartas.forEach((carta, indice) => {
       if (!carta || carta.tipo === "terreno") return;
       let bonus = 0;
-      if (carta.aliadoVinculadoId != null) {
+      if (!carta.efeitoDesabilitado && carta.aliadoVinculadoId != null) {
         if (!dono.campo.cartas.some((c) => c && c !== carta && c.id === carta.aliadoVinculadoId)) {
           dono.campo.removerCarta(indice);
           return;
         }
-        bonus += 4;
+        bonus += 6;
       }
       if (carta.efeito?.tipo === TIPOS_EFEITO.BONUS_POR_PERDIDAS) {
-        bonus += dono.cartasPerdidas * (carta.efeito.valor || 1);
+        const total = (dono.cartasPerdidas || 0) + (dono.efeitosUtilizados || 0);
+        carta.marcoPerdas ??= total;
+        const totalOponente = (oponente.cartasPerdidas || 0) + (oponente.efeitosUtilizados || 0);
+        carta.marcoPerdasOponente ??= totalOponente;
+        bonus += Math.max(0, total + totalOponente - carta.marcoPerdas - carta.marcoPerdasOponente) * (carta.efeito.valor || 1);
       }
       if (carta.efeito?.tipo === TIPOS_EFEITO.BONUS_TRIO_ADJACENTE) {
         const vizinhos = [indice - 1, indice + 1].filter(
@@ -385,8 +516,30 @@ class Partida {
         if (carta.efeito.nomes.every((nome) => nomes.has(nome)))
           bonus += carta.efeito.valor || 0;
       }
+      if (carta.efeito?.tipo === TIPOS_EFEITO.BONUS_POR_TERRENOS)
+        bonus += [...dono.campo.cartas, ...oponente.campo.cartas].filter((c) => c?.tipo === "terreno").length * carta.efeito.valor;
       carta.poder += bonus;
       carta.bonusEfeitoContinuo = bonus;
+      if (bonus) contribuir(carta, carta, bonus);
+    });
+
+    dono.campo.cartas.forEach((fonte, indice) => {
+      if (!fonte?.efeito) return;
+      let vizinhos = [], valor = 0;
+      if (fonte.efeito.tipo === TIPOS_EFEITO.BUFF_ADJACENTES) {
+        vizinhos = dono.campo.cartas.map((c, i) => i).filter((i) => Math.abs(i % 5 - indice % 5) + Math.abs(Math.floor(i / 5) - Math.floor(indice / 5)) === 1);
+        valor = fonte.efeito.valor;
+      } else if (fonte.efeito.tipo === TIPOS_EFEITO.BONUS_TRIO_ADJACENTE &&
+        indice % 5 > 0 && indice % 5 < 4 &&
+        fonte.efeito.nomes.every((nome) => [dono.campo.cartas[indice - 1]?.nome, dono.campo.cartas[indice + 1]?.nome].includes(nome))) {
+        vizinhos = [indice - 1, indice + 1]; valor = fonte.efeito.bonusVizinhos || 0;
+      }
+      for (const i of vizinhos) {
+        const alvo = dono.campo.cartas[i];
+        if (!alvo || alvo.tipo === "terreno") continue;
+        alvo.poder += valor; alvo.bonusEfeitoContinuo = (alvo.bonusEfeitoContinuo || 0) + valor;
+        contribuir(fonte, alvo, valor);
+      }
     });
 
     const terrenoHostilAtivo = oponente.campo.cartas.some(
@@ -408,10 +561,10 @@ class Partida {
       );
       dono.campo.cartas.forEach((c) => {
         if (!c || c.tipo === "terreno") return;
-        if (c.efeito?.tipo !== TIPOS_EFEITO.CASCA_GROSSA) {
-          c.poder -= valor;
-          c.bonusEfeitoContinuo -= valor;
-        }
+        c.poder -= valor;
+        c.bonusEfeitoContinuo -= valor;
+        const fonte = oponente.campo.cartas.find((t) => t?.efeitoContinuo?.tipo === TIPOS_EFEITO_CONTINUO.DEBUFF_CAMPO_INIMIGO && t.efeitoContinuo.valor === valor);
+        contribuir(fonte, c, -valor, oponente);
       });
     }
     dono.campo.cartas.forEach((c) => {
@@ -421,6 +574,9 @@ class Partida {
       const permitido = c.protegidaPA && atual < antes ? antes : c.bonusBloqueado && atual > antes ? antes : atual;
       c.poder += permitido - atual;
       c.bonusEfeitoContinuo += permitido - atual;
+      if (c.efeito?.tipo === TIPOS_EFEITO.CASCA_GROSSA && c.poder < 6) {
+        c.bonusEfeitoContinuo += 6 - c.poder; c.poder = 6;
+      }
     });
     dono.campo.removerMortas();
   }
@@ -469,14 +625,45 @@ class Partida {
   // segundo alvo escolhido, quem ganha poder; alvoEscolhido é quem perde).
   // Finaliza qualquer habilidade no mesmo ponto, inclusive habilidades aprendidas.
   ativarHabilidade(carta, dono, oponente, alvo = null, secundario = null) {
+    this.atualizarSupressoes();
+    const antesEfeito = this.capturarCampoEfeitos();
+    const efeitoOriginal = carta.efeito ? JSON.parse(JSON.stringify(carta.efeito)) : null;
     const resultado = this.resolverHabilidade(carta, dono, oponente, alvo, secundario);
     if (resultado.sucesso) {
       carta.ativacoes = (carta.ativacoes || 0) + 1;
       carta.ultimoAlvoHabilidade = alvo;
+      this.registrarEventoEfeito(carta, dono, "habilidade", antesEfeito);
+      // Aprender muda o efeito da instância; a apresentação descreve a ação que acabou de ocorrer.
+      const evento = this.eventosEfeito.at(-1);
+      evento.fonte.efeito = efeitoOriginal;
+      if (efeitoOriginal?.acao === "aprender") evento.fonte.habilidadeAprendidaDe = null;
+      for (const afetada of resultado.afetadas) {
+        const ladoAlvo = this.jogador.campo.cartas.includes(afetada.carta) || this.jogador.descarte.includes(afetada.carta) ? "jogador" : "inimigo";
+        const posicao = antesEfeito.find((c) => c.lado === ladoAlvo && c.id === afetada.carta.id && c.nome === afetada.carta.nome);
+        if (posicao && !evento.alvos.some((c) => c.id === posicao.id && c.lado === posicao.lado))
+          evento.alvos.push({ lado: posicao.lado, indice: posicao.indice, id: posicao.id, nome: posicao.nome, oculto: posicao.oculto, delta: afetada.delta, bloqueado: afetada.delta === 0 });
+      }
+      const aliados = [TIPOS_EFEITO.BUFF_ALIADO_ESCOLHIDO, TIPOS_EFEITO.REDISTRIBUIR_PODER,
+        TIPOS_EFEITO.REPOSICIONAR, TIPOS_EFEITO.BUFF_ATE_DOIS_ALIADOS];
+      const indices = Array.isArray(alvo) ? alvo : [alvo,
+        [TIPOS_EFEITO.ATACAR_DOIS_ALVOS, TIPOS_EFEITO.REDISTRIBUIR_PODER].includes(efeitoOriginal.tipo) || efeitoOriginal.acao === "opiniao" ? secundario : null];
+      for (const indice of indices) {
+        if (!Number.isInteger(indice)) continue;
+        const misto = efeitoOriginal.tipo === TIPOS_EFEITO.RESETAR_PODER || efeitoOriginal.alvo === "qualquer";
+        const aliado = misto ? indice < 10 : aliados.includes(efeitoOriginal.tipo) || efeitoOriginal.alvo === "aliado";
+        const ladoAlvo = (aliado ? dono : oponente) === this.jogador ? "jogador" : "inimigo";
+        const pos = antesEfeito.find((c) => c.lado === ladoAlvo && c.indice === (misto ? indice % 10 : indice));
+        if (pos && !evento.alvos.some((c) => c.id === pos.id && c.lado === pos.lado))
+          evento.alvos.push({ lado: pos.lado, indice: pos.indice, id: pos.id, nome: pos.nome, oculto: pos.oculto, delta: 0, mudouEstado: true });
+      }
       const agentes = oponente.campo.cartas.filter((c) =>
         c?.efeito?.acao === "advertir" && (c.alvosAdvertidos || []).includes(carta.id));
       const antes = carta.poder;
-      if (agentes.length) carta.buff(-3 * agentes.length);
+      for (const agente of agentes) {
+        const antesAdvertencia = this.capturarCampoEfeitos();
+        carta.buff(-3);
+        this.registrarEventoEfeito(agente, oponente, "advertencia", antesAdvertencia);
+      }
       if (carta.poder !== antes) resultado.afetadas.push({ carta, delta: carta.poder - antes });
       dono.campo.removerMortas();
       oponente.campo.removerMortas();
@@ -524,12 +711,13 @@ class Partida {
       case "bloquear_bonus": alvo.bonusBloqueado = true; break;
       case "advertir": carta.alvosAdvertidos = [...new Set([...(carta.alvosAdvertidos || []), alvo.id])]; break;
       case "mover": dono.campo.cartas[escolhido] = null; dono.campo.cartas[secundario] = alvo; break;
-      case "curar": mudar(alvo, Math.min(4, alvo.poderBase + (alvo.bonusTerreno || 0) + (alvo.bonusEfeitoContinuo || 0) + (alvo.bonusDiehGo || 0) - alvo.poder)); break;
-      case "opiniao": indices.forEach((i) => mudar(campo[i], i < tam ? 1 : -1)); break;
+      case "curar": mudar(alvo, Math.max(0, alvo.poderBase + (alvo.bonusTerreno || 0) + (alvo.bonusEfeitoContinuo || 0) + (alvo.bonusDiehGo || 0) - alvo.poder)); break;
+      case "opiniao": indices.forEach((i) => mudar(campo[i], i < tam ? 2 : -2)); break;
       case "reativar": alvo.usadaEsteTurno = false; break;
       case "aprender":
         mudar(carta, -2);
         carta.aprendizadoUsado = true;
+        carta.habilidadeAprendidaDe = alvo.habilidadeAprendidaDe || alvo.nome;
         carta.efeito = JSON.parse(JSON.stringify(alvo.efeito));
         carta.somAtaque = alvo.somAtaque;
         break;
@@ -547,6 +735,8 @@ class Partida {
     alvoEscolhido = null,
     alvoSecundario = null,
   ) {
+    if (this.fase && this.fase !== "habilidades") return { sucesso: false, afetadas: [] };
+    this.atualizarSupressoes();
     this.atualizarOverrides();
     const jaFoiUsada = carta.usadaEsteTurno;
     if (!carta.efeito || !carta.habilidadeAtiva || jaFoiUsada)
@@ -554,6 +744,24 @@ class Partida {
 
     const posicao = dono.campo.cartas.indexOf(carta);
     if (posicao === -1) return { sucesso: false, afetadas: [] };
+
+    if (carta.efeito.tipo === TIPOS_EFEITO.SILENCIAR_CARTA) {
+      const alvo = oponente.campo.cartas[alvoEscolhido];
+      if (!Number.isInteger(alvoEscolhido) || !alvo) return { sucesso: false, afetadas: [] };
+      carta.alvoSilenciadoId = alvo.id;
+      carta.ordemControle = 1 + Math.max(0, ...[...dono.campo.cartas, ...oponente.campo.cartas].filter(Boolean).map((c) => c.ordemControle || 0));
+      carta.usadaEsteTurno = true; carta.revelada = true;
+      this.atualizarSupressoes();
+      return { sucesso: true, afetadas: [] };
+    }
+    if (carta.efeito.tipo === TIPOS_EFEITO.RENOVAR_MAO) {
+      const quantidade = dono.mao.cartas.length;
+      if (!quantidade) return { sucesso: false, afetadas: [] };
+      dono.mao.cartas.splice(0).forEach((c) => dono.registrarDescarte(c, false));
+      for (let i = 0; i < quantidade; i++) dono.comprarCarta();
+      carta.usadaEsteTurno = true; carta.revelada = true;
+      return { sucesso: true, afetadas: [] };
+    }
 
     if (carta.efeito.tipo === TIPOS_EFEITO.SINDICATO) {
       return this.resolverHabilidadeSindicato(carta, dono, oponente, alvoEscolhido, alvoSecundario);
@@ -582,12 +790,7 @@ class Partida {
 
       carta.usadaEsteTurno = true;
       carta.revelada = true;
-      if (carta.somAtaque && typeof window !== "undefined" && window.cena) {
-        const s =
-          window.cena.sound.get(carta.somAtaque) ||
-          window.cena.sound.add(carta.somAtaque);
-        if (s) s.play();
-      }
+
 
       return { sucesso: indices.length > 0, afetadas };
     }
@@ -599,7 +802,7 @@ class Partida {
       const alvoValido =
         alvoEscolhido !== null &&
         alvoEscolhido !== undefined &&
-        alvoEscolhido !== posicao &&
+        (carta.efeito.permiteProprio || alvoEscolhido !== posicao) &&
         dono.campo.cartas[alvoEscolhido] &&
         dono.campo.cartas[alvoEscolhido].tipo !== "terreno";
       if (!alvoValido) return { sucesso: false, afetadas: [] };
@@ -780,7 +983,7 @@ class Partida {
       const poderAntes = alvo.poder;
       const diferenca = alvo.poderBase - alvo.poder;
       const impedido = (diferenca > 0 && alvo.bonusBloqueado) ||
-        (diferenca < 0 && (alvo.protegidaPA || alvo.efeito?.tipo === TIPOS_EFEITO.CASCA_GROSSA));
+        (diferenca < 0 && alvo.protegidaPA);
       if (!impedido) {
         alvo.buff(diferenca);
         // O reset remove todos os modificadores antes de reavaliar as auras.
@@ -827,12 +1030,7 @@ class Partida {
 
       carta.usadaEsteTurno = true;
       carta.revelada = true;
-      if (carta.somAtaque && typeof window !== "undefined" && window.cena) {
-        const s =
-          window.cena.sound.get(carta.somAtaque) ||
-          window.cena.sound.add(carta.somAtaque);
-        if (s) s.play();
-      }
+
 
       return { sucesso: true, afetadas };
     }
@@ -957,10 +1155,14 @@ class Partida {
   // BUFF_ALIADO_ESCOLHIDO (Estagiário de ML), os alvos são no campo do
   // próprio DONO, exceto a própria carta.
   alvosParaHabilidadeEmCampo(carta, dono, oponente) {
+    this.atualizarSupressoes();
     if (!carta.efeito || !carta.habilidadeAtiva) return [];
     const posicao = dono.campo.cartas.indexOf(carta);
     if (posicao === -1) return [];
 
+    if (carta.efeito.tipo === TIPOS_EFEITO.SILENCIAR_CARTA)
+      return oponente.campo.cartas.flatMap((c, i) => c ? [i] : []);
+    if (carta.efeito.tipo === TIPOS_EFEITO.RENOVAR_MAO) return dono.mao.cartas.length ? [posicao] : [];
     if (carta.efeito.tipo === TIPOS_EFEITO.SINDICATO) return this.alvosSindicato(carta, dono, oponente);
 
     if (carta.efeito.tipo === TIPOS_EFEITO.ATACAR) {
@@ -983,7 +1185,7 @@ class Partida {
     if (carta.efeito.tipo === TIPOS_EFEITO.BUFF_ALIADO_ESCOLHIDO) {
       const indices = [];
       dono.campo.cartas.forEach((c, i) => {
-        if (c && i !== posicao && c.tipo !== "terreno") indices.push(i);
+        if (c && (carta.efeito.permiteProprio || i !== posicao) && c.tipo !== "terreno") indices.push(i);
       });
       return indices;
     }
@@ -1116,6 +1318,7 @@ class Partida {
   // alvoEscolhido só é usado pela Sugestão Algorítmica (BUSCAR_CARTA_DECK):
   // é o índice, no baralho do jogador, da carta escolhida pra ir pra mão.
   jogarCartaEfeitoDoJogador(carta, alvoEscolhido = null) {
+    if (this.fase && this.fase !== "colocar") return { sucesso: false, afetadas: [] };
     const sucesso = this.jogador.jogarCartaEfeito(carta);
     const afetadas = sucesso
       ? this.aplicarEfeitoInvocacao(
@@ -1134,7 +1337,24 @@ class Partida {
   // "dono" é quem jogou a carta, "oponente" é o outro jogador.
   // Retorna a lista de cartas de campo afetadas (com o delta de poder
   // aplicado), para que a cena possa animar exatamente essas cartas.
-  aplicarEfeitoInvocacao(
+  aplicarEfeitoInvocacao(carta, dono, oponente, posicao = null, alvoEscolhido = null) {
+    this.atualizarSupressoes();
+    const antes = this.capturarCampoEfeitos();
+    const afetadas = this.resolverEfeitoInvocacao(carta, dono, oponente, posicao, alvoEscolhido);
+    if (carta.efeito && !carta.habilidadeAtiva) {
+      this.registrarEventoEfeito(carta, dono, carta.tipo === "efeito" ? "conjuracao" : "passiva", antes);
+      const evento = this.eventosEfeito.at(-1);
+      for (const afetada of afetadas) {
+        const lado = this.jogador.campo.cartas.includes(afetada.carta) || this.jogador.descarte.includes(afetada.carta) ? "jogador" : "inimigo";
+        const pos = antes.find((c) => c.lado === lado && c.id === afetada.carta.id);
+        if (pos && !evento.alvos.some((c) => c.lado === lado && c.id === pos.id))
+          evento.alvos.push({ lado, indice: pos.indice, id: pos.id, nome: pos.nome, oculto: pos.oculto, delta: afetada.delta, bloqueado: afetada.delta === 0 });
+      }
+    }
+    return afetadas;
+  }
+
+  resolverEfeitoInvocacao(
     carta,
     dono,
     oponente,
@@ -1149,6 +1369,10 @@ class Partida {
     if (carta.habilidadeAtiva) return []; // qualquer efeito marcado como habilidade ativa (ex: Estagiário de ML) só dispara via ativarHabilidade()
 
     switch (tipo) {
+      case TIPOS_EFEITO.PENALIZAR_PROXIMA_INVOCACAO:
+        oponente.penalidadesInvocacao ||= [];
+        oponente.penalidadesInvocacao.push({ valor, fonte: { id: carta.id, nome: carta.nome, imagem: carta.imagem, tipo: carta.tipo, efeito: carta.efeito } });
+        break;
       case TIPOS_EFEITO.VINCULO_ALIADO: {
         const validos = this.alvosParaVinculoAliado(carta, dono);
         const indice = alvoEscolhido;
@@ -1367,8 +1591,7 @@ class Partida {
     // primeira metade da rodada já chegou pela rede, então fechamos a rodada
     // sem gerar uma jogada automática.
     if (!opcoes.semIA) this.turnoIA();
-    // Cartas que a IA acabou de jogar neste turno também entram no sorteio
-    // de efeitos de turno abaixo (mesma regra pro jogador e pro inimigo).
+    // Veneno e recuperação fecham a rodada; investimentos são sorteados no início da próxima.
     this.efeitosDeTurno = this.resolverEfeitosDeTurno();
 
     const resultadoRodada = this.resolverRodada();
@@ -1388,6 +1611,7 @@ class Partida {
       this.partidaEncerrada = true;
     } else {
       this.turno++;
+      this.resolverEfeitosInicioRodada();
       this.jogador.deck.embaralhar();
       this.inimigo.deck.embaralhar();
       for (let i = 0; i < 2; i++) {
@@ -1409,17 +1633,20 @@ class Partida {
   // poder aplicado), no mesmo formato de aplicarEfeitoInvocacao(), para a
   // cena poder animar exatamente essas cartas (reaproveita
   // animarCartasAfetadas em jogo.js).
-  resolverEfeitosDeTurno() {
-    const afetadas = [];
+  resolverEfeitosInicioRodada() {
+    this.atualizarSupressoes();
+    [this.jogador, this.inimigo].forEach((dono) => dono.campo.cartas.forEach((carta) => {
+      if (carta?.efeitoTurno?.tipo !== TIPOS_EFEITO_TURNO.CHANCE_GANHAR_PODER) return;
+      const antes = this.capturarCampoEfeitos();
+      const ganhou = Math.random() < carta.efeitoTurno.chance;
+      if (ganhou) carta.buff(carta.efeitoTurno.valor);
+      this.registrarEventoEfeito(carta, dono, "inicio_turno", antes, { mensagem: ganhou ? "Investimento rendeu" : "Investimento sem ganho neste turno" });
+    }));
+  }
 
-    [this.jogador, this.inimigo].forEach((dono) => {
-      dono.campo.cartas.forEach((carta) => {
-        if (carta?.efeitoTurno?.tipo !== TIPOS_EFEITO_TURNO.CHANCE_GANHAR_PODER) return;
-        if (Math.random() < carta.efeitoTurno.chance) {
-          afetadas.push({ carta, delta: carta.buff(carta.efeitoTurno.valor) });
-        }
-      });
-    });
+  resolverEfeitosDeTurno() {
+    this.atualizarSupressoes();
+    const afetadas = [];
 
     // Dose Letal (A Cobra): cartas envenenadas perdem poder a cada turno,
     // sempre respeitando Casca Grossa (buff() já ignora reduções nesse
@@ -1429,13 +1656,22 @@ class Partida {
         if (c && c.envenenada) {
           if (c.venenosPorFonte) {
             const oponente = dono === this.jogador ? this.inimigo : this.jogador;
-            const fontes = new Set(oponente.campo.cartas.filter((fonte) => fonte?.efeito?.tipo === TIPOS_EFEITO.ENVENENAR).map((fonte) => String(fonte.id)));
+            const fontes = new Set(oponente.campo.cartas.filter((fonte) => (fonte?.efeito || fonte?.efeitosSuspensos?.efeito)?.tipo === TIPOS_EFEITO.ENVENENAR).map((fonte) => String(fonte.id)));
             c.venenosPorFonte = Object.fromEntries(Object.entries(c.venenosPorFonte).filter(([id]) => fontes.has(id)));
-            c.envenenada.valor = Object.values(c.venenosPorFonte).reduce((total, valor) => total + valor, 0);
-            if (!c.envenenada.valor) { c.envenenada = null; return; }
+            c.envenenada.valor = Object.entries(c.venenosPorFonte).reduce((total, [id, valor]) => total +
+              (oponente.campo.cartas.some((f) => String(f?.id) === id && f.efeito?.tipo === TIPOS_EFEITO.ENVENENAR) ? valor : 0), 0);
+            if (!Object.keys(c.venenosPorFonte).length) { c.envenenada = null; return; }
+            if (!c.envenenada.valor) return;
           }
           const poderAntes = c.poder;
-          c.buff(-c.envenenada.valor);
+          const inimigo = dono === this.jogador ? this.inimigo : this.jogador;
+          const fontesAtivas = inimigo.campo.cartas.filter((f) => f?.efeito?.tipo === TIPOS_EFEITO.ENVENENAR && c.venenosPorFonte?.[f.id]);
+          if (!c.venenosPorFonte) c.buff(-c.envenenada.valor);
+          for (const fonte of fontesAtivas) {
+            const antesVeneno = this.capturarCampoEfeitos();
+            c.buff(-c.venenosPorFonte[fonte.id]);
+            this.registrarEventoEfeito(fonte, inimigo, "veneno", antesVeneno);
+          }
           const delta = c.poder - poderAntes;
           if (delta !== 0) afetadas.push({ carta: c, delta });
         }
@@ -1463,7 +1699,9 @@ class Partida {
       dono.campo.cartas.forEach((c) => {
         if (c && c.tipo !== "terreno" && c.poder < c.poderBase) {
           const novoPoder = Math.min(c.poderBase, c.poder + valor);
+          const antesCura = this.capturarCampoEfeitos();
           const delta = c.buff(novoPoder - c.poder);
+          this.registrarEventoEfeito(terrenos[0], dono, "cura", antesCura);
           if (delta > 0) afetadas.push({ carta: c, delta });
         }
       });
@@ -1485,11 +1723,11 @@ class Partida {
     this.resolverEfeitosContinuos(dono);
   }
 
-  turnoIA() {
-    this.iniciarTurno(this.inimigo);
+  turnoIA(fase = null) {
+    if (fase !== "habilidades") this.iniciarTurno(this.inimigo);
     this.efeitoInimigoTurno = null;
     this.jogadasCampoInimigoTurno = [];
-    const candidatas = Phaser.Utils.Array.Shuffle([...this.inimigo.mao.cartas]);
+    const candidatas = fase === "habilidades" ? [] : Phaser.Utils.Array.Shuffle([...this.inimigo.mao.cartas]);
     const efeitosConjurados = [];
     const afetadasPorEfeitos = [];
     const maxJogadas = candidatas.length
@@ -1576,6 +1814,8 @@ class Partida {
     this.resolverEfeitosContinuos(this.inimigo);
     this.resolverEfeitosContinuos(this.jogador);
 
+    if (fase === "colocar") return;
+
     // IA também ativa habilidades de ataque disponíveis em campo (1x cada).
     this.inimigo.campo.cartas.forEach((c) => {
       if (c && c.habilidadeAtiva && !c.usadaEsteTurno) {
@@ -1583,7 +1823,7 @@ class Partida {
         // alvo explícito (terreno do jogador) — sem isso ativarHabilidade
         // sempre falharia em silêncio, então mira no primeiro disponível.
         const alvoTerrenoIA =
-          c.efeito?.tipo === TIPOS_EFEITO.DESTRUIR_TERRENO_INIMIGO
+          [TIPOS_EFEITO.DESTRUIR_TERRENO_INIMIGO, TIPOS_EFEITO.SILENCIAR_CARTA, TIPOS_EFEITO.BUFF_ALIADO_ESCOLHIDO].includes(c.efeito?.tipo)
             ? this.alvosParaHabilidadeEmCampo(c, this.inimigo, this.jogador)[0]
             : c.efeito?.tipo === TIPOS_EFEITO.DISTRIBUIR_DANO
               ? this.montarDistribuicaoDanoIA(c, this.jogador)
@@ -1634,6 +1874,7 @@ class Partida {
   // controlar somente uma carta; se sair de campo ou deixar de ter PA
   // estritamente maior que o alvo, o hack acaba imediatamente.
   atualizarOverrides() {
+    this.atualizarSupressoes();
     [this.jogador, this.inimigo].forEach((donoDoCampoFisico) => {
       donoDoCampoFisico.campo.cartas.forEach((alvo) => {
         if (!alvo?.capturadaPorAranha) return;
@@ -1641,7 +1882,11 @@ class Partida {
         const aranhaEmCampo =
           this.jogador.campo.cartas.includes(aranha) ||
           this.inimigo.campo.cartas.includes(aranha);
-        if (aranhaEmCampo && aranha.poder > alvo.poder) return;
+        if (aranhaEmCampo && aranha.efeitoDesabilitado) { alvo.capturadaPor = null; return; }
+        if (aranhaEmCampo && aranha.poder > alvo.poder) {
+          alvo.capturadaPor = this.jogador.campo.cartas.includes(aranha) ? this.jogador : this.inimigo;
+          return;
+        }
 
         alvo.capturadaPor = null;
         alvo.capturadaPorAranha = null;
