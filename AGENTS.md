@@ -1,4 +1,4 @@
-# Instruções do projeto
+# Instruções do projeto!
 
 - A cada pedido do usuário, atualize `CHANGELOG.md` com as alterações realizadas, em português.
 - Organize o histórico por data, com as entradas mais recentes primeiro. Use títulos claros e agrupe novidades, correções e validações quando isso facilitar a leitura.
