@@ -15,7 +15,7 @@ services:
       BOOSTER_WEIGHT_LENDARIA: ${BOOSTER_WEIGHT_LENDARIA:-4}
       BOOSTER_WEIGHT_EFEITO: ${BOOSTER_WEIGHT_EFEITO:-10}
       BOOSTER_WEIGHT_TERRENO: ${BOOSTER_WEIGHT_TERRENO:-10}
-      BOOSTER_LEGENDARY_MIN_GAMES: ${BOOSTER_LEGENDARY_MIN_GAMES:-10}
+      BOOSTER_WEIGHT_LEGENDARY_MIN_GAMES: ${BOOSTER_LEGENDARY_MIN_GAMES:-10}
     volumes:
       - cyberduel-data:/app/data
     expose:
@@ -27,12 +27,28 @@ services:
       context: .
       dockerfile: docker/Dockerfile.web
     container_name: cyberduel
-    ports:
-      - "${CYBERDUEL_PORT:-80}:80"
+    expose:
+      - "80"
     depends_on:
       server:
         condition: service_healthy
     restart: unless-stopped
 
+  caddy:
+    image: caddy:2
+    container_name: cyberduel-caddy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - caddy-data:/data
+      - caddy-config:/config
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    depends_on:
+      - nginx
+    restart: unless-stopped
+
 volumes:
   cyberduel-data:
+  caddy-data:
+  caddy-config:
