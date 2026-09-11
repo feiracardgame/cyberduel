@@ -1,0 +1,3 @@
+cyberduel.feira-de-jogos.dev.br {
+    reverse_proxy nginx:80
+}
