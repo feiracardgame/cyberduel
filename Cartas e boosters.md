@@ -21,7 +21,7 @@ Venda Casada → Ao ser colocado em campo, o CyberVendedor faz questão de garan
 
  Som: som-cybervendedor
 
- Efeito visual: não tem
+ Efeito visual: carta selecionada como alvo brilha em azul em volta
 
 
 
@@ -44,7 +44,7 @@ Machine learning -> Escolha uma carta aliada. Ela recebe +3 PA. O Estagiário pe
 
  Som: som-estagiario
 
- Efeito visual: sem
+ Efeito visual: estagiario de machine learning brilha em vermelho em volta e carta buffada brilha em azul em volta
 
 
 ### 2x carta baixa 3 - NeoAnalista de Suporte Nível Alpha
@@ -63,7 +63,7 @@ Machine learning -> Escolha uma carta aliada. Ela recebe +3 PA. O Estagiário pe
 
  Som: som-neoanalista
 
- Efeito visual: efeito-neoanalista -> aparece em cima da carta quando invoca ela
+ Efeito visual: efeito-neoanalista -> aparece em cima da carta quando invoca ela -> ajustar fundo (que está verde) e resolução da imagem que está distorcida e estranha
 
 
 ### 2x carta media 1 - Advogado Corporativo
@@ -100,7 +100,7 @@ Machine learning -> Escolha uma carta aliada. Ela recebe +3 PA. O Estagiário pe
 
  Som: som-grph
 
- Efeito visual: sem
+ Efeito visual: carta que perde o PA brilha em vermelho e carta que ganha o PA brilha em azul
 
 
 ### 2x carta alta 1 - CryptoAcionistas
