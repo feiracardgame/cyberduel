@@ -13,6 +13,8 @@
 
 ## Menu de leaderboard
 
+## Meu Perfil
+
 
 ## Menu de compras
 - Comprar boosters
@@ -24,6 +26,9 @@
 ## Regras e tutoriais
 - Visualizar Regras
 - Repetir tutorial
+
+
+
 
 # Demais artes:
 
