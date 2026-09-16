@@ -120,7 +120,7 @@ Machine learning -> Escolha uma carta aliada. Ela recebe +3 PA. O Estagiário pe
 
  Som: jogo-cyberacionistaefeito
 
- Efeito visual: sem
+ Efeito visual: moeda pique bitcoin azul pisca na tela
 
 
 ### 2x carta alta 2 - Agente da DIPSP
@@ -183,6 +183,14 @@ Jogando em casa -> O ambiente de trabalho competitivo e supostamente confortáve
  <img alt="image" src="assets/cartas/Torre_MonteCorp.png" />
 
 
+ #### Assets
+
+ Som:
+
+ Efeito visual: -> 
+
+
+
 
 #### 1x carta de terreno 2 - Beira-mar norte de NeoFloripa
 
@@ -195,6 +203,13 @@ Rolê na Beira-Mar: A ida à Beira-Mar é um momento de descanso no meio desse m
  <img alt="image" src="assets/cartas/Beiramar_Neofloripa.png" />
 
 
+ #### Assets
+
+ Som:
+
+ Efeito visual: -> 
+
+
 ### 1x carta de terreno 3 -> Nexus de Dados Global
 
 * Descrição: Responsável por armazenar aproximadamente 99% dos dados da humanidade. Sua destruição foi comparada à queima da Biblioteca de Alexandria, caso ela armazenasse apenas informações pessoais obtidas por meios semilegais. Ainda bem que tudo é salvo na nuvem atualmente.
@@ -203,6 +218,12 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
 * Arte:
  <img alt="image" src="assets/cartas/NexusNeoFloripa.png" />
+
+ #### Assets
+
+ Som:
+
+ Efeito visual: -> 
 
 
 ---
