@@ -4,6 +4,14 @@ Novidades, correções e verificações realizadas no projeto. As entregas mais 
 
 ## 2026-09-16
 
+### Invocações consecutivas do oponente
+
+- Cartas de invocações pendentes ficam ocultas no campo desde a entrada na fila. Cada carta aparece somente no impacto da própria animação, evitando a antecipação da segunda invocação.
+- Redesenhos e substituições de estado preservam a ocultação; cartas pendentes não executam a animação genérica de entrada. Encerrar a camada restaura também as cartas que aguardavam na fila. Atualizadas as versões dos scripts no HTML.
+- Acrescentadas regressões para duas invocações recebidas juntas ou em atualizações separadas, substituição de instâncias e encerramento da camada. `npm test` aprovado: sintaxe de 22 arquivos e 19 testes funcionais.
+- Validada no Chromium uma jogada do bot com duas invocações: ambas inicialmente ocultas, revelação individual e redesenho imediato durante a fila. Não realizada nova partida online no navegador nesta correção.
+
+
 ### Botão de retorno mais próximo do centro
 
 - Subido o botão “VOLTAR AO MENU” da tela final para junto do resultado. A posição reserva espaço quando há carta de destaque e fica mais central quando não há carta.

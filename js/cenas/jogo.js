@@ -3045,10 +3045,12 @@ class CenaJogo extends Phaser.Scene {
     filhos.push(...this.criarIndicadorExtintor(carta, CW, CH, escala));
 
     const chaveCarta = this.chaveCartaMultiplayer(carta);
-    const animarEntrada =
+    const aguardaInvocacao = !!this.scene?.manager?.keys?.CenaEfeitos?.deveOcultarCarta(carta);
+    const animarEntrada = !aguardaInvocacao && (
       !this.renderizandoInterface ||
       !this.interfaceJaDesenhada ||
-      this.chavesCampoNovasRender.has(chaveCarta);
+      this.chavesCampoNovasRender.has(chaveCarta)
+    );
 
     // O anel só existe na invocação real. Antes ele era recriado em toda
     // atualização de HUD e fazia cartas antigas parecerem recém-jogadas.
@@ -3069,6 +3071,9 @@ class CenaJogo extends Phaser.Scene {
     // tela quando um efeito de buff/debuff precisa animá-la.
     container.dadosCartaCampo = carta;
     container.auraHabilidade = auraHabilidade;
+    // Nasce oculta: não espera o próximo update da camada de efeitos.
+    container.ocultaPorInvocacao = aguardaInvocacao;
+    container.setVisible(!aguardaInvocacao);
 
     container.on("pointerup", () => {
       if (

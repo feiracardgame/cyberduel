@@ -26,7 +26,8 @@ class CenaEfeitos extends Phaser.Scene {
     this.exibidos = [];
     this.executando = false;
     this.invocacaoEmCurso = null;
-    this.events.once("shutdown", () => this.restaurarCartaEmTransito());
+    this.invocacoesPendentes = new Map();
+    this.events.once("shutdown", () => this.cancelarInvocacoesPendentes());
     this.scene.bringToTop();
   }
 
@@ -35,8 +36,15 @@ class CenaEfeitos extends Phaser.Scene {
     for (const evento of eventos || []) {
       if (evento.id <= this.ultimoEvento) continue;
       this.ultimoEvento = evento.id;
-      this.fila.push(JSON.parse(JSON.stringify(evento)));
+      const copia = JSON.parse(JSON.stringify(evento));
+      this.fila.push(copia);
+      if (copia.momento === "invocacao" && copia.fonte.indice >= 0 &&
+          (copia.lado !== "jogador" || this.jogo.multiplayer?.spectator)) {
+        this.invocacoesPendentes ||= new Map();
+        this.invocacoesPendentes.set(copia.id, copia);
+      }
     }
+    this.atualizarVisibilidadeInvocacoes();
     this.proximo();
   }
 
@@ -47,25 +55,40 @@ class CenaEfeitos extends Phaser.Scene {
   }
 
   update() {
-    // O campo pode ser recriado por uma atualização online durante o voo.
-    // Ocultamos apenas a carta representada pela animação, até ela aterrissar.
-    if (this.invocacaoEmCurso) this.visibilidadeCartaEmTransito(false);
+    this.atualizarVisibilidadeInvocacoes();
   }
 
-  visibilidadeCartaEmTransito(visivel) {
-    const evento = this.invocacaoEmCurso;
-    if (!evento) return;
-    const campo = this.jogo.partida?.[evento.lado]?.campo.cartas || [];
+  deveOcultarCarta(carta) {
+    if (!carta || !this.invocacoesPendentes?.size) return false;
+    for (const evento of this.invocacoesPendentes.values()) {
+      const campo = this.jogo.partida?.[evento.lado]?.campo.cartas || [];
+      if (campo.includes(carta) && carta.id === evento.fonte.id) return true;
+    }
+    return false;
+  }
+
+  atualizarVisibilidadeInvocacoes() {
+    // Inclui quem ainda espera na fila, não só a carta que já está voando.
     for (const objeto of this.jogo.children.list) {
-      const carta = objeto.dadosCartaCampo;
-      if (carta && campo.includes(carta) && carta.id === evento.fonte.id && carta.nome === evento.fonte.nome)
-        objeto.setVisible(visivel);
+      const ocultar = this.deveOcultarCarta(objeto.dadosCartaCampo);
+      if (ocultar || objeto.ocultaPorInvocacao) {
+        objeto.setVisible(!ocultar);
+        objeto.ocultaPorInvocacao = ocultar;
+      }
     }
   }
 
   restaurarCartaEmTransito() {
-    this.visibilidadeCartaEmTransito(true);
+    if (this.invocacaoEmCurso)
+      this.invocacoesPendentes?.delete(this.invocacaoEmCurso.id);
     this.invocacaoEmCurso = null;
+    this.atualizarVisibilidadeInvocacoes();
+  }
+
+  cancelarInvocacoesPendentes() {
+    this.invocacoesPendentes?.clear();
+    this.invocacaoEmCurso = null;
+    this.atualizarVisibilidadeInvocacoes();
   }
 
   animarFonte(evento, fonte, guardar, aoImpactar) {
@@ -110,7 +133,7 @@ class CenaEfeitos extends Phaser.Scene {
     carta.eventoApresentado = evento.id;
     if (invocacao) {
       this.invocacaoEmCurso = evento;
-      this.visibilidadeCartaEmTransito(false);
+      this.atualizarVisibilidadeInvocacoes();
     }
     const escala = invocacao ? 1 : habilidade ? 1.18 : 2;
     const impactar = () => {

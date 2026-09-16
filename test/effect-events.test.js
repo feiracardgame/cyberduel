@@ -70,6 +70,7 @@ for (const base of pool.filter((c) => c.habilidadeAtiva)) {
   // The presentation consumes every ID from combined updates once, in order, on either side.
   for (const payload of [events, codec.swapSnapshot(codec.serializeMatch(p)).eventosEfeito]) {
     const renderer = Object.create(CenaEfeitos.prototype);
+    renderer.jogo = { children: { list: [] } };
     renderer.fila = []; renderer.ultimoEvento = 0; renderer.proximo = () => {};
     renderer.receber(payload); renderer.receber(payload);
     assert.equal(renderer.fila.length, payload.length);

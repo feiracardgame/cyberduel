@@ -66,6 +66,41 @@ function fixture(spectator = false) {
   assert.equal(f.s.executando,false);
   assert.ok(f.objects.filter(o=>o.type==='container').every(o=>!o.active));
 }
+// Duas invocações no mesmo estado ficam ocultas até seus respectivos impactos.
+for (const separado of [false, true]) {
+  const f=fixture(), segunda={...f.source,id:2,indice:1};
+  const segundoObjeto={...f.fieldObject,dadosCartaCampo:segunda};
+  f.s.jogo.partida.inimigo.campo.cartas.push(segunda);
+  f.s.jogo.children.list.push(segundoObjeto);
+  const eventos=[f.event(1,'invocacao'),f.event(2,'invocacao',{fonte:segunda})];
+  if(separado) f.s.receber([eventos[0]]);
+  f.s.receber(eventos);
+  assert.equal(f.fieldObject.visible,false);
+  assert.equal(segundoObjeto.visible,false,'Carta na fila não aparece antes de voar.');
+  // Um snapshot substitui as instâncias das cartas durante a animação.
+  const novas=[{...f.source},{...segunda}];
+  f.s.jogo.partida.inimigo.campo.cartas=novas;
+  f.s.jogo.children.list.forEach((o,i)=>{o.dadosCartaCampo=novas[i];});
+  assert.equal(f.s.deveOcultarCarta(novas[1]),true);
+  while(!f.impacts.length) assert.ok(f.step());
+  assert.equal(f.fieldObject.visible,true);
+  assert.equal(segundoObjeto.visible,false,'Primeiro impacto não revela a segunda carta.');
+  f.flush();
+  assert.equal(segundoObjeto.visible,true);
+  assert.deepEqual(f.impacts,[1,2]);
+}
+// Encerrar a camada restaura também as invocações que ainda aguardam na fila.
+{
+  const f=fixture(), segunda={...f.source,id:2,indice:1};
+  const segundoObjeto={...f.fieldObject,dadosCartaCampo:segunda};
+  f.s.jogo.partida.inimigo.campo.cartas.push(segunda);
+  f.s.jogo.children.list.push(segundoObjeto);
+  f.s.receber([f.event(1,'invocacao'),f.event(2,'invocacao',{fonte:segunda})]);
+  f.s.cancelarInvocacoesPendentes();
+  assert.equal(f.fieldObject.visible,true);
+  assert.equal(segundoObjeto.visible,true);
+  assert.equal(f.s.invocacoesPendentes.size,0);
+}
 // Uma conjuração sem alvos também exibe a carta; a habilidade seguinte aguarda a fila.
 {
   const f=fixture();
