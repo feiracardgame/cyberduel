@@ -9,11 +9,13 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <title>Cyberduel</title>
-    <link rel="stylesheet" type="text/css" href="css/style.css?v=20260916-boosters" />
+    <link rel="stylesheet" type="text/css" href="css/style.css?v=20260916-revisao" />
   </head>
 
   <body>
-    <!-- 1. Phaser precisa ser o primeiro -->
+    <div id="game-viewport" aria-label="Área do jogo"></div>
+    <script src="js/viewport.js?v=20260916-viewport"></script>
+    <!-- 1. Phaser carrega antes das classes do jogo. -->
     <script src="phaser.js"></script>
     <!-- Cliente local: também funciona no Live Server, que não expõe
          automaticamente a rota /socket.io/socket.io.js do backend. -->
@@ -35,15 +37,15 @@
          array "scene" em main.js), mas jogo.js precisa vir antes de
          preload.js/titulo.js porque é lá que ficam as constantes GW/GH
          usadas nas outras duas. -->
-    <script src="js/cenas/efeitos.js?v=20260916-sem-painel"></script>
-    <script src="js/cenas/jogo.js?v=20260916-debug"></script>
+    <script src="js/cenas/efeitos.js?v=20260916-revisao"></script>
+    <script src="js/cenas/jogo.js?v=20260916-botao-final"></script>
     <script src="js/cenas/deck-builder.js?v=20260910-humbanet"></script>
-    <script src="js/cenas/preload.js?v=20260916-resolucao"></script>
+    <script src="js/cenas/preload.js?v=20260916-revisao"></script>
     <script src="js/cenas/titulo.js?v=20260910-humbanet"></script>
     <script src="js/cenas/transicao.js?v=20260916-resolucao"></script>
 
     <!-- 4. main.js por último (ele inicia o jogo) -->
-    <script src="js/main.js?v=20260916-debug"></script>
+    <script src="js/main.js?v=20260916-revisao"></script>
     <script src="js/debug.js?v=20260916-debug"></script>
   </body>
 </html>

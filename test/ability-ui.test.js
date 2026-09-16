@@ -1,7 +1,7 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
-const context = vm.createContext({ window: {}, Phaser: { Scene: class {} } });
+const context = vm.createContext({ window: {}, TIPOS_EFEITO: { REDISTRIBUIR_PODER: "redistribuir" }, Phaser: { Scene: class {} } });
 vm.runInContext(fs.readFileSync('js/cenas/jogo.js', 'utf8'), context);
 const CenaJogo = vm.runInContext('CenaJogo', context);
 
@@ -74,3 +74,19 @@ function selection(effect = { total: 6 }) {
   assert.equal(scene.podeUsarHabilidadesAgora(), true);
 }
 console.log('Seleção cumulativa de caveiras e transições de fase validadas.');
+// A mesma aura acompanha mudanças de fase sem piscar, sem depender de redesenhar o campo.
+{
+  const card = { habilidadeAtiva: true };
+  const aura = { visible: null, setVisible(value) { this.visible = value; } };
+  const scene = Object.assign(Object.create(CenaJogo.prototype), {
+    children: { list: [{ dadosCartaCampo: card, auraHabilidade: aura }] },
+    partida: { jogador: { campo: { cartas: [card] } }, inimigo: {}, alvosParaHabilidadeEmCampo: () => [0] },
+    multiplayer: {}, ehMeuTurno: true, faseAtual: 'colocar',
+  });
+  scene.atualizarAurasHabilidade(); assert.equal(aura.visible,false);
+  scene.faseAtual='habilidades';scene.atualizarAurasHabilidade();assert.equal(aura.visible,true);
+  card.usadaEsteTurno=true;scene.atualizarAurasHabilidade();assert.equal(aura.visible,false);
+  card.usadaEsteTurno=false;scene.ehMeuTurno=false;scene.atualizarAurasHabilidade();assert.equal(aura.visible,false);
+  scene.ehMeuTurno=true;scene.multiplayer.spectator=true;scene.atualizarAurasHabilidade();assert.equal(aura.visible,false);
+  scene.multiplayer.spectator=false;scene.faseAtual='colocar';scene.atualizarAurasHabilidade();assert.equal(aura.visible,false);
+}

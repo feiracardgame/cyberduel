@@ -541,6 +541,7 @@ class CenaJogo extends Phaser.Scene {
 
   update() {
     this.apresentarEventosEfeito();
+    this.atualizarAurasHabilidade();
     if (!this.partida || this.partida.partidaEncerrada) return;
     if (this.multiplayerAtivo && !this.multiplayer.initialized) return;
     const restante = this.multiplayerAtivo
@@ -1217,17 +1218,17 @@ class CenaJogo extends Phaser.Scene {
 
   // Mostra as costas das cartas na mão do inimigo, no topo da tela — só
   // pra dar noção visual de quantas cartas ele tem (não revela quais são).
-  desenharMaoInimigo() {
-    const cartasMao = this.partida.inimigo.mao.cartas;
+  desenharMaoInimigo(lado = "inimigo") {
+    const cartasMao = this.partida[lado].mao.cartas;
     const total = cartasMao.length;
     if (total === 0) return;
 
     // Nexus de Dados Global: enquanto esse terreno estiver no campo do
     // jogador, a mão do inimigo fica revelada.
-    const revelada = this.partida.maoRevelada(this.partida.jogador);
+    const revelada = !this.multiplayer?.spectator && this.partida.maoRevelada(this.partida.jogador);
 
     const centroX = LARGURA_LAYOUT / 2;
-    const centroY = Y_MAO_INIMIGO;
+    const centroY = lado === "jogador" ? Y_MAO_JOGADOR : Y_MAO_INIMIGO;
     const larguraCarta = 140;
     const alturaCarta = 200;
     const espacamentoMax = 60;
@@ -1259,6 +1260,7 @@ class CenaJogo extends Phaser.Scene {
         let container = this.add.container(posX, posY, [sombra, costas]);
         container.setAngle(angulo);
         container.setDepth(-99);
+        container.maoOcultaLado = lado;
         return;
       }
 
@@ -1746,8 +1748,8 @@ class CenaJogo extends Phaser.Scene {
       x: LARGURA_LAYOUT / 2,
       y: ALTURA_LAYOUT / 2,
       angle: 0,
-      scaleX: 1.6,
-      scaleY: 1.6,
+      scaleX: 2.2,
+      scaleY: 2.2,
       duration: 260,
       ease: "Back.Out",
       onComplete: () => {
@@ -1760,8 +1762,8 @@ class CenaJogo extends Phaser.Scene {
         // Pulso no instante em que o efeito é aplicado
         this.tweens.add({
           targets: gameObject,
-          scaleX: 1.85,
-          scaleY: 1.85,
+          scaleX: 2.4,
+          scaleY: 2.4,
           duration: 130,
           yoyo: true,
           ease: "Sine.easeInOut",
@@ -2846,7 +2848,7 @@ class CenaJogo extends Phaser.Scene {
   desenharCampoJogador() {
     const L = this.layout;
     this.add
-      .text(LARGURA_LAYOUT / 2, L.yJogadorTras + L.slotH / 2 + 26, "VOCÊ", {
+      .text(LARGURA_LAYOUT / 2, L.yJogadorTras + L.slotH / 2 + 26, this.multiplayer?.spectator ? String(this.multiplayer.localUsername || "JOGADOR 1").toLocaleUpperCase("pt-BR") : "VOCÊ", {
         fontSize: "24px",
         color: "#88ff99",
         fontStyle: "bold",
@@ -2873,9 +2875,16 @@ class CenaJogo extends Phaser.Scene {
           carta,
           L,
           carta.ocultadaPelaToca && !carta.revelada,
-          true,
+          !this.multiplayer?.spectator,
         );
       }
+    }
+  }
+
+  atualizarAurasHabilidade() {
+    for (const objeto of this.children.list) {
+      if (objeto.auraHabilidade)
+        objeto.auraHabilidade.setVisible(this.habilidadeDisponivelAgora(objeto.dadosCartaCampo));
     }
   }
 
@@ -2971,11 +2980,13 @@ class CenaJogo extends Phaser.Scene {
     if (
       podeInteragirOculta &&
       !viradaParaBaixo &&
-      this.habilidadeDisponivelAgora(carta)
+      carta.habilidadeAtiva &&
+      this.partida.jogador.campo.cartas.includes(carta)
     ) {
       auraHabilidade = this.add
         .rectangle(0, 0, CW + 14, CH + 14, 0x38f2a0, 0.035)
-        .setStrokeStyle(6, 0x38f2a0, 0.82);
+        .setStrokeStyle(6, 0x38f2a0, 0.82)
+        .setVisible(this.habilidadeDisponivelAgora(carta));
       filhos.unshift(auraHabilidade);
     }
 
@@ -3057,6 +3068,7 @@ class CenaJogo extends Phaser.Scene {
     // Referência à carta de dados, usada para localizar esta carta na
     // tela quando um efeito de buff/debuff precisa animá-la.
     container.dadosCartaCampo = carta;
+    container.auraHabilidade = auraHabilidade;
 
     container.on("pointerup", () => {
       if (
@@ -3159,6 +3171,10 @@ class CenaJogo extends Phaser.Scene {
   }
 
   desenharMaoEmLeque() {
+    if (this.multiplayer?.spectator) {
+      this.desenharMaoInimigo("jogador");
+      return;
+    }
     let cartasMao = this.partida.jogador.mao.cartas;
     let totalCartas = cartasMao.length;
 
@@ -8031,8 +8047,10 @@ class CenaJogo extends Phaser.Scene {
       this.multiplayer?.leaveRoom?.();
       this.scene.start("CenaTitulo");
     };
+    // Mantém a ação junto do resultado, com espaço para a carta de destaque.
+    const yVoltarMenu = ALTURA_LAYOUT / 2 + (resultadoCombate.cartaDestaque ? 500 : 160);
     this.add
-      .text(LARGURA_LAYOUT / 2, ALTURA_LAYOUT - 170, "VOLTAR AO MENU", {
+      .text(LARGURA_LAYOUT / 2, yVoltarMenu, "VOLTAR AO MENU", {
         fontSize: "40px",
         color: "#ffffff",
         backgroundColor: "#24243d",
@@ -8043,7 +8061,7 @@ class CenaJogo extends Phaser.Scene {
       .setInteractive({ useHandCursor: true })
       .on("pointerup", voltar);
     this.add
-      .text(LARGURA_LAYOUT / 2, ALTURA_LAYOUT - 95, "Retorno automático em 10 segundos", {
+      .text(LARGURA_LAYOUT / 2, yVoltarMenu + 75, "Retorno automático em 10 segundos", {
         fontSize: "25px",
         color: "#dddddd",
       })

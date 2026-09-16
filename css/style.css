@@ -78,7 +78,7 @@ body.deck-forge-open {
   background: var(--forge-bg);
 }
 
-body.deck-forge-open > canvas {
+body.deck-forge-open #game-viewport canvas {
   opacity: 0;
   pointer-events: none;
 }
@@ -1922,7 +1922,7 @@ body.title-terminal-open {
   background: #000;
 }
 
-body.title-terminal-open > canvas {
+body.title-terminal-open #game-viewport canvas {
   opacity: 0;
   pointer-events: none;
 }
@@ -2930,4 +2930,21 @@ body.title-terminal-open > canvas {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* Uma área compartilhada pelo Phaser e menus, limitada ao viewport visível. */
+#game-viewport {
+  position: fixed;
+  left: var(--viewport-left, 0px);
+  top: var(--viewport-top, 0px);
+  width: var(--viewport-width, 100vw);
+  height: var(--viewport-height, 100dvh);
+  overflow: hidden;
+}
+#game-viewport canvas { display: block; }
+.title-terminal, .deck-forge {
+  left: calc(var(--viewport-left, 0px) + var(--viewport-width, 100vw) / 2);
+  top: calc(var(--viewport-top, 0px) + var(--viewport-height, 100vh) / 2);
+  width: var(--game-display-width, min(100vw, 48.648649vh));
+  height: var(--game-display-height, min(100dvh, 205.555556vw));
 }

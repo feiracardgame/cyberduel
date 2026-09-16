@@ -4,6 +4,39 @@ Novidades, correções e verificações realizadas no projeto. As entregas mais 
 
 ## 2026-09-16
 
+### Botão de retorno mais próximo do centro
+
+- Subido o botão “VOLTAR AO MENU” da tela final para junto do resultado. A posição reserva espaço quando há carta de destaque e fica mais central quando não há carta.
+- O aviso de retorno automático acompanha o botão. Atualizada a versão do script no HTML.
+- Validados a sintaxe de `jogo.js` e `git diff --check`, sem erros. Não realizada nova conferência visual no navegador para este ajuste.
+
+
+### Revisão dos problemas de habilidades, espectador e tela móvel
+
+- Aura verde passa a atualizar a visibilidade no próprio objeto, sem animação de pulso ou dependência de redesenho: aparece somente na fase de habilidades, na vez do jogador, para cartas com habilidade disponível e alvos válidos. Permanece oculta durante colocação, após uso e para espectadores.
+- Corrigida a mão do anfitrião no modo espectador: os dois leques usam `fundoCarta`, sem nomes, estatísticas ou arraste. Cartas ocultas do anfitrião no campo também não abrem detalhes; o campo identifica o nome do jogador em vez de “VOCÊ”.
+- Ampliadas as cartas de efeito apresentadas no centro da mesa, tanto na conjuração local quanto na apresentação remota, preservando o desaparecimento após o efeito e a ausência do painel superior.
+- Criado um contêiner compartilhado para o canvas e os menus, dimensionado pela área visível do navegador. Barras móveis, teclado e rotação atualizam tamanho e posição; o Phaser recebe as novas dimensões antes de recalcular a escala, evitando o uso do tamanho anterior e o corte da imagem. Mantida a resolução configurada de 720 × 1480.
+- Confirmadas as correções já existentes: Extintor bloqueia bônus durante a colocação seguinte e só expira após a pontuação dessa rodada; Dieh’go acumula caveiras por toque, sem diminuir a seleção e respeitando PA/reserva; Neoanalista usa vídeo WebM com alfa e escala uniforme. Versionado o endereço do vídeo transparente e atualizados os scripts/CSS no HTML para invalidar cache.
+
+### Validações da revisão
+
+- `npm test` aprovado: sintaxe de 22 arquivos e 19 testes funcionais. Acrescentadas regressões para aura entre fases, mãos do espectador e viewport com barras, teclado, deslocamento, rotação e fallback sem VisualViewport. Regressões do Extintor, distribuição de dano, animações e sincronização aprovadas.
+- Conferidos no Chromium três navegadores em uma sala: mãos com verso normal nos dois lados e bloqueio da consulta de carta oculta do anfitrião. Conferidos seis danos cumulativos por cliques no seletor do Dieh’go, limite por PA e mudança de aura sem redesenhar o tabuleiro.
+- Decodificado e verificado o Neoanalista: 480 × 480 com transparência, sem pixels verdes opacos no frame amostrado; exibição no jogo com escala igual nos dois eixos. Não foi necessário regenerar o asset.
+- Canvas e menu conferidos em retrato, paisagem e área visual reduzida, nos perfis alto e móvel. `git diff --check` sem erros. Samsung Internet foi apenas simulado pelo user-agent no Chromium; permanece pendente a conferência em dispositivo físico com esse navegador.
+
+
+### Animações das ações do oponente
+
+- Corrigida a apresentação na camada independente de efeitos: invocações do oponente voam da mão até o campo e viram a carta; conjurações exibem a carta no centro; habilidades destacam a carta de origem. Mantida a remoção do painel superior de anúncios.
+- Contornos dos alvos, mudanças de poder, sons e vídeos começam após o impacto da carta. A fila aguarda a apresentação antes de avançar, sem duplicar eventos recebidos novamente pela rede.
+- Durante a invocação, a carta estática fica oculta e reaparece na aterrissagem, inclusive se o campo for redesenhado durante o voo. Encerrar a camada também restaura sua visibilidade.
+- Preservado o sigilo das cartas ocultas, sem expor nome ou arte. Animações locais já existentes não são duplicadas; espectadores acompanham as apresentações dos dois lados.
+- Atualizada a versão do script no HTML. `npm test` aprovado: 21 arquivos com sintaxe válida e 17 testes funcionais, incluindo nova regressão de invocação, conjuração sem alvos, habilidade, fila, redesenho, sigilo e perspectiva. `git diff --check` sem erros.
+- Conferidos no Chromium o bot colocando carta e usando efeito, além de invocação, conjuração e habilidade em dois navegadores online. Validadas atualizações durante o voo e ausência de repetição de eventos, sem erros JavaScript. Não realizada conferência em dispositivo móvel físico.
+
+
 ### Loja de boosters, abertura animada e dinheiro administrativo
 
 - Refeito o menu de boosters com seleção de facção, pacote ilustrado em destaque, saldo, preço e estados de compra. A abertura anima o rompimento do lacre e revela as cartas em sequência, com cores por raridade e respeito à preferência de movimento reduzido.

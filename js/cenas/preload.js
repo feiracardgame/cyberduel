@@ -118,7 +118,7 @@ class CenaPreload extends Phaser.Scene {
     this.load.audio("somEstagiario", "assets/sons/som-estagiario.mp3");
     this.load.audio("somGRPH", "assets/sons/som-grph.mp3");
     this.load.audio("somCryptoAcionistas", "assets/sons/jogo-cyberacionistaefeito.wav");
-    this.load.video("efeitoNeoAnalista", "assets/efeitos/efeito-neoanalista-alpha.webm");
+    this.load.video("efeitoNeoAnalista", "assets/efeitos/efeito-neoanalista-alpha.webm?v=20260916-alpha");
     //videos
     this.load.video("videoTransicao", "assets/videos/transicaocerta.mp4");
     this.load.video(

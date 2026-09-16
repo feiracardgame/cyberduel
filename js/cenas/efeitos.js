@@ -25,6 +25,8 @@ class CenaEfeitos extends Phaser.Scene {
     this.fila = [];
     this.exibidos = [];
     this.executando = false;
+    this.invocacaoEmCurso = null;
+    this.events.once("shutdown", () => this.restaurarCartaEmTransito());
     this.scene.bringToTop();
   }
 
@@ -44,6 +46,94 @@ class CenaEfeitos extends Phaser.Scene {
     return { x: layout.x[indice % 5], y: (lado === "jogador" ? layout.yJogador : layout.yInimigo)[Math.floor(indice / 5)] };
   }
 
+  update() {
+    // O campo pode ser recriado por uma atualização online durante o voo.
+    // Ocultamos apenas a carta representada pela animação, até ela aterrissar.
+    if (this.invocacaoEmCurso) this.visibilidadeCartaEmTransito(false);
+  }
+
+  visibilidadeCartaEmTransito(visivel) {
+    const evento = this.invocacaoEmCurso;
+    if (!evento) return;
+    const campo = this.jogo.partida?.[evento.lado]?.campo.cartas || [];
+    for (const objeto of this.jogo.children.list) {
+      const carta = objeto.dadosCartaCampo;
+      if (carta && campo.includes(carta) && carta.id === evento.fonte.id && carta.nome === evento.fonte.nome)
+        objeto.setVisible(visivel);
+    }
+  }
+
+  restaurarCartaEmTransito() {
+    this.visibilidadeCartaEmTransito(true);
+    this.invocacaoEmCurso = null;
+  }
+
+  animarFonte(evento, fonte, guardar, aoImpactar) {
+    const remoto = evento.lado !== "jogador" || this.jogo.multiplayer?.spectator;
+    if (!remoto || !["invocacao", "conjuracao", "habilidade"].includes(evento.momento)) {
+      aoImpactar();
+      return;
+    }
+    const invocacao = evento.momento === "invocacao" && fonte.indice >= 0;
+    const habilidade = evento.momento === "habilidade";
+    const layout = this.jogo.layout || LAYOUT_CAMPO_NORMAL;
+    const largura = layout.slotW;
+    const altura = layout.slotH;
+    const origem = habilidade ? this.ponto(evento.lado, fonte.indice) : {
+      x: LARGURA_LAYOUT / 2,
+      y: evento.lado === "inimigo" ? Y_MAO_INIMIGO : Y_MAO_JOGADOR,
+    };
+    const destino = invocacao ? this.ponto(evento.lado, fonte.indice) : habilidade ? {
+      x: origem.x, y: Math.max(altura, origem.y - 65),
+    } : { x: LARGURA_LAYOUT / 2, y: ALTURA_LAYOUT / 2 };
+    const oculta = remoto && !!evento.fonte.oculto;
+    const chave = oculta ? "fundoCarta" : fonte.imagem;
+    const arte = chave && this.textures.exists(chave)
+      ? this.add.image(0, 0, chave).setDisplaySize(largura, altura)
+      : this.add.rectangle(0, 0, largura, altura, 0x142334);
+    const moldura = this.add.rectangle(0, 0, largura, altura, 0x000000, 0)
+      .setStrokeStyle(4, 0x60cfff);
+    const frente = this.add.container(0, 0, [arte, moldura]);
+    if (!oculta) {
+      const placa = this.add.rectangle(0, altura / 2 - 31, largura - 8, 56, 0x07111d, 0.9);
+      const nome = this.add.text(0, altura / 2 - 31, fonte.nome, {
+        fontSize: "18px", fontStyle: "bold", align: "center", color: "#ffffff",
+        wordWrap: { width: largura - 18 },
+      }).setOrigin(0.5);
+      frente.add([placa, nome]);
+    }
+    const verso = !habilidade && this.textures.exists("fundoCarta")
+      ? this.add.image(0, 0, "fundoCarta").setDisplaySize(largura, altura) : null;
+    frente.setVisible(!verso);
+    const carta = guardar(this.add.container(origem.x, origem.y, [frente, verso].filter(Boolean)))
+      .setDepth(30).setScale(habilidade ? 1 : 0.7).setAngle(habilidade ? 0 : -12);
+    carta.eventoApresentado = evento.id;
+    if (invocacao) {
+      this.invocacaoEmCurso = evento;
+      this.visibilidadeCartaEmTransito(false);
+    }
+    const escala = invocacao ? 1 : habilidade ? 1.18 : 2;
+    const impactar = () => {
+      this.restaurarCartaEmTransito();
+      aoImpactar();
+      this.tweens.add({ targets: carta, scaleX: escala * 1.1, scaleY: escala * 1.1,
+        duration: 120, yoyo: true, onComplete: () => {
+          this.tweens.add({ targets: carta, alpha: 0, y: carta.y - (invocacao ? 0 : 25),
+            duration: 240, delay: invocacao ? 0 : 220 });
+        } });
+    };
+    this.tweens.add({ targets: carta, x: destino.x, y: destino.y,
+      scaleX: escala, scaleY: escala, angle: 0, duration: habilidade ? 240 : 380,
+      ease: "Cubic.Out", onComplete: () => {
+        if (!verso) return impactar();
+        this.tweens.add({ targets: carta, scaleX: 0, duration: 100, onComplete: () => {
+          verso.setVisible(false); frente.setVisible(true);
+          this.tweens.add({ targets: carta, scaleX: escala, duration: 140,
+            ease: "Sine.Out", onComplete: impactar });
+        } });
+      } });
+  }
+
   proximo() {
     if (this.executando || !this.fila.length) return;
     this.executando = true;
@@ -56,80 +146,84 @@ class CenaEfeitos extends Phaser.Scene {
     const perfil = APRESENTACAO_EFEITOS[fonte.habilidadeAprendidaDe || fonte.nome] || {};
     const objetos = [];
     const guardar = (o) => { objetos.push(o); return o; };
-    const origem = this.ponto(evento.lado, fonte.indice);
-    const pulsar = (p, largura = 170, altura = 240) => {
-      const halo = guardar(this.add.rectangle(p.x, p.y, largura, altura, 0x000000, 0).setStrokeStyle(5, 0x60cfff));
-      this.tweens.add({ targets: halo, scale: 1.12, alpha: 0.15, duration: 420, yoyo: true });
-    };
-    if (fonte.indice >= 0) pulsar(origem);
-    let alvos = (evento.alvos || []).filter((alvo) => alvo.lado !== evento.lado || alvo.id !== fonte.id || alvo.delta);
-    // O uso da armadilha é público, mas o espaço escolhido continua privado.
-    if (remoto && fonte.efeito?.tipo === TIPOS_EFEITO.ARMADILHA_ESPACO) alvos = [];
-    for (const alvo of alvos) {
-      const destino = this.ponto(alvo.lado, alvo.indice);
-      pulsar(destino);
-      if (alvo.removida && !(alvo.oculto && remoto)) {
-        if (alvo.imagem && this.textures.exists(alvo.imagem)) {
-          const fantasma = guardar(this.add.image(destino.x, destino.y, alvo.imagem).setDisplaySize(170, 230));
-          this.tweens.add({ targets: fantasma, alpha: 0, angle: 18, y: destino.y + 65, duration: 850 });
-        }
-        if (alvo.nome === "CyberPolíticos") {
-          for (let i = 0; i < 14; i++) {
-            const papel = guardar(this.add.rectangle(destino.x, destino.y, 10, 18, i % 2 ? 0xb779ed : 0xe4d5fa));
-            this.tweens.add({ targets: papel, x: destino.x + Math.cos(i) * 150,
-              y: destino.y + Math.sin(i) * 180, angle: i * 70, alpha: 0, duration: 900 });
+    // Alvos, sons e vídeos começam no impacto da carta, na mesma fila.
+    const aplicar = () => {
+      const origem = this.ponto(evento.lado, fonte.indice);
+      const pulsar = (p, largura = 170, altura = 240) => {
+        const halo = guardar(this.add.rectangle(p.x, p.y, largura, altura, 0x000000, 0).setStrokeStyle(5, 0x60cfff));
+        this.tweens.add({ targets: halo, scale: 1.12, alpha: 0.15, duration: 420, yoyo: true });
+      };
+      if (fonte.indice >= 0) pulsar(origem);
+      let alvos = (evento.alvos || []).filter((alvo) => alvo.lado !== evento.lado || alvo.id !== fonte.id || alvo.delta);
+      // O uso da armadilha é público, mas o espaço escolhido continua privado.
+      if (remoto && fonte.efeito?.tipo === TIPOS_EFEITO.ARMADILHA_ESPACO) alvos = [];
+      for (const alvo of alvos) {
+        const destino = this.ponto(alvo.lado, alvo.indice);
+        pulsar(destino);
+        if (alvo.removida && !(alvo.oculto && remoto)) {
+          if (alvo.imagem && this.textures.exists(alvo.imagem)) {
+            const fantasma = guardar(this.add.image(destino.x, destino.y, alvo.imagem).setDisplaySize(170, 230));
+            this.tweens.add({ targets: fantasma, alpha: 0, angle: 18, y: destino.y + 65, duration: 850 });
           }
-          guardar(this.add.text(destino.x, destino.y, "CONTRATO\nROMPIDO", { fontSize: "25px", color: "#e2b0ff", align: "center", stroke: "#160c22", strokeThickness: 5 }).setOrigin(0.5));
+          if (alvo.nome === "CyberPolíticos") {
+            for (let i = 0; i < 14; i++) {
+              const papel = guardar(this.add.rectangle(destino.x, destino.y, 10, 18, i % 2 ? 0xb779ed : 0xe4d5fa));
+              this.tweens.add({ targets: papel, x: destino.x + Math.cos(i) * 150,
+                y: destino.y + Math.sin(i) * 180, angle: i * 70, alpha: 0, duration: 900 });
+            }
+            guardar(this.add.text(destino.x, destino.y, "CONTRATO\nROMPIDO", { fontSize: "25px", color: "#e2b0ff", align: "center", stroke: "#160c22", strokeThickness: 5 }).setOrigin(0.5));
+          }
+        }
+        const texto = alvo.removida ? "REMOVIDA" : alvo.delta ? `${alvo.delta > 0 ? "+" : ""}${alvo.delta} PA` : alvo.bloqueado ? "PA BLOQUEADO" : "EFEITO APLICADO";
+        guardar(this.add.text(destino.x, destino.y - 70, texto, {
+          fontSize: "22px", fontStyle: "bold", color: alvo.delta < 0 ? "#ff889e" : "#9affbd",
+          stroke: "#061322", strokeThickness: 6,
+        }).setOrigin(0.5));
+        if (evento.momento === "habilidade" && perfil.visual === "plasma" && alvo.lado !== evento.lado) {
+          for (let i = 0; i < 5; i++) {
+            const orb = guardar(this.add.circle(origem.x, origem.y, 6 + i, 0x43cfff, 0.85));
+            this.tweens.add({ targets: orb, x: destino.x + (i - 2) * 13, y: destino.y,
+              duration: 220 + i * 60, onComplete: () => {
+                orb.setRadius(24); this.tweens.add({ targets: orb, alpha: 0, scale: 2, duration: 220 });
+              } });
+          }
+        }
+        if (evento.momento === "habilidade" && perfil.visual === "caveiras" && alvo.delta < 0) {
+          const quantidade = Math.min(6, Math.abs(alvo.delta));
+          for (let i = 0; i < quantidade; i++) {
+            const x = destino.x + ((i % 3) - (Math.min(quantidade, 3) - 1) / 2) * 48;
+            const y = destino.y + Math.floor(i / 3) * 55;
+            if (this.textures.exists("efeitoDiego")) guardar(this.add.image(x, y, "efeitoDiego").setDisplaySize(46, 46));
+            else guardar(this.add.text(x, y, "☠", { fontSize: "40px", color: "#ffffff" }).setOrigin(0.5));
+          }
+        }
+        if (evento.momento === "habilidade" && perfil.visual === "juridico" && alvo.removida && alvo.lado !== evento.lado) {
+          guardar(this.add.image(Phaser.Math.Clamp(destino.x, 175, LARGURA_LAYOUT - 175), destino.y, "efeitoAdvogado").setDisplaySize(340, 245));
         }
       }
-      const texto = alvo.removida ? "REMOVIDA" : alvo.delta ? `${alvo.delta > 0 ? "+" : ""}${alvo.delta} PA` : alvo.bloqueado ? "PA BLOQUEADO" : "EFEITO APLICADO";
-      guardar(this.add.text(destino.x, destino.y - 70, texto, {
-        fontSize: "22px", fontStyle: "bold", color: alvo.delta < 0 ? "#ff889e" : "#9affbd",
-        stroke: "#061322", strokeThickness: 6,
-      }).setOrigin(0.5));
-      if (evento.momento === "habilidade" && perfil.visual === "plasma" && alvo.lado !== evento.lado) {
-        for (let i = 0; i < 5; i++) {
-          const orb = guardar(this.add.circle(origem.x, origem.y, 6 + i, 0x43cfff, 0.85));
-          this.tweens.add({ targets: orb, x: destino.x + (i - 2) * 13, y: destino.y,
-            duration: 220 + i * 60, onComplete: () => {
-              orb.setRadius(24); this.tweens.add({ targets: orb, alpha: 0, scale: 2, duration: 220 });
-            } });
-        }
+      const som = perfil[evento.momento] || (evento.momento === "invocacao" ? "somJogarCarta" : "somBuff");
+      if (this.cache.audio.exists(som)) this.sound.play(som, { volume: window.cyberduelSettings?.effects(0.3) ?? 0.3 });
+      let duracao = 1000;
+      if (evento.momento === "invocacao" && perfil.video && this.cache.video.exists(perfil.video)) {
+        duracao = 1700;
+        const video = guardar(this.add.video(origem.x, origem.y, perfil.video).setVisible(false));
+        video.once("created", () => {
+          const grande = perfil.video === "efeitoRaspClayVertical";
+          video.setPosition(grande ? LARGURA_LAYOUT / 2 : origem.x, grande ? ALTURA_LAYOUT / 2 : origem.y);
+          const escala = Math.min((grande ? 950 : 260) / video.width, (grande ? 1440 : 260) / video.height);
+          video.setScale(escala).setVisible(true);
+        });
+        video.once("error", () => video.setVisible(false));
+        video.setMute(true);
+        video.play(false);
       }
-      if (evento.momento === "habilidade" && perfil.visual === "caveiras" && alvo.delta < 0) {
-        const quantidade = Math.min(6, Math.abs(alvo.delta));
-        for (let i = 0; i < quantidade; i++) {
-          const x = destino.x + ((i % 3) - (Math.min(quantidade, 3) - 1) / 2) * 48;
-          const y = destino.y + Math.floor(i / 3) * 55;
-          if (this.textures.exists("efeitoDiego")) guardar(this.add.image(x, y, "efeitoDiego").setDisplaySize(46, 46));
-          else guardar(this.add.text(x, y, "☠", { fontSize: "40px", color: "#ffffff" }).setOrigin(0.5));
-        }
-      }
-      if (evento.momento === "habilidade" && perfil.visual === "juridico" && alvo.removida && alvo.lado !== evento.lado) {
-        guardar(this.add.image(Phaser.Math.Clamp(destino.x, 175, LARGURA_LAYOUT - 175), destino.y, "efeitoAdvogado").setDisplaySize(340, 245));
-      }
-    }
-    const som = perfil[evento.momento] || (evento.momento === "invocacao" ? "somJogarCarta" : "somBuff");
-    if (this.cache.audio.exists(som)) this.sound.play(som, { volume: window.cyberduelSettings?.effects(0.3) ?? 0.3 });
-    let duracao = 1000;
-    if (evento.momento === "invocacao" && perfil.video && this.cache.video.exists(perfil.video)) {
-      duracao = 1700;
-      const video = guardar(this.add.video(origem.x, origem.y, perfil.video).setVisible(false));
-      video.once("created", () => {
-        const grande = perfil.video === "efeitoRaspClayVertical";
-        video.setPosition(grande ? LARGURA_LAYOUT / 2 : origem.x, grande ? ALTURA_LAYOUT / 2 : origem.y);
-        const escala = Math.min((grande ? 950 : 260) / video.width, (grande ? 1440 : 260) / video.height);
-        video.setScale(escala).setVisible(true);
+      this.time.delayedCall(duracao, () => {
+        objetos.forEach((o) => { if (o.active) o.destroy(); });
+        this.executando = false;
+        this.proximo();
       });
-      video.once("error", () => video.setVisible(false));
-      video.setMute(true);
-      video.play(false);
-    }
-    this.time.delayedCall(duracao, () => {
-      objetos.forEach((o) => { if (o.active) o.destroy(); });
-      this.executando = false;
-      this.proximo();
-    });
+    };
+    this.animarFonte(evento, fonte, guardar, aplicar);
   }
 
 }

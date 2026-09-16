@@ -412,6 +412,7 @@ fallback();
 assert.equal(invocationCompleted, 1, "A conclusão do efeito deve ocorrer uma vez.");
 
 const timerScene = Object.create(CenaJogo.prototype);
+timerScene.children = { list: [] };
 timerScene.partida = { partidaEncerrada: false };
 timerScene.ehMeuTurno = true;
 timerScene.multiplayerAtivo = true;

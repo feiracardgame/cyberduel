@@ -2099,11 +2099,15 @@ window.CYBERDUEL_RENDER_PROFILE = Object.freeze({
   height: ALTURA_RENDER,
 });
 
+window.cyberduelViewport?.configure(GW, GH);
+
 const config = {
+  parent: "game-viewport",
   type: usarCanvasParaDiagnostico ? Phaser.CANVAS : Phaser.AUTO,
   width: LARGURA_RENDER,
   height: ALTURA_RENDER,
   scale: {
+    expandParent: false,
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
     autoRound: true,
@@ -2120,3 +2124,4 @@ const config = {
 };
 
 const game = new Phaser.Game(config);
+window.cyberduelViewport?.attach(game);
