@@ -11,7 +11,7 @@ const url = `http://127.0.0.1:${port}`;
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "cyberduel-multiplayer-test-"));
 const server = spawn(process.execPath, ["server/server.js"], {
   cwd: process.cwd(),
-  env: { ...process.env, PORT: String(port), DATA_DIR: dataDir },
+  env: { ...process.env, PORT: String(port), DATA_DIR: dataDir, CYBERDUEL_DEBUG: "1" },
   stdio: ["ignore", "pipe", "inherit"],
 });
 
@@ -210,6 +210,20 @@ async function run() {
   const timedUpdate = await Promise.race([expired,
     new Promise((_, reject) => { const t = setTimeout(() => reject(Error("Timeout não avançou a fase")), 22_000); t.unref(); })]);
   assert.equal(timedUpdate.step, 1);
+  // O atalho é sincronizado, respeita a perspectiva e não pode ser usado por espectadores.
+  assert.equal((await emitAck(intruder, "debug-finish-match", { resultado: "vitoria" })).ok, false);
+  const finisher = sockets[timedUpdate.activePlayer];
+  assert.equal((await emitAck(finisher, "debug-finish-match", { resultado: "invalido" })).ok, false);
+  const finalPlayer = once(finisher, "state-update");
+  const finalSpectator = once(intruder, "state-update");
+  assert.equal((await emitAck(finisher, "debug-finish-match", { resultado: "vitoria" })).ok, true);
+  const [finished, observed] = await Promise.all([finalPlayer, finalSpectator]);
+  assert.equal(finished.debugFinal, true);
+  assert.equal(finished.state.partidaEncerrada, true);
+  assert.equal(finished.deadline, null);
+  assert.equal(finished.result.resultadoCombate.resultado, timedUpdate.activePlayer === 1 ? "jogador" : "inimigo");
+  assert.equal(observed.result.resultadoCombate.resultado, finished.result.resultadoCombate.resultado);
+  assert.equal((await emitAck(finisher, "debug-finish-match", { resultado: "derrota" })).ok, false);
   for (const socket of [player1, player2, intruder, reconnected]) socket.disconnect();
   console.log("Fluxo multiplayer validado.");
 }

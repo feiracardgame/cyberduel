@@ -2,6 +2,69 @@
 
 Novidades, correções e verificações realizadas no projeto. As entregas mais recentes aparecem primeiro.
 
+## 2026-09-16
+
+### Atalhos de teste para x1 e final da partida
+
+- Adicionados os comandos globais `irParaX1()` e `irParaFinal("vitoria" | "derrota" | "empate")`, disponíveis no console após o carregamento inicial.
+- X1 abre diretamente contra o bot, sem login ou vídeo de transição, usando o deck salvo ou um deck temporário válido. Sai da sala online anterior e não altera o deck persistido nem registra a partida de teste na conta.
+- Final solo cancela callbacks, efeitos pendentes e modais antes de mostrar o resultado. Reinícios recriam o vídeo de fundo, e o fechamento imediato do detalhe evita callbacks sobre a tela final.
+- Final online é resolvido no servidor e transmitido aos jogadores e espectadores com a perspectiva correta. Disponível apenas com `npm run dev` ou `CYBERDUEL_DEBUG=1`; espectadores, resultados inválidos e partidas já encerradas são recusados. Finais de teste não chamam o registro de partida da conta.
+- Documentados os comandos no README e atualizadas as versões dos scripts no HTML.
+- `npm test` aprovado: sintaxe de 21 arquivos e 16 testes funcionais, incluindo recusa do atalho no servidor normal, sincronização online, restrições a espectadores e os três resultados. `git diff --check` sem erros.
+- Conferidos no Chromium automatizado o x1 sem login, os três resultados, reinício, modal aberto e preservação do deck salvo. Final online validado em dois navegadores: vitória do jogador 2 e derrota do jogador 1, sem erros JavaScript.
+
+
+### Remoção do painel de ações
+
+- Removida a faixa superior que anunciava nome, ação e descrição das cartas durante os eventos da partida, incluindo as ações do oponente. Mantidos os efeitos sobre as cartas, animações e sons.
+- Removido o gerador de resumos usado exclusivamente pela faixa e atualizada a versão do script no HTML.
+- Validados a sintaxe de `efeitos.js`, o teste de eventos de efeitos e `git diff --check`, sem erros. Não realizada nova conferência visual no navegador para esta remoção.
+
+### Adaptação à resolução 720 × 1480
+
+- Preservados `GW = 720` e `GH = 1480` em `jogo.js`. Separadas as dimensões de saída das unidades de desenho: campo, mão, HUD, modais, carregamento e efeitos compartilham um layout proporcional, convertido pela câmera em todos os perfis de qualidade.
+- Corrigidas as coordenadas de ponteiro usadas nos gestos da mão, rolagem de descrições e movimento do zoom das cartas, considerando a escala da câmera.
+- Tela inicial e Deck Forge acompanham a proporção configurada. Vídeo de transição cobre a tela sem deformação e só recebe tamanho após carregar o primeiro frame. Atualizadas as versões dos arquivos alterados no HTML.
+
+### Validações e limitações
+
+- `npm test` aprovado: sintaxe de 19 arquivos e 15 testes funcionais. Regressão de resolução cobre 720 × 1480, 1080 × 2160 e 720 × 1280, nos perfis alto e móvel, verificando limites do campo/mão, câmera, ponteiro e proporção HTML.
+- Conferidos no Chromium automatizado a tela inicial, o tabuleiro e o modal de carta; cliques reais nas cartas abriram o modal nos dois perfis, sem erros JavaScript. Confirmados canvas de 720 × 1480 em qualidade alta e 480 × 987 no perfil móvel, mantendo o mesmo mundo lógico de 1080 × 2220.
+- `git diff --check` sem erros. Não realizada partida multiplayer entre dispositivos físicos nem conferência manual de todas as habilidades e gestos de toque.
+
+## 2026-09-15
+
+### Live Server sem Docker
+
+- Unificado o endereço da API de contas e do Socket.IO: nas portas estáticas 5500, 5501, 4173, 5173 e 8080, ambos usam o backend Node da mesma máquina na porta 3000. No acesso direto ao Node ou ao Docker em porta padrão, preservada a origem da página.
+- O parâmetro `?server=` agora configura também a API de contas; `CYBERDUEL_SERVER_URL` continua com prioridade. Atualizadas as versões dos scripts alterados no HTML.
+- API aceita requisições entre portas do mesmo host e entre endereços de loopback, com resposta a OPTIONS e cabeçalhos CORS para JSON e autenticação.
+- Documentado no README o uso de `npm start` junto do Live Server, portas alternativas e acesso pela rede local. Login, coleção e multiplayer continuam exigindo o backend em execução.
+
+### Validações e limitações
+
+- Substituído o diretório `node_modules` vazio, pertencente a root, pela instalação local das dependências com `npm ci`.
+- `npm test` aprovado: sintaxe de 19 arquivos e 14 testes funcionais, incluindo resolução compartilhada de endereços e CORS da API. `git diff --check` sem erros.
+- Não realizada conferência interativa no navegador nem execução do Docker nesta sessão.
+
+## 2026-09-11
+
+### Fases, Extintor e efeitos visuais
+
+- Aura verde de habilidade disponível permanece estável, restrita à fase de habilidades. Transições multiplayer redesenham o campo também ao perder a vez e ao mudar de fase; contornos de eventos usam azul para não parecerem habilidades disponíveis durante a colocação.
+- Extintor bloqueia bônus até a pontuação da próxima rodada, cobrindo a próxima colocação de cartas. O prazo é preservado na sincronização, e a descrição da habilidade informa a duração atualizada.
+- Dieh’go acumula uma caveira do asset por ponto de dano sobre o alvo, sem controles de mais/menos. Após distribuir o primeiro ponto, tocar no fundo não cancela a seleção. Mantidos limites por PA, reserva total, alvos únicos e confirmação parcial.
+- Neoanalista usa um novo vídeo WebM com transparência, derivado do MP4 original por chroma key, recorte central e redução para 480 × 480. A exibição dos vídeos de efeito preserva a proporção original.
+- Atualizadas as versões dos scripts no HTML para invalidar o cache das alterações.
+
+### Validações e limitações
+
+- Sintaxe dos 18 arquivos JavaScript e os 12 testes funcionais existentes aprovados. Novo teste de interface aprovado para acúmulo de caveiras, limites, confirmação, cancelamento e transições de fase.
+- Regressão do Extintor cobre a rodada seguinte, sincronização, bloqueio de carta de efeito durante a colocação e expiração após a pontuação seguinte.
+- Conferidos visualmente frames do Neoanalista antes/depois e verificados dimensões e canal alfa do vídeo gerado. Não realizada conferência interativa no navegador nesta sessão.
+- Dependências usadas em diretório temporário para executar a suíte, pois o `node_modules` local não permite escrita pelo usuário atual.
+
 ## 2026-09-10
 
 ### Conferência de personagens restantes

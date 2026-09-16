@@ -275,8 +275,8 @@ assert.doesNotMatch(deckBuilderUiSource, /PROTOCOLO|DOMÍNIO/);
 assert.match(deckBuilderUiSource, /Todos os requisitos atendidos/);
 
 const css = fs.readFileSync("css/style.css", "utf8");
-assert.match(css, /width:\s*min\(100vw, 50vh\)/);
-assert.match(css, /height:\s*min\(100vh, 200vw\)/);
+assert.match(css, /width:\s*min\(100vw, var\(--game-width-vh, [\d.]+vh\)\)/);
+assert.match(css, /height:\s*min\(100vh, var\(--game-height-vw, [\d.]+vw\)\)/);
 assert.match(css, /container:\s*forge \/ inline-size/);
 assert.match(css, /data-mobile-view="collection"/);
 assert.match(css, /env\(safe-area-inset-bottom\)/);

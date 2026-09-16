@@ -778,6 +778,31 @@ function serveGame(request, response) {
   }
 
   if (pathname.startsWith("/api/")) {
+    // Permite o frontend local em outra porta (Live Server).
+    const origin = request.headers.origin;
+    if (origin) {
+      response.setHeader("Vary", "Origin");
+      try {
+        const frontend = new URL(origin);
+        const backend = new URL(`http://${request.headers.host}`);
+        const loopback = new Set(["localhost", "127.0.0.1", "[::1]"]);
+        if (/^https?:$/.test(frontend.protocol) && (
+          frontend.hostname === backend.hostname ||
+          (loopback.has(frontend.hostname) && loopback.has(backend.hostname))
+        )) {
+          response.setHeader("Access-Control-Allow-Origin", frontend.origin);
+          response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS");
+          response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Admin-Token");
+        }
+      } catch {
+        // Origens inválidas não recebem autorização CORS.
+      }
+    }
+    if (request.method === "OPTIONS") {
+      response.writeHead(204);
+      response.end();
+      return;
+    }
     handleApi(request, response, pathname).catch((error) => {
       console.error("Falha na API:", error.message);
       if (!response.headersSent)
@@ -1148,6 +1173,28 @@ io.on("connection", (socket) => {
     if (!room?.state || room.turn !== socket.data.player) return;
     socket.to(room.code).emit("turn-time", { activePlayer: room.turn,
       remainingMs: Math.max(0, room.deadline - Date.now()), running: true, ...phaseInfo(room) });
+  });
+
+  socket.on("debug-finish-match", (payload = {}, ack = () => {}) => {
+    if (process.env.CYBERDUEL_DEBUG !== "1")
+      return ack({ ok: false, error: "Atalho online desativado. Inicie o servidor com npm run dev." });
+    const room = rooms.get(socket.data.room);
+    const player = socket.data.player;
+    if (!room?.state || !player || room.players.get(player) !== socket.id)
+      return ack({ ok: false, error: "Entre em uma partida como jogador primeiro." });
+    if (room.state.partidaEncerrada)
+      return ack({ ok: false, error: "A partida já terminou." });
+    if (!["vitoria", "derrota", "empate"].includes(payload.resultado))
+      return ack({ ok: false, error: "Use vitoria, derrota ou empate." });
+    const winner = payload.resultado === "empate" ? "empate" :
+      (payload.resultado === "vitoria" ? player : 3 - player) === 1 ? "jogador" : "inimigo";
+    const resolved = require("./duel-runtime").finishForDebug(room.state, winner);
+    clearTimeout(room.timer);
+    room.deadline = null;
+    room.state = resolved.state;
+    room.result = resolved.result;
+    broadcastState(room, { result: room.result, debugFinal: true });
+    ack({ ok: true });
   });
 
   socket.on("surrender", () => {

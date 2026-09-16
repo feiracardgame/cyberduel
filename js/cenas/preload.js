@@ -118,7 +118,7 @@ class CenaPreload extends Phaser.Scene {
     this.load.audio("somEstagiario", "assets/sons/som-estagiario.mp3");
     this.load.audio("somGRPH", "assets/sons/som-grph.mp3");
     this.load.audio("somCryptoAcionistas", "assets/sons/jogo-cyberacionistaefeito.wav");
-    this.load.video("efeitoNeoAnalista", "assets/efeitos/efeito-neoanalista.mp4");
+    this.load.video("efeitoNeoAnalista", "assets/efeitos/efeito-neoanalista-alpha.webm");
     //videos
     this.load.video("videoTransicao", "assets/videos/transicaocerta.mp4");
     this.load.video(
@@ -140,17 +140,17 @@ class CenaPreload extends Phaser.Scene {
 
     const larguraBarra = 850;
     const alturaBarra = 22;
-    const x = GW / 2 - larguraBarra / 2;
-    const y = GH / 2 + 150;
+    const x = LARGURA_LAYOUT / 2 - larguraBarra / 2;
+    const y = ALTURA_LAYOUT / 2 + 150;
 
     // Mesmo vocabulário visual do título/deck forge: grade técnica,
     // painéis escuros, linhas finas e ciano como sinal ativo.
     const grade = this.add.graphics();
     grade.lineStyle(1, 0x45a6c4, 0.09);
-    for (let gx = 0; gx <= GW; gx += 72) grade.lineBetween(gx, 0, gx, GH);
-    for (let gy = 0; gy <= GH; gy += 72) grade.lineBetween(0, gy, GW, gy);
+    for (let gx = 0; gx <= LARGURA_LAYOUT; gx += 72) grade.lineBetween(gx, 0, gx, ALTURA_LAYOUT);
+    for (let gy = 0; gy <= ALTURA_LAYOUT; gy += 72) grade.lineBetween(0, gy, LARGURA_LAYOUT, gy);
 
-    this.add.rectangle(GW / 2, 72, GW - 96, 1, 0x7cd3ff, 0.18);
+    this.add.rectangle(LARGURA_LAYOUT / 2, 72, LARGURA_LAYOUT - 96, 1, 0x7cd3ff, 0.18);
     this.add
       .text(60, 38, "CD  //  NEOFLORIPA OS", {
         fontSize: "19px",
@@ -159,7 +159,7 @@ class CenaPreload extends Phaser.Scene {
       })
       .setOrigin(0, 0.5);
     this.add
-      .text(GW - 60, 38, "●  REDE ATIVA", {
+      .text(LARGURA_LAYOUT - 60, 38, "●  REDE ATIVA", {
         fontSize: "17px",
         color: "#38f2a0",
         fontStyle: "bold",
@@ -167,7 +167,7 @@ class CenaPreload extends Phaser.Scene {
       .setOrigin(1, 0.5);
 
     this.add
-      .text(GW / 2, GH / 2 - 300, "CYBER", {
+      .text(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2 - 300, "CYBER", {
         fontFamily: "Impact, Arial Narrow, sans-serif",
         fontSize: "150px",
         color: "#ffffff",
@@ -178,7 +178,7 @@ class CenaPreload extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(GW / 2, GH / 2 - 170, "DUEL", {
+      .text(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2 - 170, "DUEL", {
         fontFamily: "Impact, Arial Narrow, sans-serif",
         fontSize: "150px",
         color: "#030509",
@@ -189,7 +189,7 @@ class CenaPreload extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(GW / 2, GH / 2 - 50, "AUDIÊNCIA É PODER", {
+      .text(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2 - 50, "AUDIÊNCIA É PODER", {
         fontSize: "19px",
         color: "#8291a3",
         fontStyle: "bold",
@@ -207,11 +207,11 @@ class CenaPreload extends Phaser.Scene {
 
     // Moldura externa da barra
     this.add
-      .rectangle(GW / 2, y, larguraBarra + 28, alturaBarra + 28, 0x090e17, 0.96)
+      .rectangle(LARGURA_LAYOUT / 2, y, larguraBarra + 28, alturaBarra + 28, 0x090e17, 0.96)
       .setStrokeStyle(2, 0x7cd3ff, 0.22);
 
     // Trilho vazio (o "fundo" da barra, atrás do preenchimento)
-    this.add.rectangle(GW / 2, y, larguraBarra, alturaBarra, 0x020408, 1);
+    this.add.rectangle(LARGURA_LAYOUT / 2, y, larguraBarra, alturaBarra, 0x020408, 1);
 
     // Preenchimento que cresce da esquerda pra direita conforme o
     // progresso — origin (0, 0.5) pra crescer só em largura, sem se
@@ -227,7 +227,7 @@ class CenaPreload extends Phaser.Scene {
       .setOrigin(0, 0.5);
 
     let textoPorcentagem = this.add
-      .text(GW - x, y - 54, "00%", {
+      .text(LARGURA_LAYOUT - x, y - 54, "00%", {
         fontSize: "21px",
         color: "#f3f8fc",
         fontStyle: "bold",
@@ -236,7 +236,7 @@ class CenaPreload extends Phaser.Scene {
       .setOrigin(1, 0.5);
 
     const textoModulo = this.add
-      .text(GW / 2, y + 66, "Sincronizando protocolos de duelo", {
+      .text(LARGURA_LAYOUT / 2, y + 66, "Sincronizando protocolos de duelo", {
         fontSize: "18px",
         color: "#607180",
       })

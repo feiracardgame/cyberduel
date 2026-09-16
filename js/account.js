@@ -13,13 +13,7 @@ class CyberduelAccount {
   }
 
   baseUrl() {
-    if (window.CYBERDUEL_SERVER_URL)
-      return String(window.CYBERDUEL_SERVER_URL).replace(/\/$/, "");
-    // Live Server costuma usar 5500/5501, enquanto o Docker publica a API
-    // real na porta HTTP padrão da mesma máquina.
-    if (["5500", "5501", "8080"].includes(location.port))
-      return `${location.protocol}//${location.hostname}`;
-    return location.origin;
+    return window.cyberduelServerUrl();
   }
 
   onChange(listener) {

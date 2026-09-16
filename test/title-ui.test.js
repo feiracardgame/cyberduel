@@ -51,8 +51,8 @@ assert.ok(
 
 const css = fs.readFileSync("css/style.css", "utf8");
 assert.match(css, /\.title-terminal\s*\{/);
-assert.match(css, /width:\s*min\(100vw, 50vh\)/);
-assert.match(css, /height:\s*min\(100vh, 200vw\)/);
+assert.match(css, /width:\s*min\(100vw, var\(--game-width-vh, [\d.]+vh\)\)/);
+assert.match(css, /height:\s*min\(100vh, var\(--game-height-vw, [\d.]+vw\)\)/);
 assert.match(css, /\.title-room-input\s*\{/);
 assert.match(css, /\.title-action--solo\s*\{/);
 

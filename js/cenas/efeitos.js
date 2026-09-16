@@ -40,7 +40,7 @@ class CenaEfeitos extends Phaser.Scene {
 
   ponto(lado, indice) {
     const layout = this.jogo.layout || LAYOUT_CAMPO_NORMAL;
-    if (indice < 0 || indice >= 10) return { x: GW / 2, y: GH / 2 };
+    if (indice < 0 || indice >= 10) return { x: LARGURA_LAYOUT / 2, y: ALTURA_LAYOUT / 2 };
     return { x: layout.x[indice % 5], y: (lado === "jogador" ? layout.yJogador : layout.yInimigo)[Math.floor(indice / 5)] };
   }
 
@@ -54,27 +54,11 @@ class CenaEfeitos extends Phaser.Scene {
     const fonteOculta = remoto && evento.fonte.oculto;
     const fonte = fonteOculta ? { nome: "Carta oculta", indice: evento.fonte.indice } : evento.fonte;
     const perfil = APRESENTACAO_EFEITOS[fonte.habilidadeAprendidaDe || fonte.nome] || {};
-    const cor = evento.lado === "jogador" ? 0x5bffb0 : 0x60cfff;
     const objetos = [];
     const guardar = (o) => { objetos.push(o); return o; };
     const origem = this.ponto(evento.lado, fonte.indice);
-    const momentos = { invocacao: "EM CAMPO", habilidade: "HABILIDADE", passiva: "EFEITO DE INVOCAÇÃO",
-      inicio_turno: "INÍCIO DO TURNO", continuo: "EFEITO CONTÍNUO", veneno: "VENENO",
-      cura: "RECUPERAÇÃO", advertencia: "ADVERTÊNCIA", conjuracao: "CARTA DE EFEITO" };
-    const dono = this.jogo.multiplayer?.spectator
-      ? (evento.lado === "jogador" ? this.jogo.multiplayer.localUsername : this.jogo.multiplayer.opponentUsername)
-      : evento.lado === "jogador" ? "VOCÊ" : "INIMIGO";
-    guardar(this.add.rectangle(GW / 2, 365, 970, 142, 0x061322, 0.94).setStrokeStyle(2, cor));
-    guardar(this.add.text(90, 307, `${dono} · ${momentos[evento.momento] || "EFEITO"}`, {
-      fontSize: "22px", color: "#9dd8f0", fontStyle: "bold",
-    }));
-    guardar(this.add.text(90, 340, fonte.nome, { fontSize: "26px", color: "#ffffff",
-      fontStyle: "bold", wordWrap: { width: 895 } }));
-    const resumo = evento.mensagem || this.resumir(evento, remoto);
-    guardar(this.add.text(90, 391, resumo, { fontSize: "21px", color: "#d0efdf", wordWrap: { width: 895 } }));
-
     const pulsar = (p, largura = 170, altura = 240) => {
-      const halo = guardar(this.add.rectangle(p.x, p.y, largura, altura, 0x000000, 0).setStrokeStyle(5, cor));
+      const halo = guardar(this.add.rectangle(p.x, p.y, largura, altura, 0x000000, 0).setStrokeStyle(5, 0x60cfff));
       this.tweens.add({ targets: halo, scale: 1.12, alpha: 0.15, duration: 420, yoyo: true });
     };
     if (fonte.indice >= 0) pulsar(origem);
@@ -122,7 +106,7 @@ class CenaEfeitos extends Phaser.Scene {
         }
       }
       if (evento.momento === "habilidade" && perfil.visual === "juridico" && alvo.removida && alvo.lado !== evento.lado) {
-        guardar(this.add.image(Phaser.Math.Clamp(destino.x, 175, GW - 175), destino.y, "efeitoAdvogado").setDisplaySize(340, 245));
+        guardar(this.add.image(Phaser.Math.Clamp(destino.x, 175, LARGURA_LAYOUT - 175), destino.y, "efeitoAdvogado").setDisplaySize(340, 245));
       }
     }
     const som = perfil[evento.momento] || (evento.momento === "invocacao" ? "somJogarCarta" : "somBuff");
@@ -133,8 +117,9 @@ class CenaEfeitos extends Phaser.Scene {
       const video = guardar(this.add.video(origem.x, origem.y, perfil.video).setVisible(false));
       video.once("created", () => {
         const grande = perfil.video === "efeitoRaspClayVertical";
-        video.setPosition(grande ? GW / 2 : origem.x, grande ? GH / 2 : origem.y);
-        video.setDisplaySize(grande ? 950 : 230, grande ? 1440 : 310).setVisible(true);
+        video.setPosition(grande ? LARGURA_LAYOUT / 2 : origem.x, grande ? ALTURA_LAYOUT / 2 : origem.y);
+        const escala = Math.min((grande ? 950 : 260) / video.width, (grande ? 1440 : 260) / video.height);
+        video.setScale(escala).setVisible(true);
       });
       video.once("error", () => video.setVisible(false));
       video.setMute(true);
@@ -147,17 +132,5 @@ class CenaEfeitos extends Phaser.Scene {
     });
   }
 
-  resumir(evento, remoto) {
-    if (remoto && evento.fonte.oculto) return "Efeito de uma carta oculta";
-    if (evento.fonte.efeito?.tipo === TIPOS_EFEITO.ARMADILHA_ESPACO) return "Armadilha preparada";
-    const alvos = (evento.alvos || []).filter((a) => a.id !== evento.fonte.id || a.lado !== evento.lado || a.delta);
-    if (alvos.length) return alvos.map((a) => {
-      const nome = a.oculto && (remoto || a.lado !== "jogador") ? "Carta oculta" : a.nome;
-      return `${nome}: ${a.removida ? "removida" : a.delta ? `${a.delta > 0 ? "+" : ""}${a.delta} PA` : "efeito aplicado"}`;
-    }).join(" · ").slice(0, 130);
-    const efeito = evento.fonte.efeito;
-    return (efeito?.texto || descreverEfeito(efeito) || descreverEfeitoTurno(evento.fonte.efeitoTurno) ||
-      descreverEfeitoContinuo(evento.fonte.efeitoContinuo) || "Carta colocada em campo").slice(0, 130);
-  }
 }
 window.CenaEfeitos = CenaEfeitos;

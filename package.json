@@ -5,6 +5,7 @@
   "description": "Cyberduel com partidas multiplayer em salas Socket.IO",
   "scripts": {
     "start": "node server/server.js",
+    "dev": "node scripts/dev-server.js",
     "check": "node scripts/test-game.js",
     "test": "node scripts/test-game.js"
   },

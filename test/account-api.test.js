@@ -49,6 +49,23 @@ async function run() {
     });
   });
 
+  const origin = "http://localhost:5500";
+  const preflight = await fetch(`${url}/api/auth/register`, {
+    method: "OPTIONS",
+    headers: { Origin: origin, "Access-Control-Request-Method": "POST",
+      "Access-Control-Request-Headers": "content-type,authorization" },
+  });
+  assert.equal(preflight.status, 204);
+  assert.equal(preflight.headers.get("access-control-allow-origin"), origin);
+  assert.match(preflight.headers.get("access-control-allow-headers"), /Authorization/);
+  const crossOrigin = await fetch(`${url}/api/config`, { headers: { Origin: origin } });
+  assert.equal(crossOrigin.status, 200);
+  assert.equal(crossOrigin.headers.get("access-control-allow-origin"), origin);
+  const denied = await fetch(`${url}/api/config`, {
+    headers: { Origin: "https://unrelated.example" },
+  });
+  assert.equal(denied.headers.get("access-control-allow-origin"), null);
+
   const configuration = await api("/api/config");
   assert.equal(configuration.status, 200);
   assert.equal(configuration.payload.booster.levelWeights.alta, 37);

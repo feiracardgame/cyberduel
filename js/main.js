@@ -202,13 +202,13 @@ class Jogador {
 }
 
 class Partida {
-  constructor() {
+  constructor(deckDebug = null) {
     this.jogador = new Jogador();
     this.inimigo = new Jogador();
 
     const deckBuilder = window.cyberduelDeckBuilder;
     const multiplayer = window.cyberduelMultiplayer;
-    const deckLocal = deckBuilder?.getDeckForMatch() || null;
+    const deckLocal = deckDebug || deckBuilder?.getDeckForMatch() || null;
     const deckOponente =
       multiplayer?.active && multiplayer.opponentDeck?.length
         ? multiplayer.opponentDeck
@@ -708,7 +708,10 @@ class Partida {
     const mudar = (c, valor) => { const antes = c.poder; c.buff(valor); afetadas.push({ carta: c, delta: c.poder - antes }); };
     switch (acao) {
       case "proteger": alvo.protegidaPA = true; break;
-      case "bloquear_bonus": alvo.bonusBloqueado = true; break;
+      case "bloquear_bonus":
+        alvo.bonusBloqueado = true;
+        alvo.bonusBloqueadoAteRodada = (this.turno || 1) + 1;
+        break;
       case "advertir": carta.alvosAdvertidos = [...new Set([...(carta.alvosAdvertidos || []), alvo.id])]; break;
       case "mover": dono.campo.cartas[escolhido] = null; dono.campo.cartas[secundario] = alvo; break;
       case "curar": mudar(alvo, Math.max(0, alvo.poderBase + (alvo.bonusTerreno || 0) + (alvo.bonusEfeitoContinuo || 0) + (alvo.bonusDiehGo || 0) - alvo.poder)); break;
@@ -1596,7 +1599,10 @@ class Partida {
 
     const resultadoRodada = this.resolverRodada();
     [this.jogador, this.inimigo].forEach((dono) => dono.campo.cartas.forEach((c) => {
-      if (c) c.bonusBloqueado = false;
+      if (c?.bonusBloqueado && this.turno >= (c.bonusBloqueadoAteRodada || this.turno)) {
+        c.bonusBloqueado = false;
+        delete c.bonusBloqueadoAteRodada;
+      }
     }));
     this.resolverEfeitosContinuos(this.jogador);
     this.resolverEfeitosContinuos(this.inimigo);
@@ -1974,6 +1980,15 @@ class Partida {
     };
   }
 
+  finalizarParaTeste(resultado = "jogador") {
+    if (!["jogador", "inimigo", "empate"].includes(resultado))
+      throw new Error("Resultado de teste inválido.");
+    this.rodadasJogador = resultado === "jogador" ? 4 : resultado === "empate" ? 3 : 0;
+    this.rodadasInimigo = resultado === "inimigo" ? 4 : resultado === "empate" ? 3 : 0;
+    this.partidaEncerrada = true;
+    return this.finalizarPartida();
+  }
+
   // Fecha a PARTIDA (chamada só quando fimTurno detecta que ela terminou):
   // o lado com mais rodadas vencidas (melhor de 7) leva a vitória; se os
   // dois turnos acabarem empatados em rodadas, é empate mesmo. Monta o
@@ -2028,10 +2043,8 @@ class Partida {
   }
 }
 
-// O layout continua usando o espaço lógico de 1080x2160, mas celulares
-// renderizam em 720x1440. A câmera faz a conversão sem mudar nenhuma
-// coordenada de jogo ou de input. Isso corta 56% dos pixels processados por
-// frame, uma diferença grande justamente nos aparelhos que mais precisam.
+// GW/GH controlam a saída; as cenas compartilham um mundo lógico proporcional.
+// O perfil móvel reduz somente os pixels renderizados, mantendo o mesmo layout.
 const usarCanvasParaDiagnostico =
   typeof window !== "undefined" &&
   typeof URLSearchParams !== "undefined" &&
@@ -2068,10 +2081,15 @@ function configurarCameraLogica(scene) {
       );
     scene.__cyberduelTextScaleInstalled = true;
   }
-  if (ESCALA_RENDER === 1) return;
   const camera = scene.cameras.main;
-  camera.setZoom(ESCALA_RENDER);
-  camera.centerOn(GW / 2, GH / 2);
+  camera.setZoom(LARGURA_RENDER / LARGURA_LAYOUT, ALTURA_RENDER / ALTURA_LAYOUT);
+  camera.centerOn(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2);
+}
+
+// Menus HTML ocupam a mesma proporção do canvas, inclusive antes de abrir.
+if (typeof document !== "undefined") {
+  document.documentElement?.style.setProperty("--game-width-vh", `${100 * GW / GH}vh`);
+  document.documentElement?.style.setProperty("--game-height-vw", `${100 * GH / GW}vw`);
 }
 
 window.CYBERDUEL_RENDER_PROFILE = Object.freeze({

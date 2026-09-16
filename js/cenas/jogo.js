@@ -1,20 +1,13 @@
-// ============================================================================
-// CONSTANTES DE LAYOUT
-// ============================================================================
-// A resolução interna do jogo foi elevada para 1080x2160 (ver main.js), 3x a
-// resolução original de 360x720, para ficar nítido em telas de alta
-// densidade. Todas as posições e tamanhos abaixo já estão nessa escala.
-//
-// O campo de batalha segue o layout 2x5 POR JOGADOR: cada lado (inimigo e
-// jogador) tem 2 fileiras de 5 slots (10 cartas por lado, 20 no total).
-// O inimigo ocupa as duas fileiras de cima, o jogador as duas de baixo.
-// O layout tem duas variações (normal e ampliada, com a mão escondida — ver
-// LAYOUT_CAMPO_NORMAL/AMPLIADO abaixo). x guarda o centro X de cada uma das
-// 5 colunas (compartilhado pelas 4 fileiras); y* guarda o centro Y de cada
-// fileira individual.
-// ============================================================================
-const GW = 1080; // largura interna do jogo
-const GH = 2160; // altura interna do jogo
+// Resolução de saída: altere apenas GW/GH para mudar o tamanho do canvas.
+const GW = 720;
+const GH = 1480;
+
+// As medidas de cartas, fontes e animações usam a mesma unidade de desenho.
+// A câmera converte o conjunto para a resolução de saída sem deformá-lo.
+// A altura acompanha a proporção escolhida e nunca corta o layout original.
+const LARGURA_LAYOUT = Math.max(1080, 2160 * GW / GH);
+const ALTURA_LAYOUT = Math.max(2160, 1080 * GH / GW);
+
 const DURACAO_TURNO_MS = 40_000;
 
 // ---------- FONTE ESPECIAL DA CARTA LENDÁRIA ----------
@@ -52,9 +45,9 @@ function calcularLayoutCampo(slotW, slotH, gapFileira, gapTimes, yInimigoTras) {
   const yJogadorFrente = yInimigoFrente + slotH + gapTimes;
   const yJogadorTras = yJogadorFrente + slotH + gapFileira;
 
-  const gapCol = Math.min(20, Math.max(10, (GW - slotW * 5) / 4));
+  const gapCol = Math.min(20, Math.max(10, (LARGURA_LAYOUT - slotW * 5) / 4));
   const larguraTotal = 5 * slotW + 4 * gapCol;
-  const margem = (GW - larguraTotal) / 2;
+  const margem = (LARGURA_LAYOUT - larguraTotal) / 2;
   const primeiro = margem + slotW / 2;
   const xs = [0, 1, 2, 3, 4].map((i) => primeiro + i * (slotW + gapCol));
 
@@ -101,22 +94,34 @@ class CenaJogo extends Phaser.Scene {
     super("CenaJogo");
   }
 
+  // O ponteiro chega em pixels do canvas; gestos e limites usam o mundo.
+  pontoDoPonteiro(pointer) {
+    return this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+  }
+
   // Sem preload() aqui de propósito: todos os assets (imagens e sons)
   // já foram carregados antes, pela CenaPreload (ver js/cenas/preload.js)
   // — que roda primeiro e mostra a barra de carregamento — e ficam
   // disponíveis no cache do Phaser em qualquer cena depois dela,
   // incluindo esta.
 
-  create() {
+  create(dados = {}) {
+    this.finalDebug = false;
+    this.videoFundo = null;
+    this.partidaRegistradaNaConta = !!dados.debug;
     configurarCameraLogica(this);
     const sessao = window.cyberduelMultiplayer;
     this.partida = sessao?.pendingUpdate?.state
       ? sessao.hydrateMatch(sessao.localSnapshot(sessao.pendingUpdate.state))
-      : new Partida();
+      : new Partida(dados.deckDebug);
     this.sequenciaInicialEfeitos = this.partida.sequenciaEfeito || 0;
     if (window.CenaEfeitos) {
-      if (!this.scene.manager.keys.CenaEfeitos) this.scene.add("CenaEfeitos", window.CenaEfeitos);
-      this.scene.launch("CenaEfeitos", { jogo: this, sequencia: this.sequenciaInicialEfeitos });
+      if (!this.scene.manager.keys.CenaEfeitos)
+        this.scene.add("CenaEfeitos", window.CenaEfeitos);
+      this.scene.launch("CenaEfeitos", {
+        jogo: this,
+        sequencia: this.sequenciaInicialEfeitos,
+      });
       this.events.once("shutdown", () => this.scene.stop("CenaEfeitos"));
     }
     this.faseAtual = "colocar";
@@ -447,7 +452,8 @@ class CenaJogo extends Phaser.Scene {
     // --- Drag and Drop das cartas da mão ---
     this.input.on("dragstart", (pointer, gameObject) => {
       if (
-        !this.podeJogarCartasAgora() || this.travado ||
+        !this.podeJogarCartasAgora() ||
+        this.travado ||
         gameObject.animandoCompra ||
         !gameObject.dadosCarta
       )
@@ -470,13 +476,23 @@ class CenaJogo extends Phaser.Scene {
     });
 
     this.input.on("drag", (pointer, gameObject, dragX, dragY) => {
-      if (!this.podeJogarCartasAgora() || this.travado || !gameObject.dadosCarta) return;
+      if (
+        !this.podeJogarCartasAgora() ||
+        this.travado ||
+        !gameObject.dadosCarta
+      )
+        return;
       gameObject.x = dragX;
       gameObject.y = dragY;
     });
 
     this.input.on("dragend", (pointer, gameObject) => {
-      if (!this.podeJogarCartasAgora() || this.travado || !gameObject.dadosCarta) return;
+      if (
+        !this.podeJogarCartasAgora() ||
+        this.travado ||
+        !gameObject.dadosCarta
+      )
+        return;
       this.tratarSoltarCarta(gameObject);
     });
 
@@ -485,7 +501,9 @@ class CenaJogo extends Phaser.Scene {
     if (this.multiplayerAtivo) {
       this.faseAtual = this.multiplayer.phase;
       this.partida.fase = this.faseAtual;
-      this.ehMeuTurno = this.multiplayer.initialized && this.multiplayer.activePlayer === this.multiplayer.player;
+      this.ehMeuTurno =
+        this.multiplayer.initialized &&
+        this.multiplayer.activePlayer === this.multiplayer.player;
       this.travado = !this.ehMeuTurno;
       this.multiplayer.attachScene(this);
       this.events.once("shutdown", () => this.multiplayer.detachScene(this));
@@ -495,7 +513,8 @@ class CenaJogo extends Phaser.Scene {
       this.ehMeuTurno = this.soloStarter === 1;
       this.travado = !this.ehMeuTurno;
       this.partida.fase = "colocar";
-      if (!this.ehMeuTurno) this.time.delayedCall(650, () => this.executarFaseSolo());
+      if (!this.ehMeuTurno)
+        this.time.delayedCall(650, () => this.executarFaseSolo());
     }
     if (this.ehMeuTurno) this.reiniciarTimerTurno();
     else this.reiniciarTimerOponente();
@@ -516,6 +535,7 @@ class CenaJogo extends Phaser.Scene {
   }
 
   apresentarEventosEfeito(eventos = this.partida?.eventosEfeito) {
+    if (this.finalDebug) return;
     this.scene?.manager?.keys?.CenaEfeitos?.receber?.(eventos);
   }
 
@@ -523,8 +543,9 @@ class CenaJogo extends Phaser.Scene {
     this.apresentarEventosEfeito();
     if (!this.partida || this.partida.partidaEncerrada) return;
     if (this.multiplayerAtivo && !this.multiplayer.initialized) return;
-    const restante = this.multiplayerAtivo ? this.multiplayer.remainingMs() :
-      Math.max(0, (this.prazoFaseLocal || Date.now()) - Date.now());
+    const restante = this.multiplayerAtivo
+      ? this.multiplayer.remainingMs()
+      : Math.max(0, (this.prazoFaseLocal || Date.now()) - Date.now());
     if (this.ehMeuTurno) this.tempoRestanteTurno = restante;
     else this.tempoRestanteOponente = restante;
     this.atualizarVisualTimerTurno();
@@ -538,23 +559,44 @@ class CenaJogo extends Phaser.Scene {
   }
 
   podeContarTimerTurno() {
-    return Boolean(this.partida && !this.partida.partidaEncerrada && this.ehMeuTurno && !this.timerTurnoExpirado);
+    return Boolean(
+      this.partida &&
+      !this.partida.partidaEncerrada &&
+      this.ehMeuTurno &&
+      !this.timerTurnoExpirado,
+    );
   }
 
   podeContarTimerOponente() {
-    return Boolean(this.partida && !this.partida.partidaEncerrada && !this.ehMeuTurno);
+    return Boolean(
+      this.partida && !this.partida.partidaEncerrada && !this.ehMeuTurno,
+    );
   }
 
   podeJogarCartasAgora() {
-    return this.ehMeuTurno && this.faseAtual === "colocar" && !this.timerTurnoExpirado && !this.multiplayer?.spectator;
+    return (
+      this.ehMeuTurno &&
+      this.faseAtual === "colocar" &&
+      !this.timerTurnoExpirado &&
+      !this.multiplayer?.spectator
+    );
   }
 
   podeUsarHabilidadesAgora() {
-    return this.ehMeuTurno && this.faseAtual === "habilidades" && !this.timerTurnoExpirado && !this.multiplayer?.spectator;
+    return (
+      this.ehMeuTurno &&
+      this.faseAtual === "habilidades" &&
+      !this.timerTurnoExpirado &&
+      !this.multiplayer?.spectator
+    );
   }
 
   podeConsultarCartas() {
-    return !this.modalAberto && !this.animacaoRemotaEmCurso && (!this.ehMeuTurno || !this.travado);
+    return (
+      !this.modalAberto &&
+      !this.animacaoRemotaEmCurso &&
+      (!this.ehMeuTurno || !this.travado)
+    );
   }
 
   encerrarSelecoesDaFase() {
@@ -566,11 +608,12 @@ class CenaJogo extends Phaser.Scene {
   }
 
   reiniciarTimerTurno() {
-    this.duracaoTurnoAtual = this.duracaoPermitidaPara(
-      this.partida?.jogador,
-    );
-    if (!this.multiplayerAtivo) this.prazoFaseLocal = Date.now() + this.duracaoTurnoAtual;
-    this.tempoRestanteTurno = this.multiplayerAtivo ? this.multiplayer.remainingMs() : this.duracaoTurnoAtual;
+    this.duracaoTurnoAtual = this.duracaoPermitidaPara(this.partida?.jogador);
+    if (!this.multiplayerAtivo)
+      this.prazoFaseLocal = Date.now() + this.duracaoTurnoAtual;
+    this.tempoRestanteTurno = this.multiplayerAtivo
+      ? this.multiplayer.remainingMs()
+      : this.duracaoTurnoAtual;
     this.timerTurnoExpirado = false;
     this.timerUltimoSegundo = null;
     this.timerUltimoEstado = null;
@@ -581,8 +624,11 @@ class CenaJogo extends Phaser.Scene {
     this.duracaoTurnoOponenteAtual = this.duracaoPermitidaPara(
       this.partida?.inimigo,
     );
-    if (!this.multiplayerAtivo) this.prazoFaseLocal = Date.now() + this.duracaoTurnoOponenteAtual;
-    this.tempoRestanteOponente = this.multiplayerAtivo ? this.multiplayer.remainingMs() : this.duracaoTurnoOponenteAtual;
+    if (!this.multiplayerAtivo)
+      this.prazoFaseLocal = Date.now() + this.duracaoTurnoOponenteAtual;
+    this.tempoRestanteOponente = this.multiplayerAtivo
+      ? this.multiplayer.remainingMs()
+      : this.duracaoTurnoOponenteAtual;
     this.timerOponenteRodando = true;
     this.timerUltimoSegundo = null;
     this.timerUltimoEstado = null;
@@ -612,10 +658,7 @@ class CenaJogo extends Phaser.Scene {
     let reducaoSegundos = 0;
     let minimoSegundos = 0;
     adversario.campo.cartas.forEach((carta) => {
-      if (
-        carta?.efeito?.tipo !== TIPOS_EFEITO.REDUZIR_TEMPO_OPONENTE
-      )
-        return;
+      if (carta?.efeito?.tipo !== TIPOS_EFEITO.REDUZIR_TEMPO_OPONENTE) return;
       reducaoSegundos += Math.max(0, Number(carta.efeito.valor) || 0);
       minimoSegundos = Math.max(
         minimoSegundos,
@@ -629,7 +672,8 @@ class CenaJogo extends Phaser.Scene {
   }
 
   iniciarNovoTurnoDoJogador() {
-    if (this.faseAtual === "colocar") this.partida.iniciarTurno(this.partida.jogador);
+    if (this.faseAtual === "colocar")
+      this.partida.iniciarTurno(this.partida.jogador);
     this.ehMeuTurno = true;
     this.reiniciarTimerTurno();
   }
@@ -668,7 +712,7 @@ class CenaJogo extends Phaser.Scene {
     if (!chaveVideo) return false;
 
     const video = this.add
-      .video(GW / 2, GH / 2, chaveVideo)
+      .video(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, chaveVideo)
       .setOrigin(0.5)
       .setDepth(5000)
       .setVisible(false)
@@ -690,8 +734,7 @@ class CenaJogo extends Phaser.Scene {
       if (finalizado) return;
       finalizado = true;
       if (video.active) video.destroy();
-      if (this.videoInvocacaoAtual === video)
-        this.videoInvocacaoAtual = null;
+      if (this.videoInvocacaoAtual === video) this.videoInvocacaoAtual = null;
       aoConcluir();
     };
 
@@ -810,9 +853,21 @@ class CenaJogo extends Phaser.Scene {
     const fundo = this.add
       .rectangle(0, 0, largura, altura, 0x070d15, alpha)
       .setStrokeStyle(2, cor, 0.34);
-    const barra = this.add.rectangle(-largura / 2 + 3, 0, 5, altura - 12, cor, 0.9);
+    const barra = this.add.rectangle(
+      -largura / 2 + 3,
+      0,
+      5,
+      altura - 12,
+      cor,
+      0.9,
+    );
     const detalhe = this.add.rectangle(
-      largura / 2 - 34, -altura / 2 + 7, 50, 2, cor, 0.65,
+      largura / 2 - 34,
+      -altura / 2 + 7,
+      50,
+      2,
+      cor,
+      0.65,
     );
     return this.add.container(x, y, [sombra, fundo, barra, detalhe]);
   }
@@ -862,11 +917,11 @@ class CenaJogo extends Phaser.Scene {
     if (!this.atmosferaTatica) {
       const grade = this.add.graphics().setDepth(-98);
       grade.lineStyle(1, 0x45a6c4, 0.055);
-      for (let x = 0; x <= GW; x += 72) grade.lineBetween(x, 0, x, GH);
-      for (let y = 0; y <= GH; y += 72) grade.lineBetween(0, y, GW, y);
+      for (let x = 0; x <= LARGURA_LAYOUT; x += 72) grade.lineBetween(x, 0, x, ALTURA_LAYOUT);
+      for (let y = 0; y <= ALTURA_LAYOUT; y += 72) grade.lineBetween(0, y, LARGURA_LAYOUT, y);
       grade.lineStyle(2, 0x23d7ff, 0.12);
-      grade.lineBetween(36, 480, GW - 36, 480);
-      grade.lineBetween(36, 1515, GW - 36, 1515);
+      grade.lineBetween(36, 480, LARGURA_LAYOUT - 36, 480);
+      grade.lineBetween(36, 1515, LARGURA_LAYOUT - 36, 1515);
       this.atmosferaTatica = grade;
     } else {
       this.children.add(this.atmosferaTatica);
@@ -878,14 +933,28 @@ class CenaJogo extends Phaser.Scene {
   desenharTimerTurno() {
     const largura = 430;
     const altura = 98;
-    const x = GW / 2;
+    const x = LARGURA_LAYOUT / 2;
     const y = 84;
 
-    const halo = this.add.rectangle(0, 0, largura + 20, altura + 20, 0x23d7ff, 0.055);
+    const halo = this.add.rectangle(
+      0,
+      0,
+      largura + 20,
+      altura + 20,
+      0x23d7ff,
+      0.055,
+    );
     const fundo = this.add
       .rectangle(0, 0, largura, altura, 0x050a11, 0.96)
       .setStrokeStyle(2, 0x23d7ff, 0.48);
-    const corteEsquerdo = this.add.rectangle(-largura / 2 + 4, 0, 7, altura - 14, 0x23d7ff, 0.95);
+    const corteEsquerdo = this.add.rectangle(
+      -largura / 2 + 4,
+      0,
+      7,
+      altura - 14,
+      0x23d7ff,
+      0.95,
+    );
     const label = this.add
       .text(-largura / 2 + 30, -25, "JANELA DE COMANDO", {
         fontSize: "15px",
@@ -916,7 +985,14 @@ class CenaJogo extends Phaser.Scene {
       .setOrigin(0, 0.5);
 
     const container = this.add.container(x, y, [
-      halo, fundo, corteEsquerdo, label, tempo, estado, trilho, barra,
+      halo,
+      fundo,
+      corteEsquerdo,
+      label,
+      tempo,
+      estado,
+      trilho,
+      barra,
     ]);
     container.setDepth(190);
 
@@ -941,7 +1017,8 @@ class CenaJogo extends Phaser.Scene {
       !forcar &&
       segundo === this.timerUltimoSegundo &&
       estado === this.timerUltimoEstado
-    ) return;
+    )
+      return;
 
     this.timerUltimoSegundo = segundo;
     this.timerUltimoEstado = estado;
@@ -955,15 +1032,16 @@ class CenaJogo extends Phaser.Scene {
     const emContagem = estado === "ativo" || estado === "oponente";
     const critico = segundo <= 10 && emContagem;
     const atencao = segundo <= 30 && emContagem;
-    const cor = critico || estado === "esgotado"
-      ? 0xff5573
-      : atencao
-        ? 0xffb14a
-      : estado === "oponente"
-        ? 0xff7188
-      : estado === "ativo"
-        ? 0x38f2a0
-        : 0x23d7ff;
+    const cor =
+      critico || estado === "esgotado"
+        ? 0xff5573
+        : atencao
+          ? 0xffb14a
+          : estado === "oponente"
+            ? 0xff7188
+            : estado === "ativo"
+              ? 0x38f2a0
+              : 0x23d7ff;
     const corCss = `#${cor.toString(16).padStart(6, "0")}`;
     const rotulo = {
       ativo: critico
@@ -972,7 +1050,8 @@ class CenaJogo extends Phaser.Scene {
           ? "JANELA REDUZINDO"
           : "TEMPO ATIVO",
       pausado: "PAUSADO // ANIMAÇÃO",
-      oponente: segundo === 0 ? "TEMPO DO OPONENTE ESGOTADO" : "TEMPO DO OPONENTE",
+      oponente:
+        segundo === 0 ? "TEMPO DO OPONENTE ESGOTADO" : "TEMPO DO OPONENTE",
       esgotado: "TEMPO ESGOTADO",
     }[estado];
 
@@ -1035,8 +1114,7 @@ class CenaJogo extends Phaser.Scene {
     if (this.videoFundo) this.children.remove(this.videoFundo, false);
     // A grade não depende do estado da partida. Preservá-la evita recriar
     // dezenas de segmentos vetoriais em toda jogada.
-    if (this.atmosferaTatica)
-      this.children.remove(this.atmosferaTatica, false);
+    if (this.atmosferaTatica) this.children.remove(this.atmosferaTatica, false);
 
     // IMPORTANTE: removeAll(true) — o "true" manda destruir de verdade os
     // objetos antigos, não só tirá-los da tela. Sem isso (removeAll()
@@ -1114,11 +1192,20 @@ class CenaJogo extends Phaser.Scene {
     if (!this.travado) this.desenharRodaBotoes();
 
     if (this.multiplayer?.spectator) {
-      this.add.text(GW / 2, GH - 65, "SAIR DA ESPECTAÇÃO", {
-        fontSize: "28px", color: "#ffffff", backgroundColor: "#1b2440", padding: { x: 18, y: 12 },
-      }).setOrigin(0.5).setDepth(4900).setInteractive({ useHandCursor: true }).on("pointerup", () => {
-        this.multiplayer.leaveRoom(); this.scene.start("CenaTitulo");
-      });
+      this.add
+        .text(LARGURA_LAYOUT / 2, ALTURA_LAYOUT - 65, "SAIR DA ESPECTAÇÃO", {
+          fontSize: "28px",
+          color: "#ffffff",
+          backgroundColor: "#1b2440",
+          padding: { x: 18, y: 12 },
+        })
+        .setOrigin(0.5)
+        .setDepth(4900)
+        .setInteractive({ useHandCursor: true })
+        .on("pointerup", () => {
+          this.multiplayer.leaveRoom();
+          this.scene.start("CenaTitulo");
+        });
     }
     this.configurarGestosMao();
     this.chavesCampoRenderAnterior = chavesCampoAtuais;
@@ -1139,7 +1226,7 @@ class CenaJogo extends Phaser.Scene {
     // jogador, a mão do inimigo fica revelada.
     const revelada = this.partida.maoRevelada(this.partida.jogador);
 
-    const centroX = GW / 2;
+    const centroX = LARGURA_LAYOUT / 2;
     const centroY = Y_MAO_INIMIGO;
     const larguraCarta = 140;
     const alturaCarta = 200;
@@ -1286,14 +1373,14 @@ class CenaJogo extends Phaser.Scene {
   // da mão dele embaixo; o do inimigo, perto da mão dele em cima).
   desenharIndicadoresDeck() {
     this.criarIndicadorDeck(
-      GW / 9,
+      LARGURA_LAYOUT / 9,
       Y_MAO_JOGADOR,
       this.partida.jogador.deck.cartas.length,
       "Deck",
       "#66ff88",
     );
     this.criarIndicadorDeck(
-      GW / 5.4,
+      LARGURA_LAYOUT / 5.4,
       Y_MAO_INIMIGO,
       this.partida.inimigo.deck.cartas.length,
       "Deck",
@@ -1305,7 +1392,14 @@ class CenaJogo extends Phaser.Scene {
     const larguraCarta = 112;
     const alturaCarta = 150;
     const corHex = cor === "#66ff88" ? 0x38f2a0 : 0xff5573;
-    let sombra = this.add.rectangle(6, 8, larguraCarta, alturaCarta, 0x000000, 0.4);
+    let sombra = this.add.rectangle(
+      6,
+      8,
+      larguraCarta,
+      alturaCarta,
+      0x000000,
+      0.4,
+    );
     let costas = this.add
       .image(0, 0, "fundoCarta")
       .setDisplaySize(larguraCarta, alturaCarta);
@@ -1334,7 +1428,10 @@ class CenaJogo extends Phaser.Scene {
   // ---------- LÓGICA DE ARRASTAR E SOLTAR ----------
 
   tratarSoltarCarta(gameObject) {
-    if (!this.podeJogarCartasAgora()) { this.animarRetornoAoLeque(gameObject, false); return; }
+    if (!this.podeJogarCartasAgora()) {
+      this.animarRetornoAoLeque(gameObject, false);
+      return;
+    }
     const carta = gameObject.dadosCarta;
 
     // Defesa extra (além do removeAll(true) em desenharInterface()): se
@@ -1423,7 +1520,8 @@ class CenaJogo extends Phaser.Scene {
         // disparava a seleção de aliado assim que entrava em campo.
         const precisaEscolherAlvo =
           carta.efeito &&
-          (carta.efeito.tipo === TIPOS_EFEITO.BUFF_ALIADO_ESCOLHIDO || carta.efeito.tipo === TIPOS_EFEITO.VINCULO_ALIADO) &&
+          (carta.efeito.tipo === TIPOS_EFEITO.BUFF_ALIADO_ESCOLHIDO ||
+            carta.efeito.tipo === TIPOS_EFEITO.VINCULO_ALIADO) &&
           !carta.habilidadeAtiva;
 
         // RaspClay MonteCorp (Potencialização de Capital): pode absorver
@@ -1527,18 +1625,18 @@ class CenaJogo extends Phaser.Scene {
     this.travado = true;
     const objetos = [];
     const overlay = this.add
-      .rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.82)
+      .rectangle(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, LARGURA_LAYOUT, ALTURA_LAYOUT, 0x000000, 0.82)
       .setDepth(4000)
       .setInteractive();
     const painel = this.add
-      .rectangle(GW / 2, GH / 2, 900, 1240, 0x14141c, 0.98)
+      .rectangle(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, 900, 1240, 0x14141c, 0.98)
       .setStrokeStyle(8, 0xffd166)
       .setDepth(4001);
     objetos.push(overlay, painel);
 
     objetos.push(
       this.add
-        .text(GW / 2, GH / 2 - 560, "🐕  FARO DO CÃO", {
+        .text(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2 - 560, "🐕  FARO DO CÃO", {
           fontSize: "48px",
           color: "#ffe08a",
           fontStyle: "bold",
@@ -1552,7 +1650,7 @@ class CenaJogo extends Phaser.Scene {
     if (!cartas.length) {
       objetos.push(
         this.add
-          .text(GW / 2, GH / 2, "O inimigo não possui cartas para farejar.", {
+          .text(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, "O inimigo não possui cartas para farejar.", {
             fontSize: "32px",
             color: "#dddddd",
           })
@@ -1562,19 +1660,19 @@ class CenaJogo extends Phaser.Scene {
     }
 
     cartas.forEach((carta, i) => {
-      const y = GH / 2 - 420 + i * 190;
+      const y = ALTURA_LAYOUT / 2 - 420 + i * 190;
       const fundoLinha = this.add
-        .rectangle(GW / 2, y, 780, 160, 0x252538, 0.95)
+        .rectangle(LARGURA_LAYOUT / 2, y, 780, 160, 0x252538, 0.95)
         .setStrokeStyle(3, 0x6b6b88)
         .setDepth(4002);
       const arte = carta.imagem
-        ? this.add.image(GW / 2 - 315, y, carta.imagem).setDisplaySize(100, 140)
-        : this.add.rectangle(GW / 2 - 315, y, 100, 140, 0x444466);
+        ? this.add.image(LARGURA_LAYOUT / 2 - 315, y, carta.imagem).setDisplaySize(100, 140)
+        : this.add.rectangle(LARGURA_LAYOUT / 2 - 315, y, 100, 140, 0x444466);
       arte.setDepth(4003);
       const nivel = (carta.nivel || carta.tipo).toUpperCase();
       const texto = this.add
         .text(
-          GW / 2 - 235,
+          LARGURA_LAYOUT / 2 - 235,
           y - 48,
           `${carta.nome}\n${nivel}${carta.tipo === "monstro" ? `  •  ${carta.poder} PA` : ""}`,
           {
@@ -1596,8 +1694,8 @@ class CenaJogo extends Phaser.Scene {
       this.desenharInterface();
     };
     const btn = this.criarBotaoConfirmacao(
-      GW / 2,
-      GH / 2 + 545,
+      LARGURA_LAYOUT / 2,
+      ALTURA_LAYOUT / 2 + 545,
       "Entendido",
       0x665522,
       fechar,
@@ -1645,8 +1743,8 @@ class CenaJogo extends Phaser.Scene {
 
     this.tweens.add({
       targets: gameObject,
-      x: GW / 2,
-      y: GH / 2,
+      x: LARGURA_LAYOUT / 2,
+      y: ALTURA_LAYOUT / 2,
       angle: 0,
       scaleX: 1.6,
       scaleY: 1.6,
@@ -1729,8 +1827,8 @@ class CenaJogo extends Phaser.Scene {
       : this.add.text(0, 60, "⚡", { fontSize: "70px" }).setOrigin(0.5);
 
     let container = this.add.container(
-      GW / 2,
-      GH / 2,
+      LARGURA_LAYOUT / 2,
+      ALTURA_LAYOUT / 2,
       [rotulo, sombra, fundo, moldura, nomeTexto, iconeTexto].filter(Boolean),
     );
     container.setDepth(3500);
@@ -1811,10 +1909,17 @@ class CenaJogo extends Phaser.Scene {
   // normal de dano/buff depois do redesenho, como sempre.
   processarCartasAfetadas(afetadas, redesenharFn) {
     afetadas = [...(afetadas || [])];
-    const campo = [...this.partida.jogador.campo.cartas, ...this.partida.inimigo.campo.cartas];
+    const campo = [
+      ...this.partida.jogador.campo.cartas,
+      ...this.partida.inimigo.campo.cartas,
+    ];
     this.children.list.forEach((objeto) => {
       const carta = objeto.dadosCartaCampo;
-      if (carta?.efeito?.tipo === TIPOS_EFEITO.VINCULO_ALIADO && !campo.includes(carta) && !afetadas.some((e) => e.carta === carta))
+      if (
+        carta?.efeito?.tipo === TIPOS_EFEITO.VINCULO_ALIADO &&
+        !campo.includes(carta) &&
+        !afetadas.some((e) => e.carta === carta)
+      )
         afetadas.push({ carta, delta: 0, removida: true });
     });
     if (!afetadas || afetadas.length === 0) {
@@ -1822,8 +1927,12 @@ class CenaJogo extends Phaser.Scene {
       return;
     }
 
-    const mortas = afetadas.filter(({ carta, removida }) => removida || carta.poder <= 0);
-    const vivas = afetadas.filter(({ carta, removida }) => !removida && carta.poder > 0);
+    const mortas = afetadas.filter(
+      ({ carta, removida }) => removida || carta.poder <= 0,
+    );
+    const vivas = afetadas.filter(
+      ({ carta, removida }) => !removida && carta.poder > 0,
+    );
 
     if (mortas.length === 0) {
       redesenharFn();
@@ -1980,24 +2089,67 @@ class CenaJogo extends Phaser.Scene {
   animarMorteCyberPolitico(container, concluir) {
     this.tweens.killTweensOf(container);
     const { x, y } = container;
-    const selo = this.add.text(x, y, "CONTRATO\nROMPIDO", {
-      fontSize: "28px", color: "#ffbbff", fontStyle: "bold", align: "center",
-      backgroundColor: "#301040", padding: { x: 12, y: 8 },
-    }).setOrigin(0.5).setDepth(4500).setAngle(-12).setAlpha(0);
-    this.tweens.add({ targets: selo, alpha: 1, duration: 180, yoyo: true, hold: 450 });
+    const selo = this.add
+      .text(x, y, "CONTRATO\nROMPIDO", {
+        fontSize: "28px",
+        color: "#ffbbff",
+        fontStyle: "bold",
+        align: "center",
+        backgroundColor: "#301040",
+        padding: { x: 12, y: 8 },
+      })
+      .setOrigin(0.5)
+      .setDepth(4500)
+      .setAngle(-12)
+      .setAlpha(0);
+    this.tweens.add({
+      targets: selo,
+      alpha: 1,
+      duration: 180,
+      yoyo: true,
+      hold: 450,
+    });
     for (let i = 0; i < 12; i++) {
-      const papel = this.add.rectangle(x, y, 14 + i % 3 * 4, 26, i % 2 ? 0xf3d9ff : 0xb68cff)
-        .setDepth(4499).setAngle(i * 30);
-      const angulo = i * Math.PI / 6;
-      this.tweens.add({ targets: papel, x: x + Math.cos(angulo) * 160,
-        y: y + Math.sin(angulo) * 120 + 110, angle: i * 90,
-        alpha: 0, scale: 0.3, duration: 850, delay: 180,
-        ease: "Cubic.Out", onComplete: () => papel.destroy() });
+      const papel = this.add
+        .rectangle(x, y, 14 + (i % 3) * 4, 26, i % 2 ? 0xf3d9ff : 0xb68cff)
+        .setDepth(4499)
+        .setAngle(i * 30);
+      const angulo = (i * Math.PI) / 6;
+      this.tweens.add({
+        targets: papel,
+        x: x + Math.cos(angulo) * 160,
+        y: y + Math.sin(angulo) * 120 + 110,
+        angle: i * 90,
+        alpha: 0,
+        scale: 0.3,
+        duration: 850,
+        delay: 180,
+        ease: "Cubic.Out",
+        onComplete: () => papel.destroy(),
+      });
     }
-    this.tweens.add({ targets: container, angle: -8, duration: 70, yoyo: true, repeat: 2 });
-    this.tweens.add({ targets: container, y: y + 100, scaleX: 0.05, scaleY: 0.7,
-      alpha: 0, duration: 550, delay: 350, ease: "Cubic.In",
-      onComplete: () => { selo.destroy(); container.destroy(); concluir?.(); } });
+    this.tweens.add({
+      targets: container,
+      angle: -8,
+      duration: 70,
+      yoyo: true,
+      repeat: 2,
+    });
+    this.tweens.add({
+      targets: container,
+      y: y + 100,
+      scaleX: 0.05,
+      scaleY: 0.7,
+      alpha: 0,
+      duration: 550,
+      delay: 350,
+      ease: "Cubic.In",
+      onComplete: () => {
+        selo.destroy();
+        container.destroy();
+        concluir?.();
+      },
+    });
   }
 
   animarMorteCarta(containerCampo, aoConcluir) {
@@ -2006,7 +2158,10 @@ class CenaJogo extends Phaser.Scene {
       return;
     }
 
-    if (containerCampo.dadosCartaCampo?.efeito?.tipo === TIPOS_EFEITO.VINCULO_ALIADO) {
+    if (
+      containerCampo.dadosCartaCampo?.efeito?.tipo ===
+      TIPOS_EFEITO.VINCULO_ALIADO
+    ) {
       this.animarMorteCyberPolitico(containerCampo, aoConcluir);
       return;
     }
@@ -2361,28 +2516,22 @@ class CenaJogo extends Phaser.Scene {
   // depois disso só reanexa o mesmo objeto (ver o remove/re-add em volta
   // do removeAll(true), lá em desenharInterface()), pra ele não reiniciar
   // do zero a cada jogada. O arquivo otimizado tem 720x1440, mas o mundo
-  // lógico continua em 1080x2160. O ajuste precisa acontecer somente
+  // lógico acompanha a proporção configurada. O ajuste precisa acontecer somente
   // DEPOIS de `created`: antes do primeiro frame o Phaser ainda usa uma
   // textura provisória, e setDisplaySize nesse estágio gera uma escala
   // gigantesca quando a textura real entra (o "fundo esticado").
   desenharFundoJogo() {
     const ajustarCover = (video, larguraNativa, alturaNativa) => {
       if (!video?.active || !larguraNativa || !alturaNativa) return;
-      const escala = Math.max(
-        GW / larguraNativa,
-        GH / alturaNativa,
-      );
+      const escala = Math.max(LARGURA_LAYOUT / larguraNativa, ALTURA_LAYOUT / alturaNativa);
       video
-        .setPosition(GW / 2, GH / 2)
-        .setDisplaySize(
-          larguraNativa * escala,
-          alturaNativa * escala,
-        )
+        .setPosition(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2)
+        .setDisplaySize(larguraNativa * escala, alturaNativa * escala)
         .setVisible(true);
     };
 
     if (!this.videoFundo) {
-      this.videoFundo = this.add.video(GW / 2, GH / 2, "videoParte3");
+      this.videoFundo = this.add.video(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, "videoParte3");
       this.videoFundo.setOrigin(0.5);
       this.videoFundo.setVisible(false);
       this.videoFundo.setMute(true);
@@ -2655,7 +2804,7 @@ class CenaJogo extends Phaser.Scene {
           .toLocaleUpperCase("pt-BR")
       : "INIMIGO";
     this.add
-      .text(GW / 2, L.yInimigoTras - L.slotH / 2 - 26, nomeOponente, {
+      .text(LARGURA_LAYOUT / 2, L.yInimigoTras - L.slotH / 2 - 26, nomeOponente, {
         fontSize: "24px",
         color: "#ff8888",
         fontStyle: "bold",
@@ -2673,7 +2822,10 @@ class CenaJogo extends Phaser.Scene {
         .setStrokeStyle(2, 0x552222)
         .setAlpha(0.4);
 
-      if (!this.multiplayer?.spectator && this.partida.inimigo.campo.armadilhas.has(i)) {
+      if (
+        !this.multiplayer?.spectator &&
+        this.partida.inimigo.campo.armadilhas.has(i)
+      ) {
         this.criarIndicadorArmadilha(xPos, yPos, L);
       }
 
@@ -2694,7 +2846,7 @@ class CenaJogo extends Phaser.Scene {
   desenharCampoJogador() {
     const L = this.layout;
     this.add
-      .text(GW / 2, L.yJogadorTras + L.slotH / 2 + 26, "VOCÊ", {
+      .text(LARGURA_LAYOUT / 2, L.yJogadorTras + L.slotH / 2 + 26, "VOCÊ", {
         fontSize: "24px",
         color: "#88ff99",
         fontStyle: "bold",
@@ -2712,8 +2864,6 @@ class CenaJogo extends Phaser.Scene {
         .setStrokeStyle(2, 0x225522)
         .setAlpha(0.4);
       slot.isSlot = true; // Identificador para a colisão do Drag & Drop
-
-
 
       let carta = this.partida.jogador.campo.cartas[i];
       if (carta) {
@@ -2801,12 +2951,10 @@ class CenaJogo extends Phaser.Scene {
             Math.round(24 * escala),
           );
     let fundo = viradaParaBaixo
-      ? this.add
-          .image(0, 0, "fundoCarta")
-          .setDisplaySize(CW, CH)
+      ? this.add.image(0, 0, "fundoCarta").setDisplaySize(CW, CH)
       : carta.imagem
-      ? this.add.image(0, 0, carta.imagem).setDisplaySize(CW, CH)
-      : this.add.rectangle(0, 0, CW, CH, corFundo);
+        ? this.add.image(0, 0, carta.imagem).setDisplaySize(CW, CH)
+        : this.add.rectangle(0, 0, CW, CH, corFundo);
     const filhos = [
       sombra,
       fundo,
@@ -2863,20 +3011,25 @@ class CenaJogo extends Phaser.Scene {
         )
         .setStrokeStyle(3, 0xffffff);
       const iconeAranha = this.add
-        .text(
-          Math.round(62 * escala),
-          Math.round(-68 * escala),
-          "🕷",
-          { fontSize: `${Math.round(25 * escala)}px` },
-        )
+        .text(Math.round(62 * escala), Math.round(-68 * escala), "🕷", {
+          fontSize: `${Math.round(25 * escala)}px`,
+        })
         .setOrigin(0.5);
       filhos.push(seloAranha, iconeAranha);
     }
 
     if (carta.efeitoDesabilitado && !viradaParaBaixo) {
-      filhos.push(this.add.text(0, -CH / 2 + 22, "EFEITO BLOQUEADO", {
-        fontSize: "17px", fontStyle: "bold", color: "#aaffbb", backgroundColor: "#072715", padding: { x: 4, y: 5 },
-      }).setOrigin(0.5));
+      filhos.push(
+        this.add
+          .text(0, -CH / 2 + 22, "EFEITO BLOQUEADO", {
+            fontSize: "17px",
+            fontStyle: "bold",
+            color: "#aaffbb",
+            backgroundColor: "#072715",
+            padding: { x: 4, y: 5 },
+          })
+          .setOrigin(0.5),
+      );
     }
     filhos.push(...this.criarIndicadorExtintor(carta, CW, CH, escala));
 
@@ -2905,19 +3058,12 @@ class CenaJogo extends Phaser.Scene {
     // tela quando um efeito de buff/debuff precisa animá-la.
     container.dadosCartaCampo = carta;
 
-    if (auraHabilidade) {
-      this.tweens.add({
-        targets: auraHabilidade,
-        alpha: { from: 0.28, to: 0.72 },
-        duration: 720,
-        yoyo: true,
-        repeat: -1,
-        ease: "Sine.easeInOut",
-      });
-    }
-
     container.on("pointerup", () => {
-      if (!this.podeConsultarCartas() || (viradaParaBaixo && !podeInteragirOculta)) return;
+      if (
+        !this.podeConsultarCartas() ||
+        (viradaParaBaixo && !podeInteragirOculta)
+      )
+        return;
       this.mostrarDetalheCarta(carta);
     });
 
@@ -2957,15 +3103,25 @@ class CenaJogo extends Phaser.Scene {
   // O marcador acompanha a carta em ambos os campos até o bloqueio expirar.
   criarIndicadorExtintor(carta, largura, altura, escala) {
     if (!carta.bonusBloqueado) return [];
-    const borda = this.add.rectangle(0, 0, largura, altura, 0xff9933, 0)
+    const borda = this.add
+      .rectangle(0, 0, largura, altura, 0xff9933, 0)
       .setStrokeStyle(Math.max(3, Math.round(3 * escala)), 0xff9933, 1);
-    const faixa = this.add.rectangle(0, -altura / 2 + 26 * escala,
-      largura - 8, 42 * escala, 0x351800, 0.96);
-    const texto = this.add.text(0, -altura / 2 + 26 * escala,
-      "EXTINTOR\nSEM BÔNUS", {
-        fontSize: `${Math.round(13 * escala)}px`, color: "#ffcc88",
-        fontStyle: "bold", align: "center",
-      }).setOrigin(0.5);
+    const faixa = this.add.rectangle(
+      0,
+      -altura / 2 + 26 * escala,
+      largura - 8,
+      42 * escala,
+      0x351800,
+      0.96,
+    );
+    const texto = this.add
+      .text(0, -altura / 2 + 26 * escala, "EXTINTOR\nSEM BÔNUS", {
+        fontSize: `${Math.round(13 * escala)}px`,
+        color: "#ffcc88",
+        fontStyle: "bold",
+        align: "center",
+      })
+      .setOrigin(0.5);
     return [borda, faixa, texto];
   }
 
@@ -2999,7 +3155,7 @@ class CenaJogo extends Phaser.Scene {
   // Fica acima da mão, no centro, simulando o baralho entregando as
   // cartas uma a uma para a mão do jogador.
   obterPosicaoMonteCompra() {
-    return { x: GW / 2, y: 1230 };
+    return { x: LARGURA_LAYOUT / 2, y: 1230 };
   }
 
   desenharMaoEmLeque() {
@@ -3020,7 +3176,7 @@ class CenaJogo extends Phaser.Scene {
     // CONFIGURAÇÃO DO LEQUE
     // --------------------------------------------------------------------------
 
-    const centroX = GW / 2;
+    const centroX = LARGURA_LAYOUT / 2;
     const centroY = Y_MAO_JOGADOR;
 
     const espacamentoMax = 82;
@@ -3186,7 +3342,8 @@ class CenaJogo extends Phaser.Scene {
       // =========================================================================
 
       containerCarta.on("pointerover", (pointer) => {
-        if (!this.podeConsultarCartas() || containerCarta.animandoCompra) return;
+        if (!this.podeConsultarCartas() || containerCarta.animandoCompra)
+          return;
 
         // ----------------------------------------------------------------------
         // ABAIXA A CARTA QUE ESTAVA LEVANTADA
@@ -3275,7 +3432,8 @@ class CenaJogo extends Phaser.Scene {
       // =========================================================================
 
       containerCarta.on("pointerout", () => {
-        if (!this.podeConsultarCartas() || containerCarta.animandoCompra) return;
+        if (!this.podeConsultarCartas() || containerCarta.animandoCompra)
+          return;
 
         // ----------------------------------------------------------------------
         // SE OUTRA CARTA JÁ FOI SELECIONADA,
@@ -3321,7 +3479,8 @@ class CenaJogo extends Phaser.Scene {
       // =========================================================================
 
       containerCarta.on("pointerup", () => {
-        if (!this.podeConsultarCartas() || containerCarta.animandoCompra) return;
+        if (!this.podeConsultarCartas() || containerCarta.animandoCompra)
+          return;
 
         this.mostrarDetalheCarta(carta);
       });
@@ -3409,7 +3568,7 @@ class CenaJogo extends Phaser.Scene {
     this.travado = true;
     this.historicoPagina = 0;
 
-    let overlay = this.add.rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.78);
+    let overlay = this.add.rectangle(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, LARGURA_LAYOUT, ALTURA_LAYOUT, 0x000000, 0.78);
     overlay.setDepth(4000);
     overlay.setInteractive();
     overlay.on("pointerup", () => this.fecharHistorico());
@@ -3463,7 +3622,7 @@ class CenaJogo extends Phaser.Scene {
       this.mudarPaginaHistorico(1),
     );
 
-    let painel = this.add.container(GW / 2, GH / 2, [
+    let painel = this.add.container(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, [
       painelBg,
       titulo,
       fecharBtn,
@@ -3697,7 +3856,7 @@ class CenaJogo extends Phaser.Scene {
 
     this.zoomBloqueadoAte = this.time.now + 2000;
 
-    let overlay = this.add.rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.78);
+    let overlay = this.add.rectangle(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, LARGURA_LAYOUT, ALTURA_LAYOUT, 0x000000, 0.78);
     overlay.setDepth(4000);
     overlay.setInteractive();
     overlay.on("pointerup", () => this.fecharDetalheCarta());
@@ -3728,8 +3887,7 @@ class CenaJogo extends Phaser.Scene {
         carta.efeito.tipo === TIPOS_EFEITO.BUFF_ATE_DOIS_ALIADOS) &&
       this.partida.jogador.campo.cartas.includes(carta);
     const habilidadeJaUsada =
-      podeMostrarBotaoHabilidade &&
-      carta.usadaEsteTurno;
+      podeMostrarBotaoHabilidade && carta.usadaEsteTurno;
 
     const PAINEL_LARGURA = 840;
     const PAINEL_ALTURA = 1320;
@@ -3854,13 +4012,16 @@ class CenaJogo extends Phaser.Scene {
     let containerDescricao = this.add.container(0, descY, textosDescricao);
 
     // ===== NOVO SISMETA DE MÁSCARA - PHASER 4 =====
-    const maskX = (GW - DESC_LARGURA) / 2;
-    const maskY = GH / 2 + descY;
+    const maskX = (LARGURA_LAYOUT - DESC_LARGURA) / 2;
+    const maskY = ALTURA_LAYOUT / 2 + descY;
 
     let mascaraGraphics = this.add.graphics();
     mascaraGraphics.fillStyle(0xffffff);
     mascaraGraphics.fillRect(maskX, maskY, DESC_LARGURA, DESC_ALTURA);
-    this.mascaraDescricaoAtual = this.aplicarMascaraRender(containerDescricao, mascaraGraphics);
+    this.mascaraDescricaoAtual = this.aplicarMascaraRender(
+      containerDescricao,
+      mascaraGraphics,
+    );
     // ==============================================
 
     const alturaTotalDescricao = Math.max(0, yParte - GAP_PARTES_DESC);
@@ -3978,7 +4139,7 @@ class CenaJogo extends Phaser.Scene {
       }
     }
 
-    let painel = this.add.container(GW / 2, GH / 2, filhosPainel);
+    let painel = this.add.container(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, filhosPainel);
     painel.setDepth(4001);
     painel.setScale(0.8);
     painel.setAlpha(0);
@@ -4008,7 +4169,7 @@ class CenaJogo extends Phaser.Scene {
     this.travado = true;
     this.zoomBloqueadoAte = this.time.now + 2000;
 
-    let overlay = this.add.rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.85);
+    let overlay = this.add.rectangle(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, LARGURA_LAYOUT, ALTURA_LAYOUT, 0x000000, 0.85);
     overlay.setDepth(4000);
     overlay.setInteractive();
     overlay.on("pointerup", () => this.fecharDetalheCarta());
@@ -4039,8 +4200,7 @@ class CenaJogo extends Phaser.Scene {
         carta.efeito.tipo === TIPOS_EFEITO.BUFF_ATE_DOIS_ALIADOS) &&
       this.partida.jogador.campo.cartas.includes(carta);
     const habilidadeJaUsada =
-      podeMostrarBotaoHabilidade &&
-      carta.usadaEsteTurno;
+      podeMostrarBotaoHabilidade && carta.usadaEsteTurno;
 
     // Cartão bem grande, quase do tamanho da tela — é essa a diferença
     // principal em relação ao modal normal (840x1320).
@@ -4280,13 +4440,16 @@ class CenaJogo extends Phaser.Scene {
     let containerDescricao = this.add.container(0, descY, textosDescricao);
 
     // ===== MÁSCARA (mesmo esquema usado no modal normal) =====
-    const maskX = (GW - DESC_LARGURA) / 2;
-    const maskY = GH / 2 + descY;
+    const maskX = (LARGURA_LAYOUT - DESC_LARGURA) / 2;
+    const maskY = ALTURA_LAYOUT / 2 + descY;
 
     let mascaraGraphics = this.add.graphics();
     mascaraGraphics.fillStyle(0xffffff);
     mascaraGraphics.fillRect(maskX, maskY, DESC_LARGURA, DESC_ALTURA);
-    this.mascaraDescricaoAtual = this.aplicarMascaraRender(containerDescricao, mascaraGraphics);
+    this.mascaraDescricaoAtual = this.aplicarMascaraRender(
+      containerDescricao,
+      mascaraGraphics,
+    );
 
     const alturaExcedente = alturaTotalDescricao - DESC_ALTURA;
     if (alturaExcedente > 0) {
@@ -4416,7 +4579,7 @@ class CenaJogo extends Phaser.Scene {
       }
     }
 
-    let painel = this.add.container(GW / 2, GH / 2, filhosPainel);
+    let painel = this.add.container(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, filhosPainel);
     painel.setDepth(4001);
     painel.setScale(0.8);
     painel.setAlpha(0);
@@ -4467,13 +4630,13 @@ class CenaJogo extends Phaser.Scene {
 
     areaArraste.on("pointerdown", (pointer) => {
       arrastando = true;
-      ultimoY = pointer.y;
+      ultimoY = this.pontoDoPonteiro(pointer).y;
     });
 
     const handlerMove = (pointer) => {
       if (!arrastando) return;
-      const delta = pointer.y - ultimoY;
-      ultimoY = pointer.y;
+      const delta = this.pontoDoPonteiro(pointer).y - ultimoY;
+      ultimoY = this.pontoDoPonteiro(pointer).y;
       aplicarScroll(descTexto.y + delta);
     };
 
@@ -4484,7 +4647,7 @@ class CenaJogo extends Phaser.Scene {
     const handlerWheel = (pointer, gameObjects, deltaX, deltaY) => {
       if (!this.modalAberto) return;
       const bounds = areaArraste.getBounds();
-      if (!bounds.contains(pointer.x, pointer.y)) return;
+      if (!bounds.contains(this.pontoDoPonteiro(pointer).x, this.pontoDoPonteiro(pointer).y)) return;
       aplicarScroll(descTexto.y - deltaY * 0.5);
     };
 
@@ -4511,10 +4674,10 @@ class CenaJogo extends Phaser.Scene {
     // Overlay próprio: clicar fora da janela de zoom fecha só ela (não o
     // painel de detalhe por baixo, que continua aberto normalmente).
     let overlayZoom = this.add.rectangle(
-      GW / 2,
-      GH / 2,
-      GW,
-      GH,
+      LARGURA_LAYOUT / 2,
+      ALTURA_LAYOUT / 2,
+      LARGURA_LAYOUT,
+      ALTURA_LAYOUT,
       0x000000,
       0.35,
     );
@@ -4550,7 +4713,7 @@ class CenaJogo extends Phaser.Scene {
       .rectangle(0, 0, largImg, altImg, 0xffffff, 0.12)
       .setBlendMode(Phaser.BlendModes.ADD);
 
-    let containerZoom = this.add.container(GW / 2, GH / 2, [
+    let containerZoom = this.add.container(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, [
       painelZoomBg,
       imagemZoom,
       brilhoZoom,
@@ -4573,8 +4736,8 @@ class CenaJogo extends Phaser.Scene {
     // ---------- EFEITO DE "INCLINAR" A CARTA CONFORME O MOUSE ----------
     // Mesma lógica que existia na miniatura, só que agora só roda enquanto
     // a janela de zoom estiver aberta.
-    const centroZoomX = GW / 2;
-    const centroZoomY = GH / 2;
+    const centroZoomX = LARGURA_LAYOUT / 2;
+    const centroZoomY = ALTURA_LAYOUT / 2;
     const metadeLarguraZoom = largImg / 2;
     const metadeAlturaZoom = altImg / 2;
     const inclinacaoMaxGraus = 7;
@@ -4583,18 +4746,18 @@ class CenaJogo extends Phaser.Scene {
       if (!this.zoomAberto || !containerZoom.active) return;
 
       const dx = Phaser.Math.Clamp(
-        (pointer.x - centroZoomX) / metadeLarguraZoom,
+        (this.pontoDoPonteiro(pointer).x - centroZoomX) / metadeLarguraZoom,
         -1,
         1,
       );
       const dy = Phaser.Math.Clamp(
-        (pointer.y - centroZoomY) / metadeAlturaZoom,
+        (this.pontoDoPonteiro(pointer).y - centroZoomY) / metadeAlturaZoom,
         -1,
         1,
       );
 
       containerZoom.rotation = dx * Phaser.Math.DegToRad(inclinacaoMaxGraus);
-      containerZoom.y = GH / 2 + dy * 14;
+      containerZoom.y = ALTURA_LAYOUT / 2 + dy * 14;
       containerZoom.scaleY = 1 - Math.abs(dy) * 0.04;
       containerZoom.scaleX = 1 - Math.abs(dx) * 0.02;
 
@@ -4641,7 +4804,7 @@ class CenaJogo extends Phaser.Scene {
     });
   }
 
-  fecharDetalheCarta() {
+  fecharDetalheCarta(imediato = false) {
     if (!this.modalAberto) return;
 
     if (this.tweensLendariaAtual) {
@@ -4679,23 +4842,25 @@ class CenaJogo extends Phaser.Scene {
       this.handlersScrollDescAtual = null;
     }
 
-    this.tweens.add({
+    const concluir = () => {
+      this.limparMascaraRender(this.mascaraDescricaoAtual);
+      this.mascaraDescricaoAtual = null;
+      if (this.painelDetalheAtual) this.painelDetalheAtual.destroy();
+      if (this.overlayDetalheAtual) this.overlayDetalheAtual.destroy();
+      this.painelDetalheAtual = null;
+      this.overlayDetalheAtual = null;
+      this.modalAberto = false;
+      this.travado = !this.ehMeuTurno;
+      if (!imediato) this.somJogarCarta.play();
+    };
+    if (imediato) concluir();
+    else this.tweens.add({
       targets: this.painelDetalheAtual,
       scale: 0.8,
       alpha: 0,
       duration: 150,
       ease: "Sine.easeIn",
-      onComplete: () => {
-        this.limparMascaraRender(this.mascaraDescricaoAtual);
-        this.mascaraDescricaoAtual = null;
-        if (this.painelDetalheAtual) this.painelDetalheAtual.destroy();
-        if (this.overlayDetalheAtual) this.overlayDetalheAtual.destroy();
-        this.painelDetalheAtual = null;
-        this.overlayDetalheAtual = null;
-        this.modalAberto = false;
-        this.travado = !this.ehMeuTurno;
-        this.somJogarCarta.play();
-      },
+      onComplete: concluir,
     });
   }
 
@@ -4830,7 +4995,11 @@ class CenaJogo extends Phaser.Scene {
         "Escolha um terreno inimigo para eliminar",
       );
     } else if (carta.efeito.tipo === TIPOS_EFEITO.SILENCIAR_CARTA) {
-      this.iniciarSelecaoDeAlvo(carta, alvos, "Escolha uma carta para bloquear efeitos");
+      this.iniciarSelecaoDeAlvo(
+        carta,
+        alvos,
+        "Escolha uma carta para bloquear efeitos",
+      );
     } else if (ehOverride) {
       this.iniciarSelecaoDeAlvo(
         carta,
@@ -4869,7 +5038,12 @@ class CenaJogo extends Phaser.Scene {
     };
     const escolher = (indices, texto, callback) => {
       limpar();
-      this.iniciarSelecaoDeQualquerCartaParaHabilidade(carta, indices, texto, callback);
+      this.iniciarSelecaoDeQualquerCartaParaHabilidade(
+        carta,
+        indices,
+        texto,
+        callback,
+      );
     };
     const instrucoes = {
       proteger: "Escolha uma aliada para proteger até o próximo turno",
@@ -4881,19 +5055,31 @@ class CenaJogo extends Phaser.Scene {
       opiniao: "Escolha a primeira carta: aliada +1 PA, inimiga −1 PA",
       reativar: "Escolha uma aliada para liberar sua habilidade novamente",
     };
-    escolher(alvos.map((i) => alvo === "inimigo" ? i + tam : i), instrucoes[acao], (indice) => {
-      const primeiro = alvo === "inimigo" ? indice - tam : indice;
-      if (acao === "mover") {
-        const livres = this.partida.jogador.campo.cartas.flatMap((c, i) => c === null ? [i] : []);
-        escolher(livres, "Escolha o espaço livre de destino", (destino) => this.executarHabilidade(carta, primeiro, destino));
-      } else if (acao === "opiniao") {
-        escolher(alvos.filter((i) => i !== primeiro), "Escolha a segunda carta: aliada +1 PA, inimiga −1 PA", (segundo) => this.executarHabilidade(carta, primeiro, segundo));
-      } else this.executarHabilidade(carta, primeiro);
-    });
+    escolher(
+      alvos.map((i) => (alvo === "inimigo" ? i + tam : i)),
+      instrucoes[acao],
+      (indice) => {
+        const primeiro = alvo === "inimigo" ? indice - tam : indice;
+        if (acao === "mover") {
+          const livres = this.partida.jogador.campo.cartas.flatMap((c, i) =>
+            c === null ? [i] : [],
+          );
+          escolher(livres, "Escolha o espaço livre de destino", (destino) =>
+            this.executarHabilidade(carta, primeiro, destino),
+          );
+        } else if (acao === "opiniao") {
+          escolher(
+            alvos.filter((i) => i !== primeiro),
+            "Escolha a segunda carta: aliada +1 PA, inimiga −1 PA",
+            (segundo) => this.executarHabilidade(carta, primeiro, segundo),
+          );
+        } else this.executarHabilidade(carta, primeiro);
+      },
+    );
   }
 
   // Dieh'Go — Eu Sou a Lei: cada toque aplica um ponto da reserva ao alvo.
-  // O mesmo inimigo pode receber vários pontos; a habilidade só confirma
+  // O mesmo inimigo pode receber vários pontos; escolhas não são removíveis.
   // O jogador pode confirmar antes de usar os 6 pontos; eles são um limite.
   iniciarDistribuicaoDeDano(carta, alvos) {
     const total = carta.efeito.total || 6;
@@ -4910,17 +5096,16 @@ class CenaJogo extends Phaser.Scene {
     const distribuicao = [];
     const contagens = new Map();
     const objetos = [];
-    const rotulos = new Map();
     const L = this.layout;
 
     const overlay = this.add
-      .rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.35)
+      .rectangle(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, LARGURA_LAYOUT, ALTURA_LAYOUT, 0x000000, 0.35)
       .setDepth(3700)
       .setInteractive();
     objetos.push(overlay);
 
     const instrucao = this.add
-      .text(GW / 2, 125, `Distribua até ${totalDistribuivel} pontos de dano`, {
+      .text(LARGURA_LAYOUT / 2, 125, `Distribua até ${totalDistribuivel} pontos de dano`, {
         fontSize: "38px",
         color: "#ffcc66",
         fontStyle: "bold",
@@ -4930,7 +5115,7 @@ class CenaJogo extends Phaser.Scene {
       .setOrigin(0.5)
       .setDepth(3900);
     const contador = this.add
-      .text(GW / 2, 180, `Restam: ${totalDistribuivel}`, {
+      .text(LARGURA_LAYOUT / 2, 180, `Restam: ${totalDistribuivel}`, {
         fontSize: "30px",
         color: "#ffffff",
         stroke: "#000000",
@@ -4945,6 +5130,7 @@ class CenaJogo extends Phaser.Scene {
       this.objetosSelecaoAlvo = null;
     };
     overlay.on("pointerup", () => {
+      if (distribuicao.length) return;
       limpar();
       this.cancelarSelecaoDeAlvo();
     });
@@ -4952,10 +5138,6 @@ class CenaJogo extends Phaser.Scene {
     let btnConfirmar = null;
     const atualizar = () => {
       contador.setText(`Restam: ${totalDistribuivel - distribuicao.length}`);
-      rotulos.forEach((texto, indice) => {
-        const qtd = contagens.get(indice) || 0;
-        texto.setText(`${qtd}`);
-      });
       if (btnConfirmar)
         btnConfirmar.setAlpha(distribuicao.length > 0 ? 1 : 0.35);
       if (btnConfirmar)
@@ -4971,42 +5153,8 @@ class CenaJogo extends Phaser.Scene {
         .rectangle(xPos, yPos, L.slotW, L.slotH, 0xff7744, 0)
         .setStrokeStyle(8, 0xff7744, 1)
         .setDepth(3800);
-      const rotulo = this.add
-        .text(xPos, yPos, "0", {
-          fontSize: "42px",
-          color: "#ffffff",
-          fontStyle: "bold",
-          stroke: "#000000",
-          strokeThickness: 7,
-        })
-        .setOrigin(0.5)
-        .setDepth(3802);
-      const botaoMenos = this.add
-        .text(xPos - L.slotW * 0.28, yPos, "−", {
-          fontSize: "52px",
-          color: "#ffaaaa",
-          fontStyle: "bold",
-          stroke: "#000000",
-          strokeThickness: 7,
-        })
-        .setOrigin(0.5)
-        .setDepth(3804);
-      const botaoMais = this.add
-        .text(xPos + L.slotW * 0.28, yPos, "+", {
-          fontSize: "52px",
-          color: "#aaffaa",
-          fontStyle: "bold",
-          stroke: "#000000",
-          strokeThickness: 7,
-        })
-        .setOrigin(0.5)
-        .setDepth(3804);
-      const zonaMenos = this.add
-        .rectangle(xPos - L.slotW * 0.28, yPos, L.slotW * 0.42, L.slotH, 0xffffff, 0.001)
-        .setDepth(3803)
-        .setInteractive({ useHandCursor: true });
       const zonaMais = this.add
-        .rectangle(xPos + L.slotW * 0.28, yPos, L.slotW * 0.42, L.slotH, 0xffffff, 0.001)
+        .rectangle(xPos, yPos, L.slotW, L.slotH, 0xffffff, 0.001)
         .setDepth(3803)
         .setInteractive({ useHandCursor: true });
       zonaMais.on("pointerup", () => {
@@ -5019,28 +5167,28 @@ class CenaJogo extends Phaser.Scene {
           return;
         distribuicao.push(indice);
         contagens.set(indice, (contagens.get(indice) || 0) + 1);
+        const ponto = contagens.get(indice) - 1;
+        const tamanho = Math.min(46, L.slotW / 4);
+        const x = xPos + ((ponto % 3) - 1) * (tamanho + 4);
+        const y = yPos - tamanho / 2 + Math.floor(ponto / 3) * (tamanho + 4);
+        const caveira = this.textures.exists("efeitoDiego")
+          ? this.add.image(x, y, "efeitoDiego").setDisplaySize(tamanho, tamanho)
+          : this.add
+              .text(x, y, "☠", {
+                fontSize: `${tamanho}px`,
+                color: "#ffffff",
+                stroke: "#000000",
+                strokeThickness: 4,
+              })
+              .setOrigin(0.5);
+        objetos.push(caveira.setDepth(3804));
         atualizar();
       });
-      zonaMenos.on("pointerup", () => {
-        const posicaoRemover = distribuicao.lastIndexOf(indice);
-        if (posicaoRemover === -1) return;
-        distribuicao.splice(posicaoRemover, 1);
-        contagens.set(indice, (contagens.get(indice) || 0) - 1);
-        atualizar();
-      });
-      rotulos.set(indice, rotulo);
-      objetos.push(
-        anel,
-        rotulo,
-        botaoMenos,
-        botaoMais,
-        zonaMenos,
-        zonaMais,
-      );
+      objetos.push(anel, zonaMais);
     });
 
     btnConfirmar = this.criarBotaoConfirmacao(
-      GW / 2,
+      LARGURA_LAYOUT / 2,
       Y_MAO_JOGADOR - 60,
       "Confirmar 0 de dano",
       0x884422,
@@ -5060,7 +5208,7 @@ class CenaJogo extends Phaser.Scene {
   // range dela, e destrava a interação sem gastar o turno da habilidade.
   avisarSemAlvo() {
     let texto = this.add
-      .text(GW / 2, 140, "Nenhum alvo em alcance", {
+      .text(LARGURA_LAYOUT / 2, 140, "Nenhum alvo em alcance", {
         fontSize: "36px",
         color: "#ff8888",
         fontStyle: "bold",
@@ -5102,7 +5250,7 @@ class CenaJogo extends Phaser.Scene {
     // anéis, sem esconder o campo por trás — o jogador precisa continuar
     // vendo as cartas pra escolher o alvo.
     let overlay = this.add
-      .rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.35)
+      .rectangle(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, LARGURA_LAYOUT, ALTURA_LAYOUT, 0x000000, 0.35)
       .setDepth(3700)
       .setInteractive();
     overlay.on("pointerup", () => {
@@ -5112,7 +5260,7 @@ class CenaJogo extends Phaser.Scene {
     objetos.push(overlay);
 
     let textoInstr = this.add
-      .text(GW / 2, 140, textoInstrucao, {
+      .text(LARGURA_LAYOUT / 2, 140, textoInstrucao, {
         fontSize: "40px",
         color: "#ffcc00",
         fontStyle: "bold",
@@ -5124,7 +5272,7 @@ class CenaJogo extends Phaser.Scene {
     objetos.push(textoInstr);
 
     let textoCancelar = this.add
-      .text(GW / 2, 195, "(toque fora para cancelar)", {
+      .text(LARGURA_LAYOUT / 2, 195, "(toque fora para cancelar)", {
         fontSize: "26px",
         color: "#dddddd",
       })
@@ -5190,7 +5338,15 @@ class CenaJogo extends Phaser.Scene {
       origem === "descarte"
         ? this.partida.jogador.descarte.filter((item) => item !== carta)
         : carta.efeito?.tipo === TIPOS_EFEITO.BUSCAR_CARTA_DECK
-          ? this.partida.jogador.deck.cartas.slice(0, Math.max(0, this.partida.jogador.deck.cartas.length - this.partida.jogador.mao.cartas.filter((c) => c !== carta).length))
+          ? this.partida.jogador.deck.cartas.slice(
+              0,
+              Math.max(
+                0,
+                this.partida.jogador.deck.cartas.length -
+                  this.partida.jogador.mao.cartas.filter((c) => c !== carta)
+                    .length,
+              ),
+            )
           : this.partida.jogador.deck.cartas;
 
     if (deck.length === 0) {
@@ -5209,7 +5365,7 @@ class CenaJogo extends Phaser.Scene {
     let objetosPagina = [];
 
     let overlay = this.add
-      .rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.86)
+      .rectangle(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, LARGURA_LAYOUT, ALTURA_LAYOUT, 0x000000, 0.86)
       .setDepth(3900)
       .setInteractive();
     overlay.on("pointerup", () =>
@@ -5218,7 +5374,7 @@ class CenaJogo extends Phaser.Scene {
     objetos.push(overlay);
 
     const painel = this.add
-      .rectangle(GW / 2, GH / 2, 920, 1200, 0x11121c, 0.98)
+      .rectangle(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, 920, 1200, 0x11121c, 0.98)
       .setStrokeStyle(7, 0xffcc00)
       .setDepth(3910)
       .setInteractive();
@@ -5226,15 +5382,15 @@ class CenaJogo extends Phaser.Scene {
 
     let textoInstr = this.add
       .text(
-        GW / 2,
+        LARGURA_LAYOUT / 2,
         520,
         origem === "descarte" ? "RECICLAGEM" : "SUGESTÃO ALGORÍTMICA",
         {
-        fontSize: "46px",
-        color: "#ffcc00",
-        fontStyle: "bold",
-        stroke: "#000000",
-        strokeThickness: 6,
+          fontSize: "46px",
+          color: "#ffcc00",
+          fontStyle: "bold",
+          stroke: "#000000",
+          strokeThickness: 6,
         },
       )
       .setOrigin(0.5)
@@ -5243,14 +5399,14 @@ class CenaJogo extends Phaser.Scene {
 
     let textoCancelar = this.add
       .text(
-        GW / 2,
+        LARGURA_LAYOUT / 2,
         580,
         origem === "descarte"
           ? "Escolha uma carta do descarte para recuperar"
           : "Escolha uma carta para adicionar à sua mão",
         {
-        fontSize: "27px",
-        color: "#dddddd",
+          fontSize: "27px",
+          color: "#dddddd",
         },
       )
       .setOrigin(0.5)
@@ -5326,22 +5482,23 @@ class CenaJogo extends Phaser.Scene {
         moldura.on("pointerover", () => moldura.setScale(1.04));
         moldura.on("pointerout", () => moldura.setScale(1));
         moldura.on("pointerup", () =>
-          this.confirmarEscolhaCartaDoBaralho(
-            gameObject,
-            carta,
-            indiceReal,
-          ),
+          this.confirmarEscolhaCartaDoBaralho(gameObject, carta, indiceReal),
         );
-        objetosPagina.push({
-          destroy: () => {
-            if (tweenNome) tweenNome.stop();
-            this.limparMascaraRender(mascaraNome);
+        objetosPagina.push(
+          {
+            destroy: () => {
+              if (tweenNome) tweenNome.stop();
+              this.limparMascaraRender(mascaraNome);
+            },
           },
-        }, moldura, arte, nomeTxt);
+          moldura,
+          arte,
+          nomeTxt,
+        );
       });
 
       const paginaTxt = this.add
-        .text(GW / 2, 1480, `${pagina + 1} / ${totalPaginas}`, {
+        .text(LARGURA_LAYOUT / 2, 1480, `${pagina + 1} / ${totalPaginas}`, {
           fontSize: "28px",
           color: "#ffffff",
           fontStyle: "bold",
@@ -5420,7 +5577,7 @@ class CenaJogo extends Phaser.Scene {
     const objetos = [];
 
     let overlay = this.add
-      .rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.35)
+      .rectangle(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, LARGURA_LAYOUT, ALTURA_LAYOUT, 0x000000, 0.35)
       .setDepth(3700)
       .setInteractive();
     overlay.on("pointerup", () =>
@@ -5429,7 +5586,7 @@ class CenaJogo extends Phaser.Scene {
     objetos.push(overlay);
 
     let textoInstr = this.add
-      .text(GW / 2, 140, "Escolha uma coluna inimiga para atropelar", {
+      .text(LARGURA_LAYOUT / 2, 140, "Escolha uma coluna inimiga para atropelar", {
         fontSize: "36px",
         color: "#ff9b6b",
         fontStyle: "bold",
@@ -5441,7 +5598,7 @@ class CenaJogo extends Phaser.Scene {
     objetos.push(textoInstr);
 
     let textoCancelar = this.add
-      .text(GW / 2, 195, "(toque fora para cancelar)", {
+      .text(LARGURA_LAYOUT / 2, 195, "(toque fora para cancelar)", {
         fontSize: "26px",
         color: "#dddddd",
       })
@@ -5472,7 +5629,14 @@ class CenaJogo extends Phaser.Scene {
       });
 
       let zonaToque = this.add
-        .rectangle(xPos, yCentro, L.slotW + 12, alturaTotal + 12, 0xffffff, 0.001)
+        .rectangle(
+          xPos,
+          yCentro,
+          L.slotW + 12,
+          alturaTotal + 12,
+          0xffffff,
+          0.001,
+        )
         .setDepth(3801)
         .setInteractive({ useHandCursor: true });
       zonaToque.on("pointerup", () =>
@@ -5508,7 +5672,9 @@ class CenaJogo extends Phaser.Scene {
   // guarda a armadilha no campo até uma carta ser invocada naquele espaço.
   iniciarSelecaoDeArmadilha(gameObject, carta) {
     const alvos = this.partida.inimigo.campo.cartas
-      .map((c, i) => (!c && !this.partida.inimigo.campo.armadilhas.has(i) ? i : null))
+      .map((c, i) =>
+        !c && !this.partida.inimigo.campo.armadilhas.has(i) ? i : null,
+      )
       .filter((i) => i !== null);
     if (!alvos.length) {
       this.animarRetornoAoLeque(gameObject, true);
@@ -5520,7 +5686,7 @@ class CenaJogo extends Phaser.Scene {
     const objetos = [];
     const L = this.layout;
     const overlay = this.add
-      .rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.35)
+      .rectangle(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, LARGURA_LAYOUT, ALTURA_LAYOUT, 0x000000, 0.35)
       .setDepth(3700)
       .setInteractive();
     objetos.push(overlay);
@@ -5534,7 +5700,7 @@ class CenaJogo extends Phaser.Scene {
     overlay.on("pointerup", cancelar);
     objetos.push(
       this.add
-        .text(GW / 2, 140, "Escolha um espaço inimigo para armar", {
+        .text(LARGURA_LAYOUT / 2, 140, "Escolha um espaço inimigo para armar", {
           fontSize: "36px",
           color: "#ff9b6b",
           fontStyle: "bold",
@@ -5602,7 +5768,7 @@ class CenaJogo extends Phaser.Scene {
     const objetos = [];
     const L = this.layout;
     const overlay = this.add
-      .rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.35)
+      .rectangle(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, LARGURA_LAYOUT, ALTURA_LAYOUT, 0x000000, 0.35)
       .setDepth(3700)
       .setInteractive();
     const cancelar = () => {
@@ -5615,7 +5781,7 @@ class CenaJogo extends Phaser.Scene {
     objetos.push(overlay);
     objetos.push(
       this.add
-        .text(GW / 2, 140, "Escolha uma carta aliada sem vizinhos", {
+        .text(LARGURA_LAYOUT / 2, 140, "Escolha uma carta aliada sem vizinhos", {
           fontSize: "36px",
           color: "#88ff99",
           fontStyle: "bold",
@@ -5675,7 +5841,7 @@ class CenaJogo extends Phaser.Scene {
     const etapa = primeiroAlvo === null ? 1 : 2;
 
     const overlay = this.add
-      .rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.35)
+      .rectangle(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, LARGURA_LAYOUT, ALTURA_LAYOUT, 0x000000, 0.35)
       .setDepth(3700)
       .setInteractive();
     overlay.on("pointerup", () => {
@@ -5689,7 +5855,7 @@ class CenaJogo extends Phaser.Scene {
     objetos.push(
       this.add
         .text(
-          GW / 2,
+          LARGURA_LAYOUT / 2,
           140,
           etapa === 1
             ? "Escolha quem recebe +2 PA (1/2)"
@@ -5755,14 +5921,14 @@ class CenaJogo extends Phaser.Scene {
     const objetos = [];
 
     let overlay = this.add
-      .rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.35)
+      .rectangle(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, LARGURA_LAYOUT, ALTURA_LAYOUT, 0x000000, 0.35)
       .setDepth(3700)
       .setInteractive();
     overlay.on("pointerup", () => this.cancelarSelecaoDeAlvo());
     objetos.push(overlay);
 
     let textoInstr = this.add
-      .text(GW / 2, 140, textoInstrucao, {
+      .text(LARGURA_LAYOUT / 2, 140, textoInstrucao, {
         fontSize: "40px",
         color: "#88ff99",
         fontStyle: "bold",
@@ -5774,7 +5940,7 @@ class CenaJogo extends Phaser.Scene {
     objetos.push(textoInstr);
 
     let textoCancelar = this.add
-      .text(GW / 2, 195, "(toque fora para cancelar)", {
+      .text(LARGURA_LAYOUT / 2, 195, "(toque fora para cancelar)", {
         fontSize: "26px",
         color: "#dddddd",
       })
@@ -5824,7 +5990,7 @@ class CenaJogo extends Phaser.Scene {
     const L = this.layout;
     const objetos = [];
     const overlay = this.add
-      .rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.35)
+      .rectangle(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, LARGURA_LAYOUT, ALTURA_LAYOUT, 0x000000, 0.35)
       .setDepth(3700)
       .setInteractive();
     overlay.on("pointerup", () =>
@@ -5835,7 +6001,7 @@ class CenaJogo extends Phaser.Scene {
     objetos.push(overlay);
     const instrucao = this.add
       .text(
-        GW / 2,
+        LARGURA_LAYOUT / 2,
         140,
         primeiroAlvo === null
           ? "Escolha a primeira aliada para reparar (1/2)"
@@ -5892,14 +6058,14 @@ class CenaJogo extends Phaser.Scene {
     const TAM = this.partida.jogador.campo.cartas.length;
 
     let overlay = this.add
-      .rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.35)
+      .rectangle(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, LARGURA_LAYOUT, ALTURA_LAYOUT, 0x000000, 0.35)
       .setDepth(3700)
       .setInteractive();
     overlay.on("pointerup", () => this.cancelarSelecaoDeAlvo());
     objetos.push(overlay);
 
     let textoInstr = this.add
-      .text(GW / 2, 140, textoInstrucao, {
+      .text(LARGURA_LAYOUT / 2, 140, textoInstrucao, {
         fontSize: "40px",
         color: "#88ff99",
         fontStyle: "bold",
@@ -5911,7 +6077,7 @@ class CenaJogo extends Phaser.Scene {
     objetos.push(textoInstr);
 
     let textoCancelar = this.add
-      .text(GW / 2, 195, "(toque fora para cancelar)", {
+      .text(LARGURA_LAYOUT / 2, 195, "(toque fora para cancelar)", {
         fontSize: "26px",
         color: "#dddddd",
       })
@@ -5948,7 +6114,9 @@ class CenaJogo extends Phaser.Scene {
         .setDepth(3801)
         .setInteractive({ useHandCursor: true });
       zonaToque.on("pointerup", () =>
-        aoEscolher ? aoEscolher(indiceDeslocado) : this.executarHabilidade(carta, indiceDeslocado),
+        aoEscolher
+          ? aoEscolher(indiceDeslocado)
+          : this.executarHabilidade(carta, indiceDeslocado),
       );
 
       objetos.push(anel, zonaToque);
@@ -5985,7 +6153,10 @@ class CenaJogo extends Phaser.Scene {
         });
       };
 
-      if (!window.CenaEfeitos && carta.efeito.tipo === TIPOS_EFEITO.DESTRUIR_TERRENO_INIMIGO) {
+      if (
+        !window.CenaEfeitos &&
+        carta.efeito.tipo === TIPOS_EFEITO.DESTRUIR_TERRENO_INIMIGO
+      ) {
         // Agora passamos o alvoEscolhido para a animação!
         this.animarEfeitoAdvogado(alvoEscolhido, finalizar);
       } else {
@@ -5998,8 +6169,8 @@ class CenaJogo extends Phaser.Scene {
   }
   animarEfeitoAdvogado(alvoEscolhido, aoConcluir, campoAliado = false) {
     // Posição padrão no centro, caso algo dê errado
-    let xPos = GW / 2;
-    let yPos = GH / 2;
+    let xPos = LARGURA_LAYOUT / 2;
+    let yPos = ALTURA_LAYOUT / 2;
 
     // Se temos um alvo, calculamos a posição dele no campo inimigo
     if (alvoEscolhido !== null && alvoEscolhido !== undefined) {
@@ -6064,14 +6235,14 @@ class CenaJogo extends Phaser.Scene {
     const objetos = [];
 
     let overlay = this.add
-      .rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.35)
+      .rectangle(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, LARGURA_LAYOUT, ALTURA_LAYOUT, 0x000000, 0.35)
       .setDepth(3700)
       .setInteractive();
     overlay.on("pointerup", () => this.cancelarSelecaoDeAlvo());
     objetos.push(overlay);
 
     let textoInstr = this.add
-      .text(GW / 2, 140, "Escolha quem perde poder (1/2)", {
+      .text(LARGURA_LAYOUT / 2, 140, "Escolha quem perde poder (1/2)", {
         fontSize: "40px",
         color: "#ff8888",
         fontStyle: "bold",
@@ -6083,7 +6254,7 @@ class CenaJogo extends Phaser.Scene {
     objetos.push(textoInstr);
 
     let textoCancelar = this.add
-      .text(GW / 2, 195, "(toque fora para cancelar)", {
+      .text(LARGURA_LAYOUT / 2, 195, "(toque fora para cancelar)", {
         fontSize: "26px",
         color: "#dddddd",
       })
@@ -6144,14 +6315,14 @@ class CenaJogo extends Phaser.Scene {
     const objetos = [];
 
     let overlay = this.add
-      .rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.35)
+      .rectangle(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, LARGURA_LAYOUT, ALTURA_LAYOUT, 0x000000, 0.35)
       .setDepth(3700)
       .setInteractive();
     overlay.on("pointerup", () => this.cancelarSelecaoDeAlvo());
     objetos.push(overlay);
 
     let textoInstr = this.add
-      .text(GW / 2, 140, "Escolha quem ganha poder (2/2)", {
+      .text(LARGURA_LAYOUT / 2, 140, "Escolha quem ganha poder (2/2)", {
         fontSize: "40px",
         color: "#88ff99",
         fontStyle: "bold",
@@ -6163,7 +6334,7 @@ class CenaJogo extends Phaser.Scene {
     objetos.push(textoInstr);
 
     let textoCancelar = this.add
-      .text(GW / 2, 195, "(toque fora para cancelar)", {
+      .text(LARGURA_LAYOUT / 2, 195, "(toque fora para cancelar)", {
         fontSize: "26px",
         color: "#dddddd",
       })
@@ -6215,14 +6386,14 @@ class CenaJogo extends Phaser.Scene {
     const objetos = [];
 
     let overlay = this.add
-      .rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.35)
+      .rectangle(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, LARGURA_LAYOUT, ALTURA_LAYOUT, 0x000000, 0.35)
       .setDepth(3700)
       .setInteractive();
     overlay.on("pointerup", () => this.cancelarSelecaoDeAlvo());
     objetos.push(overlay);
 
     let textoInstr = this.add
-      .text(GW / 2, 140, "Escolha o primeiro alvo (1/2)", {
+      .text(LARGURA_LAYOUT / 2, 140, "Escolha o primeiro alvo (1/2)", {
         fontSize: "40px",
         color: "#ffcc00",
         fontStyle: "bold",
@@ -6234,7 +6405,7 @@ class CenaJogo extends Phaser.Scene {
     objetos.push(textoInstr);
 
     let textoCancelar = this.add
-      .text(GW / 2, 195, "(toque fora para cancelar)", {
+      .text(LARGURA_LAYOUT / 2, 195, "(toque fora para cancelar)", {
         fontSize: "26px",
         color: "#dddddd",
       })
@@ -6291,7 +6462,7 @@ class CenaJogo extends Phaser.Scene {
     const objetos = [];
 
     let overlay = this.add
-      .rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.35)
+      .rectangle(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, LARGURA_LAYOUT, ALTURA_LAYOUT, 0x000000, 0.35)
       .setDepth(3700)
       .setInteractive();
     // Tocar fora aqui não cancela a habilidade inteira — o primeiro alvo
@@ -6301,7 +6472,7 @@ class CenaJogo extends Phaser.Scene {
     objetos.push(overlay);
 
     let textoInstr = this.add
-      .text(GW / 2, 140, "Escolha o segundo alvo (2/2)", {
+      .text(LARGURA_LAYOUT / 2, 140, "Escolha o segundo alvo (2/2)", {
         fontSize: "40px",
         color: "#ffcc00",
         fontStyle: "bold",
@@ -6313,7 +6484,7 @@ class CenaJogo extends Phaser.Scene {
     objetos.push(textoInstr);
 
     let textoCancelar = this.add
-      .text(GW / 2, 195, "(toque fora para atacar só o primeiro)", {
+      .text(LARGURA_LAYOUT / 2, 195, "(toque fora para atacar só o primeiro)", {
         fontSize: "26px",
         color: "#dddddd",
       })
@@ -6367,10 +6538,13 @@ class CenaJogo extends Phaser.Scene {
     const L = this.layout;
     const objetos = [];
 
-    const exigeEscolhaExplicita = carta.efeito.tipo === TIPOS_EFEITO.VINCULO_ALIADO;
+    const exigeEscolhaExplicita =
+      carta.efeito.tipo === TIPOS_EFEITO.VINCULO_ALIADO;
     const indicesAliados = exigeEscolhaExplicita
       ? this.partida.alvosParaVinculoAliado(carta, this.partida.jogador)
-      : this.partida.jogador.campo.cartas.flatMap((c, i) => c && c.tipo !== "terreno" ? [i] : []);
+      : this.partida.jogador.campo.cartas.flatMap((c, i) =>
+          c && c.tipo !== "terreno" ? [i] : [],
+        );
 
     if (!indicesAliados.length) {
       this.confirmarEscolhaBuffAliado(carta, posicaoPropria, null);
@@ -6379,23 +6553,34 @@ class CenaJogo extends Phaser.Scene {
     this.travado = true;
 
     let overlay = this.add
-      .rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.35)
+      .rectangle(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, LARGURA_LAYOUT, ALTURA_LAYOUT, 0x000000, 0.35)
       .setDepth(3700)
       .setInteractive();
     overlay.on("pointerup", () => {
       if (!exigeEscolhaExplicita)
-        this.confirmarEscolhaBuffAliado(carta, posicaoPropria, indicesAliados[0]);
+        this.confirmarEscolhaBuffAliado(
+          carta,
+          posicaoPropria,
+          indicesAliados[0],
+        );
     });
     objetos.push(overlay);
 
     let textoInstr = this.add
-      .text(GW / 2, 140, carta.efeito.tipo === TIPOS_EFEITO.VINCULO_ALIADO ? "Escolha a aliada que sustenta a Troca de Favores" : "Escolha uma aliada para fortalecer", {
-        fontSize: "40px",
-        color: "#88ff99",
-        fontStyle: "bold",
-        stroke: "#000000",
-        strokeThickness: 6,
-      })
+      .text(
+        LARGURA_LAYOUT / 2,
+        140,
+        carta.efeito.tipo === TIPOS_EFEITO.VINCULO_ALIADO
+          ? "Escolha a aliada que sustenta a Troca de Favores"
+          : "Escolha uma aliada para fortalecer",
+        {
+          fontSize: "40px",
+          color: "#88ff99",
+          fontStyle: "bold",
+          stroke: "#000000",
+          strokeThickness: 6,
+        },
+      )
       .setOrigin(0.5)
       .setDepth(3900);
     objetos.push(textoInstr);
@@ -6494,14 +6679,14 @@ class CenaJogo extends Phaser.Scene {
     this.travado = true;
 
     let overlay = this.add
-      .rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.35)
+      .rectangle(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, LARGURA_LAYOUT, ALTURA_LAYOUT, 0x000000, 0.35)
       .setDepth(3700)
       .setInteractive();
     objetos.push(overlay);
 
     let textoInstr = this.add
       .text(
-        GW / 2,
+        LARGURA_LAYOUT / 2,
         130,
         `Escolha até ${maxAlvos} aliadas de nível baixo/médio para absorver`,
         {
@@ -6511,7 +6696,7 @@ class CenaJogo extends Phaser.Scene {
           stroke: "#000000",
           strokeThickness: 6,
           align: "center",
-          wordWrap: { width: GW - 160 },
+          wordWrap: { width: LARGURA_LAYOUT - 160 },
         },
       )
       .setOrigin(0.5)
@@ -6519,7 +6704,7 @@ class CenaJogo extends Phaser.Scene {
     objetos.push(textoInstr);
 
     let textoContador = this.add
-      .text(GW / 2, 210, `0/${maxAlvos} escolhidas`, {
+      .text(LARGURA_LAYOUT / 2, 210, `0/${maxAlvos} escolhidas`, {
         fontSize: "28px",
         color: "#dddddd",
       })
@@ -6567,7 +6752,7 @@ class CenaJogo extends Phaser.Scene {
     });
 
     let btnConfirmar = this.criarBotaoConfirmacao(
-      GW / 2,
+      LARGURA_LAYOUT / 2,
       Y_MAO_JOGADOR - 60,
       "Confirmar",
       0x336633,
@@ -6616,7 +6801,7 @@ class CenaJogo extends Phaser.Scene {
   // (Y_MAO_JOGADOR), maiores e mais fáceis de ler.
   desenharStatus() {
     const centralizado = this.maoEscondida;
-    const x = centralizado ? GW / 2 : 45;
+    const x = centralizado ? LARGURA_LAYOUT / 2 : 45;
     const yTurno = centralizado ? Y_MAO_JOGADOR - 30 : 1590;
     const yPlacar = centralizado ? Y_MAO_JOGADOR + 30 : 1645;
     const origin = centralizado ? 0.5 : 0;
@@ -6624,18 +6809,38 @@ class CenaJogo extends Phaser.Scene {
     const painelX = centralizado ? x : 190;
     const painelY = (yTurno + yPlacar) / 2;
     const painel = this.criarPainelTatico(
-      painelX, painelY, centralizado ? 570 : 300, centralizado ? 138 : 126,
+      painelX,
+      painelY,
+      centralizado ? 570 : 300,
+      centralizado ? 138 : 126,
     );
     const alinhamento = centralizado ? 0.5 : 0;
     const textoX = centralizado ? 0 : -125;
-    const turno = this.add.text(textoX, -31,
-      `TURNO  ${String(this.partida.turno).padStart(2, "0")} / ${String(this.partida.maxTurnos).padStart(2, "0")}`,
-      { fontSize: centralizado ? "42px" : "31px", color: "#f3f8fc", fontStyle: "bold", fontFamily: "monospace" },
-    ).setOrigin(alinhamento, 0.5);
-    const placar = this.add.text(textoX, 29,
-      `RODADAS  ${this.partida.rodadasJogador}  :  ${this.partida.rodadasInimigo}`,
-      { fontSize: centralizado ? "28px" : "23px", color: "#38f2a0", fontStyle: "bold" },
-    ).setOrigin(alinhamento, 0.5);
+    const turno = this.add
+      .text(
+        textoX,
+        -31,
+        `TURNO  ${String(this.partida.turno).padStart(2, "0")} / ${String(this.partida.maxTurnos).padStart(2, "0")}`,
+        {
+          fontSize: centralizado ? "42px" : "31px",
+          color: "#f3f8fc",
+          fontStyle: "bold",
+          fontFamily: "monospace",
+        },
+      )
+      .setOrigin(alinhamento, 0.5);
+    const placar = this.add
+      .text(
+        textoX,
+        29,
+        `RODADAS  ${this.partida.rodadasJogador}  :  ${this.partida.rodadasInimigo}`,
+        {
+          fontSize: centralizado ? "28px" : "23px",
+          color: "#38f2a0",
+          fontStyle: "bold",
+        },
+      )
+      .setOrigin(alinhamento, 0.5);
     painel.add([turno, placar]);
   }
 
@@ -6669,7 +6874,7 @@ class CenaJogo extends Phaser.Scene {
     // a mão (ou perto do rodapé, se a mão estiver escondida).
     const yJogadorIcone = L.yJogadorTras + L.slotH / 2 + 100;
     this.criarIndicadorPoder(
-      GW - 90,
+      LARGURA_LAYOUT - 90,
       yJogadorIcone,
       poderJogador,
       tamJogador,
@@ -6688,7 +6893,8 @@ class CenaJogo extends Phaser.Scene {
     let icone = this.add
       .text(0, -4, "PA", {
         fontSize: `${Math.max(14, Math.round(tamanho * 0.22))}px`,
-        color: cor, fontStyle: "bold",
+        color: cor,
+        fontStyle: "bold",
       })
       .setOrigin(0.5);
     let numero = this.add
@@ -6727,7 +6933,7 @@ class CenaJogo extends Phaser.Scene {
   // de volta, já que ninguém mais vai fazer isso.
   desenharRodaBotoes() {
     const RAIO = 46;
-    const X = GW - RAIO - 30;
+    const X = LARGURA_LAYOUT - RAIO - 30;
     const Y = 90;
 
     let halo = this.add.circle(0, 0, RAIO + 8, 0x23d7ff, 0.07);
@@ -6735,7 +6941,11 @@ class CenaJogo extends Phaser.Scene {
       .circle(0, 0, RAIO, 0x070d15, 0.96)
       .setStrokeStyle(3, 0x23d7ff, 0.75);
     let icone = this.add
-      .text(0, 0, "≡", { fontSize: "42px", color: "#23d7ff", fontStyle: "bold" })
+      .text(0, 0, "≡", {
+        fontSize: "42px",
+        color: "#23d7ff",
+        fontStyle: "bold",
+      })
       .setOrigin(0.5);
 
     let botaoMenu = this.add.container(X, Y, [halo, bg, icone]);
@@ -6756,11 +6966,13 @@ class CenaJogo extends Phaser.Scene {
     });
 
     const botaoPassar = this.criarBotaoDaRoda(
-      GW - 160,
-      GH - 65,
+      LARGURA_LAYOUT - 160,
+      ALTURA_LAYOUT - 65,
       270,
       76,
-      this.faseAtual === "habilidades" ? "ENCERRAR HABILIDADES ›" : "ENCERRAR COLOCAÇÃO ›",
+      this.faseAtual === "habilidades"
+        ? "ENCERRAR HABILIDADES ›"
+        : "ENCERRAR COLOCAÇÃO ›",
       0x23d7ff,
       () => this.aoClicarPassarTurno(),
     );
@@ -6807,16 +7019,16 @@ class CenaJogo extends Phaser.Scene {
     // Vem primeiro na lista de filhos (mais embaixo, atrás dos botões),
     // então um toque num botão nunca "vaza" pra ele.
     const overlay = this.add
-      .rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.6)
+      .rectangle(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, LARGURA_LAYOUT, ALTURA_LAYOUT, 0x000000, 0.6)
       .setInteractive();
     overlay.on("pointerup", () => this.fecharOpcoesDaRoda());
 
     const totalAltura = ESPACO * (definicoes.length - 1);
-    const yInicio = GH / 2 - totalAltura / 2;
+    const yInicio = ALTURA_LAYOUT / 2 - totalAltura / 2;
 
     const botoes = definicoes.map((def, indice) =>
       this.criarBotaoDaRoda(
-        GW / 2,
+        LARGURA_LAYOUT / 2,
         yInicio + indice * ESPACO,
         LARGURA,
         ALTURA,
@@ -6869,9 +7081,20 @@ class CenaJogo extends Phaser.Scene {
     let bg = this.add
       .rectangle(0, 0, largura, altura, 0x070d15, 0.97)
       .setStrokeStyle(3, cor, 0.8);
-    let barra = this.add.rectangle(-largura / 2 + 4, 0, 7, altura - 14, cor, 0.95);
+    let barra = this.add.rectangle(
+      -largura / 2 + 4,
+      0,
+      7,
+      altura - 14,
+      cor,
+      0.95,
+    );
     let texto = this.add
-      .text(0, 0, rotulo, { fontSize: "24px", color: "#f3f8fc", fontStyle: "bold" })
+      .text(0, 0, rotulo, {
+        fontSize: "24px",
+        color: "#f3f8fc",
+        fontStyle: "bold",
+      })
       .setOrigin(0.5);
 
     let btn = this.add.container(x, y, [bg, barra, texto]);
@@ -6925,7 +7148,13 @@ class CenaJogo extends Phaser.Scene {
   // fim de turno do jogador, jogada da IA, efeitos de turno e, se for o
   // último turno, o combate final.
   aoClicarPassarTurno() {
-    if (this.travado || !this.ehMeuTurno || this.partida.partidaEncerrada || this.multiplayer?.spectator) return;
+    if (
+      this.travado ||
+      !this.ehMeuTurno ||
+      this.partida.partidaEncerrada ||
+      this.multiplayer?.spectator
+    )
+      return;
     this.encerrarSelecoesDaFase();
     this.pausarTimerAteProximoTurno();
     this.travado = true;
@@ -6938,27 +7167,38 @@ class CenaJogo extends Phaser.Scene {
     let result = null;
     if (this.soloStep === 4) {
       result = this.partida.fimTurno({ semIA: true });
-      this.soloStep = 0; this.soloStarter = 3 - this.soloStarter;
+      this.soloStep = 0;
+      this.soloStarter = 3 - this.soloStarter;
     }
     this.faseAtual = this.soloStep < 2 ? "colocar" : "habilidades";
     this.partida.fase = this.faseAtual;
-    this.ehMeuTurno = (this.soloStep % 2 === 0 ? this.soloStarter : 3 - this.soloStarter) === 1;
+    this.ehMeuTurno =
+      (this.soloStep % 2 === 0 ? this.soloStarter : 3 - this.soloStarter) === 1;
     this.travado = !this.ehMeuTurno;
     this.timerTurnoExpirado = false;
     const continuar = () => {
       this.desenharInterface();
-      if (result?.fimDeJogo) { this.mostrarTelaFimDeJogo(result.resultadoCombate); return; }
+      if (result?.fimDeJogo) {
+        this.mostrarTelaFimDeJogo(result.resultadoCombate);
+        return;
+      }
       if (this.ehMeuTurno) this.iniciarNovoTurnoDoJogador();
-      else { this.reiniciarTimerOponente(); this.time.delayedCall(650, () => this.executarFaseSolo()); }
+      else {
+        this.reiniciarTimerOponente();
+        this.time.delayedCall(650, () => this.executarFaseSolo());
+      }
     };
-    if (result?.resultadoRodada) this.mostrarBannerRodada(result.resultadoRodada, continuar);
+    if (result?.resultadoRodada)
+      this.mostrarBannerRodada(result.resultadoRodada, continuar);
     else continuar();
   }
 
   executarFaseSolo() {
     if (this.partida.partidaEncerrada || this.ehMeuTurno) return;
     const anterior = this.partida;
-    const nova = this.multiplayer.hydrateMatch(this.multiplayer.serializeMatch(anterior));
+    const nova = this.multiplayer.hydrateMatch(
+      this.multiplayer.serializeMatch(anterior),
+    );
     nova.fase = this.faseAtual;
     nova.turnoIA(this.faseAtual);
     this.apresentarEventosEfeito(nova.eventosEfeito);
@@ -6968,7 +7208,8 @@ class CenaJogo extends Phaser.Scene {
       window.partida = nova;
       this.desenharInterface();
       this.avancarFaseSolo();
-      if (eventos.compras) this.animarComprasInimigas(eventos.compras, () => {});
+      if (eventos.compras)
+        this.animarComprasInimigas(eventos.compras, () => {});
       return;
     }
     this.animacaoRemotaEmCurso = true;
@@ -6979,8 +7220,16 @@ class CenaJogo extends Phaser.Scene {
   }
 
   receberEstadoMultiplayer(snapshot, resultado, update) {
+    if (update.debugFinal && resultado?.fimDeJogo) {
+      this.partida = this.multiplayer.hydrateMatch(snapshot);
+      window.partida = this.partida;
+      this.mostrarFinalParaTeste(resultado.resultadoCombate);
+      return;
+    }
+    this.faseAtual = update.phase || this.multiplayer.phase;
     this.apresentarEventosEfeito(snapshot.eventosEfeito);
-    if (update.phaseChanged && (this.modalAberto || this.objetosSelecaoAlvo)) this.encerrarSelecoesDaFase();
+    if (update.phaseChanged && (this.modalAberto || this.objetosSelecaoAlvo))
+      this.encerrarSelecoesDaFase();
     if (this.animacaoRemotaEmCurso) {
       this.atualizacaoRemotaPendente = { snapshot, resultado, update };
       return;
@@ -7000,7 +7249,8 @@ class CenaJogo extends Phaser.Scene {
       window.partida = this.partida;
       this.finalizarRecebimentoMultiplayer(resultado, update, false);
       this.aplicandoEstadoRemoto = false;
-      if (eventos?.compras) this.animarComprasInimigas(eventos.compras, () => {});
+      if (eventos?.compras)
+        this.animarComprasInimigas(eventos.compras, () => {});
       return;
     }
 
@@ -7036,20 +7286,23 @@ class CenaJogo extends Phaser.Scene {
   }
 
   finalizarRecebimentoMultiplayer(resultado, update, interfaceDesenhada) {
-    const podeJogar = !this.multiplayer.spectator && update.activePlayer === this.multiplayer.player;
+    const podeJogar =
+      !this.multiplayer.spectator &&
+      update.activePlayer === this.multiplayer.player;
     const eraMeuTurno = this.ehMeuTurno;
     this.faseAtual = update.phase || this.multiplayer.phase;
     this.partida.fase = this.faseAtual;
     this.timerTurnoExpirado = false;
     this.ehMeuTurno = podeJogar;
-    if (podeJogar && (!eraMeuTurno || update.phaseChanged || update.initial)) this.iniciarNovoTurnoDoJogador();
+    if (podeJogar && (!eraMeuTurno || update.phaseChanged || update.initial))
+      this.iniciarNovoTurnoDoJogador();
     else if (!podeJogar && eraMeuTurno) this.reiniciarTimerOponente();
     else if (!podeJogar) this.atualizarVisualTimerTurno(true);
     this.travado = !podeJogar || !!resultado?.resultadoRodada;
     // Uma animação remota pode ter redesenhado o tabuleiro ainda com o
     // turno marcado como adversário. Ao receber a vez, redesenha para
     // ativar controles e auras de habilidade no estado correto.
-    if (!interfaceDesenhada || (podeJogar && !eraMeuTurno))
+    if (!interfaceDesenhada || update.phaseChanged || podeJogar !== eraMeuTurno)
       this.desenharInterface();
 
     if (resultado?.fimDeJogo) {
@@ -7085,9 +7338,7 @@ class CenaJogo extends Phaser.Scene {
 
     const jogadasCampo = campoNovoInimigo
       .map((carta, posicao) => ({ carta, posicao }))
-      .filter(
-        ({ carta }) => carta && !chavesCampoAnterior.has(chave(carta)),
-      );
+      .filter(({ carta }) => carta && !chavesCampoAnterior.has(chave(carta)));
 
     const novasEntradasHistorico = nova.historico.slice(
       anterior.historico.length,
@@ -7102,11 +7353,15 @@ class CenaJogo extends Phaser.Scene {
     const ativacoes = [];
     [...campoNovoInimigo, ...nova.inimigo.descarte].forEach((cartaNova) => {
       if (!cartaNova?.habilidadeAtiva) return;
-      const cartaAnterior = [...campoAnteriorInimigo, ...anterior.inimigo.descarte].find(
-        (carta) => chave(carta) === chave(cartaNova),
-      );
-      if (cartaAnterior && ((cartaNova.ativacoes || 0) > (cartaAnterior.ativacoes || 0) ||
-        (cartaNova.usadaEsteTurno && !cartaAnterior.usadaEsteTurno)))
+      const cartaAnterior = [
+        ...campoAnteriorInimigo,
+        ...anterior.inimigo.descarte,
+      ].find((carta) => chave(carta) === chave(cartaNova));
+      if (
+        cartaAnterior &&
+        ((cartaNova.ativacoes || 0) > (cartaAnterior.ativacoes || 0) ||
+          (cartaNova.usadaEsteTurno && !cartaAnterior.usadaEsteTurno))
+      )
         ativacoes.push(cartaNova);
     });
 
@@ -7150,8 +7405,20 @@ class CenaJogo extends Phaser.Scene {
     const removidas = campoAnteriorInimigo.filter(
       (carta) => carta && !chavesNovasDoInimigo.has(chave(carta)),
     );
-    const chavesNovasAliadas = new Set([...nova.jogador.campo.cartas, ...nova.jogador.mao.cartas, ...nova.jogador.deck.cartas].filter(Boolean).map(chave));
-    removidas.push(...anterior.jogador.campo.cartas.filter((c) => c && !chavesNovasAliadas.has(chave(c))));
+    const chavesNovasAliadas = new Set(
+      [
+        ...nova.jogador.campo.cartas,
+        ...nova.jogador.mao.cartas,
+        ...nova.jogador.deck.cartas,
+      ]
+        .filter(Boolean)
+        .map(chave),
+    );
+    removidas.push(
+      ...anterior.jogador.campo.cartas.filter(
+        (c) => c && !chavesNovasAliadas.has(chave(c)),
+      ),
+    );
 
     return {
       jogadasCampo,
@@ -7180,16 +7447,18 @@ class CenaJogo extends Phaser.Scene {
       this.partida = novaPartida;
       window.partida = this.partida;
 
-      const apresentacoes = window.CenaEfeitos ? [] : [
-        ...eventos.efeitos.map((carta) => ({
-          carta,
-          rotulo: "O inimigo conjurou:",
-        })),
-        ...eventos.ativacoes.map((carta) => ({
-          carta,
-          rotulo: "O inimigo ativou:",
-        })),
-      ];
+      const apresentacoes = window.CenaEfeitos
+        ? []
+        : [
+            ...eventos.efeitos.map((carta) => ({
+              carta,
+              rotulo: "O inimigo conjurou:",
+            })),
+            ...eventos.ativacoes.map((carta) => ({
+              carta,
+              rotulo: "O inimigo ativou:",
+            })),
+          ];
 
       const finalizar = () => {
         this.desenharInterface();
@@ -7215,11 +7484,20 @@ class CenaJogo extends Phaser.Scene {
       );
     };
 
-    const advogados = window.CenaEfeitos ? [] : eventos.ativacoes.filter((c) => c.efeito?.tipo === TIPOS_EFEITO.DESTRUIR_TERRENO_INIMIGO);
-    const remover = () => this.animarRemocoesInimigas(eventos.removidas, aplicarNovoEstado);
+    const advogados = window.CenaEfeitos
+      ? []
+      : eventos.ativacoes.filter(
+          (c) => c.efeito?.tipo === TIPOS_EFEITO.DESTRUIR_TERRENO_INIMIGO,
+        );
+    const remover = () =>
+      this.animarRemocoesInimigas(eventos.removidas, aplicarNovoEstado);
     const animarAdvogado = (indice) => {
       if (indice >= advogados.length) return remover();
-      this.animarEfeitoAdvogado(advogados[indice].ultimoAlvoHabilidade, () => animarAdvogado(indice + 1), true);
+      this.animarEfeitoAdvogado(
+        advogados[indice].ultimoAlvoHabilidade,
+        () => animarAdvogado(indice + 1),
+        true,
+      );
     };
     animarAdvogado(0);
   }
@@ -7249,12 +7527,12 @@ class CenaJogo extends Phaser.Scene {
       return;
     }
 
-    const origem = { x: GW / 5.4, y: Y_MAO_INIMIGO };
+    const origem = { x: LARGURA_LAYOUT / 5.4, y: Y_MAO_INIMIGO };
     const totalMao = this.partida.inimigo.mao.cartas.length;
     let concluidas = 0;
     for (let indice = 0; indice < quantidade; indice++) {
       const offset = indice - (quantidade - 1) / 2;
-      const destinoX = GW / 2 + offset * 58;
+      const destinoX = LARGURA_LAYOUT / 2 + offset * 58;
       const destinoY = Y_MAO_INIMIGO - 20 - Math.abs(offset) * 5;
       const verso = this.add
         .image(origem.x, origem.y, "fundoCarta")
@@ -7293,10 +7571,15 @@ class CenaJogo extends Phaser.Scene {
     }
 
     this.add
-      .text(GW / 2, Y_MAO_INIMIGO + 145, `Oponente comprou ${quantidade} carta${quantidade > 1 ? "s" : ""}`, {
-        fontSize: "26px",
-        color: "#9be7ff",
-      })
+      .text(
+        LARGURA_LAYOUT / 2,
+        Y_MAO_INIMIGO + 145,
+        `Oponente comprou ${quantidade} carta${quantidade > 1 ? "s" : ""}`,
+        {
+          fontSize: "26px",
+          color: "#9be7ff",
+        },
+      )
       .setOrigin(0.5)
       .setDepth(3699);
   }
@@ -7304,13 +7587,18 @@ class CenaJogo extends Phaser.Scene {
   mostrarEsperaMultiplayer(texto = "AGUARDANDO O OPONENTE...") {
     if (!this.multiplayerAtivo || this.partida.partidaEncerrada) return;
     this.add
-      .text(GW / 2, GH - 150, this.multiplayer?.spectator ? "MODO ESPECTADOR" : texto, {
-        fontSize: "38px",
-        color: "#9be7ff",
-        fontStyle: "bold",
-        backgroundColor: "#000000cc",
-        padding: { x: 32, y: 22 },
-      })
+      .text(
+        LARGURA_LAYOUT / 2,
+        ALTURA_LAYOUT - 150,
+        this.multiplayer?.spectator ? "MODO ESPECTADOR" : texto,
+        {
+          fontSize: "38px",
+          color: "#9be7ff",
+          fontStyle: "bold",
+          backgroundColor: "#000000cc",
+          padding: { x: 32, y: 22 },
+        },
+      )
       .setOrigin(0.5)
       .setDepth(5000);
   }
@@ -7318,7 +7606,10 @@ class CenaJogo extends Phaser.Scene {
   oponenteDesistiuMultiplayer(jogadorDesistente) {
     if (!this.multiplayerAtivo || this.partida.partidaEncerrada) return;
     this.partida.partidaEncerrada = true;
-    const vencedor = this.multiplayer.spectator && jogadorDesistente === 1 ? "inimigo" : "jogador";
+    const vencedor =
+      this.multiplayer.spectator && jogadorDesistente === 1
+        ? "inimigo"
+        : "jogador";
     const resultado = {
       poderJogador: this.partida.calcularPoderTotal(this.partida.jogador),
       poderInimigo: this.partida.calcularPoderTotal(this.partida.inimigo),
@@ -7370,8 +7661,7 @@ class CenaJogo extends Phaser.Scene {
       const col = posicao % 5;
       const fileira = Math.floor(posicao / 5);
       const ehToca =
-        carta.efeitoContinuo?.tipo ===
-        TIPOS_EFEITO_CONTINUO.OCULTAR_ALIADOS;
+        carta.efeitoContinuo?.tipo === TIPOS_EFEITO_CONTINUO.OCULTAR_ALIADOS;
       this.criarCartaDeCampo(
         this.layout.x[col],
         this.layout.yInimigo[fileira],
@@ -7448,7 +7738,7 @@ class CenaJogo extends Phaser.Scene {
     }[resultadoRodada.vencedor];
 
     const texto = this.add
-      .text(GW / 2, GH / 2, config.texto, {
+      .text(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, config.texto, {
         fontSize: "58px",
         color: config.cor,
         fontStyle: "bold",
@@ -7493,12 +7783,12 @@ class CenaJogo extends Phaser.Scene {
     this.esconderRodaBotoes();
 
     let overlay = this.add
-      .rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.75)
+      .rectangle(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, LARGURA_LAYOUT, ALTURA_LAYOUT, 0x000000, 0.75)
       .setDepth(4000)
       .setInteractive();
 
     let titulo = this.add
-      .text(GW / 2, GH / 2 - 140, "Desistir da partida?", {
+      .text(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2 - 140, "Desistir da partida?", {
         fontSize: "44px",
         color: "#ffffff",
         fontStyle: "bold",
@@ -7507,7 +7797,7 @@ class CenaJogo extends Phaser.Scene {
       .setDepth(4001);
 
     let subtitulo = this.add
-      .text(GW / 2, GH / 2 - 70, "Você perde a partida imediatamente.", {
+      .text(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2 - 70, "Você perde a partida imediatamente.", {
         fontSize: "28px",
         color: "#dddddd",
       })
@@ -7523,8 +7813,8 @@ class CenaJogo extends Phaser.Scene {
     };
 
     let btnConfirmar = this.criarBotaoConfirmacao(
-      GW / 2 - 170,
-      GH / 2 + 60,
+      LARGURA_LAYOUT / 2 - 170,
+      ALTURA_LAYOUT / 2 + 60,
       "Desistir",
       0x883333,
       () => {
@@ -7537,8 +7827,8 @@ class CenaJogo extends Phaser.Scene {
     );
 
     let btnCancelar = this.criarBotaoConfirmacao(
-      GW / 2 + 170,
-      GH / 2 + 60,
+      LARGURA_LAYOUT / 2 + 170,
+      ALTURA_LAYOUT / 2 + 60,
       "Cancelar",
       0x336633,
       () => {
@@ -7583,7 +7873,7 @@ class CenaJogo extends Phaser.Scene {
       .text(0, 0, rotulo, { fontSize: "26px", color: "#ffffff" })
       .setOrigin(0.5);
 
-    let btn = this.add.container(GW / 2, GH - 50, [bg, texto]);
+    let btn = this.add.container(LARGURA_LAYOUT / 2, ALTURA_LAYOUT - 50, [bg, texto]);
     btn.setSize(340, 72);
     btn.setDepth(50);
     btn.setInteractive({ useHandCursor: true });
@@ -7687,6 +7977,33 @@ class CenaJogo extends Phaser.Scene {
     });
   }
 
+  mostrarFinalParaTeste(resultado) {
+    // Cancela callbacks da IA e animações que poderiam redesenhar sobre o final.
+    this.finalDebug = true;
+    this.partidaRegistradaNaConta = true;
+    this.partida.partidaEncerrada = true;
+    this.time.removeAllEvents();
+    this.tweens.killAll();
+    if (this.painelDetalheAtual) this.fecharDetalheCarta(true);
+    this.objetosSelecaoAlvo?.forEach((o) => o.destroy());
+    this.objetosSelecaoAlvo = null;
+    this.modalAberto = false;
+    const camada = this.scene.manager.keys.CenaEfeitos;
+    if (camada) {
+      camada.fila = [];
+      camada.executando = false;
+      this.scene.stop("CenaEfeitos");
+    }
+    this.cameras.main.postFX?.clear();
+    this.telaFinalExibida = false;
+    this.aguardandoEfeitosFinais = false;
+    this.animacaoRemotaEmCurso = false;
+    this.atualizacaoRemotaPendente = null;
+    this.travado = true;
+    this.desenharInterface();
+    this.mostrarTelaFimDeJogo(resultado);
+  }
+
   // Tela final da partida (chamada só uma vez, ao fechar o 7º turno):
   // fundo desfocado + camada verde/vermelha translúcida cobrindo a tela,
   // texto gigante "VOCÊ VENCEU"/"VOCÊ PERDEU" (verde ou vermelho, com
@@ -7714,12 +8031,24 @@ class CenaJogo extends Phaser.Scene {
       this.multiplayer?.leaveRoom?.();
       this.scene.start("CenaTitulo");
     };
-    this.add.text(GW / 2, GH - 170, "VOLTAR AO MENU", {
-      fontSize: "40px", color: "#ffffff", backgroundColor: "#24243d",
-      padding: { x: 28, y: 18 },
-    }).setOrigin(0.5).setDepth(5100).setInteractive({ useHandCursor: true }).on("pointerup", voltar);
-    this.add.text(GW / 2, GH - 95, "Retorno automático em 10 segundos", { fontSize: "25px", color: "#dddddd" })
-      .setOrigin(0.5).setDepth(5100);
+    this.add
+      .text(LARGURA_LAYOUT / 2, ALTURA_LAYOUT - 170, "VOLTAR AO MENU", {
+        fontSize: "40px",
+        color: "#ffffff",
+        backgroundColor: "#24243d",
+        padding: { x: 28, y: 18 },
+      })
+      .setOrigin(0.5)
+      .setDepth(5100)
+      .setInteractive({ useHandCursor: true })
+      .on("pointerup", voltar);
+    this.add
+      .text(LARGURA_LAYOUT / 2, ALTURA_LAYOUT - 95, "Retorno automático em 10 segundos", {
+        fontSize: "25px",
+        color: "#dddddd",
+      })
+      .setOrigin(0.5)
+      .setDepth(5100);
     this.retornoMenuTimer = this.time.delayedCall(10000, voltar);
     if (!this.multiplayer?.spectator && !this.partidaRegistradaNaConta) {
       this.partidaRegistradaNaConta = true;
@@ -7731,13 +8060,14 @@ class CenaJogo extends Phaser.Scene {
 
     const corFundo = vitoria ? 0x1fd67a : derrota ? 0xff3b3b : 0xbbbbbb;
     const corTexto = vitoria ? "#1fd67a" : derrota ? "#ff3b3b" : "#eeeeee";
-    const textoPrincipal = this.multiplayer?.spectator && (vitoria || derrota)
-      ? `${vitoria ? this.multiplayer.localUsername : this.multiplayer.opponentUsername} VENCEU`
-      : vitoria
-      ? "VOCÊ VENCEU"
-      : derrota
-        ? "VOCÊ PERDEU"
-        : "EMPATE";
+    const textoPrincipal =
+      this.multiplayer?.spectator && (vitoria || derrota)
+        ? `${vitoria ? this.multiplayer.localUsername : this.multiplayer.opponentUsername} VENCEU`
+        : vitoria
+          ? "VOCÊ VENCEU"
+          : derrota
+            ? "VOCÊ PERDEU"
+            : "EMPATE";
 
     this.cameras.main.flash(
       400,
@@ -7756,11 +8086,11 @@ class CenaJogo extends Phaser.Scene {
 
     // Camada escura por baixo da cor, pra garantir contraste do texto
     // não importa o fundo do campo naquele momento.
-    let escurecido = this.add.rectangle(GW / 2, GH / 2, GW, GH, 0x000000, 0.55);
+    let escurecido = this.add.rectangle(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, LARGURA_LAYOUT, ALTURA_LAYOUT, 0x000000, 0.55);
     escurecido.setDepth(5000);
 
     // Camada colorida translúcida (verde na vitória, vermelha na derrota)
-    let corCamada = this.add.rectangle(GW / 2, GH / 2, GW, GH, corFundo, 0.22);
+    let corCamada = this.add.rectangle(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, LARGURA_LAYOUT, ALTURA_LAYOUT, corFundo, 0.22);
     corCamada.setDepth(5001);
 
     const filhos = [];
@@ -7836,10 +8166,10 @@ class CenaJogo extends Phaser.Scene {
       .setOrigin(0.5);
     filhos.push(subtitulo);
 
-    // GH / 2 - 220: sobe o conjunto (texto + carta + subtítulo) em
+    // ALTURA_LAYOUT / 2 - 220: sobe o conjunto (texto + carta + subtítulo) em
     // relação ao centro da tela. Aumenta esse valor pra subir mais,
     // diminui (ou zera) pra centralizar de novo.
-    let container = this.add.container(GW / 2, GH / 2 - 220, filhos);
+    let container = this.add.container(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2 - 220, filhos);
     container.setDepth(5002);
     container.setScale(0.7);
     container.setAlpha(0);
@@ -7897,25 +8227,25 @@ class CenaJogo extends Phaser.Scene {
     this.input.on("pointerdown", (pointer) => {
       if (this.travado) return;
 
-      const LIMITE_MAO = GH - 650;
+      const LIMITE_MAO = ALTURA_LAYOUT - 650;
 
       // A mão escondida não está visível, então permitimos começar
       // o gesto na parte inferior da tela.
       //
       // A mão visível também pode ser agarrada diretamente em cima
       // de qualquer carta.
-      if (!this.maoEscondida && pointer.y < LIMITE_MAO) {
+      if (!this.maoEscondida && this.pontoDoPonteiro(pointer).y < LIMITE_MAO) {
         return;
       }
 
-      if (this.maoEscondida && pointer.y < LIMITE_MAO) {
+      if (this.maoEscondida && this.pontoDoPonteiro(pointer).y < LIMITE_MAO) {
         return;
       }
 
       this.gestoMaoAtivo = true;
 
-      this.gestoMaoX = pointer.x;
-      this.gestoMaoY = pointer.y;
+      this.gestoMaoX = this.pontoDoPonteiro(pointer).x;
+      this.gestoMaoY = this.pontoDoPonteiro(pointer).y;
 
       // ============================================================
       // GUARDA A POSIÇÃO ORIGINAL DE TODAS AS CARTAS
@@ -7940,9 +8270,9 @@ class CenaJogo extends Phaser.Scene {
       if (!this.gestoMaoAtivo) return;
       if (this.travado) return;
 
-      const deslocamentoY = pointer.y - this.gestoMaoY;
+      const deslocamentoY = this.pontoDoPonteiro(pointer).y - this.gestoMaoY;
 
-      const deslocamentoX = Math.abs(pointer.x - this.gestoMaoX);
+      const deslocamentoX = Math.abs(this.pontoDoPonteiro(pointer).x - this.gestoMaoX);
 
       // Ignora movimentos predominantemente horizontais.
       if (deslocamentoX > Math.abs(deslocamentoY) * 1.5) {
@@ -7976,7 +8306,7 @@ class CenaJogo extends Phaser.Scene {
 
       if (this.travado) return;
 
-      const deslocamentoY = pointer.y - this.gestoMaoY;
+      const deslocamentoY = this.pontoDoPonteiro(pointer).y - this.gestoMaoY;
 
       const LIMITE_GESTO = 45;
 
@@ -8144,7 +8474,7 @@ class CenaJogo extends Phaser.Scene {
       this.tweens.add({
         targets: carta,
 
-        y: GH + 300,
+        y: ALTURA_LAYOUT + 300,
 
         alpha: 0,
 
@@ -8201,7 +8531,7 @@ class CenaJogo extends Phaser.Scene {
       const yFinal = carta.y;
 
       // Começa completamente abaixo da tela.
-      carta.y = GH + 300;
+      carta.y = ALTURA_LAYOUT + 300;
 
       // Começa invisível.
       carta.alpha = 0;

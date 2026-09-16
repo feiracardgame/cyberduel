@@ -1,0 +1,91 @@
+{
+  "version": 1,
+  "accounts": {
+    "aura": {
+      "username": "aura",
+      "salt": "ca5ee11ce4e5a6afaa7354562eed4fb2",
+      "passwordHash": "72057e786c5e2ac8cb89a5d163f375035b58f21723b057d015c5d17a0d8f5778f2b9e485d7aabc6c0d8d3c62ced6d02fe1744e6ac813467b553ba3e4eb97a11f",
+      "deck": [
+        {
+          "tipo": "monstro",
+          "nome": "CyberVendedor da RaspCorp",
+          "quantidade": 2
+        },
+        {
+          "tipo": "monstro",
+          "nome": "Estagiário de Machine Learning",
+          "quantidade": 2
+        },
+        {
+          "tipo": "monstro",
+          "nome": "NeoAnalista de Suporte Nível Alpha",
+          "quantidade": 2
+        },
+        {
+          "tipo": "monstro",
+          "nome": "Advogado Corporativo",
+          "quantidade": 2
+        },
+        {
+          "tipo": "monstro",
+          "nome": "Gestor de Recursos Predominantemente Humanos",
+          "quantidade": 2
+        },
+        {
+          "tipo": "monstro",
+          "nome": "CryptoAcionistas",
+          "quantidade": 2
+        },
+        {
+          "tipo": "monstro",
+          "nome": "Agente da DIPSP",
+          "quantidade": 2
+        },
+        {
+          "tipo": "monstro",
+          "nome": "RaspClay MonteCorp",
+          "quantidade": 1
+        },
+        {
+          "tipo": "efeito",
+          "nome": "Sugestão Algorítmica",
+          "quantidade": 2
+        },
+        {
+          "tipo": "terreno",
+          "nome": "Torre MonteCorp",
+          "quantidade": 1
+        },
+        {
+          "tipo": "terreno",
+          "nome": "Beira-mar norte de NeoFloripa",
+          "quantidade": 1
+        },
+        {
+          "tipo": "terreno",
+          "nome": "Nexus de Dados Global",
+          "quantidade": 1
+        }
+      ],
+      "faction": "raspcorp",
+      "currency": 500,
+      "gamesPlayed": 0,
+      "collection": {
+        "monstro:CyberVendedor da RaspCorp": 2,
+        "monstro:Estagiário de Machine Learning": 2,
+        "monstro:NeoAnalista de Suporte Nível Alpha": 2,
+        "monstro:Advogado Corporativo": 2,
+        "monstro:Gestor de Recursos Predominantemente Humanos": 2,
+        "monstro:CryptoAcionistas": 2,
+        "monstro:Agente da DIPSP": 2,
+        "monstro:RaspClay MonteCorp": 1,
+        "efeito:Sugestão Algorítmica": 2,
+        "terreno:Torre MonteCorp": 1,
+        "terreno:Beira-mar norte de NeoFloripa": 1,
+        "terreno:Nexus de Dados Global": 1
+      },
+      "createdAt": "2026-09-16T13:34:26.276Z",
+      "updatedAt": "2026-09-16T13:34:32.046Z"
+    }
+  }
+}

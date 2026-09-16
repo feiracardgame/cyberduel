@@ -79,22 +79,7 @@ class CyberduelMultiplayer {
   }
 
   resolveServerUrl() {
-    const parametro = new URLSearchParams(location.search).get("server");
-    const configurado = window.CYBERDUEL_SERVER_URL || parametro;
-    if (configurado && /^https?:\/\//i.test(configurado)) {
-      return configurado.replace(/\/$/, "");
-    }
-
-    // Live Server/Vite servem apenas arquivos estáticos. Neste projeto o
-    // Docker publica o Socket.IO pelo nginx na porta HTTP padrão do mesmo
-    // host, enquanto a página estática costuma estar em :5500/:5173.
-    const portasEstaticas = new Set(["4173", "5173", "5500", "5501"]);
-    if (portasEstaticas.has(location.port)) {
-      return `${location.protocol}//${location.hostname}`;
-    }
-
-    // npm start, Docker/nginx e produção usam o mesmo origin da página.
-    return undefined;
+    return window.cyberduelServerUrl();
   }
 
   status(message) {

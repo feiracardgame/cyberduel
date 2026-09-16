@@ -1,6 +1,35 @@
 
 # Cyberduel
 
+## Testar localmente com Live Server (sem Docker)
+
+1. Na pasta do projeto, execute `npm install` e depois `npm start`.
+2. Deixe esse terminal aberto e abra `index.html` com **Open with Live Server**.
+3. Nas portas 5500/5501 (também 4173, 5173 e 8080), login e multiplayer usam automaticamente o servidor da mesma máquina na porta 3000.
+
+O Live Server serve os arquivos; contas, coleção e salas precisam do backend Node rodando. Também é possível abrir diretamente `http://localhost:3000` sem Live Server.
+
+Para outra porta do Live Server ou outro backend, informe o destino na URL, por exemplo: `http://127.0.0.1:5502/index.html?server=http://127.0.0.1:3000`. O parâmetro `server` vale para contas e multiplayer. Para usar o backend Docker com Live Server, informe a URL publicada pelo Docker nesse parâmetro. `window.CYBERDUEL_SERVER_URL`, quando definida antes dos clientes, tem prioridade.
+
+Ao testar pelo celular na mesma rede, abra o Live Server pelo IP do computador: o backend também usará esse IP na porta 3000. Os dados locais ficam separados do volume do Docker.
+
+## Atalhos de teste no console do navegador
+
+Depois do carregamento inicial, abra o console (F12):
+
+```js
+irParaX1()                 // Abre imediatamente uma partida solo contra o bot.
+irParaFinal()              // Encerra com vitória de quem executou o comando.
+irParaFinal("derrota")     // Encerra com derrota.
+irParaFinal("empate")      // Encerra com empate.
+```
+
+`irParaX1()` pula login, menu e transição. Usa o deck salvo ou um deck temporário válido, sem salvar mudanças na coleção. Sai da sala online atual, se houver. Os comandos existentes, como `puxarCarta("nome")`, continuam disponíveis dentro da partida.
+
+`irParaFinal()` exige uma partida aberta. Em solo, funciona imediatamente. Online, inicie o backend com **`npm run dev`** (ou `CYBERDUEL_DEBUG=1 npm start`): o servidor encerra a partida para os dois jogadores e espectadores, invertendo vitória/derrota conforme a perspectiva. Espectadores não podem executar o comando. Com `npm start` normal, o atalho online fica desativado.
+
+Partidas abertas por `irParaX1()` e finais forçados por esse atalho não chamam o registro de partida da conta. A tela final mantém o retorno automático ao menu em 10 segundos.
+
 ## Plataforma
 
 - Celular

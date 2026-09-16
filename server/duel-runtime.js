@@ -23,3 +23,10 @@ exports.closeRound = (snapshot) => {
   const result = match.fimTurno({ semIA: true });
   return JSON.parse(JSON.stringify({ state: codec.serializeMatch(match), result }));
 };
+
+exports.finishForDebug = (snapshot, winner) => {
+  const match = codec.hydrateMatch(snapshot);
+  const resultadoCombate = match.finalizarParaTeste(winner);
+  return JSON.parse(JSON.stringify({ state: codec.serializeMatch(match),
+    result: { fimDeJogo: true, resultadoCombate, resultadoRodada: null } }));
+};

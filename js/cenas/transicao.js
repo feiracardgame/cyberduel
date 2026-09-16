@@ -2,9 +2,8 @@
 // CENA DE TRANSIÇÃO
 // ============================================================================
 // Roda entre o título e o jogo. Só toca o vídeo "Transicao_de_tela" em tela
-// cheia, na resolução nativa (1080x2160, igual a GW/GH — por isso não
-// precisa de setDisplaySize, senão ia distorcer/dar zoom à toa). Nenhuma
-// interface do jogo existe nessa cena. Mantém o áudio original do vídeo
+// cheia, ajustado à proporção configurada sem deformar o vídeo.
+// Mantém o áudio original do vídeo
 // (play(loop=false) sem mute). Ao terminar, manda direto pra CenaJogo, que
 // desenha a parte_3 em loop como fundo (ver desenharFundoJogo() em
 // jogo.js) e faz a interface dar fade in por cima dela.
@@ -25,12 +24,15 @@ class CenaTransicao extends Phaser.Scene {
     configurarCameraLogica(this);
     this.cameras.main.setBackgroundColor("#000000");
 
-    const video = this.add.video(GW / 2, GH / 2, "videoTransicao");
+    const video = this.add.video(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, "videoTransicao");
     video.setOrigin(0.5);
     video.setVolume?.(window.cyberduelSettings?.music(1) ?? 1);
-    // Sem setDisplaySize: o vídeo já nasce 1080x2160, do mesmo tamanho
-    // interno do jogo (GW/GH) — toca na resolução original, sem esticar
-    // e sem zoom.
+    video.setVisible(false);
+    video.once("created", (_video, largura, altura) => {
+      if (!video.active || !largura || !altura) return;
+      const escala = Math.max(LARGURA_LAYOUT / largura, ALTURA_LAYOUT / altura);
+      video.setDisplaySize(largura * escala, altura * escala).setVisible(true);
+    });
     video.play(false); // loop = false, mantém o áudio do próprio vídeo
 
     this.jaTransicionou = false;
@@ -65,8 +67,8 @@ class CenaTransicao extends Phaser.Scene {
     // ---------- Segurar a tela por 2s pula também ----------
     const raio = 46;
     const duracaoSegurar = 2000;
-    const x = GW - 110;
-    const y = GH - 130;
+    const x = LARGURA_LAYOUT - 110;
+    const y = ALTURA_LAYOUT - 130;
 
     let dica = this.add
       .text(x, y - raio - 34, "Segure para pular", {
@@ -100,7 +102,7 @@ class CenaTransicao extends Phaser.Scene {
         false,
       );
       anelProgresso.strokePath();
-    };1
+    };
 
     const cancelarSegurar = () => {
       if (tweenSegurar) {

@@ -513,7 +513,7 @@ const POOL_CARTAS_MONSTRO = [
       tipo: "sindicato",
       acao: "bloquear_bonus",
       alvo: "inimigo",
-      texto: "Extintor -> Uma vez por turno, escolha uma carta inimiga. Até o fim da rodada, ela não pode receber bônus de PA."
+      texto: "Extintor -> Uma vez por turno, escolha uma carta inimiga. Até o fim da próxima rodada, ela não pode receber bônus de PA."
     },
     habilidadeAtiva: true
   },
