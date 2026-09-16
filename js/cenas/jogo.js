@@ -449,6 +449,12 @@ class CenaJogo extends Phaser.Scene {
       return carta;
     };
 
+    this.cartaMaoSelecionada = null;
+    this.input.on("pointerup", (pointer, objetos) => {
+      if (objetos.some((o) => o.dadosCarta)) return;
+      this.jogarCartaSelecionadaNoCampo(pointer);
+    });
+
     // --- Drag and Drop das cartas da mão ---
     this.input.on("dragstart", (pointer, gameObject) => {
       if (
@@ -463,6 +469,9 @@ class CenaJogo extends Phaser.Scene {
       if (!this.partida.jogador.mao.cartas.includes(gameObject.dadosCarta)) {
         return;
       }
+      this.baixarOutrasCartasDaMao(gameObject);
+      this.cartaMaoSelecionada = null;
+      this.gestoMaoAtivo = false;
       this.tweens.killTweensOf(gameObject);
       gameObject.setDepth(2000); // sempre por cima de tudo durante o arraste
       this.tweens.add({
@@ -1126,6 +1135,7 @@ class CenaJogo extends Phaser.Scene {
     // jogo aceitava como se aquela carta (já jogada, e não mais na mão)
     // ainda existisse.
     this.children.removeAll(true);
+    this.cartaMaoSelecionada = null;
 
     // O botão de menu e as opções (se existiam) acabaram de ser destruídos
     // junto com o resto — zera as referências pra não mexer num objeto
@@ -1429,7 +1439,7 @@ class CenaJogo extends Phaser.Scene {
 
   // ---------- LÓGICA DE ARRASTAR E SOLTAR ----------
 
-  tratarSoltarCarta(gameObject) {
+  tratarSoltarCarta(gameObject, ponto = gameObject) {
     if (!this.podeJogarCartasAgora()) {
       this.animarRetornoAoLeque(gameObject, false);
       return;
@@ -1469,8 +1479,8 @@ class CenaJogo extends Phaser.Scene {
       if (
         Phaser.Geom.Rectangle.Contains(
           slot.getBounds(),
-          gameObject.x,
-          gameObject.y,
+          ponto.x,
+          ponto.y,
         )
       ) {
         slotAtingido = index;
@@ -3075,7 +3085,8 @@ class CenaJogo extends Phaser.Scene {
     container.ocultaPorInvocacao = aguardaInvocacao;
     container.setVisible(!aguardaInvocacao);
 
-    container.on("pointerup", () => {
+    container.on("pointerup", (pointer) => {
+      if (this.jogarCartaSelecionadaNoCampo(pointer)) return;
       if (
         !this.podeConsultarCartas() ||
         (viradaParaBaixo && !podeInteragirOculta)
@@ -3089,6 +3100,7 @@ class CenaJogo extends Phaser.Scene {
     // sendo tratado pelo pointerup acima.
     container.on("pointerover", (pointer) => {
       if (
+        this.cartaMaoSelecionada?.active ||
         !this.podeConsultarCartas() ||
         (viradaParaBaixo && !podeInteragirOculta) ||
         pointer.pointerType !== "mouse"
@@ -3355,157 +3367,57 @@ class CenaJogo extends Phaser.Scene {
         containerCarta.setScale(1);
       }
 
-      // =========================================================================
-      // HOVER
-      //
-      // REGRA:
-      // SOMENTE UMA CARTA PODE ESTAR LEVANTADA.
-      // =========================================================================
-
-      containerCarta.on("pointerover", (pointer) => {
-        if (!this.podeConsultarCartas() || containerCarta.animandoCompra)
-          return;
-
-        // ----------------------------------------------------------------------
-        // ABAIXA A CARTA QUE ESTAVA LEVANTADA
-        // ----------------------------------------------------------------------
-
-        const cartaAnterior = this.cartaHoverAtual;
-
-        if (
-          cartaAnterior &&
-          cartaAnterior !== containerCarta &&
-          cartaAnterior.active
-        ) {
-          this.tweens.killTweensOf(cartaAnterior);
-
-          const posAnterior = cartaAnterior.posOriginal;
-
-          this.tweens.add({
-            targets: cartaAnterior,
-
-            x: posAnterior.x,
-
-            y: posAnterior.y,
-
-            angle: posAnterior.angle,
-
-            scaleX: 1,
-
-            scaleY: 1,
-
-            duration: 120,
-
-            ease: "Sine.easeOut",
-
-            onComplete: () => {
-              if (cartaAnterior && cartaAnterior.active) {
-                cartaAnterior.setDepth(cartaAnterior.depthBase);
-              }
-            },
-          });
-        }
-
-        // ----------------------------------------------------------------------
-        // ESTA PASSA A SER A CARTA ATIVA
-        // ----------------------------------------------------------------------
-
-        this.cartaHoverAtual = containerCarta;
-
-        this.tweens.killTweensOf(containerCarta);
-
-        containerCarta.setDepth(1000);
-
-        this.tweens.add({
-          targets: containerCarta,
-
-          y: centroY - 82,
-
-          angle: 0,
-
-          scaleX: 1.15,
-
-          scaleY: 1.15,
-
-          duration: 150,
-
-          ease: "Back.Out",
-
-          onComplete: () => {
-            if (!this.travado && this.somHover) {
-              this.somHover.play();
-            }
-          },
-        });
-
-        // ----------------------------------------------------------------------
-        // DESKTOP:
-        // ABRE A VISUALIZAÇÃO GRANDE
-        // ----------------------------------------------------------------------
-
-        if (pointer.pointerType === "mouse") {
-          this.mostrarDetalheCarta(carta);
-        }
-      });
-
-      // =========================================================================
-      // POINTER OUT
-      // =========================================================================
-
-      containerCarta.on("pointerout", () => {
-        if (!this.podeConsultarCartas() || containerCarta.animandoCompra)
-          return;
-
-        // ----------------------------------------------------------------------
-        // SE OUTRA CARTA JÁ FOI SELECIONADA,
-        // NÃO ABAIXA ESTA.
-        // ----------------------------------------------------------------------
-
-        if (this.cartaHoverAtual !== containerCarta) {
-          return;
-        }
-
-        // Agora nenhuma carta está sendo apontada.
-        this.cartaHoverAtual = null;
-
-        this.tweens.killTweensOf(containerCarta);
-
-        this.tweens.add({
-          targets: containerCarta,
-
-          x: posX,
-
-          y: posY,
-
-          angle: angulo,
-
-          scaleX: 1,
-
-          scaleY: 1,
-
-          duration: 150,
-
-          ease: "Sine.easeOut",
-
-          onComplete: () => {
-            if (containerCarta && containerCarta.active) {
-              containerCarta.setDepth(containerCarta.depthBase);
-            }
-          },
-        });
-      });
-
-      // =========================================================================
-      // TOQUE / CLIQUE
-      // =========================================================================
-
-      containerCarta.on("pointerup", () => {
-        if (!this.podeConsultarCartas() || containerCarta.animandoCompra)
-          return;
-
-        this.mostrarDetalheCarta(carta);
+      // Seleção persiste ao tirar o ponteiro: o próximo clique pode ser no campo.
+      containerCarta.on("pointerup", (pointer) => {
+        if (pointer.getDistance() > this.input.dragDistanceThreshold) return;
+        this.selecionarCartaDaMao(containerCarta);
       });
     });
+  }
+
+  baixarOutrasCartasDaMao(excecao) {
+    for (const carta of this.children.list) {
+      if (!carta.dadosCarta || !carta.active || carta === excecao || carta.animandoCompra)
+        continue;
+      // Restaura imediatamente, antes de levantar outra carta. O gesto não
+      // pode reutilizar a posição elevada capturada no pointerdown anterior.
+      this.tweens.killTweensOf(carta);
+      Object.assign(carta, carta.posOriginal, { scaleX: 1, scaleY: 1, alpha: 1 });
+      carta.setDepth(carta.depthBase);
+      carta._maoSwipeYOriginal = undefined;
+      carta._maoSwipeXOriginal = undefined;
+      carta._maoSwipeAlphaOriginal = undefined;
+    }
+  }
+
+  selecionarCartaDaMao(container) {
+    if (!this.podeConsultarCartas() || container.animandoCompra || !container.active)
+      return;
+    if (this.cartaMaoSelecionada === container) {
+      this.mostrarDetalheCarta(container.dadosCarta);
+      return;
+    }
+    this.baixarOutrasCartasDaMao(container);
+    this.cartaMaoSelecionada = container;
+    this.tweens.killTweensOf(container);
+    container.setDepth(1000);
+    this.tweens.add({ targets: container, y: Y_MAO_JOGADOR - 82,
+      angle: 0, scaleX: 1.15, scaleY: 1.15, duration: 150, ease: "Back.Out" });
+    this.somHover?.play();
+  }
+
+  jogarCartaSelecionadaNoCampo(pointer) {
+    const container = this.cartaMaoSelecionada;
+    if (!container?.active || this.travado || this.modalAberto ||
+        !this.podeJogarCartasAgora() ||
+        pointer.getDistance() > this.input.dragDistanceThreshold) return false;
+    const ponto = this.pontoDoPonteiro(pointer);
+    const noCampo = this.children.list.some((o) => o.isSlot &&
+      Phaser.Geom.Rectangle.Contains(o.getBounds(), ponto.x, ponto.y));
+    if (!noCampo) return false;
+    this.cartaMaoSelecionada = null;
+    this.tratarSoltarCarta(container, ponto);
+    return true;
   }
 
   // Anima uma carta recém-comprada: sai do monte de compra (ver
@@ -8377,59 +8289,7 @@ class CenaJogo extends Phaser.Scene {
   // ============================================================================
 
   voltarMaoParaPosicao() {
-    const cartas = this.children.list.filter((c) => c.dadosCarta);
-
-    cartas.forEach((carta) => {
-      if (!carta || !carta.active) return;
-
-      const yOriginal =
-        carta._maoSwipeYOriginal !== undefined
-          ? carta._maoSwipeYOriginal
-          : carta.y;
-
-      const xOriginal =
-        carta._maoSwipeXOriginal !== undefined
-          ? carta._maoSwipeXOriginal
-          : carta.x;
-
-      const alphaOriginal =
-        carta._maoSwipeAlphaOriginal !== undefined
-          ? carta._maoSwipeAlphaOriginal
-          : 1;
-
-      // Mata qualquer tween que possa ter ficado.
-      this.tweens.killTweensOf(carta);
-
-      this.tweens.add({
-        targets: carta,
-
-        x: xOriginal,
-
-        y: yOriginal,
-
-        alpha: alphaOriginal,
-
-        duration: 180,
-
-        ease: "Cubic.Out",
-
-        onComplete: () => {
-          if (!carta || !carta.active) return;
-
-          // Garante o estado EXATO.
-          carta.x = xOriginal;
-          carta.y = yOriginal;
-          carta.alpha = alphaOriginal;
-
-          // Limpa os dados temporários.
-          carta._maoSwipeYOriginal = undefined;
-
-          carta._maoSwipeXOriginal = undefined;
-
-          carta._maoSwipeAlphaOriginal = undefined;
-        },
-      });
-    });
+    this.baixarOutrasCartasDaMao(this.cartaMaoSelecionada);
   }
   // ============================================================================
   // MOVE A MÃO JUNTO COM O DEDO

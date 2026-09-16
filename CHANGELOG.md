@@ -4,6 +4,20 @@ Novidades, correções e verificações realizadas no projeto. As entregas mais 
 
 ## 2026-09-16
 
+### Apenas uma carta levantada na mão
+
+- Corrigida a restauração do gesto, que reaplicava a posição elevada da carta anteriormente selecionada ao soltar o toque em outra carta.
+- Selecionar ou começar a arrastar uma carta restaura imediatamente posição, escala, ângulo e profundidade das demais cartas da mão, antes de levantar a nova. Eliminada a sobreposição de animações de seleção.
+- Acrescentadas regressões para a posição antiga guardada pelo gesto e para troca com animação pendente. `npm test`: 22 arquivos com sintaxe válida e 20 testes aprovados. Alternância repetida entre duas cartas validada no Chromium com mouse e toque emulado, sempre com somente a selecionada levantada. `git diff --check` sem erros.
+
+### Seleção da mão por clique ou toque
+
+- Primeiro clique/toque seleciona e levanta a carta da mão; segundo clique na mesma carta abre os detalhes. Selecionar outra carta abaixa a anterior, e sair com o ponteiro mantém a seleção.
+- Clicar em um espaço do campo joga a carta selecionada usando as validações e animações existentes, respeitando turno, fase, ocupação e seletores de efeitos.
+- Removida a abertura automática de detalhes ao passar o mouse pela mão. A seleção também impede o hover do campo de abrir um modal durante a escolha do destino.
+- Preservado o arraste, sem abrir detalhes ao soltá-lo; o gesto de restauração da mão não abaixa a carta selecionada. Atualizada a versão do script no HTML.
+- `npm test` aprovado: sintaxe de 22 arquivos e 20 testes funcionais, incluindo seleção, troca de carta, segundo clique e bloqueios de jogada. Fluxo de selecionar, abrir detalhes e jogar no campo validado no Chromium com mouse e toque emulado; arraste também conferido. `git diff --check` sem erros.
+
 ### Invocações consecutivas do oponente
 
 - Cartas de invocações pendentes ficam ocultas no campo desde a entrada na fila. Cada carta aparece somente no impacto da própria animação, evitando a antecipação da segunda invocação.
