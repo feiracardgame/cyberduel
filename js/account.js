@@ -129,7 +129,19 @@ class CyberduelAccount {
       body: { faction },
     });
     this.applyAuth(payload, false);
+    window.cyberduelDeckBuilder?.setAccountSession(this.user, this.deck, this.collection);
     return payload.cards || [];
+  }
+
+  async grantCurrency(username, amount, options = {}) {
+    const adminToken = String(options.adminToken || window.CYBERDUEL_ADMIN_TOKEN || "").trim();
+    const payload = await this.request("/api/admin/accounts/grant-currency", {
+      method: "POST", body: { username, amount }, auth: false,
+      headers: adminToken ? { "x-admin-token": adminToken } : {},
+    });
+    if (payload.account?.username?.toLocaleLowerCase("pt-BR") === this.user?.toLocaleLowerCase("pt-BR"))
+      this.applyAuth(payload.account, false);
+    return payload;
   }
 
   async grantCardsByUsername(username, cards, options = {}) {

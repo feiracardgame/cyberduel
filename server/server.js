@@ -41,7 +41,7 @@ function environmentInteger(name, fallback, minimum = 0, maximum = 100000) {
 }
 
 const BOOSTER_CONFIG = Object.freeze({
-  cardsPerPack: 4,
+  cardsPerPack: 5,
   legendaryMinGames: environmentInteger("BOOSTER_LEGENDARY_MIN_GAMES", 10),
   levelWeights: Object.freeze({
     baixa: environmentInteger("BOOSTER_WEIGHT_BAIXA", 20),
@@ -596,6 +596,24 @@ async function handleApi(request, response, pathname) {
       cards,
       ...publicAccount(session.account),
     });
+  }
+
+  if (request.method === "POST" && pathname === "/api/admin/accounts/grant-currency") {
+    if (!hasAdminAccess(request))
+      return sendJson(response, 401, { ok: false, error: "Acesso administrativo negado." });
+    const body = await readJson(request);
+    const amount = body.amount;
+    if (!Number.isSafeInteger(amount) || amount < 1 || amount > 1000000)
+      return sendJson(response, 400, { ok: false, error: "Informe um valor inteiro entre 1 e 1.000.000." });
+    const account = accountStore.accounts[normalizeUsername(String(body.username || "").trim())];
+    if (!account) return sendJson(response, 404, { ok: false, error: "Conta não encontrada." });
+    ensureAccountDefaults(account);
+    if (!Number.isSafeInteger(account.currency + amount))
+      return sendJson(response, 400, { ok: false, error: "O saldo atingiu o limite permitido." });
+    account.currency += amount;
+    account.updatedAt = new Date().toISOString();
+    saveAccounts();
+    return sendJson(response, 200, { ok: true, added: amount, account: publicAccount(account) });
   }
 
   if (

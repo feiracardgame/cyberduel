@@ -174,7 +174,7 @@ class CyberduelTitleUI {
     );
     const adminButton = this.button(
       "title-dialog__cancel",
-      "ADMIN CARTAS",
+      "ADMIN",
       () => {
         this.closeModal(true);
         this.openAdminGrantDialog();
@@ -206,19 +206,19 @@ class CyberduelTitleUI {
     requestAnimationFrame(() => overlay.classList.add("is-visible"));
   }
 
-  openAdminGrantDialog() {
+  openAdminGrantDialog(focusCurrency = false) {
     if (this.modal || !this.account?.user) return;
     const overlay = this.createModal("admin-grant");
     const dialog = this.element("section", "title-dialog title-admin-dialog");
     dialog.setAttribute("role", "dialog");
     dialog.setAttribute("aria-modal", "true");
     dialog.append(
-      this.element("span", "title-kicker", "ADMIN // GERENCIAR COLECOES"),
-      this.element("h2", "", "Conceder cartas"),
+      this.element("span", "title-kicker", "ADMIN // CONTAS E COLEÇÃO"),
+      this.element("h2", "", "Central administrativa"),
       this.element(
         "p",
         "",
-        "Adicione cartas por username: carta avulsa, cartas da facção ou todo o catálogo disponível.",
+        "Adicione tijolinhos ou cartas à conta informada.",
       ),
     );
 
@@ -231,7 +231,7 @@ class CyberduelTitleUI {
     username.setAttribute("aria-label", "Username da conta");
 
     const adminToken = this.element("input", "title-auth-input");
-    adminToken.type = "text";
+    adminToken.type = "password";
     adminToken.placeholder = "ADMIN TOKEN (OPCIONAL)";
     adminToken.value = String(window.CYBERDUEL_ADMIN_TOKEN || "");
     adminToken.maxLength = 256;
@@ -309,6 +309,35 @@ class CyberduelTitleUI {
     cardQuantity.setAttribute("aria-label", "Quantidade");
     cardSection.append(cardType, cardName, cardSuggestions, cardQuantity);
 
+    const currencySection = this.element("section", "title-admin-section");
+    currencySection.append(this.element("h3", "", "Adicionar dinheiro"),
+      this.element("p", "title-admin-note", "Credita tijolinhos na conta acima, sem alterar sua coleção."));
+    const currencyAmount = this.element("input", "title-auth-input");
+    currencyAmount.type = "number";
+    currencyAmount.min = "1"; currencyAmount.max = "1000000"; currencyAmount.step = "1";
+    currencyAmount.value = "500";
+    currencyAmount.setAttribute("aria-label", "Quantidade de tijolinhos");
+    const currencyButton = this.button("title-dialog__confirm title-admin-currency", "＋ ADICIONAR DINHEIRO", async () => {
+      error.textContent = ""; result.textContent = "";
+      const target = withUsername();
+      if (!target) return;
+      const amount = Number(currencyAmount.value);
+      if (!Number.isSafeInteger(amount) || amount < 1 || amount > 1000000) {
+        error.textContent = "Informe um valor inteiro entre 1 e 1.000.000.";
+        currencyAmount.focus(); return;
+      }
+      toggleBusy(true);
+      this.modalRequired = true;
+      try {
+        const payload = await this.account.grantCurrency(target, amount, { adminToken: adminToken.value });
+        result.textContent = `+${payload.added.toLocaleString("pt-BR")} tijolinhos para ${payload.account.username}. Saldo: ${payload.account.currency.toLocaleString("pt-BR")}.`;
+      } catch (exception) {
+        error.textContent = exception.message || "Falha ao adicionar dinheiro.";
+      } finally { this.modalRequired = false; toggleBusy(false); }
+    });
+    currencySection.append(currencyAmount, currencyButton);
+    this.modalAfterClose = () => this.account.notify();
+
     const error = this.element("span", "title-dialog__error");
     const result = this.element("p", "title-admin-result");
     const actionButtons = this.element(
@@ -317,7 +346,7 @@ class CyberduelTitleUI {
     );
 
     const toggleBusy = (busy) => {
-      [username, adminToken, faction, cardType, cardName, cardQuantity].forEach(
+      [username, adminToken, faction, cardType, cardName, cardQuantity, currencyAmount, currencyButton].forEach(
         (field) => (field.disabled = busy),
       );
       [...actionButtons.children].forEach((button) => (button.disabled = busy));
@@ -432,12 +461,12 @@ class CyberduelTitleUI {
       this.button("title-dialog__cancel", "VOLTAR", () => this.closeModal()),
     );
 
-    form.append(username, adminToken, deckSection, cardSection);
+    form.append(username, adminToken, currencySection, deckSection, cardSection);
     dialog.append(form, result, error, actionButtons);
     overlay.append(dialog);
     this.settings?.applyDomTextScale(overlay);
     requestAnimationFrame(() => overlay.classList.add("is-visible"));
-    setTimeout(() => username.focus(), 50);
+    setTimeout(() => (focusCurrency ? currencyAmount : username).focus(), 50);
   }
 
   openAuthDialog() {
@@ -497,7 +526,7 @@ class CyberduelTitleUI {
     dialog.append(username, password, error, actions);
     overlay.append(dialog);
     requestAnimationFrame(() => overlay.classList.add("is-visible"));
-    setTimeout(() => username.focus(), 50);
+    setTimeout(() => (focusCurrency ? currencyAmount : username).focus(), 50);
   }
 
   createHero() {
@@ -789,66 +818,127 @@ class CyberduelTitleUI {
     const dialog = this.element("section", "title-dialog title-booster-dialog");
     dialog.setAttribute("role", "dialog");
     dialog.setAttribute("aria-modal", "true");
-    const balance = this.element(
-      "strong",
-      "title-booster-balance",
-      `${this.account.currency} TIJOLINHOS`,
-    );
-    dialog.append(
-      this.element("span", "title-kicker", "MERCADO // BOOSTER VAULT"),
-      this.element("h2", "", "Comprar booster"),
-      this.element(
-        "p",
-        "",
-        `Cada booster concede 4 cartas da facção escolhida e custa ${this.account.boosterPrice} tijolinhos.`,
-      ),
-      balance,
-    );
-    const results = this.element("div", "title-booster-results");
-    const shop = this.element("div", "title-booster-shop");
-    const error = this.element("span", "title-dialog__error");
-    const buy = async (faction) => {
-      [...shop.children].forEach((button) => (button.disabled = true));
-      error.textContent = "";
-      try {
-        const cards = await this.account.openBooster(faction);
-        balance.textContent = `${this.account.currency} TIJOLINHOS`;
-        results.replaceChildren(
-          ...cards.map((card) => this.createBoosterResult(card)),
-        );
-      } catch (exception) {
-        error.textContent = exception.message || "Falha ao abrir booster.";
-      } finally {
-        [...shop.children].forEach((button) => {
-          button.disabled = this.account.currency < this.account.boosterPrice;
-        });
-      }
-    };
-    shop.append(
-      this.createFactionChoice(
-        "raspcorp",
-        "BOOSTER RASPCORP",
-        "4 cartas da facção",
-        () => buy("raspcorp"),
-        "ABRIR BOOSTER · 4 CARTAS  ›",
-      ),
-      this.createFactionChoice(
-        "echossystem",
-        "BOOSTER ECHOSSYSTEM",
-        "4 cartas da facção",
-        () => buy("echossystem"),
-        "ABRIR BOOSTER · 4 CARTAS  ›",
-      ),
-    );
-    for (const [faction, label] of [["humbanet", "HUMBANET"], ["remanescentes", "REMANESCENTES"], ["sindicato", "SINDICATO"]]) {
-      shop.append(this.createFactionChoice(faction, `BOOSTER ${label}`, "4 cartas da facção", () => buy(faction), "ABRIR BOOSTER · 4 CARTAS  ›"));
-    }
-    const close = this.button("title-dialog__confirm", "VOLTAR AO MENU", () => {
+    dialog.setAttribute("aria-label", "Mercado de boosters");
+    this.modalAfterClose = () => this.account.notify();
+    const factions = [
+      ["raspcorp", "RaspCorp", "O poder tem um preço.", "#36dfff", "RaspClay MonteCorp"],
+      ["echossystem", "EchoSsystem", "Faça o sistema ouvir você.", "#ff667e", "A Aranha"],
+      ["humbanet", "HumbaNet", "Conectados, somos mais fortes.", "#65efb7", "HumbaBrain"],
+      ["remanescentes", "Remanescentes", "O futuro pertence a quem resiste.", "#ffd17a", "Povo da Areia"],
+      ["sindicato", "Sindicato", "Ninguém vence sozinho.", "#bf94ff", null],
+    ];
+    let selected = factions.find(f => f[0] === this.account.faction) || factions[0];
+    let busy = false;
+    let opened = false;
+    const header = this.element("header", "booster-header");
+    const heading = this.element("div");
+    heading.append(this.element("span", "title-kicker", "MERCADO / COLEÇÃO"), this.element("h2", "", "Booster Vault"));
+    const close = this.button("booster-close", "×", () => this.closeModal(), "Fechar loja de boosters");
+    header.append(heading, close);
+    const wallet = this.element("div", "booster-wallet");
+    const balance = this.element("strong", "title-booster-balance");
+    const admin = this.button("booster-admin", "ADMIN · ＋ SALDO", () => {
+      this.modalAfterClose = null;
       this.closeModal(true);
-      this.account.notify();
+      this.openAdminGrantDialog(true);
     });
-    dialog.append(shop, results, error, close);
+    wallet.append(balance, admin);
+    const tabs = this.element("div", "booster-factions");
+    tabs.setAttribute("role", "group"); tabs.setAttribute("aria-label", "Facção do pacote");
+    const stage = this.element("div", "booster-stage");
+    const pack = this.element("div", "booster-pack");
+    pack.setAttribute("aria-hidden", "true");
+    const artwork = this.element("img", "booster-pack-art"); artwork.alt = "";
+    const foil = this.element("div", "booster-pack-foil");
+    const packBrand = this.element("span", "booster-pack-brand", "CYBER / DUEL");
+    const packName = this.element("strong", "booster-pack-name");
+    const seal = this.element("span", "booster-pack-seal", "05 / CARTAS");
+    pack.append(artwork, foil, packBrand, packName, seal);
+    const flash = this.element("div", "booster-flash"); flash.setAttribute("aria-hidden", "true");
+    stage.append(pack, flash);
+    const intro = this.element("div", "booster-intro");
+    const title = this.element("h3");
+    const subtitle = this.element("p");
+    intro.append(title, subtitle);
+    const status = this.element("p", "booster-status", "5 cartas por pacote. Qual será a próxima da sua coleção?");
+    status.setAttribute("role", "status"); status.setAttribute("aria-live", "polite");
+    const results = this.element("div", "title-booster-results");
+    results.hidden = true;
+    const error = this.element("span", "title-dialog__error"); error.setAttribute("role", "alert");
+    const buy = this.button("booster-buy", "", async () => {
+      if (busy) return;
+      if (opened) { reset(); return; }
+      if (this.account.currency < this.account.boosterPrice) return;
+      busy = true; this.modalRequired = true; refresh();
+      error.textContent = "";
+      status.textContent = "Preparando seu pacote…";
+      try {
+        const cards = await this.account.openBooster(selected[0]);
+        if (this.modal !== overlay) { this.account.notify(); return; }
+        const revealed = cards.flatMap(card => Array.from({ length: card.quantidade || 1 }, () => ({ ...card, quantidade: 1 })));
+        dialog.classList.add("is-opening");
+        status.textContent = "Rompendo o lacre…";
+        balance.textContent = `${this.account.currency.toLocaleString("pt-BR")} TIJOLINHOS`;
+        const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+        await new Promise(resolve => setTimeout(resolve, reducedMotion ? 0 : 1100));
+        if (this.modal !== overlay) { this.account.notify(); return; }
+        results.replaceChildren(...revealed.map((card, index) => {
+          const item = this.createBoosterResult(card);
+          item.style.setProperty("--reveal-index", index);
+          return item;
+        }));
+        results.hidden = false;
+        dialog.classList.remove("is-opening"); dialog.classList.add("is-revealed");
+        stage.hidden = true; intro.hidden = true;
+        status.textContent = `${revealed.length} cartas adicionadas à sua coleção.`;
+        opened = true;
+      } catch (exception) {
+        if (this.modal === overlay) {
+          error.textContent = exception.message || "Falha ao abrir booster.";
+          status.textContent = "Não foi possível abrir o pacote. Tente novamente.";
+          dialog.classList.remove("is-opening");
+        }
+      } finally {
+        busy = false;
+        if (this.modal === overlay) { this.modalRequired = false; refresh(); }
+      }
+    });
+    const refresh = () => {
+      balance.textContent = `${this.account.currency.toLocaleString("pt-BR")} TIJOLINHOS`;
+      close.disabled = admin.disabled = busy;
+      for (const button of tabs.children) {
+        button.disabled = busy;
+        button.setAttribute("aria-pressed", String(button.dataset.faction === selected[0]));
+      }
+      buy.disabled = busy || (!opened && this.account.currency < this.account.boosterPrice);
+      buy.textContent = busy ? "ABRINDO…" : opened ? "ESCOLHER OUTRO PACOTE" :
+        this.account.currency < this.account.boosterPrice ? "SALDO INSUFICIENTE" : `ABRIR PACOTE · ${this.account.boosterPrice} TIJOLINHOS`;
+    };
+    const reset = () => {
+      opened = false;
+      dialog.classList.remove("is-revealed", "is-opening");
+      dialog.style.setProperty("--pack-color", selected[3]);
+      results.hidden = true; results.replaceChildren(); stage.hidden = false; intro.hidden = false;
+      title.textContent = selected[1]; subtitle.textContent = selected[2]; packName.textContent = selected[1];
+      const catalog = this.deckBuilder.getCatalog();
+      const model = catalog.find(c => c.nome === selected[4]) || catalog.find(c => c.booster === selected[0] && c.imagem);
+      const source = window.CYBERDUEL_IMAGE_ASSETS?.[model?.imagem];
+      if (source) { artwork.src = source; artwork.hidden = false; } else { artwork.removeAttribute("src"); artwork.hidden = true; }
+      error.textContent = "";
+      status.textContent = "5 cartas por pacote. Qual será a próxima da sua coleção?";
+      refresh();
+    };
+    for (const faction of factions) {
+      const button = this.button("booster-faction", faction[1], () => {
+        if (busy) return; selected = faction; reset();
+      });
+      button.dataset.faction = faction[0];
+      tabs.append(button);
+    }
+    dialog.append(header, wallet, tabs, stage, intro, status, results, error, buy);
     overlay.append(dialog);
+    reset();
+    this.settings?.applyDomTextScale(overlay);
     requestAnimationFrame(() => overlay.classList.add("is-visible"));
   }
 
@@ -857,6 +947,7 @@ class CyberduelTitleUI {
       .getCatalogByKey()
       .get(`${card.tipo}:${card.nome}`);
     const item = this.element("article", "title-booster-card");
+    item.dataset.rarity = card.nivel || model?.nivel || "utilidade";
     if (model?.imagem && window.CYBERDUEL_IMAGE_ASSETS?.[model.imagem]) {
       const image = this.element("img");
       image.src = window.CYBERDUEL_IMAGE_ASSETS[model.imagem];
@@ -930,11 +1021,14 @@ class CyberduelTitleUI {
     if (!this.modal) return;
     if (this.modalRequired && !immediate) return;
     const modal = this.modal;
+    const afterClose = this.modalAfterClose;
+    this.modalAfterClose = null;
     this.modal = null;
     this.modalRequired = false;
     modal.classList.remove("is-visible");
     if (immediate) modal.remove();
     else setTimeout(() => modal.remove(), 180);
+    afterClose?.();
   }
 
   destroy() {
@@ -943,5 +1037,7 @@ class CyberduelTitleUI {
     this.root?.remove();
     this.root = null;
     this.modal = null;
+    this.modalAfterClose = null;
+    this.modalRequired = false;
   }
 }

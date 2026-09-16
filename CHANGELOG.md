@@ -4,6 +4,22 @@ Novidades, correções e verificações realizadas no projeto. As entregas mais 
 
 ## 2026-09-16
 
+### Loja de boosters, abertura animada e dinheiro administrativo
+
+- Refeito o menu de boosters com seleção de facção, pacote ilustrado em destaque, saldo, preço e estados de compra. A abertura anima o rompimento do lacre e revela as cartas em sequência, com cores por raridade e respeito à preferência de movimento reduzido.
+- Cada booster entrega exatamente **5 cartas** no servidor, mantendo o preço de 100 tijolinhos e as regras de sorteio por facção. Repetições aparecem como cartas individuais na revelação; a coleção do Deck Forge é sincronizada após a compra.
+- Adicionado o botão **ADMIN · + SALDO** na loja e a seção **Adicionar dinheiro** no painel administrativo. A API valida conta, valor inteiro de 1 a 1.000.000, limite seguro de saldo e o token administrativo configurado, seguindo a política dos demais comandos de admin. Créditos são persistidos sem alterar a coleção.
+- Bloqueados cliques duplicados e fechamento durante a abertura; adicionados estados de erro, saldo insuficiente e retorno para escolher outro pacote. Fechar a loja ou o painel atualiza o saldo no menu principal.
+- Documentado o fluxo no README e atualizadas as versões dos arquivos no HTML.
+
+### Validações dos boosters
+
+- `npm test` aprovado: sintaxe de 21 arquivos e 16 testes funcionais. Testes de contas ampliados e aprovados para cinco cartas nas cinco facções, crédito persistido, token ausente/incorreto, valores inválidos, conta inexistente e preservação da coleção.
+- Verificadas compras concorrentes: com 500 tijolinhos, somente cinco compras são aceitas, entregando 25 cartas, com saldo final zero; tentativas adicionais não concedem cartas.
+- Conferidos no Chromium automatizado compra, animação, cinco revelações, clique duplicado, erro de servidor com nova tentativa, crédito pelo botão de admin, saldo insuficiente e movimento reduzido. Conferida a ausência de transbordamento horizontal em viewport de 320 × 568 e capturas da loja em 390 × 844, sem erros JavaScript.
+- `git diff --check` sem erros. Não realizada conferência em dispositivo móvel físico.
+
+
 ### Atalhos de teste para x1 e final da partida
 
 - Adicionados os comandos globais `irParaX1()` e `irParaFinal("vitoria" | "derrota" | "empate")`, disponíveis no console após o carregamento inicial.

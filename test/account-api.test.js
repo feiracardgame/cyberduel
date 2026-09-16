@@ -15,17 +15,19 @@ const server = spawn(process.execPath, ["server/server.js"], {
     ...process.env,
     PORT: String(port),
     DATA_DIR: dataDir,
+    ADMIN_API_TOKEN: "test-admin-token",
     BOOSTER_WEIGHT_ALTA: "37",
     BOOSTER_WEIGHT_EFEITO: "8",
   },
   stdio: ["ignore", "pipe", "inherit"],
 });
 
-async function api(route, { method = "GET", token, body } = {}) {
+async function api(route, { method = "GET", token, body, adminToken = "test-admin-token" } = {}) {
   const response = await fetch(`${url}${route}`, {
     method,
     headers: {
       Accept: "application/json",
+      ...(route.startsWith("/api/admin/") && adminToken ? { "x-admin-token": adminToken } : {}),
       ...(body ? { "Content-Type": "application/json" } : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
@@ -121,9 +123,40 @@ async function run() {
       (total, card) => total + (card.quantidade || 0),
       0,
     ),
-    4,
+    5,
   );
   assert.equal(booster.payload.currency, 400);
+
+  assert.equal(configuration.payload.booster.cardsPerPack, 5);
+  const beforeCount = Object.values(faction.payload.collection).reduce((a, b) => a + b, 0);
+  assert.equal(Object.values(booster.payload.collection).reduce((a, b) => a + b, 0), beforeCount + 5);
+  const deniedMoney = await api("/api/admin/accounts/grant-currency", {
+    method: "POST", adminToken: "wrong", body: { username: "Gabriel", amount: 250 },
+  });
+  assert.equal(deniedMoney.status, 401);
+  const noTokenMoney = await api("/api/admin/accounts/grant-currency", {
+    method: "POST", adminToken: "", body: { username: "Gabriel", amount: 250 },
+  });
+  assert.equal(noTokenMoney.status, 401);
+  for (const amount of [0, -1, 1.5, "500", 1000001, null]) {
+    const invalid = await api("/api/admin/accounts/grant-currency", {
+      method: "POST", body: { username: "Gabriel", amount },
+    });
+    assert.equal(invalid.status, 400);
+  }
+  const missing = await api("/api/admin/accounts/grant-currency", {
+    method: "POST", body: { username: "inexistente", amount: 250 },
+  });
+  assert.equal(missing.status, 404);
+  const money = await api("/api/admin/accounts/grant-currency", {
+    method: "POST", body: { username: "gabriel", amount: 250 },
+  });
+  assert.equal(money.status, 200);
+  assert.equal(money.payload.added, 250);
+  assert.equal(money.payload.account.currency, 650);
+  assert.deepEqual(money.payload.account.collection, booster.payload.collection);
+  assert.equal((await api("/api/auth/session", { token: created.payload.token })).payload.currency, 650);
+  assert.equal(JSON.parse(fs.readFileSync(path.join(dataDir, "accounts.json"))).accounts.gabriel.currency, 650);
 
   const grantByUsername = await api("/api/admin/accounts/grant-cards", {
     method: "POST",
@@ -196,14 +229,14 @@ async function run() {
   }
   assert.ok(!grantAllCards.payload.granted.some((card) => card.nome === 'resenha games"'));
 
-  for (const factionName of ["humbanet", "remanescentes", "sindicato"]) {
+  for (const factionName of ["echossystem", "humbanet", "remanescentes", "sindicato"]) {
     const expected = new Set(grantAllCards.payload.granted.filter(c => c.booster === factionName).map(c => `${c.tipo}:${c.nome}`));
     assert.ok(expected.size > 0);
     const pack = await api("/api/boosters/open", {
       method: "POST", token: created.payload.token, body: { faction: factionName },
     });
     assert.equal(pack.status, 200, factionName);
-    assert.equal(pack.payload.cards.reduce((sum, c) => sum + c.quantidade, 0), 4);
+    assert.equal(pack.payload.cards.reduce((sum, c) => sum + c.quantidade, 0), 5);
     assert.ok(pack.payload.cards.every(c => expected.has(`${c.tipo}:${c.nome}`)));
     const grantFaction = await api("/api/admin/accounts/grant-cards", {
       method: "POST", body: { username: "Gabriel", fullDeck: true, faction: factionName },
@@ -211,6 +244,23 @@ async function run() {
     assert.equal(grantFaction.status, 200);
     assert.deepEqual(new Set(grantFaction.payload.granted.map(c => `${c.tipo}:${c.nome}`)), expected);
   }
+
+  const buyer = await api("/api/auth/register", {
+    method: "POST", body: { username: "Comprador", password: "senha-de-teste" },
+  });
+  const buyerFaction = await api("/api/account/faction", {
+    method: "POST", token: buyer.payload.token, body: { faction: "raspcorp" },
+  });
+  const concurrent = await Promise.all(Array.from({ length: 8 }, () => api("/api/boosters/open", {
+    method: "POST", token: buyer.payload.token, body: { faction: "raspcorp", cardsPerPack: 99 },
+  })));
+  assert.equal(concurrent.filter(r => r.status === 200).length, 5);
+  assert.equal(concurrent.filter(r => r.status === 400).length, 3);
+  assert.ok(concurrent.filter(r => r.status === 200).every(r => r.payload.cards.reduce((n, c) => n + c.quantidade, 0) === 5));
+  const exhausted = await api("/api/auth/session", { token: buyer.payload.token });
+  assert.equal(exhausted.payload.currency, 0);
+  assert.equal(Object.values(exhausted.payload.collection).reduce((a, b) => a + b, 0),
+    Object.values(buyerFaction.payload.collection).reduce((a, b) => a + b, 0) + 25);
 
   const deck = faction.payload.deck;
   const saved = await api("/api/deck", {
