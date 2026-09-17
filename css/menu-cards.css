@@ -170,6 +170,7 @@
    between the pointer and the cards. It snaps back on for the release. */
 .card-menu__fan.is-dragging .menu-art-card {
   transition: none;
+  will-change: transform, filter, opacity;
 }
 .menu-art-card[data-position="center"] {
   z-index: 3;

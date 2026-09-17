@@ -142,6 +142,7 @@ class CyberduelTitleUI {
       const art = this.element("img", "menu-art-card__image");
       art.alt = "";
       art.draggable = false;
+      art.decoding = "async";
       card.append(art, this.element("span", "menu-art-card__frame"));
       fan.append(card);
       return card;
@@ -421,10 +422,7 @@ class CyberduelTitleUI {
               ? "right"
               : "";
       entry.el.setAttribute("aria-pressed", String(entry.offset === 0));
-      entry.el.setAttribute(
-        "aria-hidden",
-        String(Math.abs(entry.offset) === 2),
-      );
+      entry.el.setAttribute("aria-hidden", String(Math.abs(entry.offset) === 2));
     });
     this.cardMenuRing = ring;
     this.updateCaption();
@@ -671,10 +669,7 @@ class CyberduelTitleUI {
       byOffset.get(0),
       byOffset.get(1),
     ];
-    this.cardMenuEls.ghosts = {
-      left: byOffset.get(-2),
-      right: byOffset.get(2),
-    };
+    this.cardMenuEls.ghosts = { left: byOffset.get(-2), right: byOffset.get(2) };
     this.updateCaption();
     return true;
   }
@@ -685,15 +680,30 @@ class CyberduelTitleUI {
     let moved = false;
     let startX = 0;
     let fanWidth = 1;
+    let pendingT = 0;
+    let frameQueued = false;
+
+    // Pointer/touch can deliver several move events per animation frame.
+    // Writing transform/filter/opacity to 5 cards on every single one of
+    // those is wasted work the browser never gets to paint anyway — so we
+    // just remember the latest position and apply it once per frame.
+    const flush = () => {
+      frameQueued = false;
+      if (!dragging) return;
+      this.cardMenuRing.forEach((entry) =>
+        this.applyCardDragStyle(entry.el, entry.offset, pendingT),
+      );
+    };
 
     const onMove = (event) => {
       if (!dragging) return;
       const delta = event.clientX - startX;
       if (Math.abs(delta) > 6) moved = true;
-      const t = Math.max(-1, Math.min(1, -delta / fanWidth));
-      this.cardMenuRing.forEach((entry) =>
-        this.applyCardDragStyle(entry.el, entry.offset, t),
-      );
+      pendingT = Math.max(-1, Math.min(1, -delta / fanWidth));
+      if (!frameQueued) {
+        frameQueued = true;
+        requestAnimationFrame(flush);
+      }
     };
 
     // Once every card is back at an integer offset, drop the inline
@@ -711,6 +721,7 @@ class CyberduelTitleUI {
     const endDrag = (event) => {
       if (!dragging) return;
       dragging = false;
+      frameQueued = false;
       fan.classList.remove("is-dragging");
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", endDrag);
@@ -718,7 +729,8 @@ class CyberduelTitleUI {
 
       const delta = event.clientX - startX;
       const t = -delta / fanWidth;
-      const direction = moved && Math.abs(t) > threshold ? (t > 0 ? 1 : -1) : 0;
+      const direction =
+        moved && Math.abs(t) > threshold ? (t > 0 ? 1 : -1) : 0;
       let committed = false;
       if (direction) {
         this.cardMenuDragged = true;
