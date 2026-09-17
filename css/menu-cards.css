@@ -246,20 +246,6 @@
   border: 1px solid #8bc4e060;
   pointer-events: none;
 }
-.menu-art-card__label {
-  position: absolute;
-  bottom: 5cqw;
-  left: 0;
-  right: 0;
-  text-align: center;
-  z-index: 2;
-  text-shadow: 0 2px 8px #000;
-}
-.menu-art-card__label small {
-  font-size: calc(2.2cqw * var(--cyber-text-scale, 1));
-  color: #5fb4e8;
-  letter-spacing: 0.2em;
-}
 .card-menu__title {
   display: block;
   text-align: center;

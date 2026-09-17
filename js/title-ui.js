@@ -142,9 +142,7 @@ class CyberduelTitleUI {
       const art = this.element("img", "menu-art-card__image");
       art.alt = "";
       art.draggable = false;
-      const label = this.element("span", "menu-art-card__label");
-      label.append(this.element("small", ""));
-      card.append(art, this.element("span", "menu-art-card__frame"), label);
+      card.append(art, this.element("span", "menu-art-card__frame"));
       fan.append(card);
       return card;
     };
@@ -367,8 +365,6 @@ class CyberduelTitleUI {
     card.dataset.itemIndex = String(idx);
     card.querySelector(".menu-art-card__image").src =
       `assets/menus/${item.art}.png`;
-    card.querySelector(".menu-art-card__label small").textContent =
-      `0${idx + 1}`;
     card.setAttribute("aria-label", item.title);
     const locked = mode === "options" && !item.handler;
     // Stay enabled (not `disabled`) even when locked: a disabled button
@@ -425,7 +421,10 @@ class CyberduelTitleUI {
               ? "right"
               : "";
       entry.el.setAttribute("aria-pressed", String(entry.offset === 0));
-      entry.el.setAttribute("aria-hidden", String(Math.abs(entry.offset) === 2));
+      entry.el.setAttribute(
+        "aria-hidden",
+        String(Math.abs(entry.offset) === 2),
+      );
     });
     this.cardMenuRing = ring;
     this.updateCaption();
@@ -672,7 +671,10 @@ class CyberduelTitleUI {
       byOffset.get(0),
       byOffset.get(1),
     ];
-    this.cardMenuEls.ghosts = { left: byOffset.get(-2), right: byOffset.get(2) };
+    this.cardMenuEls.ghosts = {
+      left: byOffset.get(-2),
+      right: byOffset.get(2),
+    };
     this.updateCaption();
     return true;
   }
@@ -716,8 +718,7 @@ class CyberduelTitleUI {
 
       const delta = event.clientX - startX;
       const t = -delta / fanWidth;
-      const direction =
-        moved && Math.abs(t) > threshold ? (t > 0 ? 1 : -1) : 0;
+      const direction = moved && Math.abs(t) > threshold ? (t > 0 ? 1 : -1) : 0;
       let committed = false;
       if (direction) {
         this.cardMenuDragged = true;
