@@ -95,6 +95,8 @@
       if (root.matches?.(selector)) elements.push(root);
       elements.push(...(root.querySelectorAll?.(selector) || []));
       for (const element of elements) {
+        // Menus responsivos aplicam a escala em CSS sem congelar cqw em pixels.
+        if (element.closest?.("[data-responsive-text]")) continue;
         if (!element.dataset.cyberBaseFontSize) {
           const base = Number.parseFloat(global.getComputedStyle(element).fontSize);
           if (!Number.isFinite(base) || base <= 0) continue;

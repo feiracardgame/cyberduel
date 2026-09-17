@@ -43,7 +43,7 @@ class CyberduelTitleUI {
 
   mount() {
     document.body.classList.add("title-terminal-open");
-    this.root = this.element("main", "title-terminal");
+    this.root = this.element("main", "title-terminal title-terminal--cards");
     this.root.setAttribute("aria-label", "Menu principal Cyberduel");
 
     const atmosphere = this.element("div", "title-atmosphere");
@@ -54,11 +54,12 @@ class CyberduelTitleUI {
     );
 
     const shell = this.element("div", "title-shell");
+    shell.dataset.responsiveText = "true";
     shell.append(
       this.createTopbar(),
       this.createHero(),
-      this.createDeckTelemetry(),
-      this.createActions(),
+      this.createCardMenu(),
+      this.createMenuShortcuts(),
       this.createStatusBar(),
     );
     this.root.append(atmosphere, shell);
@@ -72,6 +73,141 @@ class CyberduelTitleUI {
     });
     this.settings?.queueDomTextUpdate(this.root);
     return this;
+  }
+
+  createCardMenu() {
+    const categories = [
+      { id: 'partidas', title: 'PARTIDAS', art: 'menu_de_partida', kicker: 'A ARENA DE NEOFLORIPA', description: 'Escolha sua batalha. Escreva sua história.', action: 'ESCOLHER PARTIDA' },
+      { id: 'cartas', title: 'CARTAS', art: 'montar_deck', kicker: 'SUA PRÓXIMA JOGADA', description: 'Monte seu deck. Descubra novas possibilidades.', action: 'EXPLORAR COLEÇÃO' },
+      { id: 'mercado', title: 'MERCADO', art: 'menu_de_compras', kicker: 'O PREÇO DO PODER', description: 'Abra pacotes e amplie sua coleção.', action: 'VISITAR MERCADO' },
+    ];
+    const section = this.element('section', 'card-menu');
+    section.setAttribute('aria-label', 'Escolha uma seção do jogo');
+    const fan = this.element('div', 'card-menu__fan');
+    const caption = this.element('div', 'card-menu__caption');
+    const kicker = this.element('small', '');
+    const description = this.element('p', '');
+    const dots = this.element('div', 'card-menu__tabs');
+    const action = this.button('card-menu__enter', '', () => this.openMenuSection(this.menuCategory));
+    const cards = [], tabs = [];
+    const select = (index) => {
+      this.menuCategory = categories[index].id;
+      cards.forEach((card, i) => {
+        card.dataset.position = i === index ? 'center' : i === (index + 1) % 3 ? 'right' : 'left';
+        card.setAttribute('aria-pressed', String(i === index));
+        tabs[i].setAttribute('aria-pressed', String(i === index));
+      });
+      kicker.textContent = categories[index].kicker;
+      description.textContent = categories[index].description;
+      action.textContent = categories[index].action + '  ›';
+    };
+    categories.forEach((category, index) => {
+      const card = this.button('menu-art-card', '', () => {
+        if (this.menuCategory === category.id) this.openMenuSection(category.id);
+        else select(index);
+      }, category.title);
+      const art = this.element('img', 'menu-art-card__image');
+      art.src = `assets/menus/${category.art}.png`;
+      art.alt = '';
+      art.draggable = false;
+      const label = this.element('span', 'menu-art-card__label');
+      label.append(this.element('small', '', `0${index + 1}`), this.element('strong', '', category.title));
+      card.append(art, this.element('span', 'menu-art-card__frame'), label);
+      cards.push(card);
+      fan.append(card);
+      const tab = this.button('card-menu__tab', category.title, () => select(index));
+      tabs.push(tab);
+      dots.append(tab);
+    });
+    caption.append(kicker, description, action);
+    section.append(fan, dots, caption);
+    select(0);
+    return section;
+  }
+
+  createMenuShortcuts() {
+    const nav = this.element('nav', 'card-menu__shortcuts');
+    nav.setAttribute('aria-label', 'Mais opções');
+    for (const [icon, label, handler] of [
+      ['♜', 'RANKING', () => this.openMenuSection('ranking')],
+      ['◇', 'PERFIL', () => this.openMenuSection('perfil')],
+      ['▤', 'REGRAS', () => this.openMenuSection('regras')],
+      ['⚙', 'AJUSTES', () => this.openSettingsDialog()],
+    ]) {
+      const button = this.button('card-menu__shortcut', '', handler, label);
+      button.append(this.element('span', '', icon), this.element('small', '', label));
+      nav.append(button);
+    }
+    return nav;
+  }
+
+  runMenuAction(handler, requirement = 'account') {
+    this.closeModal(true);
+    if (requirement !== 'none' && !this.account?.user) return this.openAuthDialog();
+    if (requirement !== 'none' && !this.account?.faction) return this.openFactionDialog();
+    if (requirement === 'deck' && !this.deckSummary().deckReady) {
+      this.setStatus('Monte e salve seu deck antes de jogar.', 'warning');
+      return this.callbacks.onDeck();
+    }
+    handler();
+  }
+
+  openMenuSection(kind) {
+    if (this.modal) return;
+    const sections = {
+      partidas: { title: 'Escolha sua partida', rows: [
+        ['Jogar solo', 'Contra o bot', 'menu_de_partida', () => this.callbacks.onSolo(), 'deck'],
+        ['Partida aleatória', 'Encontre um oponente', 'partida_aleatória'],
+        ['Criar sala', 'Convide um amigo por código ou QR', 'partida_organizada', () => this.callbacks.onCreateRoom(), 'deck'],
+        ['Entrar por código', 'Entre na sala de um amigo', 'qr_code', () => this.openJoinDialog(this.callbacks.onJoinRoom), 'deck'],
+        ['Sala híbrida', 'Celular e mesa compartilhada', 'sala_hibrida'],
+        ['Espectar sala', 'Acompanhe uma batalha pelo código', 'partida_organizada', () => this.openJoinDialog(this.callbacks.onSpectate), 'none'],
+      ] },
+      cartas: { title: 'Suas cartas', rows: [
+        ['Montar meu deck', 'Sua coleção, sua estratégia', 'montar_deck', () => this.callbacks.onDeck()],
+        ['Abrir boosters', 'Descubra cinco novas cartas', 'abrir_boosters', () => this.openBoosterShop()],
+      ] },
+      mercado: { title: 'Mercado de cartas', rows: [
+        ['Comprar boosters', 'Pacotes para sua coleção', 'abrir_boosters', () => this.openBoosterShop()],
+        ['Anunciar cartas', 'Negocie com outros duelistas', 'anunciar_cartas'],
+        ['Visualizar anúncios', 'Encontre sua próxima carta', 'visualizar_anuncios'],
+      ] },
+      ranking: { title: 'Leaderboard', rows: [
+        ['Ranking de duelistas', 'Os nomes que dominam NeoFloripa', 'leaderboard'],
+      ] },
+      regras: { title: 'Regras e tutoriais', rows: [
+        ['Visualizar regras', 'Conheça o campo de batalha', 'visualizar_regras'],
+        ['Repetir tutorial', 'Aprenda a jogar', 'repetir_tutorial'],
+      ] },
+      perfil: { title: this.account?.user || 'Meu perfil', rows: [
+        [this.account?.user ? 'Minha coleção' : 'Entrar ou criar conta', this.account?.user ? `${this.account.currency} tijolinhos` : 'Escolha sua facção e comece a jogar', 'montar_deck', () => this.account?.user ? this.callbacks.onDeck() : this.openAuthDialog(), this.account?.user ? 'account' : 'none'],
+      ] },
+    };
+    const section = sections[kind];
+    const overlay = this.createModal('menu-' + kind);
+    const dialog = this.element('section', 'title-dialog card-menu-dialog');
+    dialog.dataset.responsiveText = 'true';
+    dialog.setAttribute('role', 'dialog');
+    dialog.setAttribute('aria-modal', 'true');
+    dialog.setAttribute('aria-label', section.title);
+    const heading = this.element('div', 'card-menu-dialog__heading');
+    heading.append(this.element('h2', '', section.title), this.button('card-menu-dialog__close', '×', () => this.closeModal(), 'Fechar menu'));
+    dialog.append(this.element('small', 'card-menu-dialog__eyebrow', 'CYBERDUEL / NEOFLORIPA'), heading);
+    const list = this.element('div', 'card-menu-dialog__list');
+    section.rows.forEach(([title, description, art, handler, requirement]) => {
+      const row = this.button('card-menu-option', '', () => this.runMenuAction(handler, requirement), title);
+      const image = this.element('img', '');
+      image.src = `assets/menus/${art}.png`;
+      image.alt = '';
+      const copy = this.element('span', '');
+      copy.append(this.element('strong', '', title), this.element('small', '', description));
+      row.append(image, copy, this.element('span', 'card-menu-option__state', handler ? '›' : 'EM BREVE'));
+      row.disabled = !handler;
+      list.append(row);
+    });
+    dialog.append(list);
+    overlay.append(dialog);
+    requestAnimationFrame(() => overlay.classList.add('is-visible'));
   }
 
   createTopbar() {
@@ -526,7 +662,7 @@ class CyberduelTitleUI {
     dialog.append(username, password, error, actions);
     overlay.append(dialog);
     requestAnimationFrame(() => overlay.classList.add("is-visible"));
-    setTimeout(() => (focusCurrency ? currencyAmount : username).focus(), 50);
+    setTimeout(() => username.focus(), 50);
   }
 
   createHero() {
