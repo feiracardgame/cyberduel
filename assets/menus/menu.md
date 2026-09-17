@@ -4,6 +4,8 @@
 ## Menu de partida (feito)
 - Partida aleatória (feito)
 - Partida por código (feito)
+- Espectar sala -> fazer
+- criar sala -> fazer
 - QR Code (feito)
 - Entrar em sala híbrida (feito)
 
