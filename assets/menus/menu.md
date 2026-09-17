@@ -1,31 +1,28 @@
 # Menus princpais
 
 
-## Menu de partida
-- Partida aleatória
-- Partida por código
-- QR Code
-- Entrar em sala híbrida
+## Menu de partida (feito)
+- Partida aleatória (feito)
+- Partida por código (feito)
+- QR Code (feito)
+- Entrar em sala híbrida (feito)
 
-## Menu de cartas
-- Deck Builder
-- Abertura de booster
+## Menu de cartas -> fazer
+- Deck Builder (feito)
+- Abertura de booster (feito)
 
-## Menu de leaderboard
-
-## Meu Perfil
+## Menu de leaderboard (feito)
 
 
-## Menu de compras
-- Comprar boosters
-- Anunciar cartas
-- Visualizar anúncios de cartas
+## Menu de compras (feito)
+- Comprar boosters (feito)
+- Anunciar cartas (feito)
+- Visualizar anúncios de cartas (feito)
 
-## Menu de configurações
 
-## Regras e tutoriais
-- Visualizar Regras
-- Repetir tutorial
+## Tutorial e regras (feito)
+- Visualizar Regras (feito)
+- Repetir tutorial (feito)
 
 
 
