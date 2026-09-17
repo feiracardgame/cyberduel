@@ -139,6 +139,11 @@
   height: 80cqw;
   perspective: 1000px;
   isolation: isolate;
+  touch-action: pan-y;
+  cursor: grab;
+}
+.card-menu__fan.is-dragging {
+  cursor: grabbing;
 }
 .menu-art-card {
   position: absolute;
@@ -155,8 +160,16 @@
   transition:
     transform 0.45s ease,
     filter 0.45s,
-    box-shadow 0.45s;
+    box-shadow 0.45s,
+    opacity 0.35s ease;
   transform-origin: 50% 90%;
+  touch-action: pan-y;
+}
+/* While actively dragging, positions are driven frame-by-frame from JS
+   (finger tracking), so the eased transition is switched off to avoid lag
+   between the pointer and the cards. It snaps back on for the release. */
+.card-menu__fan.is-dragging .menu-art-card {
+  transition: none;
 }
 .menu-art-card[data-position="center"] {
   z-index: 3;
@@ -175,6 +188,42 @@
   z-index: 2;
   transform: translateX(-9%) translateY(5cqw) rotate(12deg) scale(0.85);
   filter: brightness(0.54) saturate(0.6);
+}
+.menu-art-card[hidden] {
+  display: none;
+}
+.menu-art-card.is-locked {
+  filter: brightness(0.6) saturate(0.5) grayscale(0.3);
+}
+/* Ghost cards: only ever visible while a drag is in progress, previewing
+   the card two steps away from center as it approaches. Positioned and
+   faded in entirely via inline styles set in JS during the drag. */
+.menu-art-card--ghost {
+  pointer-events: none;
+  opacity: 0;
+  transform: translateX(-50%) translateY(10cqw) scale(0.7);
+}
+/* Discard: cards fly off toward the bottom, like being tossed off the table. */
+.menu-art-card.is-discarding {
+  transition:
+    transform 0.36s cubic-bezier(0.4, 0, 1, 1),
+    opacity 0.32s ease;
+  opacity: 0;
+}
+.menu-art-card[data-position="center"].is-discarding {
+  transform: translateX(-50%) translateY(60cqw) rotate(8deg) scale(0.8);
+}
+.menu-art-card[data-position="left"].is-discarding {
+  transform: translateX(-140%) translateY(30cqw) rotate(-30deg) scale(0.7);
+}
+.menu-art-card[data-position="right"].is-discarding {
+  transform: translateX(40%) translateY(30cqw) rotate(30deg) scale(0.7);
+}
+/* Deal-in: new cards arrive from below into their resting position. */
+.menu-art-card.is-dealing {
+  transition: none;
+  opacity: 0;
+  transform: translateX(-50%) translateY(50cqw) scale(0.75);
 }
 .menu-art-card__image {
   width: 100%;
@@ -199,31 +248,72 @@
 }
 .menu-art-card__label {
   position: absolute;
-  bottom: 7cqw;
+  bottom: 5cqw;
   left: 0;
   right: 0;
-  display: grid;
-  gap: 1.7cqw;
   text-align: center;
   z-index: 2;
   text-shadow: 0 2px 8px #000;
 }
 .menu-art-card__label small {
-  font-size: calc(2cqw * var(--cyber-text-scale, 1));
+  font-size: calc(2.2cqw * var(--cyber-text-scale, 1));
   color: #5fb4e8;
   letter-spacing: 0.2em;
 }
-.menu-art-card__label strong {
+.card-menu__title {
+  display: block;
+  text-align: center;
+  margin: 2.8cqw 0 0;
+  padding-bottom: 2.6cqw;
+  position: relative;
   font:
-    700 calc(5.4cqw * var(--cyber-text-scale, 1)) Georgia,
+    700 calc(6.8cqw * var(--cyber-text-scale, 1)) Georgia,
     serif;
-  letter-spacing: 0.06em;
-  color: #eaf4fa;
+  line-height: 1.15;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #f2f8fb;
+  text-shadow:
+    0 2px 12px #000,
+    0 0 26px #5fb4e840;
+}
+.card-menu__title--wrap {
+  font-size: calc(4.6cqw * var(--cyber-text-scale, 1));
+}
+.card-menu__title::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 16cqw;
+  height: 1px;
+  transform: translateX(-50%);
+  background: linear-gradient(90deg, transparent, #5fb4e8, transparent);
 }
 .card-menu__tabs {
+  display: none;
+}
+.card-menu__backrow {
   display: flex;
-  justify-content: center;
-  gap: 5cqw;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1cqw;
+}
+.card-menu__backrow[hidden] {
+  display: none;
+}
+.title-terminal .card-menu__back {
+  background: none;
+  border: 0;
+  color: #8ecdea;
+  font-size: calc(2.4cqw * var(--cyber-text-scale, 1));
+  letter-spacing: 0.1em;
+  padding: 1cqw 0;
+}
+.card-menu__counter {
+  color: #6f818b;
+  font-size: calc(2cqw * var(--cyber-text-scale, 1));
+  letter-spacing: 0.15em;
 }
 .title-terminal .card-menu__tab {
   color: #8b96a0;
@@ -246,6 +336,7 @@
   color: #6fb6db;
   font-size: calc(2cqw * var(--cyber-text-scale, 1));
   letter-spacing: 0.18em;
+  text-transform: uppercase;
 }
 .card-menu__caption p {
   color: #9aa8ad;
@@ -254,24 +345,22 @@
   margin: 2.5cqw 0 4cqw;
 }
 .title-terminal .card-menu__enter {
-  min-height: 11cqw;
-  width: 83%;
-  border: 1px solid #4f8fbf;
-  color: #d9edf9;
-  font-size: calc(3cqw * var(--cyber-text-scale, 1));
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  background: linear-gradient(120deg, #2f4f7833, #131c26bb, #2f4f7833);
-  box-shadow:
-    inset 0 0 0 3px #060a10,
-    0 6px 20px #0007;
+  display: none;
 }
 .card-menu__enter:hover {
   filter: brightness(1.3);
 }
+.card-menu__enter:disabled {
+  opacity: 0.45;
+  cursor: default;
+  filter: none;
+}
+.card-menu__enter:disabled:hover {
+  filter: none;
+}
 .card-menu__shortcuts {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 2cqw;
   border-top: 1px solid #5fb4e829;
   padding: 4cqw 0 3cqw;
