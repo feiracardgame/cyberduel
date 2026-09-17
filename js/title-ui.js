@@ -770,7 +770,6 @@ class CyberduelTitleUI {
     const nav = this.element("nav", "card-menu__shortcuts");
     nav.setAttribute("aria-label", "Mais opções");
     for (const [icon, label, handler] of [
-      ["♜", "RANKING", () => this.openMenuSection("ranking")],
       ["◇", "PERFIL", () => this.openMenuSection("perfil")],
       ["⚙", "AJUSTES", () => this.openSettingsDialog()],
     ]) {

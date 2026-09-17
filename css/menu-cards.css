@@ -347,7 +347,7 @@
 }
 .card-menu__shortcuts {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 2cqw;
   border-top: 1px solid #5fb4e829;
   padding: 4cqw 0 3cqw;
