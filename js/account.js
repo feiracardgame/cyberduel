@@ -9,6 +9,8 @@ class CyberduelAccount {
     this.collection = {};
     this.gamesPlayed = 0;
     this.boosterPrice = 100;
+    this.boosters = [];
+    this.pendingBoosterPurchase = null;
     this.listeners = new Set();
   }
 
@@ -34,6 +36,7 @@ class CyberduelAccount {
       collection: this.collection,
       gamesPlayed: this.gamesPlayed,
       boosterPrice: this.boosterPrice,
+      boosters: this.boosters,
       authenticated: !!this.user,
     };
   }
@@ -70,6 +73,7 @@ class CyberduelAccount {
       payload.collection && typeof payload.collection === "object"
         ? payload.collection
         : {};
+    this.boosters = Array.isArray(payload.boosters) ? payload.boosters : [];
     this.gamesPlayed = Math.max(0, Number(payload.gamesPlayed) || 0);
     this.boosterPrice = Math.max(1, Number(payload.boosterPrice) || 100);
     if (shouldNotify) this.notify();
@@ -123,11 +127,27 @@ class CyberduelAccount {
     return this.applyAuth(payload);
   }
 
-  async openBooster(faction) {
+  async buyBooster(faction) {
+    const purchaseKey = `${this.user}:${faction}`;
+    if (this.pendingBoosterPurchase?.key !== purchaseKey) {
+      this.pendingBoosterPurchase = { key: purchaseKey, id: Array.from(crypto.getRandomValues(new Uint8Array(16)), byte => byte.toString(16).padStart(2, "0")).join("") };
+    }
+    const payload = await this.request("/api/boosters/buy", {
+      method: "POST",
+      body: { faction, purchaseId: this.pendingBoosterPurchase.id },
+    });
+    this.pendingBoosterPurchase = null;
+    this.applyAuth(payload, false);
+    return this.boosters;
+  }
+
+  async openBooster(packId) {
+    const debugLegendary = Boolean(this.user && this.debugLegendaryUser === this.user);
     const payload = await this.request("/api/boosters/open", {
       method: "POST",
-      body: { faction },
+      body: { packId, ...(debugLegendary ? { debugLegendary: true } : {}) },
     });
+    if (debugLegendary) this.debugLegendaryUser = null;
     this.applyAuth(payload, false);
     window.cyberduelDeckBuilder?.setAccountSession(this.user, this.deck, this.collection);
     return payload.cards || [];
@@ -230,6 +250,9 @@ class CyberduelAccount {
     this.currency = 0;
     this.collection = {};
     this.gamesPlayed = 0;
+    this.boosters = [];
+    this.pendingBoosterPurchase = null;
+    this.debugLegendaryUser = null;
     localStorage.removeItem(this.storageKey);
     this.notify();
   }

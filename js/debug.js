@@ -35,3 +35,11 @@ window.irParaFinal = async (resultado = "vitoria") => {
   scene.mostrarFinalParaTeste(final);
   return final;
 };
+
+// Garante uma lendária na próxima abertura bem-sucedida desta conta.
+window.garantelendaria = () => {
+  const account = window.cyberduelAccount;
+  if (!account?.user) throw new Error("Entre na sua conta primeiro.");
+  account.debugLegendaryUser = account.user;
+  return "Próximo booster que você ABRIR terá uma lendária, inclusive do inventário. O servidor precisa estar em modo de teste (npm run dev).";
+};

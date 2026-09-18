@@ -305,9 +305,9 @@ class CyberduelTitleUI {
           ],
           [
             "Abrir boosters",
-            "Descubra cinco novas cartas",
+            "Abra os pacotes do seu inventário",
             "abrir_boosters",
-            () => this.openBoosterShop(),
+            () => this.openBoosterInventory(),
           ],
         ],
       },
@@ -1640,15 +1640,8 @@ class CyberduelTitleUI {
     return button;
   }
 
-  openBoosterShop() {
-    if (this.modal || !this.account?.user) return;
-    const overlay = this.createModal("boosters");
-    const dialog = this.element("section", "title-dialog title-booster-dialog");
-    dialog.setAttribute("role", "dialog");
-    dialog.setAttribute("aria-modal", "true");
-    dialog.setAttribute("aria-label", "Mercado de boosters");
-    this.modalAfterClose = () => this.account.notify();
-    const factions = [
+  boosterFactions() {
+    return [
       [
         "raspcorp",
         "RaspCorp",
@@ -1679,21 +1672,80 @@ class CyberduelTitleUI {
       ],
       ["sindicato", "Sindicato", "Ninguém vence sozinho.", "#bf94ff", null],
     ];
+  }
+
+  switchBoosterView(show) {
+    this.modalAfterClose = null;
+    this.closeModal(true);
+    show();
+  }
+
+  openBoosterInventory() {
+    if (this.modal || !this.account?.user) return;
+    const overlay = this.createModal("booster-inventory");
+    const dialog = this.element("section", "title-dialog title-booster-dialog booster-inventory");
+    dialog.setAttribute("role", "dialog");
+    dialog.setAttribute("aria-modal", "true");
+    dialog.setAttribute("aria-label", "Inventário de boosters");
+    this.modalAfterClose = () => this.account.notify();
+    const header = this.element("header", "booster-header");
+    header.append(this.element("h2", "", "Seus boosters"), this.button("booster-close", "×", () => this.closeModal(), "Fechar inventário"));
+    const list = this.element("div", "booster-inventory-list");
+    const packs = this.account.boosters || [];
+    for (const faction of this.boosterFactions()) {
+      const owned = packs.filter(pack => pack.faction === faction[0]);
+      if (!owned.length) continue;
+      const row = this.element("article", "booster-inventory-item");
+      row.style.setProperty("--pack-color", faction[3]);
+      const label = this.element("div");
+      label.append(this.element("strong", "", faction[1]), this.element("small", "", `${owned.length} pacote${owned.length === 1 ? "" : "s"} · 5 cartas cada`));
+      row.append(label, this.button("booster-buy", "ABRIR BOOSTER", () => this.switchBoosterView(() => this.openBoosterOpening(owned[0]))));
+      list.append(row);
+    }
+    if (!packs.length) list.append(this.element("p", "booster-status", "Nenhum booster guardado. Compre um pacote para abrir aqui."));
+    dialog.append(header, list, this.button("booster-buy", "COMPRAR BOOSTERS", () => this.switchBoosterView(() => this.openBoosterShop())));
+    overlay.append(dialog);
+    this.settings?.applyDomTextScale(overlay);
+    requestAnimationFrame(() => overlay.classList.add("is-visible"));
+  }
+
+  openBoosterShop() {
+    this.renderBoosterView();
+  }
+
+  openBoosterOpening(pack) {
+    this.renderBoosterView(pack);
+  }
+
+  renderBoosterView(ownedPack = null) {
+    if (this.modal || !this.account?.user) return;
+    const opening = Boolean(ownedPack);
+    const overlay = this.createModal(opening ? "booster-opening" : "boosters");
+    if (opening) {
+      overlay.classList.add("booster-fullscreen");
+      document.body.append(overlay);
+    }
+    const dialog = this.element("section", "title-dialog title-booster-dialog");
+    dialog.setAttribute("role", "dialog");
+    dialog.setAttribute("aria-modal", "true");
+    dialog.setAttribute("aria-label", opening ? "Abertura de booster" : "Mercado de boosters");
+    this.modalAfterClose = () => this.account.notify();
+    const factions = this.boosterFactions();
     let selected =
-      factions.find((f) => f[0] === this.account.faction) || factions[0];
+      factions.find((f) => f[0] === (ownedPack?.faction || this.account.faction)) || factions[0];
     let busy = false;
     let opened = false;
     const header = this.element("header", "booster-header");
     const heading = this.element("div");
     heading.append(
-      this.element("span", "title-kicker", "MERCADO / COLEÇÃO"),
-      this.element("h2", "", "Booster Vault"),
+      this.element("span", "title-kicker", opening ? "SEU PACOTE" : "MERCADO / COLEÇÃO"),
+      this.element("h2", "", opening ? "Abra seu booster" : "Booster Vault"),
     );
     const close = this.button(
       "booster-close",
       "×",
-      () => this.closeModal(),
-      "Fechar loja de boosters",
+      () => opening ? this.switchBoosterView(() => this.openBoosterInventory()) : this.closeModal(),
+      opening ? "Voltar ao inventário" : "Fechar loja de boosters",
     );
     header.append(heading, close);
     const wallet = this.element("div", "booster-wallet");
@@ -1704,7 +1756,9 @@ class CyberduelTitleUI {
       this.openAdminGrantDialog(true);
     });
     wallet.append(balance, admin);
+    wallet.hidden = opening;
     const tabs = this.element("div", "booster-factions");
+    tabs.hidden = opening;
     tabs.setAttribute("role", "group");
     tabs.setAttribute("aria-label", "Facção do pacote");
     const stage = this.element("div", "booster-stage");
@@ -1725,6 +1779,7 @@ class CyberduelTitleUI {
     flash.setAttribute("aria-hidden", "true");
     const scratch = this.button("booster-scratch", "RISQUE AQUI PARA ABRIR →", () => {});
     scratch.setAttribute("aria-label", "Abrir pacote. Arraste horizontalmente ou pressione Enter.");
+    scratch.hidden = !opening;
     pack.append(scratch);
     pack.removeAttribute("aria-hidden");
     stage.append(pack, flash);
@@ -1785,6 +1840,9 @@ class CyberduelTitleUI {
       item.removeAttribute("aria-hidden");
       await pause(450);
       if (!alive()) return;
+      if (position === 0 && queue.length > 1) {
+        item.prepend(this.element("span", "booster-swipe-hint", "↑ arraste para cima"));
+      }
       position++;
       revealing = false;
       status.textContent = `${position} / ${queue.length} · ${card.nome}. ${position < queue.length ? "Deslize para cima para revelar a próxima." : "Todas as cartas estão na sua coleção!"}`;
@@ -1797,17 +1855,25 @@ class CyberduelTitleUI {
       }
       if (busy) return;
       if (opened) {
-        reset();
+        this.switchBoosterView(() => this.openBoosterInventory());
         return;
       }
-      if (this.account.currency < this.account.boosterPrice) return;
+      if (!opening && this.account.currency < this.account.boosterPrice) return;
       busy = true;
       this.modalRequired = true;
       refresh();
       error.textContent = "";
       status.textContent = "Preparando seu pacote…";
       try {
-        const cards = await this.account.openBooster(selected[0]);
+        if (!opening) {
+          await this.account.buyBooster(selected[0]);
+          if (this.modal === overlay) {
+            status.textContent = "Pacote guardado no inventário. Abra quando quiser.";
+            inventory.textContent = `VER INVENTÁRIO · ${this.account.boosters.length}`;
+          }
+          return;
+        }
+        const cards = await this.account.openBooster(ownedPack.id);
         if (this.modal !== overlay) {
           this.account.notify();
           return;
@@ -1855,9 +1921,8 @@ class CyberduelTitleUI {
         if (this.modal === overlay) await revealNext();
       } catch (exception) {
         if (this.modal === overlay) {
-          error.textContent = exception.message || "Falha ao abrir booster.";
-          status.textContent =
-            "Não foi possível abrir o pacote. Tente novamente.";
+          error.textContent = exception.message || "Falha ao processar booster.";
+          status.textContent = opening ? "Não foi possível abrir o pacote. Tente novamente." : "Não foi possível comprar. Tente novamente.";
           dialog.classList.remove("is-opening");
         }
       } finally {
@@ -1870,7 +1935,7 @@ class CyberduelTitleUI {
     });
     const refresh = () => {
       balance.textContent = `${this.account.currency.toLocaleString("pt-BR")} TIJOLINHOS`;
-      close.disabled = admin.disabled = busy;
+      close.disabled = admin.disabled = inventory.disabled = busy || revealing;
       for (const button of tabs.children) {
         button.disabled = busy || revealing;
         button.setAttribute(
@@ -1879,15 +1944,17 @@ class CyberduelTitleUI {
         );
       }
       buy.disabled =
-        busy || revealing || (!opened && this.account.currency < this.account.boosterPrice);
-      scratch.disabled = busy || opened || this.account.currency < this.account.boosterPrice;
+        busy || revealing || (!opening && this.account.currency < this.account.boosterPrice);
+      scratch.disabled = busy || opened;
       buy.textContent = busy
-        ? "ABRINDO…"
+        ? (opening ? "ABRINDO…" : "COMPRANDO…")
         : opened
-          ? (position < queue.length ? "PRÓXIMA CARTA ↑" : "ESCOLHER OUTRO PACOTE")
-          : this.account.currency < this.account.boosterPrice
-            ? "SALDO INSUFICIENTE"
-            : `ABRIR PACOTE · ${this.account.boosterPrice} TIJOLINHOS`;
+          ? (position < queue.length ? "PRÓXIMA CARTA ↑" : "VOLTAR AO INVENTÁRIO")
+          : opening ? "ABRIR PACOTE"
+            : this.account.currency < this.account.boosterPrice
+              ? "SALDO INSUFICIENTE"
+              : `COMPRAR PACOTE · ${this.account.boosterPrice} TIJOLINHOS`;
+      buy.setAttribute("aria-label", buy.textContent);
     };
     const reset = () => {
       generation++;
@@ -1918,8 +1985,9 @@ class CyberduelTitleUI {
         artwork.hidden = true;
       }
       error.textContent = "";
-      status.textContent =
-        "Risque o lacre para abrir · 5 cartas, das comuns às lendárias.";
+      status.textContent = opening
+        ? "Arraste sobre o lacre para abrir."
+        : "O pacote ficará guardado no seu inventário.";
       refresh();
     };
     let scratchStart = null;
@@ -1969,6 +2037,8 @@ class CyberduelTitleUI {
       button.dataset.faction = faction[0];
       tabs.append(button);
     }
+    const inventory = this.button("booster-inventory-link", `VER INVENTÁRIO · ${(this.account.boosters || []).length}`, () => this.switchBoosterView(() => this.openBoosterInventory()));
+    inventory.hidden = opening;
     dialog.append(
       header,
       wallet,
@@ -1980,6 +2050,7 @@ class CyberduelTitleUI {
       cutin,
       error,
       buy,
+      inventory,
     );
     overlay.append(dialog);
     reset();
@@ -1997,6 +2068,7 @@ class CyberduelTitleUI {
       const image = this.element("img");
       image.src = window.CYBERDUEL_IMAGE_ASSETS[model.imagem];
       image.alt = card.nome;
+      image.draggable = false;
       item.append(image);
     }
     item.append(
@@ -2079,6 +2151,7 @@ class CyberduelTitleUI {
   destroy() {
     document.removeEventListener("keydown", this.handleKeydown);
     document.body.classList.remove("title-terminal-open");
+    this.modal?.remove();
     this.root?.remove();
     this.root = null;
     this.modal = null;

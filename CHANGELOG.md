@@ -4,6 +4,49 @@ Novidades, correções e verificações realizadas no projeto. As entregas mais 
 
 ## 2026-09-18
 
+### Garantia lendária aplicada à abertura do inventário
+
+- Validado no Chromium com backend isolado: comprar sem garantia, recarregar, executar o comando e abrir o pacote guardado revelou uma lendária com cut-in; fluxo sem erros JavaScript.
+
+- Corrigido `garantelendaria()`: a garantia agora acompanha a próxima abertura, incluindo pacotes antigos guardados, em vez da próxima compra. Comprar não consome a garantia; falhas permitem repetir a abertura.
+- Servidor de teste substitui uma carta apenas quando o pacote fechado ainda não contém lendária. Preservados cinco itens, coleção sem duplicação, retorno idempotente e ausência de nova cobrança. Fora do modo de teste, a abertura forçada é recusada sem consumir o pacote.
+- Atualizados mensagem do console, instruções e versões dos scripts. Testes `legendary-debug`, `booster-inventory` e `booster-ui` aprovados, incluindo pacote comprado sem garantia, compra entre comando e abertura, proteção fora de debug, uso único e repetição da abertura. Sintaxe do servidor e `git diff --check` aprovados.
+
+### Inventário persistente e abertura de boosters em tela inteira
+
+- Compra agora desconta o saldo e guarda um pacote fechado no inventário da conta. As cartas são definidas e persistidas no servidor na compra, permanecem ocultas no inventário e entram na coleção somente ao abrir.
+- Adicionado inventário por facção, acessível pela loja e por “Suas cartas → Abrir boosters”. “ABRIR BOOSTER” abre uma tela que ocupa todo o viewport, com lacre arrastável, alternativa por botão, revelação individual e retorno ao inventário. A loja continua dedicada à compra.
+- Mantidos ordem de raridade, dica discreta na primeira carta, cut-in lendário e `garantelendaria()` aplicado ao próximo pacote comprado. Corrigido o arraste nativo de imagens que interferia no gesto de passar cartas com mouse.
+- Compra identificada evita cobrança duplicada ao repetir a mesma requisição; abertura repetida retorna as mesmas cartas sem concedê-las novamente. Pacotes permanecem após recarga e reinicialização do backend; abrir um pacote já pago não exige saldo.
+- Contas antigas recebem inventário vazio sem alterar coleção ou saldo. Mantido o endpoint anterior para clientes antigos; documentada publicação do backend antes do frontend. Nenhuma migração destrutiva dos dados existentes.
+- `npm test` aprovado: 22 arquivos com sintaxe válida e 23 testes funcionais. Cobertos persistência, conta antiga, isolamento entre usuários, requisições concorrentes, cobrança única, abertura única e garantia lendária.
+- Fluxo completo validado no Chromium com backend isolado: compra, recarga, inventário, abertura ocupando 1100×820, cinco cartas por gesto, lendária e retorno; validado também viewport 390×844 com risco e passagem de carta por toque emulado, sem erros JavaScript. `git diff --check` sem erros.
+
+### Recarga ainda ativa na instância do Live Server
+
+- Usuário confirmou acesso pela porta 5500. Reproduzida novamente mensagem WebSocket `reload` nessa instância ao criar arquivo temporário em `server/data`, apesar da configuração de exclusão presente no workspace.
+- Conferido que a porta 3000 entrega o HTML sem o script de recarga do Live Server. Atualizado README para priorizar acesso direto a `http://127.0.0.1:3000/`, incluindo inicialização de debug com `.env`.
+- Não reiniciada a extensão do VS Code nesta sessão; a instância existente da porta 5500 continua exigindo reinício para aplicar a configuração. Nenhuma conta foi modificada pela verificação.
+
+### Atalho `garantelendaria()` para testar boosters
+
+- Adicionado comando de console `garantelendaria()`, que arma a garantia para a próxima compra bem-sucedida da conta conectada. Falhas preservam a garantia para nova tentativa.
+- Servidor aceita a garantia apenas com `CYBERDUEL_DEBUG=1` (`npm run dev`); substitui uma das cinco cartas por uma lendária da facção, ignorando o mínimo de partidas e o peso de lendárias somente nessa compra. Mantidos preço e persistência da coleção.
+- Facção sem lendárias ou servidor fora do modo de teste recusa a garantia sem cobrar. Documentados uso e inicialização com `.env`; atualizadas versões dos scripts no HTML.
+- Testes `legendary-debug`, `booster-ui` e `debug-shortcuts` aprovados, incluindo uso único, falha, recusa fora de debug, lendária com zero partidas e peso zero, cinco cartas, saldo e retorno ao sorteio normal. Sintaxe do servidor e `git diff --check` aprovados.
+
+### Orientação para dependência ausente no backend local
+
+- Conferido que `socket.io` está declarado nas dependências do projeto. Para o erro `MODULE_NOT_FOUND` relatado na máquina de Marcos, orientada a instalação com `npm ci` na raiz antes de iniciar o backend com `--env-file=.env`.
+- Instalação e execução na máquina remota não verificadas nesta sessão.
+
+### Dica discreta na primeira carta e configuração do ambiente
+
+- Adicionada indicação pequena e estática “↑ arraste para cima” sobre a primeira carta revelada, sem bloquear gestos. A dica sai junto com essa carta.
+- Documentado que `.env` deve ficar na raiz e que o backend local precisa ser iniciado com `node --env-file=.env server/server.js`; `npm start` não carrega o arquivo automaticamente.
+- Corrigido no Docker Compose o nome da variável `BOOSTER_LEGENDARY_MIN_GAMES`, antes enviado com um prefixo incorreto. Documentado que `CYBERDUEL_PORT` não é usado pelo Compose atual.
+- Validados o teste de boosters, a sintaxe de `title-ui.js`, `git diff --check` e o carregamento do valor 3 do exemplo pelo Node com `--env-file`. Não reiniciado o backend em execução.
+
 ### Correção do refresh durante a compra de boosters
 
 - Identificada recarga automática do Live Server ao persistir saldo e coleção em `server/data`: uma gravação temporária nessa pasta reproduziu a mensagem WebSocket `reload` na instância local da porta 5500.

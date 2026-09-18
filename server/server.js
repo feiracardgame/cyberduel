@@ -120,6 +120,7 @@ function ensureAccountDefaults(account) {
   if (!Number.isFinite(account.gamesPlayed)) account.gamesPlayed = 0;
   if (!account.collection || typeof account.collection !== "object")
     account.collection = {};
+  if (!Array.isArray(account.boosters)) account.boosters = [];
   return account;
 }
 
@@ -253,6 +254,7 @@ function publicAccount(account) {
     gamesPlayed: account.gamesPlayed,
     collection: account.collection,
     boosterPrice: BOOSTER_PRICE,
+    boosters: account.boosters.filter((pack) => !pack.openedAt).map(({ id, faction, purchasedAt }) => ({ id, faction, purchasedAt })),
   };
 }
 
@@ -564,7 +566,7 @@ async function handleApi(request, response, pathname) {
     });
   }
 
-  if (request.method === "POST" && pathname === "/api/boosters/open") {
+  if (request.method === "POST" && ["/api/boosters/open", "/api/boosters/buy"].includes(pathname)) {
     const session = authenticatedSession(request);
     if (!session)
       return sendJson(response, 401, {
@@ -578,6 +580,35 @@ async function handleApi(request, response, pathname) {
         error: "Escolha sua facção inicial primeiro.",
       });
     const body = await readJson(request);
+    if (pathname === "/api/boosters/open" && body.packId) {
+      const pack = session.account.boosters.find((entry) => entry.id === body.packId);
+      if (!pack) return sendJson(response, 404, { ok: false, error: "Pacote não encontrado no seu inventário." });
+      if (!pack.openedAt) {
+        if (body.debugLegendary === true) {
+          if (process.env.CYBERDUEL_DEBUG !== "1")
+            return sendJson(response, 403, { ok: false, error: "garantelendaria() exige o servidor em modo de teste. Use npm run dev." });
+          const pool = BOOSTER_CARDS[pack.faction].filter((card) => card[2] === "lendaria");
+          if (!pool.length)
+            return sendJson(response, 400, { ok: false, error: "Esta facção não possui lendárias. Escolha outro pacote." });
+          if (!pack.cards.some((card) => card.nivel === "lendaria")) {
+            const [tipo, nome, nivel] = pool[randomInt(pool.length)];
+            pack.cards[pack.cards.length - 1] = { tipo, nome, nivel, quantidade: 1 };
+          }
+        }
+        grantCards(session.account, pack.cards);
+        pack.openedAt = new Date().toISOString();
+        session.account.updatedAt = pack.openedAt;
+        saveAccounts();
+      }
+      return sendJson(response, 200, { ok: true, cards: pack.cards, ...publicAccount(session.account) });
+    }
+    // Clientes antigos ainda podem comprar e abrir em uma única chamada.
+    if (pathname === "/api/boosters/buy") {
+      if (typeof body.purchaseId !== "string" || !/^[a-zA-Z0-9-]{16,80}$/.test(body.purchaseId))
+        return sendJson(response, 400, { ok: false, error: "Identificador de compra inválido." });
+      const previous = session.account.boosters.find((entry) => entry.id === body.purchaseId);
+      if (previous) return sendJson(response, 200, { ok: true, ...publicAccount(session.account) });
+    }
     const faction = String(body.faction || "").toLowerCase();
     if (!BOOSTER_CARDS[faction])
       return sendJson(response, 400, { ok: false, error: "Booster inválido." });
@@ -586,14 +617,29 @@ async function handleApi(request, response, pathname) {
         ok: false,
         error: "Tijolinhos insuficientes.",
       });
+    let guaranteedLegendary = null;
+    if (body.debugLegendary === true) {
+      if (process.env.CYBERDUEL_DEBUG !== "1")
+        return sendJson(response, 403, { ok: false, error: "garantelendaria() exige o servidor em modo de teste. Use npm run dev." });
+      const pool = BOOSTER_CARDS[faction].filter((card) => card[2] === "lendaria");
+      if (!pool.length)
+        return sendJson(response, 400, { ok: false, error: "Esta facção não possui lendárias. Escolha outro pacote." });
+      const [tipo, nome, nivel] = pool[randomInt(pool.length)];
+      guaranteedLegendary = { tipo, nome, nivel, quantidade: 1 };
+    }
     const cards = rollBooster(faction, session.account.gamesPlayed);
+    if (guaranteedLegendary) cards[cards.length - 1] = guaranteedLegendary;
     session.account.currency -= BOOSTER_PRICE;
-    grantCards(session.account, cards);
+    if (pathname === "/api/boosters/buy") {
+      session.account.boosters.push({ id: body.purchaseId, faction, cards, purchasedAt: new Date().toISOString() });
+    } else {
+      grantCards(session.account, cards);
+    }
     session.account.updatedAt = new Date().toISOString();
     saveAccounts();
     return sendJson(response, 200, {
       ok: true,
-      cards,
+      ...(pathname === "/api/boosters/open" ? { cards } : {}),
       ...publicAccount(session.account),
     });
   }

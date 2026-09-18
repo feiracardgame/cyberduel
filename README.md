@@ -1,11 +1,15 @@
 
 # Cyberduel
 
-## Testar localmente com Live Server (sem Docker)
+## Testar localmente (sem Docker)
 
-1. Na pasta do projeto, execute `npm install` e depois `npm start`.
-2. Deixe esse terminal aberto e abra `index.html` com **Open with Live Server**.
-3. Nas portas 5500/5501 (também 4173, 5173 e 8080), login e multiplayer usam automaticamente o servidor da mesma máquina na porta 3000.
+1. Na pasta do projeto, execute `npm ci` e depois `npm start` (com `.env`: `node --env-file=.env server/server.js`).
+2. Deixe esse terminal aberto e acesse **http://127.0.0.1:3000/**. O backend já serve o jogo completo, sem recarga automática por alterações nos arquivos.
+3. Para os atalhos de teste, inicie com `npm run dev` (com `.env`: `node --env-file=.env scripts/dev-server.js`) e use o mesmo endereço na porta 3000.
+
+### Live Server opcional
+
+Se preferir, abra `index.html` com **Open with Live Server**. Nas portas 5500/5501 (também 4173, 5173 e 8080), login e multiplayer usam automaticamente o servidor da mesma máquina na porta 3000. Se uma compra provocar refresh, acesse diretamente a porta 3000.
 
 A configuração em `.vscode/settings.json` impede que gravações de saldo e coleção em `server/data` recarreguem a página durante a abertura de boosters. Se o Live Server já estava aberto ao receber essa configuração, pare e inicie o **Live Server** novamente para aplicá-la.
 
@@ -343,3 +347,24 @@ As fontes de receita seriam primariamente:
 - Star Wars
 - Cowboy Bebop
 -> O visual deste jogo foi feito com auxílio de IA
+
+## Configurar os boosters com `.env`
+
+Copie `.env.example` para `.env` na raiz do projeto, ao lado de `package.json`, e edite os valores. O arquivo de exemplo sozinho não é carregado.
+
+- Node local: pare o backend e execute `node --env-file=.env server/server.js` (Node 20.6 ou superior). O comando `npm start` atual não carrega `.env` automaticamente.
+- Docker Compose: execute `docker compose up -d --build` na raiz; o Compose lê `.env` e repassa as variáveis configuradas ao servidor.
+
+Após alterar os valores, reinicie o backend com o mesmo comando ou reaplique o Compose. `BOOSTER_LEGENDARY_MIN_GAMES` controla o mínimo de partidas para sortear lendárias. `CYBERDUEL_PORT` no exemplo não é usado pelo Compose atual; as portas públicas estão fixadas em 80 e 443.
+
+### Comprar e abrir boosters
+
+No mercado, **COMPRAR PACOTE** desconta o saldo e guarda um booster fechado no inventário. Acesse **VER INVENTÁRIO** ou **Suas cartas → Abrir boosters**. Cada facção mostra a quantidade de pacotes disponíveis.
+
+**ABRIR BOOSTER** leva à abertura em tela inteira. Arraste horizontalmente sobre o lacre para abrir; depois deslize as cartas para cima. Há botões como alternativa ao gesto. Voltar antes de romper o lacre mantém o pacote fechado. As cartas entram na coleção ao romper o lacre, sem nova cobrança, e continuam lá se a página for fechada durante a animação.
+
+Pacotes e conteúdo são persistidos na conta; repetir uma requisição de abertura devolve as mesmas cartas sem duplicá-las. Contas antigas recebem inventário vazio, preservando saldo e coleção. O servidor mantém compatibilidade com o endpoint de compra e abertura usado por clientes antigos; publique o backend atualizado antes do frontend. Os campos anteriores do arquivo de contas são mantidos.
+
+### Garantir uma lendária para testar a abertura
+
+Inicie o backend com `npm run dev` (com `.env`: `node --env-file=.env scripts/dev-server.js`). Entre na conta e execute `garantelendaria()` no console do navegador. Abra um pacote do inventário: a próxima abertura bem-sucedida terá uma lendária da facção escolhida, mesmo sem atingir o mínimo de partidas. Funciona em pacotes já comprados; comprar outro pacote não consome a garantia. O pacote continua com cinco cartas e abrir não cobra novamente. Para repetir, execute o comando novamente. Facções sem lendárias ou servidores fora do modo de teste recusam a abertura de teste, preservando o pacote fechado.

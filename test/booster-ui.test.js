@@ -18,20 +18,37 @@ class Element {
   remove() { this.parent.children = this.parent.children.filter(x => x !== this); }
   click() { if (!this.disabled) return this.handler?.(); }
 }
-const context = vm.createContext({ window: { matchMedia: () => ({ matches: true }) }, console, setTimeout: f => { f(); }, requestAnimationFrame: f => f() });
+const context = vm.createContext({ document: { body: new Element("body") }, window: { matchMedia: () => ({ matches: true }) }, console, setTimeout: f => { f(); }, requestAnimationFrame: f => f() });
 vm.runInContext(fs.readFileSync('js/title-ui.js', 'utf8') + '\nglobalThis.UI = CyberduelTitleUI;', context);
 const ui = Object.create(context.UI.prototype);
 ui.element = (tag, cls, text) => new Element(tag, cls, text);
 ui.button = (cls, text, handler) => { const el = ui.element('button', cls, text); el.handler = handler; return el; };
 ui.createModal = () => ui.modal = new Element('div');
+ui.closeModal = () => { ui.modal = null; };
 ui.deckBuilder = { getCatalog: () => [], getCatalogByKey: () => new Map() };
 let purchases = 0;
-ui.account = { user: {}, currency: 500, boosterPrice: 100, notify() {}, async openBooster() {
+let openings = 0;
+ui.account = { user: {}, currency: 500, boosterPrice: 100, notify() {}, boosters: [], async buyBooster() {
   purchases++; this.currency -= 100;
+  this.boosters = [{ id: "owned-pack", faction: "raspcorp" }];
+}, async openBooster(id) {
+  assert.equal(id, "owned-pack");
+  openings++;
+  this.boosters = [];
   return [{ nome: 'Lenda', nivel: 'lendaria', tipo: 'monstro' }, { nome: 'Comum', nivel: 'baixa', tipo: 'monstro', quantidade: 2 }];
 } };
 (async () => {
   ui.openBoosterShop();
+  const shop = ui.modal.children[0];
+  await shop.children.find(x => x.classList.contains('booster-buy')).click();
+  assert.equal(purchases, 1);
+  assert.equal(openings, 0);
+  assert.equal(ui.account.boosters.length, 1);
+  assert.equal(shop.children.find(x => x.classList.contains('title-booster-results')).hidden, true);
+  ui.modal = null;
+  ui.account.currency = 0; // Abrir um pacote já pago não exige saldo.
+  ui.openBoosterOpening(ui.account.boosters[0]);
+  assert.ok(ui.modal.classList.contains('booster-fullscreen'));
   const dialog = ui.modal.children[0];
   const find = cls => dialog.children.find(x => x.classList.contains(cls));
   const buy = find('booster-buy');
@@ -51,11 +68,16 @@ ui.account = { user: {}, currency: 500, boosterPrice: 100, notify() {}, async op
   assert.equal(find('booster-cutin').hidden, true);
   assert.equal(purchases, 1);
   await buy.click();
-  assert.equal(results.hidden, true);
+  assert.equal(ui.modal.children[0].attributes['aria-label'], 'Inventário de boosters');
   assert.equal(purchases, 1);
+  assert.equal(openings, 1);
+  ui.modal = null;
+  ui.openBoosterOpening({ id: "owned-pack", faction: "raspcorp" });
   ui.account.openBooster = async () => { throw new Error('Sem conexão'); };
-  await buy.click();
-  assert.equal(find('title-dialog__error').textContent, 'Sem conexão');
-  assert.equal(buy.disabled, false);
+  const failedDialog = ui.modal.children[0];
+  const retry = failedDialog.children.find(x => x.classList.contains('booster-buy'));
+  await retry.click();
+  assert.equal(failedDialog.children.find(x => x.classList.contains('title-dialog__error')).textContent, 'Sem conexão');
+  assert.equal(retry.disabled, false);
   console.log('Booster: ordem, duplicatas, revelação individual, lendária, compra única, reinício e falha validados.');
 })().catch(error => { console.error(error); process.exitCode = 1; });
