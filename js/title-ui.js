@@ -343,7 +343,7 @@ class CyberduelTitleUI {
         ],
       },
       perfil: {
-        title: this.account?.user || "Meu perfil",
+        title: this.account?.nickname || this.account?.user || "Meu perfil",
         rows: [
           [
             this.account?.user ? "Minha coleção" : "Entrar ou criar conta",
@@ -770,14 +770,18 @@ class CyberduelTitleUI {
     const nav = this.element("nav", "card-menu__shortcuts");
     nav.setAttribute("aria-label", "Mais opções");
     for (const [icon, label, handler] of [
-      ["◇", "PERFIL", () => this.openMenuSection("perfil")],
+      ["◇", "PERFIL", () => this.openProfileScreen()],
       ["⚙", "AJUSTES", () => this.openSettingsDialog()],
     ]) {
       const button = this.button("card-menu__shortcut", "", handler, label);
-      button.append(
-        this.element("span", "", icon),
-        this.element("small", "", label),
-      );
+      const mark = this.element("span", "", icon);
+      if (label === "PERFIL" && this.account?.avatar) {
+        const image = this.element("img", "profile-shortcut-avatar");
+        image.src = this.account.avatar;
+        image.alt = "";
+        mark.replaceChildren(image);
+      }
+      button.append(mark, this.element("small", "", label === "PERFIL" && this.account?.user ? (this.account.nickname || this.account.user) : label));
       nav.append(button);
     }
     return nav;
@@ -854,6 +858,148 @@ class CyberduelTitleUI {
     dialog.append(list);
     overlay.append(dialog);
     requestAnimationFrame(() => overlay.classList.add("is-visible"));
+  }
+
+  async prepareProfilePhoto(file) {
+    if (!file || !["image/jpeg", "image/png", "image/webp"].includes(file.type))
+      throw new Error("Escolha uma imagem JPG, PNG ou WebP.");
+    if (file.size > 5 * 1024 * 1024) throw new Error("Escolha uma foto de até 5 MB.");
+    let bitmap;
+    try {
+      bitmap = await createImageBitmap(file);
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = 192;
+      const context = canvas.getContext("2d");
+      context.fillStyle = "#0b1723";
+      context.fillRect(0, 0, 192, 192);
+      const size = Math.min(bitmap.width, bitmap.height);
+      context.drawImage(bitmap, (bitmap.width - size) / 2, (bitmap.height - size) / 2, size, size, 0, 0, 192, 192);
+      const photo = canvas.toDataURL("image/jpeg", .8);
+      if (photo.length > 48000) throw new Error("Foto muito detalhada. Escolha outra imagem.");
+      return photo;
+    } finally {
+      bitmap?.close();
+    }
+  }
+
+  openProfileScreen() {
+    if (this.modal) return;
+    if (!this.account?.user) return this.openAuthDialog();
+    const overlay = this.createModal("profile");
+    overlay.classList.add("profile-screen");
+    document.body.append(overlay);
+    this.modalAfterClose = () => this.account.notify();
+    const dialog = this.element("section", "profile-panel");
+    dialog.setAttribute("role", "dialog");
+    dialog.setAttribute("aria-modal", "true");
+    dialog.setAttribute("aria-label", "Meu perfil");
+    const header = this.element("header", "profile-header");
+    const close = this.button("profile-close", "×", () => this.closeModal(), "Fechar perfil");
+    header.append(this.element("h2", "", "Meu perfil"), close);
+    const avatar = this.element("div", "profile-avatar");
+    const preview = this.element("img");
+    preview.alt = "Prévia da foto de perfil";
+    const initials = this.element("span");
+    avatar.append(preview, initials);
+    let photo = this.account.avatar || "";
+    const nicknameLabel = this.element("label", "profile-field", "APELIDO");
+    const nickname = this.element("input", "title-auth-input");
+    nickname.value = this.account.nickname || this.account.user;
+    nickname.maxLength = 32;
+    nickname.autocomplete = "nickname";
+    nickname.setAttribute("aria-label", "Apelido");
+    nicknameLabel.append(nickname);
+    const identity = this.element("p", "profile-identity", `@${this.account.user}`);
+    const userHint = this.element("p", "profile-note", "Seu usuário de login é único e não muda.");
+    const picker = this.element("input");
+    picker.type = "file";
+    picker.accept = "image/jpeg,image/png,image/webp";
+    picker.hidden = true;
+    picker.setAttribute("aria-label", "Escolher foto de perfil");
+    const choose = this.button("profile-photo-button", "ALTERAR FOTO", () => picker.click());
+    const remove = this.button("profile-photo-remove", "Remover foto", () => {
+      photo = "";
+      picker.value = "";
+      status.textContent = "Salve para aplicar a alteração.";
+      renderPreview();
+    });
+    const status = this.element("p", "profile-status");
+    status.setAttribute("role", "status");
+    status.setAttribute("aria-live", "polite");
+    const error = this.element("p", "title-dialog__error");
+    error.setAttribute("role", "alert");
+    let busy = false;
+    const refresh = () => {
+      save.disabled = choose.disabled = remove.disabled = close.disabled = nickname.disabled = busy;
+      this.modalRequired = busy;
+    };
+    const renderPreview = () => {
+      preview.hidden = !photo;
+      initials.hidden = Boolean(photo);
+      if (photo) preview.src = photo;
+      else preview.removeAttribute("src");
+      initials.textContent = Array.from(nickname.value.trim() || this.account.user).slice(0, 2).join("").toUpperCase();
+      remove.hidden = !photo;
+    };
+    nickname.addEventListener("input", () => {
+      status.textContent = "";
+      renderPreview();
+    });
+    picker.addEventListener("change", async () => {
+      if (!picker.files?.[0] || busy) return;
+      busy = true;
+      refresh();
+      error.textContent = "";
+      status.textContent = "Preparando foto…";
+      try {
+        const prepared = await this.prepareProfilePhoto(picker.files[0]);
+        if (this.modal !== overlay) return;
+        photo = prepared;
+        renderPreview();
+        status.textContent = "Salve para aplicar a alteração.";
+      } catch (exception) {
+        error.textContent = exception.message || "Não foi possível ler a imagem.";
+        status.textContent = "";
+      } finally {
+        busy = false;
+        picker.value = "";
+        if (this.modal === overlay) refresh();
+      }
+    });
+    const save = this.button("profile-save", "SALVAR PERFIL", async () => {
+      if (busy) return;
+      const value = nickname.value.trim();
+      if (!value || Array.from(value).length > 32) {
+        error.textContent = "Use um apelido de 1 a 32 caracteres.";
+        nickname.focus();
+        return;
+      }
+      busy = true;
+      refresh();
+      error.textContent = "";
+      status.textContent = "Salvando…";
+      try {
+        await this.account.updateProfile(value, photo);
+        if (this.modal !== overlay) return;
+        nickname.value = this.account.nickname;
+        status.textContent = "Perfil salvo.";
+      } catch (exception) {
+        error.textContent = exception.message || "Não foi possível salvar o perfil.";
+        status.textContent = "";
+      } finally {
+        busy = false;
+        if (this.modal === overlay) refresh();
+      }
+    });
+    dialog.append(header, avatar, choose, remove, picker, identity, userHint, nicknameLabel,
+      this.element("p", "profile-note", "Até 32 caracteres. Seu apelido pode ser igual ao de outros jogadores."), error, status, save);
+    overlay.append(dialog);
+    renderPreview();
+    this.settings?.applyDomTextScale(overlay);
+    requestAnimationFrame(() => {
+      overlay.classList.add("is-visible");
+      nickname.focus();
+    });
   }
 
   createTopbar() {
@@ -1878,14 +2024,13 @@ class CyberduelTitleUI {
           this.account.notify();
           return;
         }
-        const rarityOrder = { utilidade: 0, baixa: 1, media: 2, alta: 3, lendaria: 4 };
         const revealed = cards.flatMap((card) =>
           Array.from({ length: card.quantidade || 1 }, () => ({
             ...card,
             nivel: card.nivel || this.deckBuilder.getCatalogByKey().get(`${card.tipo}:${card.nome}`)?.nivel || "utilidade",
             quantidade: 1,
           })),
-        ).sort((a, b) => (rarityOrder[a.nivel] ?? 0) - (rarityOrder[b.nivel] ?? 0));
+        ).sort((a, b) => this.boosterRevealOrder(a) - this.boosterRevealOrder(b));
         dialog.classList.add("is-opening");
         status.textContent = "Rompendo o lacre…";
         balance.textContent = `${this.account.currency.toLocaleString("pt-BR")} TIJOLINHOS`;
@@ -2058,6 +2203,12 @@ class CyberduelTitleUI {
     requestAnimationFrame(() => overlay.classList.add("is-visible"));
   }
 
+  boosterRevealOrder(card) {
+    if (card.tipo === "terreno") return 10;
+    if (card.tipo === "efeito") return 11;
+    return { baixa: 1, media: 2, alta: 3, lendaria: 4 }[card.nivel] || 0;
+  }
+
   createBoosterResult(card) {
     const model = this.deckBuilder
       .getCatalogByKey()
@@ -2075,7 +2226,7 @@ class CyberduelTitleUI {
       this.element(
         "small",
         "",
-        `${String(card.nivel || card.tipo).toUpperCase()} · x${Math.max(1, Number(card.quantidade) || 1)}`,
+        `${String(card.tipo === "monstro" ? card.nivel : card.tipo).toUpperCase()} · x${Math.max(1, Number(card.quantidade) || 1)}`,
       ),
       this.element("strong", "", card.nome),
     );

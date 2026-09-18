@@ -368,3 +368,9 @@ Pacotes e conteúdo são persistidos na conta; repetir uma requisição de abert
 ### Garantir uma lendária para testar a abertura
 
 Inicie o backend com `npm run dev` (com `.env`: `node --env-file=.env scripts/dev-server.js`). Entre na conta e execute `garantelendaria()` no console do navegador. Abra um pacote do inventário: a próxima abertura bem-sucedida terá uma lendária da facção escolhida, mesmo sem atingir o mínimo de partidas. Funciona em pacotes já comprados; comprar outro pacote não consome a garantia. O pacote continua com cinco cartas e abrir não cobra novamente. Para repetir, execute o comando novamente. Facções sem lendárias ou servidores fora do modo de teste recusam a abertura de teste, preservando o pacote fechado.
+
+## Perfil
+
+Abra **PERFIL** no menu para mudar o apelido ou escolher uma foto. O usuário único de login permanece o mesmo; apelidos podem se repetir. Fotos JPG, PNG e WebP de até 5 MB são ajustadas para um quadrado de 192×192 com recorte central. Clique em **SALVAR PERFIL** para persistir as alterações na conta. Também é possível remover a foto.
+
+Na abertura dos boosters, os personagens aparecem do menor ao maior nível; depois vêm os terrenos e, por último, os efeitos, em grupos separados.

@@ -37,6 +37,20 @@ ui.account = { user: {}, currency: 500, boosterPrice: 100, notify() {}, boosters
   this.boosters = [];
   return [{ nome: 'Lenda', nivel: 'lendaria', tipo: 'monstro' }, { nome: 'Comum', nivel: 'baixa', tipo: 'monstro', quantidade: 2 }];
 } };
+const mixed = [
+  { tipo: 'efeito', nivel: 'utilidade' },
+  { tipo: 'monstro', nivel: 'lendaria' },
+  { tipo: 'terreno', nivel: 'utilidade' },
+  { tipo: 'monstro', nivel: 'baixa' },
+  { tipo: 'monstro', nivel: 'alta' },
+  { tipo: 'monstro', nivel: 'media' },
+].sort((a, b) => ui.boosterRevealOrder(a) - ui.boosterRevealOrder(b));
+assert.deepEqual(mixed.map(card => card.tipo === 'monstro' ? card.nivel : card.tipo),
+  ['baixa', 'media', 'alta', 'lendaria', 'terreno', 'efeito']);
+for (const tipo of ['terreno', 'efeito']) {
+  const card = ui.createBoosterResult({ tipo, nivel: 'utilidade', nome: tipo });
+  assert.equal(card.children[0].textContent, `${tipo.toUpperCase()} · x1`);
+}
 (async () => {
   ui.openBoosterShop();
   const shop = ui.modal.children[0];

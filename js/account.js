@@ -3,6 +3,8 @@ class CyberduelAccount {
     this.storageKey = "cyberduel.account.token.v1";
     this.token = localStorage.getItem(this.storageKey) || null;
     this.user = null;
+    this.nickname = "";
+    this.avatar = "";
     this.deck = null;
     this.faction = null;
     this.currency = 0;
@@ -30,6 +32,8 @@ class CyberduelAccount {
   snapshot() {
     return {
       user: this.user,
+      nickname: this.nickname,
+      avatar: this.avatar,
       deck: this.deck,
       faction: this.faction,
       currency: this.currency,
@@ -66,6 +70,8 @@ class CyberduelAccount {
       localStorage.setItem(this.storageKey, this.token);
     }
     this.user = payload.username || null;
+    this.nickname = payload.nickname || this.user || "";
+    this.avatar = payload.avatar || "";
     this.deck = Array.isArray(payload.deck) ? payload.deck : null;
     this.faction = payload.faction || null;
     this.currency = Math.max(0, Number(payload.currency) || 0);
@@ -106,6 +112,14 @@ class CyberduelAccount {
       auth: false,
     });
     return this.applyAuth(payload);
+  }
+
+  async updateProfile(nickname, avatar) {
+    const payload = await this.request("/api/account/profile", {
+      method: "PUT",
+      body: { nickname, avatar },
+    });
+    return this.applyAuth(payload, false);
   }
 
   async saveDeck(deck) {
@@ -245,6 +259,8 @@ class CyberduelAccount {
   clear() {
     this.token = null;
     this.user = null;
+    this.nickname = "";
+    this.avatar = "";
     this.deck = null;
     this.faction = null;
     this.currency = 0;

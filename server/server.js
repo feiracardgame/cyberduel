@@ -121,6 +121,8 @@ function ensureAccountDefaults(account) {
   if (!account.collection || typeof account.collection !== "object")
     account.collection = {};
   if (!Array.isArray(account.boosters)) account.boosters = [];
+  if (typeof account.nickname !== "string" || !account.nickname.trim()) account.nickname = account.username;
+  if (typeof account.avatar !== "string") account.avatar = "";
   return account;
 }
 
@@ -248,6 +250,8 @@ function publicAccount(account) {
   ensureAccountDefaults(account);
   return {
     username: account.username,
+    nickname: account.nickname,
+    avatar: account.avatar,
     deck: account.deck || null,
     faction: account.faction,
     currency: account.currency,
@@ -499,6 +503,29 @@ async function handleApi(request, response, pathname) {
     const session = authenticatedSession(request);
     if (session) sessions.delete(session.token);
     return sendJson(response, 200, { ok: true });
+  }
+
+  if (request.method === "PUT" && pathname === "/api/account/profile") {
+    const session = authenticatedSession(request);
+    if (!session) return sendJson(response, 401, { ok: false, error: "Entre na conta para editar seu perfil." });
+    const body = await readJson(request);
+    const nickname = typeof body.nickname === "string" ? body.nickname.trim() : "";
+    if (!nickname || Array.from(nickname).length > 32 || /[\u0000-\u001f\u007f]/.test(nickname))
+      return sendJson(response, 400, { ok: false, error: "Use um apelido de 1 a 32 caracteres." });
+    const avatar = body.avatar;
+    if (typeof avatar !== "string" || avatar.length > 48000)
+      return sendJson(response, 400, { ok: false, error: "Foto inválida ou muito grande." });
+    if (avatar) {
+      const match = /^data:image\/jpeg;base64,([A-Za-z0-9+/]+={0,2})$/.exec(avatar);
+      const bytes = match ? Buffer.from(match[1], "base64") : null;
+      if (!bytes || bytes.length < 4 || bytes[0] !== 0xff || bytes[1] !== 0xd8 || bytes[bytes.length - 2] !== 0xff || bytes[bytes.length - 1] !== 0xd9)
+        return sendJson(response, 400, { ok: false, error: "Escolha uma foto válida pelo seletor de imagem." });
+    }
+    session.account.nickname = nickname;
+    session.account.avatar = avatar;
+    session.account.updatedAt = new Date().toISOString();
+    saveAccounts();
+    return sendJson(response, 200, { ok: true, ...publicAccount(session.account) });
   }
 
   if (request.method === "PUT" && pathname === "/api/deck") {

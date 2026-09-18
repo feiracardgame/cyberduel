@@ -4,6 +4,15 @@ Novidades, correções e verificações realizadas no projeto. As entregas mais 
 
 ## 2026-09-18
 
+### Ordem dos boosters e edição do perfil
+
+- Revelação de boosters agora apresenta personagens em ordem crescente de nível, incluindo lendárias, seguidos pelo grupo de terrenos e depois pelo grupo de efeitos. Cartas de utilidade mostram “TERRENO” ou “EFEITO” em vez de um rótulo genérico.
+- Botão PERFIL abre uma tela com apelido editável, usuário de login somente para leitura, prévia da foto, seleção de imagem, remoção e salvamento. Apelidos podem se repetir; o usuário único permanece inalterado.
+- Apelido e foto persistidos na conta. Contas antigas recebem o usuário como apelido inicial e avatar vazio, sem alteração de saldo, coleção ou inventário. Menu exibe a foto e o apelido após fechar o perfil.
+- Fotos JPG, PNG e WebP de até 5 MB são recortadas centralmente e convertidas em JPEG de 192×192 antes do envio; API autenticada valida apelido e formato/tamanho do avatar. Logout limpa os dados de perfil no cliente.
+- `npm test` aprovado: sintaxe de 22 arquivos e 24 testes funcionais. Cobertas ordem de revelação, rótulos distintos, autenticação, apelido independente, usuário imutável, validação, remoção da foto, persistência após reinício e compatibilidade com contas antigas.
+- Validado no Chromium em viewport móvel: acesso pelo menu, upload de PNG convertido, salvamento, avatar no menu, recarga mantendo apelido/foto, rejeição de arquivo inválido e remoção. Sem erros JavaScript; `git diff --check` sem erros.
+
 ### Garantia lendária aplicada à abertura do inventário
 
 - Validado no Chromium com backend isolado: comprar sem garantia, recarregar, executar o comando e abrir o pacote guardado revelou uma lendária com cut-in; fluxo sem erros JavaScript.
