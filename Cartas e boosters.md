@@ -17,7 +17,7 @@ Venda Casada → Ao ser colocado em campo, o CyberVendedor faz questão de garan
  <img alt="image" src="assets/cartas/cybervendedor.png" />
 
 
- #### Assets
+ #### Assets -> quando usar a habilidade
 
  Som: som-cybervendedor
 
@@ -77,7 +77,7 @@ Machine learning -> Escolha uma carta aliada. Ela recebe +3 PA. O Estagiário pe
 * Arte:
  <img alt="image" src="assets/cartas/AdvogadoDaRaspCorp.png" />
 
-  #### Assets
+  #### Assets -> quando usar efeito
 
  Som: som-advogado
 
@@ -116,11 +116,11 @@ Machine learning -> Escolha uma carta aliada. Ela recebe +3 PA. O Estagiário pe
 * Arte:
  <img alt="image" src="assets/cartas/cryptoacionistas.png" />
 
-  #### Assets -> quando ativa a habilidade
+  #### Assets -> quando ativa a habilidade, o efeito tem que dar popup em cima da carta quando ele ganhar PA
 
  Som: jogo-cyberacionistaefeito
 
- Efeito visual: moeda pique bitcoin azul pisca na tela
+ Efeito visual: efeito-cyberacionista
 
 
 ### 2x carta alta 2 - Agente da DIPSP
