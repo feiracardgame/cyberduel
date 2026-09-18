@@ -1723,6 +1723,10 @@ class CyberduelTitleUI {
     pack.append(artwork, foil, packBrand, packName, seal);
     const flash = this.element("div", "booster-flash");
     flash.setAttribute("aria-hidden", "true");
+    const scratch = this.button("booster-scratch", "RISQUE AQUI PARA ABRIR →", () => {});
+    scratch.setAttribute("aria-label", "Abrir pacote. Arraste horizontalmente ou pressione Enter.");
+    pack.append(scratch);
+    pack.removeAttribute("aria-hidden");
     stage.append(pack, flash);
     const intro = this.element("div", "booster-intro");
     const title = this.element("h3");
@@ -1731,7 +1735,7 @@ class CyberduelTitleUI {
     const status = this.element(
       "p",
       "booster-status",
-      "5 cartas por pacote. Qual será a próxima da sua coleção?",
+      "Risque o lacre para abrir · 5 cartas, das comuns às lendárias.",
     );
     status.setAttribute("role", "status");
     status.setAttribute("aria-live", "polite");
@@ -1739,7 +1743,58 @@ class CyberduelTitleUI {
     results.hidden = true;
     const error = this.element("span", "title-dialog__error");
     error.setAttribute("role", "alert");
+    let queue = [];
+    let position = 0;
+    let revealing = false;
+    let generation = 0;
+    const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const pause = (ms) => new Promise(resolve => setTimeout(resolve, reducedMotion ? 0 : ms));
+    const cutin = this.element("div", "booster-cutin");
+    cutin.hidden = true;
+    const revealNext = async () => {
+      if (revealing || !opened || position >= queue.length) return;
+      revealing = true;
+      refresh();
+      const currentGeneration = generation;
+      const alive = () => this.modal === overlay && currentGeneration === generation;
+      const previous = results.querySelector(".is-front");
+      if (previous) {
+        previous.classList.add("is-leaving");
+        await pause(350);
+        if (!alive()) return;
+        previous.remove();
+      }
+      const card = queue[position];
+      const item = results.children[0];
+      if (card.nivel === "lendaria") {
+        cutin.replaceChildren(this.element("strong", "", "LENDÁRIA!"), this.element("span", "", card.nome));
+        const source = window.CYBERDUEL_LEGENDARY_CUTINS?.[card.nome];
+        if (source) {
+          const art = this.element("img");
+          art.src = source;
+          art.alt = "";
+          cutin.prepend(art);
+        }
+        cutin.hidden = false;
+        status.textContent = "Uma lendária está chegando…";
+        await pause(1600);
+        if (!alive()) return;
+        cutin.hidden = true;
+      }
+      item.classList.add("is-front");
+      item.removeAttribute("aria-hidden");
+      await pause(450);
+      if (!alive()) return;
+      position++;
+      revealing = false;
+      status.textContent = `${position} / ${queue.length} · ${card.nome}. ${position < queue.length ? "Deslize para cima para revelar a próxima." : "Todas as cartas estão na sua coleção!"}`;
+      refresh();
+    };
     const buy = this.button("booster-buy", "", async () => {
+      if (opened && position < queue.length) {
+        await revealNext();
+        return;
+      }
       if (busy) return;
       if (opened) {
         reset();
@@ -1757,12 +1812,14 @@ class CyberduelTitleUI {
           this.account.notify();
           return;
         }
+        const rarityOrder = { utilidade: 0, baixa: 1, media: 2, alta: 3, lendaria: 4 };
         const revealed = cards.flatMap((card) =>
           Array.from({ length: card.quantidade || 1 }, () => ({
             ...card,
+            nivel: card.nivel || this.deckBuilder.getCatalogByKey().get(`${card.tipo}:${card.nome}`)?.nivel || "utilidade",
             quantidade: 1,
           })),
-        );
+        ).sort((a, b) => (rarityOrder[a.nivel] ?? 0) - (rarityOrder[b.nivel] ?? 0));
         dialog.classList.add("is-opening");
         status.textContent = "Rompendo o lacre…";
         balance.textContent = `${this.account.currency.toLocaleString("pt-BR")} TIJOLINHOS`;
@@ -1779,7 +1836,9 @@ class CyberduelTitleUI {
         results.replaceChildren(
           ...revealed.map((card, index) => {
             const item = this.createBoosterResult(card);
-            item.style.setProperty("--reveal-index", index);
+            item.style.setProperty("--stack-index", index);
+            item.style.zIndex = revealed.length - index;
+            item.setAttribute("aria-hidden", "true");
             return item;
           }),
         );
@@ -1790,6 +1849,10 @@ class CyberduelTitleUI {
         intro.hidden = true;
         status.textContent = `${revealed.length} cartas adicionadas à sua coleção.`;
         opened = true;
+        queue = revealed;
+        position = 0;
+        await pause(450);
+        if (this.modal === overlay) await revealNext();
       } catch (exception) {
         if (this.modal === overlay) {
           error.textContent = exception.message || "Falha ao abrir booster.";
@@ -1809,23 +1872,29 @@ class CyberduelTitleUI {
       balance.textContent = `${this.account.currency.toLocaleString("pt-BR")} TIJOLINHOS`;
       close.disabled = admin.disabled = busy;
       for (const button of tabs.children) {
-        button.disabled = busy;
+        button.disabled = busy || revealing;
         button.setAttribute(
           "aria-pressed",
           String(button.dataset.faction === selected[0]),
         );
       }
       buy.disabled =
-        busy || (!opened && this.account.currency < this.account.boosterPrice);
+        busy || revealing || (!opened && this.account.currency < this.account.boosterPrice);
+      scratch.disabled = busy || opened || this.account.currency < this.account.boosterPrice;
       buy.textContent = busy
         ? "ABRINDO…"
         : opened
-          ? "ESCOLHER OUTRO PACOTE"
+          ? (position < queue.length ? "PRÓXIMA CARTA ↑" : "ESCOLHER OUTRO PACOTE")
           : this.account.currency < this.account.boosterPrice
             ? "SALDO INSUFICIENTE"
             : `ABRIR PACOTE · ${this.account.boosterPrice} TIJOLINHOS`;
     };
     const reset = () => {
+      generation++;
+      queue = [];
+      position = 0;
+      revealing = false;
+      cutin.hidden = true;
       opened = false;
       dialog.classList.remove("is-revealed", "is-opening");
       dialog.style.setProperty("--pack-color", selected[3]);
@@ -1850,9 +1919,47 @@ class CyberduelTitleUI {
       }
       error.textContent = "";
       status.textContent =
-        "5 cartas por pacote. Qual será a próxima da sua coleção?";
+        "Risque o lacre para abrir · 5 cartas, das comuns às lendárias.";
       refresh();
     };
+    let scratchStart = null;
+    scratch.addEventListener("pointerdown", (event) => {
+      if (scratch.disabled) return;
+      scratchStart = { id: event.pointerId, x: event.clientX };
+      scratch.setPointerCapture(event.pointerId);
+    });
+    scratch.addEventListener("pointermove", (event) => {
+      if (!scratchStart || event.pointerId !== scratchStart.id) return;
+      const distance = Math.abs(event.clientX - scratchStart.x);
+      scratch.style.setProperty("--scratch", `${Math.min(100, distance / scratch.clientWidth * 100)}%`);
+      if (distance >= scratch.clientWidth * .55) {
+        scratchStart = null;
+        buy.click();
+      }
+    });
+    const cancelScratch = () => {
+      scratchStart = null;
+      scratch.style.removeProperty("--scratch");
+    };
+    scratch.addEventListener("pointerup", cancelScratch);
+    scratch.addEventListener("pointercancel", cancelScratch);
+    scratch.addEventListener("click", event => { if (event.detail === 0) buy.click(); });
+    let swipeStart = null;
+    results.addEventListener("pointerdown", event => {
+      swipeStart = { id: event.pointerId, y: event.clientY };
+      results.setPointerCapture(event.pointerId);
+    });
+    results.addEventListener("pointerup", event => {
+      if (swipeStart?.id === event.pointerId && swipeStart.y - event.clientY > 45) revealNext();
+      swipeStart = null;
+    });
+    results.addEventListener("pointercancel", () => { swipeStart = null; });
+    results.addEventListener("wheel", event => {
+      if (opened && position < queue.length) {
+        event.preventDefault();
+        if (event.deltaY < -15) revealNext();
+      }
+    }, { passive: false });
     for (const faction of factions) {
       const button = this.button("booster-faction", faction[1], () => {
         if (busy) return;
@@ -1870,6 +1977,7 @@ class CyberduelTitleUI {
       intro,
       status,
       results,
+      cutin,
       error,
       buy,
     );

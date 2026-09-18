@@ -2,6 +2,24 @@
 
 Novidades, correções e verificações realizadas no projeto. As entregas mais recentes aparecem primeiro.
 
+## 2026-09-18
+
+### Correção do refresh durante a compra de boosters
+
+- Identificada recarga automática do Live Server ao persistir saldo e coleção em `server/data`: uma gravação temporária nessa pasta reproduziu a mensagem WebSocket `reload` na instância local da porta 5500.
+- Adicionada configuração de workspace em `.vscode/settings.json` para ignorar `server/data/**`, preservando as exclusões padrão do Live Server. Documentada no README a necessidade de parar e iniciar uma instância já aberta para carregar a configuração.
+- Validado com o módulo instalado do Live Server, em diretório temporário: gravação e renomeação atômica de contas não geram recarga; mudanças no HTML continuam gerando recarga. Dados reais das contas preservados.
+- Validada no Chromium a abertura pelo gesto e a passagem pelas cinco cartas até o cut-in lendário, com resposta de compra simulada e animações reais. Testes `booster-ui` e `server-url` aprovados; `git diff --check` sem erros. A instância do Live Server já aberta ainda precisa ser reiniciada para aplicar a exclusão.
+
+### Abertura de boosters por gesto e revelação por raridade
+
+- Adicionado lacre que abre ao riscar horizontalmente com mouse ou toque, mantendo botão e teclado como alternativas. Compra bloqueada durante a abertura.
+- Cartas aparecem empilhadas com o verso à frente; a primeira vira automaticamente. Deslizar para cima, rolar para cima ou usar o botão revela a próxima, com saída da anterior.
+- Ordenação crescente: utilidade, baixa, média, alta e lendária, preservando cartas repetidas e uma única compra por pacote.
+- Lendárias recebem cut-in dourado antes da revelação. Artes específicas podem ser registradas em `window.CYBERDUEL_LEGENDARY_CUTINS`, por nome da carta; esses assets ainda não foram fornecidos.
+- Incluídos bloqueios de avanço durante animações, anúncio da carta atual, suporte a movimento reduzido e atualização das versões de CSS e JavaScript no HTML.
+- Validações: `npm test` aprovado (22 arquivos com sintaxe válida e 20 testes existentes); novo `node test/booster-ui.test.js` aprovado, cobrindo ordem, duplicatas, revelação, lendária, compra única, reinício e falha de compra. `git diff --check` sem erros. Aparência e gestos ainda não foram validados em navegador real.
+
 ## 2026-09-16
 
 ### Apenas uma carta levantada na mão

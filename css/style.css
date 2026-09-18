@@ -2948,3 +2948,28 @@ body.title-terminal-open #game-viewport canvas {
   width: var(--game-display-width, min(100vw, 48.648649vh));
   height: var(--game-display-height, min(100dvh, 205.555556vw));
 }
+
+/* Abertura por gesto e revelação individual do booster. */
+.title-booster-dialog { position: relative; }
+.booster-scratch { position: absolute; z-index: 6; top: -9px; left: -8%; width: 116%; min-height: 38px; border: 1px dashed var(--pack-color); background: linear-gradient(90deg, #fff var(--scratch, 0%), #182a37 var(--scratch, 0%)); color: var(--pack-color); font-size: 8px; font-weight: 900; touch-action: none; cursor: ew-resize; }
+.title-booster-results { display: block; position: relative; height: clamp(300px, 82cqw, 420px); margin: 22px 0; perspective: 1000px; touch-action: pan-x; user-select: none; }
+.title-booster-results .title-booster-card { position: absolute; inset: 0; margin: auto; width: min(65%, 240px); height: 90%; box-sizing: border-box; animation: none; transform: translate(calc(var(--stack-index) * 3px), calc(var(--stack-index) * 3px)); transition: transform .4s ease, opacity .35s ease; overflow: hidden; }
+.title-booster-results .title-booster-card > * { visibility: hidden; }
+.title-booster-results .title-booster-card::after { content: 'CYBER / DUEL'; position: absolute; inset: 8px; display: grid; place-items: center; border: 2px solid #4ba6bb; border-radius: 5px; color: #83e6f4; font-size: 20px; font-weight: 900; letter-spacing: .12em; background: repeating-linear-gradient(45deg, #101e30 0 12px, #18324a 12px 14px); box-shadow: inset 0 0 35px #020811; }
+.title-booster-results .title-booster-card.is-front { transform: none; animation: booster-turn .45s ease both; }
+.title-booster-results .title-booster-card.is-front > * { visibility: visible; }
+.title-booster-results .title-booster-card.is-front::after { display: none; }
+.title-booster-results .title-booster-card img { min-height: 0; height: 100%; object-fit: contain; }
+.title-booster-results .title-booster-card { grid-template-rows: minmax(0, 1fr) auto auto; }
+.title-booster-results .title-booster-card strong { font-size: 13px; }
+.title-booster-results .title-booster-card small { font-size: 10px; }
+.title-booster-results .title-booster-card.is-leaving { animation: none; transform: translateY(-130%) rotate(-8deg); opacity: 0; }
+.booster-cutin { position: absolute; inset: 0; z-index: 20; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; overflow: hidden; pointer-events: none; background: radial-gradient(ellipse, #836122, #100c18 70%); color: #ffe7a3; animation: booster-cutin .35s ease-out both; }
+.booster-cutin strong { z-index: 1; font-size: clamp(32px, 9cqw, 62px); font-style: italic; text-shadow: 0 0 25px #ffb829; }
+.booster-cutin span { z-index: 1; font-size: 20px; text-align: center; }
+.booster-cutin img { position: absolute; width: 100%; height: 100%; object-fit: contain; opacity: .65; }
+@keyframes booster-turn { from { transform: rotateY(-90deg); } to { transform: rotateY(0); } }
+@keyframes booster-cutin { from { opacity: 0; transform: translateX(-15%); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .title-booster-results .title-booster-card, .title-booster-results .title-booster-card.is-front, .booster-cutin { animation: none; transition: none; }
+}

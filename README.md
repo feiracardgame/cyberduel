@@ -7,6 +7,8 @@
 2. Deixe esse terminal aberto e abra `index.html` com **Open with Live Server**.
 3. Nas portas 5500/5501 (também 4173, 5173 e 8080), login e multiplayer usam automaticamente o servidor da mesma máquina na porta 3000.
 
+A configuração em `.vscode/settings.json` impede que gravações de saldo e coleção em `server/data` recarreguem a página durante a abertura de boosters. Se o Live Server já estava aberto ao receber essa configuração, pare e inicie o **Live Server** novamente para aplicá-la.
+
 O Live Server serve os arquivos; contas, coleção e salas precisam do backend Node rodando. Também é possível abrir diretamente `http://localhost:3000` sem Live Server.
 
 Para outra porta do Live Server ou outro backend, informe o destino na URL, por exemplo: `http://127.0.0.1:5502/index.html?server=http://127.0.0.1:3000`. O parâmetro `server` vale para contas e multiplayer. Para usar o backend Docker com Live Server, informe a URL publicada pelo Docker nesse parâmetro. `window.CYBERDUEL_SERVER_URL`, quando definida antes dos clientes, tem prioridade.
