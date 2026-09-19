@@ -8,6 +8,7 @@ const {
   renameSync,
 } = require("fs");
 const {
+  createHash,
   randomBytes,
   randomInt,
   scrypt: scryptCallback,
@@ -28,6 +29,7 @@ const DATA_DIR = path.resolve(
   process.env.DATA_DIR || path.join(__dirname, "data"),
 );
 const ACCOUNTS_FILE = path.join(DATA_DIR, "accounts.json");
+const SESSIONS_FILE = path.join(DATA_DIR, "sessions.json");
 const scrypt = promisify(scryptCallback);
 const rooms = new Map();
 const sessions = new Map();
@@ -144,6 +146,32 @@ try {
     console.error("Falha ao carregar contas:", error.message);
 }
 
+// Persistimos apenas hashes: o arquivo não contém tokens utilizáveis como Bearer.
+try {
+  const loaded = JSON.parse(readFileSync(SESSIONS_FILE, "utf8"));
+  for (const [key, session] of Object.entries(loaded.sessions || {})) {
+    if (/^[a-f0-9]{64}$/.test(key) && session &&
+        Number.isFinite(session.expiresAt) && session.expiresAt > Date.now() &&
+        Object.hasOwn(accountStore.accounts, session.accountKey)) {
+      sessions.set(key, session);
+    }
+  }
+} catch (error) {
+  if (error.code !== "ENOENT") console.error("Falha ao carregar sessões:", error.message);
+}
+
+function sessionKey(token) {
+  return createHash("sha256").update(String(token)).digest("hex");
+}
+
+function saveSessions() {
+  for (const [key, session] of sessions) {
+    if (session.expiresAt <= Date.now()) sessions.delete(key);
+  }
+  writeFileSync(`${SESSIONS_FILE}.tmp`, JSON.stringify({ version: 1, sessions: Object.fromEntries(sessions) }), { mode: 0o600 });
+  renameSync(`${SESSIONS_FILE}.tmp`, SESSIONS_FILE);
+}
+
 const CONTENT_TYPES = {
   ".css": "text/css; charset=utf-8",
   ".html": "text/html; charset=utf-8",
@@ -220,10 +248,11 @@ async function passwordHash(password, salt) {
 
 function createSession(accountKey) {
   const token = randomBytes(32).toString("hex");
-  sessions.set(token, {
+  sessions.set(sessionKey(token), {
     accountKey,
     expiresAt: Date.now() + SESSION_DURATION_MS,
   });
+  saveSessions();
   return token;
 }
 
@@ -232,9 +261,9 @@ function authenticatedSession(request) {
     String(request.headers.authorization || ""),
   );
   if (!match) return null;
-  const session = sessions.get(match[1]);
+  const session = sessions.get(sessionKey(match[1]));
   if (!session || session.expiresAt <= Date.now()) {
-    sessions.delete(match[1]);
+    sessions.delete(sessionKey(match[1]));
     return null;
   }
   const account = accountStore.accounts[session.accountKey];
@@ -243,9 +272,9 @@ function authenticatedSession(request) {
 
 function accountFromToken(token) {
   if (!/^[a-f0-9]{64}$/i.test(String(token || ""))) return null;
-  const session = sessions.get(String(token));
+  const session = sessions.get(sessionKey(token));
   if (!session || session.expiresAt <= Date.now()) {
-    sessions.delete(String(token));
+    sessions.delete(sessionKey(token));
     return null;
   }
   return accountStore.accounts[session.accountKey] || null;
@@ -516,7 +545,10 @@ async function handleApi(request, response, pathname) {
 
   if (request.method === "POST" && pathname === "/api/auth/logout") {
     const session = authenticatedSession(request);
-    if (session) sessions.delete(session.token);
+    if (session) {
+      sessions.delete(sessionKey(session.token));
+      saveSessions();
+    }
     return sendJson(response, 200, { ok: true });
   }
 
@@ -1224,7 +1256,7 @@ roomCleanup.unref();
 io.on("connection", (socket) => {
   socket.on("join-matchmaking", (payload = {}, ack = () => {}) => {
     const account = accountFromToken(payload.accountToken);
-    if (!account) return ack({ ok: false, error: "Entre na conta para buscar uma partida." });
+    if (!account) return ack({ ok: false, code: "AUTH_REQUIRED", error: "Sua sessão expirou. Entre novamente na conta para buscar uma partida." });
     ensureAccountDefaults(account);
     if (socket.data.room || accountHasMatch(account.username))
       return ack({ ok: false, error: "Você já tem uma sala ou partida ativa. Retorne ou desista antes de buscar." });

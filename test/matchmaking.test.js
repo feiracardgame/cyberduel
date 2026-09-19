@@ -113,6 +113,32 @@ async function run() {
   await new Promise(resolve => { server.once('exit', resolve); server.kill(); });
   await start();
   assert.deepEqual((await api('leaderboard', null, null, 'GET')).entries, board, 'Leaderboard persiste após reinício.');
+  assert.equal((await api('auth/session', first.token, null, 'GET')).username, first.username,
+    'Sessão continua válida após reiniciar o backend.');
+  const restored = await connect();
+  assert.equal((await ack(restored, 'join-matchmaking', { accountToken: first.token })).ok, true,
+    'Conta já conectada consegue buscar após reinício.');
+  await ack(restored, 'cancel-matchmaking');
+  await api('auth/logout', first.token);
+  assert.equal((await ack(restored, 'join-matchmaking', { accountToken: first.token })).ok, false);
+  sockets.forEach(socket => socket.disconnect());
+  await new Promise(resolve => { server.once('exit', resolve); server.kill(); });
+  await start();
+  const loggedOut = await fetch(url + '/api/auth/session', { headers: { Authorization: `Bearer ${first.token}` } });
+  assert.equal(loggedOut.status, 401, 'Logout permanece revogado após reinício.');
+  assert.equal((await api('auth/session', second.token, null, 'GET')).username, second.username);
+  await new Promise(resolve => { server.once('exit', resolve); server.kill(); });
+  const sessionFile = path.join(dataDir, 'sessions.json');
+  const savedText = fs.readFileSync(sessionFile, 'utf8');
+  assert.ok(!savedText.includes(second.token), 'Token de acesso não é salvo em texto puro.');
+  const saved = JSON.parse(savedText);
+  for (const session of Object.values(saved.sessions)) session.expiresAt = Date.now() - 1;
+  fs.writeFileSync(sessionFile, JSON.stringify(saved));
+  await start();
+  const expired = await fetch(url + '/api/auth/session', { headers: { Authorization: `Bearer ${second.token}` } });
+  assert.equal(expired.status, 401, 'Sessão expirada não é restaurada.');
+  const expiredSocket = await connect();
+  assert.equal((await ack(expiredSocket, 'join-matchmaking', { accountToken: second.token })).code, 'AUTH_REQUIRED');
   console.log('Matchmaking: faixa de rank, sorteio, cancelamento, sessão, duplicação, apresentação, desistência, combate e persistência validados.');
 }
 run().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => {

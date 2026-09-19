@@ -63,3 +63,23 @@ connection.connect = () => ({ timeout() { return this; }, emit(name, payload, ca
 for (const method of ['joinMatchmaking', 'cancelMatchmaking']) connection[method](result => {
   assert.equal(result.ok, false); assert.ok(result.error);
 });
+
+let cleared = 0, response = { ok: true }, message;
+context.window.cyberduelAccount = { token: 'current-token', clear() { cleared++; } };
+connection.onStatus = value => { message = value; };
+connection.connect = () => ({ timeout() { return this; }, emit(name, payload, callback) {
+  assert.equal(payload.accountToken, 'current-token');
+  callback(null, response);
+} });
+connection.joinMatchmaking(result => assert.equal(result.ok, true));
+assert.equal(cleared, 0);
+response = { ok: false, error: 'Deck inválido' };
+connection.joinMatchmaking(() => {});
+assert.equal(cleared, 0, 'Falha de deck não desconecta a conta.');
+response = { ok: false, code: 'AUTH_REQUIRED', error: 'Sua sessão expirou.' };
+connection.joinMatchmaking(() => {});
+assert.equal(cleared, 1, 'Sessão inválida deixa de aparecer conectada.');
+assert.equal(message, response.error);
+connection.connect = () => ({ timeout() { return this; }, emit(name, payload, callback) { callback(Error('timeout')); } });
+connection.joinMatchmaking(() => {});
+assert.equal(cleared, 1, 'Timeout não apaga a sessão.');

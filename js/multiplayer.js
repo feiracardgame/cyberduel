@@ -104,6 +104,10 @@ class CyberduelMultiplayer {
   joinMatchmaking(callback) {
     this.connect().timeout(7000).emit("join-matchmaking", { accountToken: window.cyberduelAccount?.token }, (error, response) => {
       callback(error ? { ok: false, error: "Servidor indisponível. Tente buscar novamente." } : response);
+      if (!error && response?.code === "AUTH_REQUIRED") {
+        window.cyberduelAccount?.clear();
+        this.status(response.error);
+      }
     });
   }
 

@@ -384,3 +384,10 @@ Antes do duelo, uma apresentação de quatro segundos mostra **foto, apelido e r
 Todos começam com **1.000 pontos**. A pontuação usa Elo com fator 32 e é atualizada uma única vez pelo servidor ao encerrar uma partida da fila, incluindo desistências e recusa de retorno. Salas por código e partidas solo não alteram o rank. As faixas são Bronze (abaixo de 1.200), Prata (1.200–1.399), Ouro (1.400–1.599) e Diamante (1.600 ou mais).
 
 Em **RANKING → Ranking de duelistas**, a leaderboard exibe os 20 primeiros por pontos, com apelido, rank, vitórias e derrotas. O jogador aparece após concluir sua primeira partida ranqueada. Pontos e estatísticas persistem junto da conta; filas e partidas em andamento ficam na memória do servidor.
+
+
+### Sessões de conta após atualizar o servidor
+
+As sessões duram sete dias e são persistidas em `DATA_DIR/sessions.json`, com hashes dos tokens. No Compose, esse arquivo fica no volume `cyberduel-data`, junto das contas. Manter o volume permite continuar autenticado após reiniciar ou reconstruir o backend; logout e expiração continuam invalidando o acesso. Essa persistência atende à instância única do backend usada pelo Compose atual.
+
+Para publicar a correção, atualize os arquivos no servidor e execute `docker compose up -d --build`. Recarregue a página. Sessões da versão anterior existiam somente na memória: será necessário entrar novamente uma vez após essa atualização. Filas e partidas em andamento continuam em memória.

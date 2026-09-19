@@ -4,6 +4,14 @@ Novidades, correções e verificações realizadas no projeto. As entregas mais 
 
 ## 2026-09-19
 
+### Sessão preservada na busca de partida aleatória
+
+- Reproduzida perda de autenticação após reiniciar o backend: token antes válido retornava 401, enquanto uma página aberta podia continuar exibindo a conta conectada. Esse mecanismo foi confirmado localmente; a causa no servidor publicado não foi verificada diretamente.
+- Sessões agora persistem em `DATA_DIR/sessions.json`, usando hashes dos tokens e gravação por substituição de arquivo. Mantidos prazo de sete dias e revogação por logout; o volume existente do Compose preserva os dados entre reinícios da instância única.
+- Busca aleatória sinaliza sessão inválida com código próprio e limpa a conta exibida no cliente, orientando novo login. Erros de deck e timeout não limpam a sessão. Atualizada a versão do script multiplayer para renovar o cache.
+- `npm test` aprovado: sintaxe de 23 arquivos e 27 testes funcionais. Regressões cobrem autenticação e entrada na fila após reinício, logout persistente, expiração, ausência de token em texto puro no arquivo e atualização do estado do cliente.
+- Publicação e validação no servidor hospedado pendentes. Documentado no README o comando de atualização e a necessidade de entrar novamente uma vez para sessões da versão anterior, que existiam apenas na memória. Filas e partidas continuam em memória.
+
 ### Matchmaking por rank, apresentação e leaderboard
 
 - Habilitada a opção “Partida aleatória” com fila autenticada, cancelamento e sorteio de adversários por proximidade de pontuação: faixa inicial de 200 pontos, ampliada em 100 a cada 15 segundos. Contas duplicadas, partidas ativas e decks inválidos são bloqueados; desconexão remove o jogador da fila.

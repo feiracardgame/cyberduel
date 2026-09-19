@@ -85,7 +85,107 @@
         "terreno:Nexus de Dados Global": 1
       },
       "createdAt": "2026-09-16T13:34:26.276Z",
-      "updatedAt": "2026-09-16T13:34:32.046Z"
+      "updatedAt": "2026-09-16T13:34:32.046Z",
+      "rating": 1000,
+      "rankedGames": 0,
+      "rankedWins": 0,
+      "rankedLosses": 0,
+      "boosters": [],
+      "nickname": "aura",
+      "avatar": ""
+    },
+    "auradev": {
+      "username": "auradev",
+      "salt": "5907cf54d0274359b2b78dd83e710863",
+      "passwordHash": "9c3073852d5c3849738d1561ef9f0202b107500d35d6a24d93ea323cb8ea83f983b71437edc19b4c983210effabd1a79e4af10f61a98ee33076cbe65e2ae1fc6",
+      "deck": [
+        {
+          "tipo": "monstro",
+          "nome": "CyberVendedor da RaspCorp",
+          "quantidade": 2
+        },
+        {
+          "tipo": "monstro",
+          "nome": "Estagiário de Machine Learning",
+          "quantidade": 2
+        },
+        {
+          "tipo": "monstro",
+          "nome": "NeoAnalista de Suporte Nível Alpha",
+          "quantidade": 2
+        },
+        {
+          "tipo": "monstro",
+          "nome": "Advogado Corporativo",
+          "quantidade": 2
+        },
+        {
+          "tipo": "monstro",
+          "nome": "Gestor de Recursos Predominantemente Humanos",
+          "quantidade": 2
+        },
+        {
+          "tipo": "monstro",
+          "nome": "CryptoAcionistas",
+          "quantidade": 2
+        },
+        {
+          "tipo": "monstro",
+          "nome": "Agente da DIPSP",
+          "quantidade": 2
+        },
+        {
+          "tipo": "monstro",
+          "nome": "RaspClay MonteCorp",
+          "quantidade": 1
+        },
+        {
+          "tipo": "efeito",
+          "nome": "Sugestão Algorítmica",
+          "quantidade": 2
+        },
+        {
+          "tipo": "terreno",
+          "nome": "Torre MonteCorp",
+          "quantidade": 1
+        },
+        {
+          "tipo": "terreno",
+          "nome": "Beira-mar norte de NeoFloripa",
+          "quantidade": 1
+        },
+        {
+          "tipo": "terreno",
+          "nome": "Nexus de Dados Global",
+          "quantidade": 1
+        }
+      ],
+      "faction": "raspcorp",
+      "currency": 500,
+      "gamesPlayed": 0,
+      "collection": {
+        "monstro:CyberVendedor da RaspCorp": 2,
+        "monstro:Estagiário de Machine Learning": 2,
+        "monstro:NeoAnalista de Suporte Nível Alpha": 2,
+        "monstro:Advogado Corporativo": 2,
+        "monstro:Gestor de Recursos Predominantemente Humanos": 2,
+        "monstro:CryptoAcionistas": 2,
+        "monstro:Agente da DIPSP": 2,
+        "monstro:RaspClay MonteCorp": 1,
+        "efeito:Sugestão Algorítmica": 2,
+        "terreno:Torre MonteCorp": 1,
+        "terreno:Beira-mar norte de NeoFloripa": 1,
+        "terreno:Nexus de Dados Global": 1
+      },
+      "createdAt": "2026-09-19T15:54:24.466Z",
+      "rating": 1000,
+      "rankedGames": 0,
+      "rankedWins": 0,
+      "rankedLosses": 0,
+      "boosters": [],
+      "nickname": "auradev",
+      "avatar": "",
+      "updatedAt": "2026-09-19T15:54:25.640Z"
     }
   }
 }
