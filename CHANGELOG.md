@@ -4,6 +4,13 @@ Novidades, correções e verificações realizadas no projeto. As entregas mais 
 
 ## 2026-09-19
 
+### Queda imediata ao buscar partida na imagem Docker
+
+- Reproduzido erro `ENOENT` ao carregar as regras de duelo na imagem de produção: o Dockerfile não copiava `js/deck-builder.js`. A busca autenticada carrega esse módulo para validar o deck; a exceção encerra o backend e derruba as conexões.
+- Incluído `js/deck-builder.js` na imagem do servidor. A construção agora carrega `server/duel-runtime.js` para rejeitar imagens sem os arquivos necessários às regras de duelo.
+- Imagem reconstruída com sucesso. Teste em container isolado com duas contas validou login, escolha de facção, busca, cancelamento e formação de partida ranqueada, mantendo as conexões e `/health` ativos. `node test/matchmaking.test.js` aprovado.
+- Publicação e conferência no servidor hospedado pendentes; é necessário reconstruir o serviço `server` com o Dockerfile atualizado.
+
 ### Sessão preservada na busca de partida aleatória
 
 - Reproduzida perda de autenticação após reiniciar o backend: token antes válido retornava 401, enquanto uma página aberta podia continuar exibindo a conta conectada. Esse mecanismo foi confirmado localmente; a causa no servidor publicado não foi verificada diretamente.

@@ -6,7 +6,10 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
 COPY server ./server
-COPY js/cartas.js js/main.js js/multiplayer.js ./js/
+COPY js/cartas.js js/main.js js/deck-builder.js js/multiplayer.js ./js/
+
+# Verifica as regras e seus arquivos antes de publicar uma imagem incompleta.
+RUN node -e 'require("./server/duel-runtime")'
 
 ENV NODE_ENV=production
 ENV PORT=3000
