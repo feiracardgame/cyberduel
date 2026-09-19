@@ -269,7 +269,7 @@ class CyberduelTitleUI {
             () => this.callbacks.onSolo(),
             "deck",
           ],
-          ["Partida aleatória", "Encontre um oponente", "partida_aleatória"],
+          ["Partida aleatória", "Ranqueada · adversário por pontuação", "partida_aleatória", () => this.callbacks.onMatchmaking(), "deck"],
           [
             "Criar sala",
             "Convide um amigo por código ou QR",
@@ -339,6 +339,8 @@ class CyberduelTitleUI {
             "Ranking de duelistas",
             "Os nomes que dominam NeoFloripa",
             "leaderboard",
+            () => this.openLeaderboard(),
+            "none",
           ],
         ],
       },
@@ -1660,15 +1662,136 @@ class CyberduelTitleUI {
     this.statusBar.dataset.tone = tone;
   }
 
-  showResumeMatch(code, resume) {
-    const target = this.root || this.statusBar?.parentElement;
-    if (!target || target.querySelector(".title-resume-match")) return;
-    const button = this.button(
-      "title-action title-resume-match",
-      `VOLTAR À PARTIDA ${code}`,
-      resume,
-    );
-    target.prepend(button);
+  playerPresentation(profile = {}) {
+    const card = this.element("article", "versus-player");
+    if (profile.avatar) {
+      const photo = this.element("img", "versus-avatar");
+      photo.src = profile.avatar;
+      photo.alt = `Foto de ${profile.nickname || "Duelista"}`;
+      card.append(photo);
+    } else card.append(this.element("div", "versus-avatar versus-initials", Array.from(profile.nickname || "?").slice(0, 2).join("").toUpperCase()));
+    card.append(this.element("h3", "", profile.nickname || "Duelista"),
+      this.element("p", "versus-rank", `${profile.rank || "Bronze"} · ${profile.rating ?? 1000} pontos`));
+    return card;
+  }
+
+  showVersus(profiles, player, done) {
+    this.closeModal(true);
+    const overlay = this.createModal("versus");
+    this.modalRequired = true;
+    const dialog = this.element("section", "title-dialog versus-dialog");
+    dialog.setAttribute("role", "dialog"); dialog.setAttribute("aria-modal", "true");
+    dialog.setAttribute("aria-label", "Apresentação da partida");
+    dialog.append(this.element("h2", "", "DUELO ENCONTRADO"));
+    const matchup = this.element("div", "versus-matchup");
+    matchup.append(this.playerPresentation(profiles?.[player]), this.element("strong", "versus-mark", "VS"),
+      this.playerPresentation(profiles?.[3 - player]));
+    dialog.append(matchup, this.element("p", "", "Preparando a arena…"));
+    overlay.append(dialog);
+    requestAnimationFrame(() => overlay.classList.add("is-visible"));
+    clearTimeout(this.versusTimer);
+    this.versusTimer = setTimeout(() => {
+      if (this.modal !== overlay) return;
+      this.closeModal(true); done();
+    }, 4000);
+  }
+
+  openMatchmaking(multiplayer) {
+    if (this.modal) return;
+    const overlay = this.createModal("matchmaking");
+    this.modalRequired = true;
+    const dialog = this.element("section", "title-dialog matchmaking-dialog");
+    dialog.setAttribute("role", "dialog"); dialog.setAttribute("aria-modal", "true");
+    dialog.setAttribute("aria-label", "Buscar partida ranqueada");
+    const status = this.element("p", "", "Entrando na fila…");
+    status.setAttribute("role", "status");
+    const cancel = this.button("title-small-button", "CANCELAR BUSCA", () => {
+      cancel.disabled = true;
+      multiplayer.cancelMatchmaking(result => {
+        if (this.modal !== overlay) return;
+        if (result.ok) this.closeModal(true);
+        else { status.textContent = result.error; cancel.disabled = false; }
+      });
+    });
+    dialog.append(this.element("h2", "", "Buscando adversário"), status,
+      this.element("p", "", "Sorteamos um jogador com rank próximo. A faixa aumenta conforme a espera."), cancel);
+    overlay.append(dialog);
+    requestAnimationFrame(() => { overlay.classList.add("is-visible"); cancel.focus(); });
+    multiplayer.joinMatchmaking(result => {
+      if (this.modal !== overlay) return;
+      if (result.ok) status.textContent = `${result.profile.rank} · ${result.profile.rating} pontos — aguardando outro duelista…`;
+      else {
+        this.closeModal(true);
+        this.setStatus(result.error || "Não foi possível entrar na fila.", "error");
+      }
+    });
+  }
+
+  async openLeaderboard() {
+    if (this.modal) return;
+    const overlay = this.createModal("leaderboard");
+    const dialog = this.element("section", "title-dialog leaderboard-dialog");
+    dialog.setAttribute("role", "dialog"); dialog.setAttribute("aria-modal", "true");
+    dialog.setAttribute("aria-label", "Leaderboard");
+    const status = this.element("p", "", "Carregando ranking…");
+    status.setAttribute("role", "status");
+    const close = this.button("title-small-button", "FECHAR", () => this.closeModal());
+    dialog.append(this.element("h2", "", "TOP 20 DUELISTAS"), status, close);
+    overlay.append(dialog);
+    requestAnimationFrame(() => { overlay.classList.add("is-visible"); close.focus(); });
+    try {
+      const response = await this.account.request("/api/leaderboard", { auth: false });
+      if (this.modal !== overlay) return;
+      status.textContent = response.entries.length ? "Classificação por pontos nas partidas aleatórias." : "Nenhuma partida ranqueada concluída. Seja o primeiro!";
+      if (!response.entries.length) return;
+      const table = this.element("table", "leaderboard-table");
+      const head = this.element("tr", "");
+      for (const label of ["#", "Apelido", "Rank", "Pontos", "V / D"]) head.append(this.element("th", "", label));
+      const thead = this.element("thead", ""); thead.append(head); table.append(thead);
+      const body = this.element("tbody", "");
+      for (const entry of response.entries) {
+        const row = this.element("tr", "");
+        for (const value of [entry.position, entry.nickname, entry.rank, entry.rating, `${entry.wins} / ${entry.losses}`])
+          row.append(this.element("td", "", String(value)));
+        body.append(row);
+      }
+      table.append(body); dialog.append(table);
+    } catch (error) {
+      if (this.modal === overlay) status.textContent = error.message || "Não foi possível carregar o ranking.";
+    }
+  }
+
+  showResumeMatch(code, resume, decline) {
+    if (!this.root || this.modal?.dataset.kind === "resume") return;
+    this.closeModal(true);
+    const overlay = this.createModal("resume");
+    this.modalRequired = true;
+    const dialog = this.element("section", "title-dialog title-resume-dialog");
+    dialog.setAttribute("role", "dialog");
+    dialog.setAttribute("aria-modal", "true");
+    dialog.setAttribute("aria-label", "Voltar à partida");
+    const error = this.element("p", "title-auth-error");
+    error.setAttribute("role", "alert");
+    const choose = (action) => {
+      yes.disabled = no.disabled = true;
+      error.textContent = "";
+      action((result) => {
+        if (this.modal !== overlay) return;
+        if (result.ok) this.closeModal(true);
+        else {
+          error.textContent = result.error || "Não foi possível concluir. Tente novamente.";
+          yes.disabled = no.disabled = false;
+        }
+      });
+    };
+    const yes = this.button("title-small-button", "SIM", () => choose(resume));
+    const no = this.button("title-small-button", "NÃO", () => choose(decline));
+    const actions = this.element("div", "title-dialog__actions");
+    actions.append(yes, no);
+    dialog.append(this.element("h2", "", "Voltar à partida?"),
+      this.element("p", "", `A partida ${code} está em andamento. Ao escolher Não, você perde automaticamente e não poderá voltar.`), error, actions);
+    overlay.append(dialog);
+    requestAnimationFrame(() => { overlay.classList.add("is-visible"); yes.focus(); });
   }
 
   openJoinDialog(onSubmit) {
@@ -2300,6 +2423,7 @@ class CyberduelTitleUI {
   }
 
   destroy() {
+    clearTimeout(this.versusTimer);
     document.removeEventListener("keydown", this.handleKeydown);
     document.body.classList.remove("title-terminal-open");
     this.modal?.remove();

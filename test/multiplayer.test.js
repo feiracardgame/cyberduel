@@ -68,6 +68,14 @@ async function run() {
   const token1 = await register("Gabriel");
   const token2 = await register("Dante");
 
+  for (const token of [token1, token2]) {
+    const profile = await fetch(`${url}/api/account/profile`, {
+      method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ nickname: "Mesmo Apelido", avatar: "" }),
+    });
+    assert.equal(profile.status, 200);
+  }
+
   const cachedAsset = await new Promise((resolve, reject) => {
     const request = http.request(
       `${url}/assets/cartas/O_rato.png`,
@@ -110,6 +118,9 @@ async function run() {
   assert.deepEqual(match1.usernames, { 1: "Gabriel", 2: "Dante" });
   assert.deepEqual(match2.usernames, { 1: "Gabriel", 2: "Dante" });
 
+  assert.deepEqual(match1.nicknames, { 1: "Mesmo Apelido", 2: "Mesmo Apelido" });
+  assert.deepEqual(match2.nicknames, match1.nicknames);
+
   const rejected = await emitAck(intruder, "join-room", {
     code: created.room.code,
     deck: [],
@@ -144,6 +155,7 @@ async function run() {
 
   const spectated = await emitAck(intruder, "spectate-room", { code: created.room.code });
   assert.equal(spectated.ok, true);
+  assert.deepEqual(spectated.nicknames, match1.nicknames);
   assert.equal(spectated.update.state.jogador.hand[0].nome, "Carta oculta");
   assert.deepEqual(spectated.update.state.jogador.traps, []);
   assert.equal(spectated.update.state.eventosEfeito[0].fonte.nome, "Carta oculta");
@@ -192,6 +204,9 @@ async function run() {
   const resumed = await emitAck(reconnected, "resume-match", { resumeToken: created.resumeToken });
   assert.equal(resumed.ok, true);
   assert.equal(resumed.player, 1);
+  assert.deepEqual(resumed.nicknames, match1.nicknames);
+  const resumedByAccount = await emitAck(player2, "resume-match", { accountToken: token2 });
+  assert.equal(resumedByAccount.player, 2, "Apelidos iguais não alteram a identificação.");
   assert.equal(resumed.update.deadline, oldDeadline, "Recarregar não renova o tempo da fase.");
   assert.equal(resumed.update.state.turno, 2);
 
@@ -224,6 +239,30 @@ async function run() {
   assert.equal(finished.result.resultadoCombate.resultado, timedUpdate.activePlayer === 1 ? "jogador" : "inimigo");
   assert.equal(observed.result.resultadoCombate.resultado, finished.result.resultadoCombate.resultado);
   assert.equal((await emitAck(finisher, "debug-finish-match", { resultado: "derrota" })).ok, false);
+  // Recusar após desconectar encerra a partida no servidor e invalida qualquer retorno.
+  const returning = await connect();
+  const opponent = await connect();
+  const refusal = await emitAck(returning, "create-room", { accountToken: token1 });
+  await emitAck(opponent, "join-room", { code: refusal.room.code, accountToken: token2 });
+  await emitAck(returning, "initial-state", { state });
+  returning.disconnect();
+  const menu = await connect();
+  assert.equal((await emitAck(menu, "decline-match", { room: refusal.room.code, resumeToken: "invalido" })).ok, false);
+  assert.equal((await emitAck(menu, "decline-match", { room: "000000", accountToken: token1 })).ok, false);
+  const defeat = once(opponent, "state-update");
+  assert.equal((await emitAck(menu, "decline-match", { room: refusal.room.code, accountToken: token1 })).ok, true);
+  const ended = await defeat;
+  assert.equal(ended.state.partidaEncerrada, true);
+  assert.equal(ended.result.resultadoCombate.resultado, "inimigo");
+  assert.equal(ended.deadline, null);
+  assert.equal(ended.state.rodadasJogador, state.rodadasJogador);
+  assert.equal(ended.state.rodadasInimigo, state.rodadasInimigo);
+  for (const credentials of [{ resumeToken: refusal.resumeToken }, { accountToken: token1 }, { accountToken: token2 }]) {
+    assert.equal((await emitAck(menu, "find-active-match", credentials)).room, null);
+    assert.equal((await emitAck(menu, "resume-match", credentials)).ok, false);
+  }
+  assert.equal((await emitAck(opponent, "live-state", { state, step: 0, round: 1 })).ok, false);
+  menu.disconnect(); opponent.disconnect();
   for (const socket of [player1, player2, intruder, reconnected]) socket.disconnect();
   console.log("Fluxo multiplayer validado.");
 }

@@ -2810,9 +2810,9 @@ class CenaJogo extends Phaser.Scene {
   desenharCampoInimigo() {
     const L = this.layout;
     const nomeOponente = this.multiplayerAtivo
-      ? String(this.multiplayer?.opponentUsername || "INIMIGO")
+      ? String(this.multiplayer?.opponentNickname || "INIMIGO")
           .trim()
-          .slice(0, 24)
+          .slice(0, 32)
           .toLocaleUpperCase("pt-BR")
       : "INIMIGO";
     this.add
@@ -2858,7 +2858,7 @@ class CenaJogo extends Phaser.Scene {
   desenharCampoJogador() {
     const L = this.layout;
     this.add
-      .text(LARGURA_LAYOUT / 2, L.yJogadorTras + L.slotH / 2 + 26, this.multiplayer?.spectator ? String(this.multiplayer.localUsername || "JOGADOR 1").toLocaleUpperCase("pt-BR") : "VOCÊ", {
+      .text(LARGURA_LAYOUT / 2, L.yJogadorTras + L.slotH / 2 + 26, String(this.multiplayerAtivo ? (this.multiplayer.localNickname || "JOGADOR 1") : (window.cyberduelAccount?.nickname || "VOCÊ")).toLocaleUpperCase("pt-BR"), {
         fontSize: "24px",
         color: "#88ff99",
         fontStyle: "bold",
@@ -7997,7 +7997,7 @@ class CenaJogo extends Phaser.Scene {
     const corTexto = vitoria ? "#1fd67a" : derrota ? "#ff3b3b" : "#eeeeee";
     const textoPrincipal =
       this.multiplayer?.spectator && (vitoria || derrota)
-        ? `${vitoria ? this.multiplayer.localUsername : this.multiplayer.opponentUsername} VENCEU`
+        ? `${vitoria ? this.multiplayer.localNickname : this.multiplayer.opponentNickname} VENCEU`
         : vitoria
           ? "VOCÊ VENCEU"
           : derrota

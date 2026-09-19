@@ -2,6 +2,30 @@
 
 Novidades, correções e verificações realizadas no projeto. As entregas mais recentes aparecem primeiro.
 
+## 2026-09-19
+
+### Matchmaking por rank, apresentação e leaderboard
+
+- Habilitada a opção “Partida aleatória” com fila autenticada, cancelamento e sorteio de adversários por proximidade de pontuação: faixa inicial de 200 pontos, ampliada em 100 a cada 15 segundos. Contas duplicadas, partidas ativas e decks inválidos são bloqueados; desconexão remove o jogador da fila.
+- Partidas da fila são criadas no servidor com os decks salvos e mostram uma apresentação de quatro segundos com foto (ou iniciais), apelido e rank dos dois jogadores, separados por VS. O duelo começa automaticamente e o primeiro prazo reserva o tempo da apresentação. Salas casuais também exibem os perfis antes da transição.
+- Adicionados pontos Elo (início em 1.000, fator 32), faixas Bronze/Prata/Ouro/Diamante e estatísticas persistentes de partidas, vitórias e derrotas. Apenas partidas da fila alteram o rank; combate concluído, desistência e recusa de retorno são contabilizados uma única vez. Placar e encerramento não são aceitos do cliente, e atalhos de resultado ficam desativados nas ranqueadas.
+- Leaderboard simples em “Ranking de duelistas”, com os 20 primeiros por pontos, apelido, rank e vitórias/derrotas; incluídos estados de carregamento, lista vazia e erro. Identificação continua por conta e tokens, independentemente dos apelidos.
+- `npm test` aprovado: sintaxe de 23 arquivos e 27 testes funcionais. Novos testes cobrem faixa/sorteio, fila, sessão, duplicação, cancelamento, apresentação, recusa, encerramento por combate, aplicação única dos pontos e persistência após reiniciar o servidor. Documentadas regras e limites no README.
+- Validado no Chromium com duas contas, em desktop e celular: busca/cancelamento, apresentação com foto e apelidos, rank, entrada automática, desistência e leaderboard real. Sem erros JavaScript. Falhas por timeout da busca/cancelamento também cobertas nos testes do cliente; `git diff --check` sem erros.
+- Filas e partidas em andamento continuam em memória; pontos e estatísticas persistem no arquivo de contas. A sincronização das ações de combate mantém o modelo existente do projeto, com estado de campo enviado pelos clientes.
+
+
+### Revalidação do retorno e da identificação
+
+- Reexecutados `node test/resume-match.test.js` e `node test/multiplayer.test.js`, ambos aprovados: escolhas do modal, derrota por recusa, bloqueio de retorno e apelidos separados da identificação. Implementação existente preservada; conferência visual no navegador continua pendente.
+
+### Retorno à partida e apelidos na exibição
+
+- Retorno à partida apresentado em modal central com opções “SIM” e “NÃO” e aviso de derrota definitiva ao recusar. As opções ficam bloqueadas durante o envio; falhas exibem mensagem e permitem tentar novamente.
+- Recusar o retorno encerra a partida no servidor por desistência, concede a vitória ao adversário, preserva o placar das rodadas e invalida o retorno por token ou conta. O cliente limpa o token de retorno após a confirmação.
+- A partida exibe os apelidos dos jogadores, incluindo retomada e espectadores. Apelidos ficam em campos próprios, apenas para apresentação; username e tokens continuam identificando as contas, mesmo com apelidos iguais.
+- `npm test` aprovado: sintaxe de 22 arquivos e 25 testes funcionais. `git diff --check` sem erros. Testes de regressão cobrem escolhas do modal, falhas, limpeza do token, apelidos iguais com identidades distintas, derrota por recusa e bloqueio de retorno. Validação visual em navegador não realizada nesta alteração.
+
 ## 2026-09-18
 
 ### Ordem dos boosters e edição do perfil

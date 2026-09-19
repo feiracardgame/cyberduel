@@ -33,13 +33,23 @@ class CenaTitulo extends Phaser.Scene {
       const roomFromLink = new URLSearchParams(location.search).get("room");
       if (roomFromLink && this.scene.isActive()) this.entrarNaSala(roomFromLink);
       this.multiplayer.findActiveMatch((response) => {
-        if (response.room && this.scene.isActive()) this.titleUI?.showResumeMatch(response.room, () =>
-          this.multiplayer.resumeMatch((result) => { if (!result.ok) this.atualizarStatus(result.error, "error"); }));
+        if (response.room && this.scene.isActive()) this.titleUI?.showResumeMatch(response.room,
+          (done) => this.multiplayer.resumeMatch(done),
+          (done) => this.multiplayer.declineMatch(response.room, (result) => {
+            if (result.ok) this.atualizarStatus("Você recusou o retorno e perdeu a partida.", "warning");
+            done(result);
+          }));
       });
     });
 
     this.multiplayer.onStatus = (message) => this.atualizarStatus(message);
     this.multiplayer.onReady = () => this.iniciarPartidaMultiplayer();
+    this.multiplayer.onMatchmakingStopped = (message) => {
+      if (this.titleUI?.modal?.dataset.kind === "matchmaking") {
+        this.titleUI.closeModal(true);
+        this.atualizarStatus(message, "warning");
+      }
+    };
     this.events.once("shutdown", () => {
       this.removerListenerConta?.();
       this.titleUI?.destroy();
@@ -64,6 +74,7 @@ class CenaTitulo extends Phaser.Scene {
       settings: window.cyberduelSettings,
       callbacks: {
         onSolo: () => this.iniciarPartida(false),
+        onMatchmaking: () => this.titleUI.openMatchmaking(this.multiplayer),
         onCreateRoom: () => this.criarSala(),
         onJoinRoom: (code) => this.entrarNaSala(code),
         onSpectate: (code) => this.multiplayer.spectateRoom(code, (response) => {
@@ -81,7 +92,7 @@ class CenaTitulo extends Phaser.Scene {
   iniciarPartida(multiplayer) {
     if (multiplayer && this.multiplayer.initialized) {
       this.titleUI?.destroy(); this.titleUI = null;
-      this.scene.start("CenaTransicao");
+      this.scene.start(this.multiplayer.ranked ? "CenaJogo" : "CenaTransicao");
       return;
     }
     if (!this.account?.user || !this.account?.faction) {
@@ -102,7 +113,13 @@ class CenaTitulo extends Phaser.Scene {
   }
 
   iniciarPartidaMultiplayer() {
-    if (this.scene.isActive()) this.iniciarPartida(true);
+    if (!this.scene.isActive()) return;
+    if (this.multiplayer.needsIntroduction) {
+      this.multiplayer.needsIntroduction = false;
+      this.titleUI.showVersus(this.multiplayer.profiles, this.multiplayer.player, () => {
+        if (this.scene.isActive()) this.iniciarPartida(true);
+      });
+    } else this.iniciarPartida(true);
   }
 
   criarSala() {

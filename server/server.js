@@ -18,6 +18,8 @@ const path = require("path");
 const { runInNewContext } = require("node:vm");
 const { Server } = require("socket.io");
 const QRCode = require("qrcode");
+const ranking = require("./ranking");
+const matchmaking = new Map();
 
 const PORT = Number(process.env.PORT) || 3000;
 const PUBLIC_URL = String(process.env.PUBLIC_URL || "").trim();
@@ -118,6 +120,9 @@ function ensureAccountDefaults(account) {
   if (!Object.hasOwn(account, "faction")) account.faction = null;
   if (!Number.isFinite(account.currency)) account.currency = INITIAL_CURRENCY;
   if (!Number.isFinite(account.gamesPlayed)) account.gamesPlayed = 0;
+  if (!Number.isFinite(account.rating)) account.rating = 1000;
+  for (const key of ["rankedGames", "rankedWins", "rankedLosses"])
+    if (!Number.isFinite(account[key])) account[key] = 0;
   if (!account.collection || typeof account.collection !== "object")
     account.collection = {};
   if (!Array.isArray(account.boosters)) account.boosters = [];
@@ -252,6 +257,8 @@ function publicAccount(account) {
     username: account.username,
     nickname: account.nickname,
     avatar: account.avatar,
+    rating: account.rating, rank: ranking.playerProfile(account).rank,
+    rankedGames: account.rankedGames, rankedWins: account.rankedWins, rankedLosses: account.rankedLosses,
     deck: account.deck || null,
     faction: account.faction,
     currency: account.currency,
@@ -412,6 +419,14 @@ function rollBooster(faction, gamesPlayed) {
 }
 
 async function handleApi(request, response, pathname) {
+  if (request.method === "GET" && pathname === "/api/leaderboard") {
+    const entries = Object.values(accountStore.accounts).filter(account => account.rankedGames > 0)
+      .sort((a, b) => b.rating - a.rating || b.rankedWins - a.rankedWins || a.username.localeCompare(b.username))
+      .slice(0, 20).map((account, index) => ({ position: index + 1, ...ranking.playerProfile(account),
+        wins: account.rankedWins, losses: account.rankedLosses, games: account.rankedGames }));
+    return sendJson(response, 200, { ok: true, entries });
+  }
+
   if (request.method === "GET" && pathname === "/api/config") {
     return sendJson(response, 200, {
       ok: true,
@@ -1030,6 +1045,7 @@ function spectatorState(snapshot) {
 }
 
 function broadcastState(room, extra = {}, except = null) {
+  settleRankedMatch(room);
   const update = { state: room.state, ...phaseInfo(room), ...extra };
   for (const id of room.players.values()) if (id && id !== except) io.to(id).emit("state-update", update);
   for (const id of room.spectators) io.to(id).emit("state-update", { ...update, state: spectatorState(room.state) });
@@ -1074,6 +1090,7 @@ function advancePhase(room) {
 }
 
 function removeFromRoom(socket, disconnect = false) {
+  matchmaking.delete(socket.id);
   const code = socket.data.room;
   const room = rooms.get(code);
   if (!room) return;
@@ -1084,6 +1101,7 @@ function removeFromRoom(socket, disconnect = false) {
       room.players.set(socket.data.player, null);
       socket.to(code).emit("opponent-offline");
     } else {
+      if (room.ranked && !room.state?.partidaEncerrada) surrenderRoom(room, socket.data.player);
       clearTimeout(room.timer);
       socket.to(code).emit("opponent-left");
       rooms.delete(code);
@@ -1106,6 +1124,96 @@ function findResumable(payload) {
   return null;
 }
 
+function createRoomRecord(socket, deck, account) {
+  const code = generateRoomCode();
+  const room = {
+    code, players: new Map([[1, socket.id]]), decks: new Map([[1, deck]]),
+    usernames: new Map([[1, account?.username || "Duelista 1"]]),
+    nicknames: new Map([[1, account?.nickname || "Duelista 1"]]),
+    profiles: new Map([[1, ranking.playerProfile(account)]]),
+    turn: 1, starter: 1, step: 0, round: 1, state: null,
+    spectators: new Set(), resumeTokens: new Map([[1, randomBytes(32).toString("hex")]]),
+    createdAt: Date.now(), deadline: null,
+  };
+  rooms.set(code, room);
+  socket.join(code); socket.data.room = code; socket.data.player = 1;
+  return room;
+}
+
+function emitMatchReady(room) {
+  for (const [player, id] of room.players) io.to(id).emit("match-ready", {
+    room: room.code, player, resumeToken: room.resumeTokens.get(player), ranked: !!room.ranked,
+    profiles: Object.fromEntries(room.profiles), ...phaseInfo(room),
+    decks: Object.fromEntries(room.decks), usernames: Object.fromEntries(room.usernames),
+    nicknames: Object.fromEntries(room.nicknames),
+    ...(room.state ? { update: { state: room.state, ...phaseInfo(room), initial: true } } : {}),
+  });
+}
+
+function settleRankedMatch(room) {
+  if (!room.ranked || room.rankSettled || !room.state?.partidaEncerrada || !room.result?.fimDeJogo) return;
+  const winner = room.result.resultadoCombate?.resultado;
+  if (!["jogador", "inimigo", "empate"].includes(winner)) return;
+  const accounts = [1, 2].map(player => accountStore.accounts[normalizeUsername(room.usernames.get(player))]);
+  if (accounts.some(account => !account)) return;
+  accounts.forEach(ensureAccountDefaults);
+  ranking.applyResult(...accounts, winner);
+  saveAccounts();
+  room.rankSettled = true;
+}
+
+function surrenderRoom(room, player) {
+  if (!room.state || room.state.partidaEncerrada) return;
+  const resolved = require("./duel-runtime").finishBySurrender(room.state, player);
+  clearTimeout(room.timer); room.deadline = null;
+  room.state = resolved.state; room.result = resolved.result;
+  room.resumeTokens.clear();
+  broadcastState(room, { result: room.result });
+}
+
+function acceptClientState(room, state) {
+  if (room.ranked) for (const key of ["turno", "maxTurnos", "rodadasParaVencer", "rodadasJogador", "rodadasInimigo", "partidaEncerrada"])
+    state[key] = room.state[key];
+  return state;
+}
+
+function accountHasMatch(username) {
+  return [...rooms.values()].some(room => (!room.state || !room.state.partidaEncerrada) &&
+    [...room.usernames.values()].includes(username));
+}
+
+function matchQueuedPlayers() {
+  for (const entry of [...matchmaking.values()]) {
+    if (!entry.socket.connected || !accountFromToken(entry.token) || accountHasMatch(entry.username)) {
+      matchmaking.delete(entry.socket.id);
+      entry.socket.emit("matchmaking-stopped", { error: "Busca encerrada. Verifique sua sessão ou partida ativa." });
+    }
+  }
+  for (const entry of [...matchmaking.values()]) {
+    if (!matchmaking.has(entry.socket.id)) continue;
+    const opponent = ranking.chooseOpponent(entry, [...matchmaking.values()]);
+    if (!opponent) continue;
+    matchmaking.delete(entry.socket.id); matchmaking.delete(opponent.socket.id);
+    const first = accountFromToken(entry.token), second = accountFromToken(opponent.token);
+    const room = createRoomRecord(entry.socket, entry.deck, first);
+    room.ranked = true;
+    room.players.set(2, opponent.socket.id); room.decks.set(2, opponent.deck);
+    room.usernames.set(2, second.username); room.nicknames.set(2, second.nickname);
+    room.profiles.set(2, ranking.playerProfile(second));
+    room.resumeTokens.set(2, randomBytes(32).toString("hex"));
+    opponent.socket.join(room.code); opponent.socket.data.room = room.code; opponent.socket.data.player = 2;
+    room.starter = room.turn = randomInt(1, 3);
+    room.state = require("./duel-runtime").createMatch(entry.deck, opponent.deck);
+    room.startsAt = Date.now() + 4000;
+    room.phaseStartedAt = room.startsAt;
+    armPhaseClock(room, false);
+    emitMatchReady(room);
+  }
+}
+
+const matchmakingClock = setInterval(matchQueuedPlayers, 1000);
+matchmakingClock.unref();
+
 const roomCleanup = setInterval(() => {
   for (const room of rooms.values()) if (Date.now() - room.createdAt > 6 * 60 * 60 * 1000) {
     clearTimeout(room.timer); io.to(room.code).emit("opponent-left"); rooms.delete(room.code);
@@ -1114,24 +1222,38 @@ const roomCleanup = setInterval(() => {
 roomCleanup.unref();
 
 io.on("connection", (socket) => {
+  socket.on("join-matchmaking", (payload = {}, ack = () => {}) => {
+    const account = accountFromToken(payload.accountToken);
+    if (!account) return ack({ ok: false, error: "Entre na conta para buscar uma partida." });
+    ensureAccountDefaults(account);
+    if (socket.data.room || accountHasMatch(account.username))
+      return ack({ ok: false, error: "Você já tem uma sala ou partida ativa. Retorne ou desista antes de buscar." });
+    const duplicate = [...matchmaking.values()].find(entry => entry.username === account.username);
+    if (duplicate && duplicate.socket.id !== socket.id)
+      return ack({ ok: false, error: "Sua conta já está buscando em outra aba." });
+    const deck = sanitizeDeck(account.deck);
+    const quantities = new Map();
+    for (const card of deck) quantities.set(cardKey(card.tipo, card.nome), (quantities.get(cardKey(card.tipo, card.nome)) || 0) + card.quantidade);
+    if (!account.faction || !require("./duel-runtime").validDeck(deck) || deck.reduce((sum, card) => sum + card.quantidade, 0) !== 20 ||
+        [...quantities].some(([key, quantity]) => quantity > (account.collection[key] || 0)))
+      return ack({ ok: false, error: "Salve um deck de 20 cartas da sua coleção antes de buscar." });
+    if (!duplicate) matchmaking.set(socket.id, { socket, token: payload.accountToken, username: account.username,
+      rating: account.rating, deck, since: Date.now() });
+    ack({ ok: true, profile: ranking.playerProfile(account) });
+    matchQueuedPlayers();
+  });
+  socket.on("cancel-matchmaking", (_payload, ack = () => {}) => {
+    if (socket.data.room && rooms.get(socket.data.room)?.ranked)
+      return ack({ ok: false, error: "O adversário já foi encontrado." });
+    matchmaking.delete(socket.id); ack({ ok: true });
+  });
+
   socket.on("create-room", async (payload = {}, ack = () => {}) => {
+    const active = findResumable(payload);
+    if (active?.room.ranked) return ack({ ok: false, error: "Conclua sua partida ranqueada antes de criar uma sala." });
     removeFromRoom(socket);
-    const code = generateRoomCode();
-    const room = {
-      code,
-      players: new Map([[1, socket.id]]),
-      decks: new Map([[1, sanitizeDeck(payload.deck)]]),
-      usernames: new Map([
-        [1, accountFromToken(payload.accountToken)?.username || "Duelista 1"],
-      ]),
-      turn: 1, starter: 1, step: 0, round: 1, state: null,
-      spectators: new Set(), resumeTokens: new Map([[1, randomBytes(32).toString("hex")]]),
-      createdAt: Date.now(), deadline: null,
-    };
-    rooms.set(code, room);
-    socket.join(code);
-    socket.data.room = code;
-    socket.data.player = 1;
+    const room = createRoomRecord(socket, sanitizeDeck(payload.deck), accountFromToken(payload.accountToken));
+    const code = room.code;
     const inviteUrl = buildInviteUrl(
       PUBLIC_URL || payload.inviteBase || socket.handshake.headers.origin,
       code,
@@ -1160,6 +1282,8 @@ io.on("connection", (socket) => {
   });
 
   socket.on("join-room", (payload = {}, ack = () => {}) => {
+    const active = findResumable(payload);
+    if (active?.room.ranked) return ack({ ok: false, error: "Conclua sua partida ranqueada antes de entrar em outra sala." });
     const code = String(payload.code || "")
       .replace(/\D/g, "")
       .slice(0, 6);
@@ -1178,21 +1302,27 @@ io.on("connection", (socket) => {
       2,
       accountFromToken(payload.accountToken)?.username || "Duelista 2",
     );
+    room.nicknames.set(2, accountFromToken(payload.accountToken)?.nickname || "Duelista 2");
+    room.profiles.set(2, ranking.playerProfile(accountFromToken(payload.accountToken)));
     socket.join(code);
     socket.data.room = code;
     socket.data.player = 2;
     ack({ ok: true, room: publicRoom(room), player: 2, resumeToken: room.resumeTokens.get(2) });
-    io.to(code).emit("match-ready", {
-      room: code,
-      ...phaseInfo(room),
-      decks: { 1: room.decks.get(1), 2: room.decks.get(2) },
-      usernames: { 1: room.usernames.get(1), 2: room.usernames.get(2) },
-    });
+    emitMatchReady(room);
   });
 
   socket.on("find-active-match", (payload = {}, ack = () => {}) => {
     const found = findResumable(payload);
     ack({ ok: true, room: found?.room.code || null });
+  });
+
+  socket.on("decline-match", (payload = {}, ack = () => {}) => {
+    const found = findResumable(payload);
+    if (!found || found.room.code !== payload.room)
+      return ack({ ok: false, error: "Nenhuma partida ativa encontrada." });
+    const { room, player } = found;
+    surrenderRoom(room, player);
+    ack({ ok: true });
   });
 
   socket.on("resume-match", (payload = {}, ack = () => {}) => {
@@ -1207,7 +1337,7 @@ io.on("connection", (socket) => {
     socket.join(room.code); socket.data.room = room.code; socket.data.player = player;
     room.players.set(player, socket.id);
     ack({ ok: true, room: publicRoom(room), player, resumeToken: room.resumeTokens.get(player),
-      decks: Object.fromEntries(room.decks), usernames: Object.fromEntries(room.usernames),
+      decks: Object.fromEntries(room.decks), usernames: Object.fromEntries(room.usernames), nicknames: Object.fromEntries(room.nicknames), ranked: !!room.ranked, profiles: Object.fromEntries(room.profiles),
       update: { state: room.state, ...phaseInfo(room), initial: true } });
     socket.to(room.code).emit("opponent-online");
   });
@@ -1219,7 +1349,7 @@ io.on("connection", (socket) => {
     removeFromRoom(socket);
     socket.join(room.code); socket.data.room = room.code; socket.data.player = null;
     room.spectators.add(socket.id);
-    ack({ ok: true, room: publicRoom(room), usernames: Object.fromEntries(room.usernames),
+    ack({ ok: true, room: publicRoom(room), usernames: Object.fromEntries(room.usernames), nicknames: Object.fromEntries(room.nicknames), ranked: !!room.ranked, profiles: Object.fromEntries(room.profiles),
       update: { state: spectatorState(room.state), ...phaseInfo(room), initial: true } });
   });
 
@@ -1238,22 +1368,22 @@ io.on("connection", (socket) => {
 
   socket.on("finish-turn", (payload = {}, ack = () => {}) => {
     const room = rooms.get(socket.data.room);
-    if (!room?.state || room.state.partidaEncerrada || room.turn !== socket.data.player)
+    if (!room?.state || room.state.partidaEncerrada || room.startsAt > Date.now() || room.turn !== socket.data.player)
       return ack({ ok: false, error: "Não é a sua vez." });
     if (payload.step !== room.step || payload.round !== room.round)
       return ack({ ok: false, error: "Esta fase já terminou." });
     if (!validState(payload.state)) return ack({ ok: false, error: "Estado inválido." });
-    room.state = payload.state;
+    room.state = acceptClientState(room, payload.state);
     advancePhase(room);
     ack({ ok: true, ...phaseInfo(room) });
   });
 
   socket.on("live-state", (payload = {}, ack = () => {}) => {
     const room = rooms.get(socket.data.room);
-    if (!room?.state || room.state.partidaEncerrada || room.turn !== socket.data.player ||
+    if (!room?.state || room.state.partidaEncerrada || room.startsAt > Date.now() || room.turn !== socket.data.player ||
         payload.step !== room.step || payload.round !== room.round || !validState(payload.state))
       return ack({ ok: false, error: "A fase não permite esta atualização." });
-    room.state = payload.state;
+    room.state = acceptClientState(room, payload.state);
     armPhaseClock(room, false);
     broadcastState(room, { live: true }, socket.id);
     ack({ ok: true, ...phaseInfo(room) });
@@ -1267,6 +1397,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("debug-finish-match", (payload = {}, ack = () => {}) => {
+    if (rooms.get(socket.data.room)?.ranked) return ack({ ok: false, error: "Atalhos indisponíveis em partidas ranqueadas." });
     if (process.env.CYBERDUEL_DEBUG !== "1")
       return ack({ ok: false, error: "Atalho online desativado. Inicie o servidor com npm run dev." });
     const room = rooms.get(socket.data.room);
@@ -1291,6 +1422,7 @@ io.on("connection", (socket) => {
   socket.on("surrender", () => {
     const room = rooms.get(socket.data.room);
     if (!room || !socket.data.player) return;
+    if (room.ranked) { surrenderRoom(room, socket.data.player); return; }
     if (room.state) room.state.partidaEncerrada = true;
     clearTimeout(room.timer);
     socket.to(room.code).emit("opponent-surrendered", { player: socket.data.player });

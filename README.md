@@ -374,3 +374,13 @@ Inicie o backend com `npm run dev` (com `.env`: `node --env-file=.env scripts/de
 Abra **PERFIL** no menu para mudar o apelido ou escolher uma foto. O usuário único de login permanece o mesmo; apelidos podem se repetir. Fotos JPG, PNG e WebP de até 5 MB são ajustadas para um quadrado de 192×192 com recorte central. Clique em **SALVAR PERFIL** para persistir as alterações na conta. Também é possível remover a foto.
 
 Na abertura dos boosters, os personagens aparecem do menor ao maior nível; depois vêm os terrenos e, por último, os efeitos, em grupos separados.
+
+### Partidas ranqueadas e leaderboard
+
+Em **PARTIDAS → Partida aleatória**, entre na fila com sua conta e um deck válido salvo. O servidor sorteia um adversário entre os jogadores disponíveis com diferença de até 200 pontos; essa faixa aumenta 100 pontos a cada 15 segundos de espera. A busca pode ser cancelada antes de encontrar o adversário. Uma conta não pode entrar em duas filas ou buscar enquanto possui uma partida ativa.
+
+Antes do duelo, uma apresentação de quatro segundos mostra **foto, apelido e rank de ambos**, separados por **VS**. Quem não tiver foto aparece com as iniciais. A partida ranqueada começa automaticamente após a apresentação; o prazo da primeira fase inclui esses quatro segundos adicionais.
+
+Todos começam com **1.000 pontos**. A pontuação usa Elo com fator 32 e é atualizada uma única vez pelo servidor ao encerrar uma partida da fila, incluindo desistências e recusa de retorno. Salas por código e partidas solo não alteram o rank. As faixas são Bronze (abaixo de 1.200), Prata (1.200–1.399), Ouro (1.400–1.599) e Diamante (1.600 ou mais).
+
+Em **RANKING → Ranking de duelistas**, a leaderboard exibe os 20 primeiros por pontos, com apelido, rank, vitórias e derrotas. O jogador aparece após concluir sua primeira partida ranqueada. Pontos e estatísticas persistem junto da conta; filas e partidas em andamento ficam na memória do servidor.

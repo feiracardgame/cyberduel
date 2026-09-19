@@ -20,10 +20,16 @@ class CyberduelMultiplayer {
     this.pendingUpdate = null;
     this.onStatus = null;
     this.onReady = null;
+    this.onMatchmakingStopped = null;
+    this.ranked = false;
+    this.profiles = {};
+    this.needsIntroduction = false;
     this.localDeck = [];
     this.opponentDeck = [];
     this.localUsername = null;
     this.opponentUsername = null;
+    this.localNickname = null;
+    this.opponentNickname = null;
     this.lastLiveState = null;
     this.lastTurnTime = null;
   }
@@ -42,12 +48,19 @@ class CyberduelMultiplayer {
         if (!response.ok) this.status(response.error);
       });
     });
+    this.socket.on("matchmaking-stopped", (payload) => this.onMatchmakingStopped?.(payload.error));
+    this.socket.on("disconnect", () => this.onMatchmakingStopped?.("Conexão perdida. Inicie a busca novamente ao reconectar."));
     this.socket.on("connect_error", () => {
       const destino = serverUrl || location.origin;
       this.status(`Servidor multiplayer indisponível em ${destino}.`);
     });
-    this.socket.on("match-ready", ({ room, decks, usernames, ...phase }) => {
+    this.socket.on("match-ready", ({ room, player, resumeToken, ranked, profiles, update, decks, usernames, nicknames, ...phase }) => {
       this.applyPhase(phase);
+      if (player) this.player = player;
+      if (resumeToken) this.saveResumeToken(resumeToken);
+      this.ranked = !!ranked;
+      this.profiles = profiles || {};
+      this.needsIntroduction = true;
       this.initialized = false;
       this.spectator = false;
       this.room = room;
@@ -55,8 +68,10 @@ class CyberduelMultiplayer {
       this.localDeck = decks?.[this.player] || this.localDeck;
       this.opponentDeck = decks?.[this.player === 1 ? 2 : 1] || [];
       this.localUsername = usernames?.[this.player] || null;
-      this.opponentUsername =
-        usernames?.[this.player === 1 ? 2 : 1] || "INIMIGO";
+      this.localNickname = nicknames?.[this.player] || this.localUsername;
+      this.opponentUsername = usernames?.[this.player === 1 ? 2 : 1] || null;
+      this.opponentNickname = nicknames?.[this.player === 1 ? 2 : 1] || this.opponentUsername || "INIMIGO";
+      if (update) this.receiveUpdate(update);
       if (this.onReady) this.onReady();
     });
     this.socket.on("state-update", (update) => this.receiveUpdate(update));
@@ -84,6 +99,18 @@ class CyberduelMultiplayer {
 
   status(message) {
     if (this.onStatus) this.onStatus(message);
+  }
+
+  joinMatchmaking(callback) {
+    this.connect().timeout(7000).emit("join-matchmaking", { accountToken: window.cyberduelAccount?.token }, (error, response) => {
+      callback(error ? { ok: false, error: "Servidor indisponível. Tente buscar novamente." } : response);
+    });
+  }
+
+  cancelMatchmaking(callback) {
+    this.connect().timeout(7000).emit("cancel-matchmaking", {}, (error, response) => {
+      callback(error ? { ok: false, error: "Não foi possível cancelar. Tente novamente." } : response);
+    });
   }
 
   createRoom(callback) {
@@ -146,6 +173,20 @@ class CyberduelMultiplayer {
     }, callback);
   }
 
+  declineMatch(room, callback) {
+    this.connect().emit("decline-match", {
+      room, resumeToken: this.resumeToken, accountToken: window.cyberduelAccount?.token,
+    }, (response) => {
+      if (response.ok) {
+        this.active = false;
+        this.initialized = false;
+        this.pendingUpdate = null;
+        this.saveResumeToken(null);
+      }
+      callback(response);
+    });
+  }
+
   resumeMatch(callback = () => {}) {
     this.connect().emit("resume-match", {
       resumeToken: this.resumeToken, accountToken: window.cyberduelAccount?.token,
@@ -171,10 +212,14 @@ class CyberduelMultiplayer {
 
   enterExisting(response) {
     this.room = response.room.code; this.active = true; this.initialized = true;
+    this.ranked = !!response.ranked; this.profiles = response.profiles || {};
+    this.needsIntroduction = false;
     this.localDeck = response.decks?.[this.player] || [];
     this.opponentDeck = response.decks?.[this.player === 2 ? 1 : 2] || [];
     this.localUsername = response.usernames?.[this.player === 2 ? 2 : 1];
+    this.localNickname = response.nicknames?.[this.player === 2 ? 2 : 1] || this.localUsername;
     this.opponentUsername = response.usernames?.[this.player === 2 ? 1 : 2];
+    this.opponentNickname = response.nicknames?.[this.player === 2 ? 1 : 2] || this.opponentUsername;
     this.receiveUpdate(response.update);
     if (!this.scene) this.onReady?.();
   }
