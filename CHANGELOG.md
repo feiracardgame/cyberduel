@@ -2,6 +2,28 @@
 
 Novidades, correções e verificações realizadas no projeto. As entregas mais recentes aparecem primeiro.
 
+## 2026-09-22
+
+### Ficha de carta sem rótulos extras
+
+- Removidos “Sobre a carta”, “Arraste para ler” e a identificação “PA” do selo. O número agora fica centralizado; a descrição aproveita o espaço liberado pelo cabeçalho, mantendo o fundo e a rolagem quando necessária.
+- Atualizada a versão do script da CenaJogo para renovar o cache. Sintaxe JavaScript e `git diff --check` validados.
+
+### Selo de PA e descrição das cartas
+
+- Substituído o círculo preto de poder por um selo arredondado de vidro, reflexo suave, detalhe rosado e número claro; tamanhos maiores exibem a identificação PA. O componente é compartilhado pelas cartas e suas visualizações na CenaJogo.
+- Ampliada a ficha comum de carta e reorganizados cabeçalho, arte e título. A descrição recebeu fundo escuro independente, bordas suaves, margens internas, título e maior separação entre história e efeito.
+- A descrição longa indica que pode ser arrastada. Área de toque e barra de rolagem ficam fixas fora do texto mascarado, mantendo o indicador visível durante a leitura. Atualizada a versão do script no HTML.
+- Validados no Firefox headless o NeoAnalista, texto em 112% e 135%, telas de 430×932 e 360×780 e rolagem por arraste, sem erros JavaScript. Testes de habilidades, seleção da mão e resolução aprovados; sintaxe e `git diff --check` sem erros.
+
+### Interface minimalista com vidro translúcido na CenaJogo
+
+- Reformulada exclusivamente a interface do duelo: superfícies arredondadas, transparência, reflexos discretos e bordas finas nos espaços do campo, cronômetro, placar, contadores, menu de ações, histórico, detalhes de cartas e confirmação de desistência. Menu inicial e editor de deck não foram alterados.
+- Removida a grade decorativa sobre o vídeo; aplicada uma camada de contraste. Textos da interface usam fonte sem serifa e dispensam contornos pesados. Contadores de poder mantêm tamanho estável, e os avisos do cronômetro continuam diferenciando jogador, oponente, pausa e tempo crítico.
+- Ampliadas áreas de toque dos controles reformulados e simplificados os rótulos das ações. Corrigido o posicionamento da área clicável da paginação do histórico e separado o nome da carta dos dados de turno/jogador. Botões de habilidade e retorno ao menu receberam o mesmo material visual.
+- Preservadas as dimensões das áreas de colocação das cartas, regras e fluxos da partida. O vidro é uma simulação por camadas vetoriais do Phaser, sem refração ou desfoque em tempo real. Atualizada apenas a versão do script da CenaJogo no HTML para renovar o cache.
+- `npm test` aprovado: sintaxe de 23 arquivos e 27 testes funcionais. Conferidos no Firefox headless: menu, histórico, paginação, detalhes, arraste para o campo, cancelamento de desistência, mão recolhida, conclusão de jogada e resultado final, sem erros JavaScript. Capturas verificadas em desktop e celular, incluindo escala de texto de 135%; validação em aparelho físico não realizada.
+
 ## 2026-09-19
 
 ### Queda imediata ao buscar partida na imagem Docker
