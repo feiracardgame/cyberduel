@@ -4,6 +4,31 @@ Novidades, correções e verificações realizadas no projeto. As entregas mais 
 
 ## 2026-09-22
 
+### Galeria de perfil recolhida com três fotos por linha
+
+- A grade agora exibe três fotos por linha e começa oculta. Clicar na foto atual abre ou recolhe as opções; escolher uma foto atualiza a prévia e fecha a grade, mantendo o salvamento pelo botão de perfil.
+- Foto atual convertida em botão acessível por teclado, com indicação de expansão. Atualizada a versão dos assets para renovar o cache.
+- Sintaxe de `js/title-ui.js`, teste de perfil e `git diff --check` aprovados. Comportamento visual não verificado em navegador nesta sessão.
+
+### Fotos de perfil restritas ao catálogo
+
+- Substituído o upload por uma galeria com as 20 imagens de `assets/fotosdeperfil`, com prévia e indicação da seleção. O servidor fornece o catálogo e rejeita imagens externas, uploads em base64 e caminhos não autorizados.
+- A escolha inicial de RaspCorp define `raspclay_icon.png`; Echossystem define `boi_icon.png`. Depois, o jogador pode escolher outra foto do catálogo.
+- Fotos antigas fora do catálogo são substituídas ao carregar a conta pela imagem da facção; contas sem facção ficam sem foto até escolherem uma. Preservadas fotos já permitidas e alterações locais dos assets.
+- Atualizadas as versões dos scripts e do CSS para renovar o cache. Teste de perfil aprovado, cobrindo catálogo completo, acesso às imagens, rejeições, facções, persistência e contas antigas; sintaxe dos 23 arquivos JavaScript validada. Testes de matchmaking, interface de matchmaking e multiplayer aprovados; `git diff --check` sem erros.
+- Limitação: a suíte geral `npm test` interrompeu no teste de cartas `test/card-modal-layer.test.js`, com `this.scene.bringToTop is not a function`, em código não alterado nesta entrega. Interface não verificada em navegador nesta sessão.
+
+### Instalação do Ponytail e conferência do Caveman
+
+- Instalado o plugin Ponytail 4.10.0 no ambiente pessoal do Codex, a partir do marketplace oficial `DietrichGebert/ponytail`.
+- Baixada a skill Caveman de `JuliusBrussee/caveman` para comparação: o `SKILL.md` instalado já corresponde ao repositório. Preservados os arquivos locais existentes.
+- A ativação do Ponytail em uma nova sessão e a revisão/confiança dos hooks pelo usuário ainda estão pendentes; não foram executados testes funcionais dos hooks nesta sessão.
+
+### Verificação de disponibilidade do Caveman
+
+- Consultado o catálogo de plugins: nenhum resultado para Caveman. Confirmada a presença local da skill `caveman` em `/home/dante/.agents/skills/caveman`, já disponível nesta sessão.
+- Nenhum plugin novo instalado; instalação do plugin depende da identificação de sua fonte de distribuição.
+
 ### Ficha de carta sem rótulos extras
 
 - Removidos “Sobre a carta”, “Arraste para ler” e a identificação “PA” do selo. O número agora fica centralizado; a descrição aproveita o espaço liberado pelo cabeçalho, mantendo o fundo e a rolagem quando necessária.

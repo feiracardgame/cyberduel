@@ -862,28 +862,6 @@ class CyberduelTitleUI {
     requestAnimationFrame(() => overlay.classList.add("is-visible"));
   }
 
-  async prepareProfilePhoto(file) {
-    if (!file || !["image/jpeg", "image/png", "image/webp"].includes(file.type))
-      throw new Error("Escolha uma imagem JPG, PNG ou WebP.");
-    if (file.size > 5 * 1024 * 1024) throw new Error("Escolha uma foto de até 5 MB.");
-    let bitmap;
-    try {
-      bitmap = await createImageBitmap(file);
-      const canvas = document.createElement("canvas");
-      canvas.width = canvas.height = 192;
-      const context = canvas.getContext("2d");
-      context.fillStyle = "#0b1723";
-      context.fillRect(0, 0, 192, 192);
-      const size = Math.min(bitmap.width, bitmap.height);
-      context.drawImage(bitmap, (bitmap.width - size) / 2, (bitmap.height - size) / 2, size, size, 0, 0, 192, 192);
-      const photo = canvas.toDataURL("image/jpeg", .8);
-      if (photo.length > 48000) throw new Error("Foto muito detalhada. Escolha outra imagem.");
-      return photo;
-    } finally {
-      bitmap?.close();
-    }
-  }
-
   openProfileScreen() {
     if (this.modal) return;
     if (!this.account?.user) return this.openAuthDialog();
@@ -898,7 +876,12 @@ class CyberduelTitleUI {
     const header = this.element("header", "profile-header");
     const close = this.button("profile-close", "×", () => this.closeModal(), "Fechar perfil");
     header.append(this.element("h2", "", "Meu perfil"), close);
-    const avatar = this.element("div", "profile-avatar");
+    const avatar = this.button("profile-avatar", "", () => {
+      picker.hidden = !picker.hidden;
+      avatar.setAttribute("aria-expanded", String(!picker.hidden));
+    }, "Trocar foto de perfil");
+    avatar.setAttribute("aria-expanded", "false");
+    avatar.setAttribute("aria-controls", "profile-photo-picker");
     const preview = this.element("img");
     preview.alt = "Prévia da foto de perfil";
     const initials = this.element("span");
@@ -913,17 +896,28 @@ class CyberduelTitleUI {
     nicknameLabel.append(nickname);
     const identity = this.element("p", "profile-identity", `@${this.account.user}`);
     const userHint = this.element("p", "profile-note", "Seu usuário de login é único e não muda.");
-    const picker = this.element("input");
-    picker.type = "file";
-    picker.accept = "image/jpeg,image/png,image/webp";
+    const picker = this.element("div", "profile-photo-picker");
+    picker.id = "profile-photo-picker";
     picker.hidden = true;
+    picker.setAttribute("role", "group");
     picker.setAttribute("aria-label", "Escolher foto de perfil");
-    const choose = this.button("profile-photo-button", "ALTERAR FOTO", () => picker.click());
-    const remove = this.button("profile-photo-remove", "Remover foto", () => {
-      photo = "";
-      picker.value = "";
-      status.textContent = "Salve para aplicar a alteração.";
-      renderPreview();
+    const options = (this.account.profilePhotos || []).map((src) => {
+      const name = src.split("/").pop().replace("_icon.png", "").replaceAll("_", " ");
+      const option = this.button("profile-photo-option", "", () => {
+        if (busy) return;
+        photo = src;
+        picker.hidden = true;
+        avatar.setAttribute("aria-expanded", "false");
+        avatar.focus();
+        status.textContent = "Salve para aplicar a alteração.";
+        renderPreview();
+      }, `Usar foto: ${name}`);
+      const image = this.element("img");
+      image.src = src;
+      image.alt = name;
+      option.append(image);
+      picker.append(option);
+      return option;
     });
     const status = this.element("p", "profile-status");
     status.setAttribute("role", "status");
@@ -932,7 +926,8 @@ class CyberduelTitleUI {
     error.setAttribute("role", "alert");
     let busy = false;
     const refresh = () => {
-      save.disabled = choose.disabled = remove.disabled = close.disabled = nickname.disabled = busy;
+      save.disabled = avatar.disabled = close.disabled = nickname.disabled = busy;
+      options.forEach((option) => { option.disabled = busy; });
       this.modalRequired = busy;
     };
     const renderPreview = () => {
@@ -941,32 +936,11 @@ class CyberduelTitleUI {
       if (photo) preview.src = photo;
       else preview.removeAttribute("src");
       initials.textContent = Array.from(nickname.value.trim() || this.account.user).slice(0, 2).join("").toUpperCase();
-      remove.hidden = !photo;
+      options.forEach((option, index) => option.setAttribute("aria-pressed", String(this.account.profilePhotos[index] === photo)));
     };
     nickname.addEventListener("input", () => {
       status.textContent = "";
       renderPreview();
-    });
-    picker.addEventListener("change", async () => {
-      if (!picker.files?.[0] || busy) return;
-      busy = true;
-      refresh();
-      error.textContent = "";
-      status.textContent = "Preparando foto…";
-      try {
-        const prepared = await this.prepareProfilePhoto(picker.files[0]);
-        if (this.modal !== overlay) return;
-        photo = prepared;
-        renderPreview();
-        status.textContent = "Salve para aplicar a alteração.";
-      } catch (exception) {
-        error.textContent = exception.message || "Não foi possível ler a imagem.";
-        status.textContent = "";
-      } finally {
-        busy = false;
-        picker.value = "";
-        if (this.modal === overlay) refresh();
-      }
     });
     const save = this.button("profile-save", "SALVAR PERFIL", async () => {
       if (busy) return;
@@ -993,7 +967,7 @@ class CyberduelTitleUI {
         if (this.modal === overlay) refresh();
       }
     });
-    dialog.append(header, avatar, choose, remove, picker, identity, userHint, nicknameLabel,
+    dialog.append(header, avatar, this.element("p", "profile-note", "Clique na foto para trocar."), picker, identity, userHint, nicknameLabel,
       this.element("p", "profile-note", "Até 32 caracteres. Seu apelido pode ser igual ao de outros jogadores."), error, status, save);
     overlay.append(dialog);
     renderPreview();

@@ -5,6 +5,7 @@ class CyberduelAccount {
     this.user = null;
     this.nickname = "";
     this.avatar = "";
+    this.profilePhotos = [];
     this.deck = null;
     this.faction = null;
     this.currency = 0;
@@ -72,6 +73,7 @@ class CyberduelAccount {
     this.user = payload.username || null;
     this.nickname = payload.nickname || this.user || "";
     this.avatar = payload.avatar || "";
+    this.profilePhotos = payload.profilePhotos || [];
     this.deck = Array.isArray(payload.deck) ? payload.deck : null;
     this.faction = payload.faction || null;
     this.currency = Math.max(0, Number(payload.currency) || 0);
@@ -261,6 +263,7 @@ class CyberduelAccount {
     this.user = null;
     this.nickname = "";
     this.avatar = "";
+    this.profilePhotos = [];
     this.deck = null;
     this.faction = null;
     this.currency = 0;

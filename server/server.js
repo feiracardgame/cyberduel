@@ -4,6 +4,7 @@ const {
   stat,
   mkdirSync,
   readFileSync,
+  readdirSync,
   writeFileSync,
   renameSync,
 } = require("fs");
@@ -25,6 +26,13 @@ const matchmaking = new Map();
 const PORT = Number(process.env.PORT) || 3000;
 const PUBLIC_URL = String(process.env.PUBLIC_URL || "").trim();
 const PUBLIC_ROOT = path.resolve(__dirname, "..");
+const PROFILE_PHOTOS = readdirSync(path.join(PUBLIC_ROOT, "assets/fotosdeperfil"), { withFileTypes: true })
+  .filter((entry) => entry.isFile() && entry.name.endsWith("_icon.png"))
+  .map((entry) => `assets/fotosdeperfil/${entry.name}`).sort();
+const FACTION_PHOTOS = {
+  raspcorp: "assets/fotosdeperfil/raspclay_icon.png",
+  echossystem: "assets/fotosdeperfil/boi_icon.png",
+};
 const DATA_DIR = path.resolve(
   process.env.DATA_DIR || path.join(__dirname, "data"),
 );
@@ -129,7 +137,7 @@ function ensureAccountDefaults(account) {
     account.collection = {};
   if (!Array.isArray(account.boosters)) account.boosters = [];
   if (typeof account.nickname !== "string" || !account.nickname.trim()) account.nickname = account.username;
-  if (typeof account.avatar !== "string") account.avatar = "";
+  if (!PROFILE_PHOTOS.includes(account.avatar)) account.avatar = FACTION_PHOTOS[account.faction] || "";
   return account;
 }
 
@@ -286,6 +294,7 @@ function publicAccount(account) {
     username: account.username,
     nickname: account.nickname,
     avatar: account.avatar,
+    profilePhotos: PROFILE_PHOTOS,
     rating: account.rating, rank: ranking.playerProfile(account).rank,
     rankedGames: account.rankedGames, rankedWins: account.rankedWins, rankedLosses: account.rankedLosses,
     deck: account.deck || null,
@@ -560,16 +569,10 @@ async function handleApi(request, response, pathname) {
     if (!nickname || Array.from(nickname).length > 32 || /[\u0000-\u001f\u007f]/.test(nickname))
       return sendJson(response, 400, { ok: false, error: "Use um apelido de 1 a 32 caracteres." });
     const avatar = body.avatar;
-    if (typeof avatar !== "string" || avatar.length > 48000)
-      return sendJson(response, 400, { ok: false, error: "Foto inválida ou muito grande." });
-    if (avatar) {
-      const match = /^data:image\/jpeg;base64,([A-Za-z0-9+/]+={0,2})$/.exec(avatar);
-      const bytes = match ? Buffer.from(match[1], "base64") : null;
-      if (!bytes || bytes.length < 4 || bytes[0] !== 0xff || bytes[1] !== 0xd8 || bytes[bytes.length - 2] !== 0xff || bytes[bytes.length - 1] !== 0xd9)
-        return sendJson(response, 400, { ok: false, error: "Escolha uma foto válida pelo seletor de imagem." });
-    }
+    if (avatar !== "" && !PROFILE_PHOTOS.includes(avatar))
+      return sendJson(response, 400, { ok: false, error: "Escolha uma das fotos de perfil disponíveis." });
     session.account.nickname = nickname;
-    session.account.avatar = avatar;
+    session.account.avatar = avatar || FACTION_PHOTOS[session.account.faction] || "";
     session.account.updatedAt = new Date().toISOString();
     saveAccounts();
     return sendJson(response, 200, { ok: true, ...publicAccount(session.account) });
@@ -630,6 +633,7 @@ async function handleApi(request, response, pathname) {
       return sendJson(response, 400, { ok: false, error: "Facção inválida." });
     const starterDeck = starterForFaction(faction);
     session.account.faction = faction;
+    session.account.avatar = FACTION_PHOTOS[faction];
     session.account.deck = starterDeck;
     grantCards(session.account, starterDeck);
     session.account.updatedAt = new Date().toISOString();

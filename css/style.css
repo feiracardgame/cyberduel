@@ -3026,11 +3026,13 @@ body.title-terminal-open #game-viewport canvas {
 .profile-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; }
 .profile-header h2 { margin: 0; font-size: 30px; letter-spacing: -.04em; }
 .profile-close { width: 36px; height: 36px; border: 1px solid #385164; border-radius: 50%; background: transparent; color: #c5dae5; font-size: 24px; cursor: pointer; }
-.profile-avatar { width: 112px; height: 112px; margin: 0 auto 16px; display: grid; place-items: center; border: 1px solid #4891a5; border-radius: 50%; overflow: hidden; background: #163043; color: #8cdbec; font-size: 32px; }
+.profile-avatar { padding: 0; cursor: pointer; width: 112px; height: 112px; margin: 0 auto 16px; display: grid; place-items: center; border: 1px solid #4891a5; border-radius: 50%; overflow: hidden; background: #163043; color: #8cdbec; font-size: 32px; }
 .profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .profile-screen [hidden] { display: none !important; }
-.profile-photo-button, .profile-photo-remove { display: block; margin: 8px auto; border: 0; background: none; color: #89d6e6; font-size: 11px; cursor: pointer; padding: 8px; }
-.profile-photo-remove { color: #94a9b6; font-size: 10px; }
+.profile-photo-picker { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 20px; }
+.profile-photo-option { padding: 3px; border: 2px solid transparent; border-radius: 10px; background: #163043; cursor: pointer; }
+.profile-photo-option[aria-pressed="true"] { border-color: #70d5e6; background: #285166; }
+.profile-photo-option img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 6px; }
 .profile-identity { text-align: center; font-size: 14px; color: #b9cbd6; margin-bottom: 6px; overflow-wrap: anywhere; }
 .profile-identity + .profile-note { text-align: center; margin-bottom: 28px; }
 .profile-field { display: grid; gap: 10px; font-size: 10px; letter-spacing: .12em; color: #a6c2d1; }
