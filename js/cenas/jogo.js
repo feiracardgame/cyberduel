@@ -862,8 +862,6 @@ class CenaJogo extends Phaser.Scene {
     return [placa, texto];
   }
 
-  // Efeitos usam outra cena, desenhada depois do tabuleiro. A ficha precisa
-  // estar acima também dessa cena, sem pausar nem cancelar as animações.
   elevarModalCarta(...objetos) {
     objetos.forEach((objeto) => objeto.setDepth(10000 + objeto.depth));
     this.scene.bringToTop();
