@@ -4,6 +4,12 @@ Novidades, correções e verificações realizadas no projeto. As entregas mais 
 
 ## 2026-09-22
 
+### Correção da inicialização do servidor no Docker
+
+- Confirmado nos logs o erro `ENOENT` ao ler `/app/assets/fotosdeperfil`: o catálogo passou a ser obrigatório na inicialização, mas não era copiado para a imagem do servidor.
+- Adicionada a cópia de `assets/fotosdeperfil` ao `docker/Dockerfile.server`.
+- Executado `docker compose up -d --build` com sucesso. Servidor e Nginx saudáveis, Caddy em execução, `/health` retornando `ok: true` e presença das 20 fotos confirmada dentro do container, incluindo RaspClay e Boi.
+
 ### Galeria de perfil recolhida com três fotos por linha
 
 - A grade agora exibe três fotos por linha e começa oculta. Clicar na foto atual abre ou recolhe as opções; escolher uma foto atualiza a prévia e fecha a grade, mantendo o salvamento pelo botão de perfil.
