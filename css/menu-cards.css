@@ -49,12 +49,13 @@
 }
 .title-terminal--cards .title-system-id__mark {
   color: #93d0e9;
-  border-color: #5fb4e855;
-  border-radius: 0;
-  font-size: calc(2.8cqw * var(--cyber-text-scale, 1));
-  width: 7cqw;
-  height: 7cqw;
-  background: #5fb4e80c;
+  border: 0;
+  font-size: calc(2.2cqw * var(--cyber-text-scale, 1));
+  font-weight: 400;
+  letter-spacing: 0;
+  width: auto;
+  height: auto;
+  background: none;
 }
 .title-terminal--cards .title-online {
   margin-right: auto;
@@ -165,9 +166,7 @@
   transform-origin: 50% 90%;
   touch-action: pan-y;
 }
-/* While actively dragging, positions are driven frame-by-frame from JS
-   (finger tracking), so the eased transition is switched off to avoid lag
-   between the pointer and the cards. It snaps back on for the release. */
+/* Desativa transições durante o arraste para acompanhar o ponteiro. */
 .card-menu__fan.is-dragging .menu-art-card {
   transition: none;
   will-change: transform, filter, opacity;
@@ -196,15 +195,13 @@
 .menu-art-card.is-locked {
   filter: brightness(0.6) saturate(0.5) grayscale(0.3);
 }
-/* Ghost cards: only ever visible while a drag is in progress, previewing
-   the card two steps away from center as it approaches. Positioned and
-   faded in entirely via inline styles set in JS during the drag. */
+/* Cartas fora da tela entram gradualmente durante o arraste. */
 .menu-art-card--ghost {
   pointer-events: none;
   opacity: 0;
   transform: translateX(-50%) translateY(10cqw) scale(0.7);
 }
-/* Discard: cards fly off toward the bottom, like being tossed off the table. */
+/* Descarta as cartas pela parte inferior. */
 .menu-art-card.is-discarding {
   transition:
     transform 0.36s cubic-bezier(0.4, 0, 1, 1),
@@ -220,7 +217,7 @@
 .menu-art-card[data-position="right"].is-discarding {
   transform: translateX(40%) translateY(30cqw) rotate(30deg) scale(0.7);
 }
-/* Deal-in: new cards arrive from below into their resting position. */
+/* As novas cartas entram pela parte inferior. */
 .menu-art-card.is-dealing {
   transition: none;
   opacity: 0;

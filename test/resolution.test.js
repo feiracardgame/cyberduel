@@ -49,3 +49,30 @@ for (const [width, height] of [[720, 1480], [1080, 2160], [720, 1280]]) {
   }
 }
 console.log('Resolução, limites do campo/mão, câmera, ponteiro e proporção HTML validados nos dois perfis.');
+
+for (const [viewportWidth, viewportHeight, dpr, quality, expectedWidth] of [
+  [390, 844, 3, '', 1080],
+  [360, 780, 2, '', 720],
+  [430, 932, 3, '', 1080],
+  [390, 844, 4, '', 1080],
+  [390, 844, 3, 'mobile', 480],
+  [1920, 1080, 1, '', 720],
+  [844, 390, 3, '', 720],
+]) {
+  const context = vm.createContext({
+    console: { log() {} }, URLSearchParams,
+    navigator: { maxTouchPoints: 5 },
+    window: { location: { search: quality ? `?quality=${quality}` : '' },
+      innerWidth: viewportWidth, innerHeight: viewportHeight, devicePixelRatio: dpr,
+      screen: { width: viewportWidth, height: viewportHeight } },
+    Phaser: { Scene: class {}, Scale: {}, Game: class {} },
+    CenaPreload: class {}, CenaTitulo: class {}, CenaDeckBuilder: class {}, CenaTransicao: class {},
+  });
+  vm.runInContext(sceneSource, context);
+  vm.runInContext(renderSource, context);
+  const profile = context.window.CYBERDUEL_RENDER_PROFILE;
+  assert.equal(profile.width, expectedWidth, `Resolução em ${viewportWidth}×${viewportHeight}, DPR ${dpr}, ${quality || 'auto'}`);
+  assert.ok(profile.width * profile.height <= 1080 * 2220, 'Limitar pixels em aparelhos de alta densidade.');
+  assert.equal(vm.runInContext('config.render.roundPixels', context), false);
+}
+console.log('Nitidez automática, limite de pixels, orientação e perfil econômico validados.');

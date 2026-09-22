@@ -2,23 +2,13 @@
 const GW = 720;
 const GH = 1480;
 
-// As medidas de cartas, fontes e animações usam a mesma unidade de desenho.
-// A câmera converte o conjunto para a resolução de saída sem deformá-lo.
-// A altura acompanha a proporção escolhida e nunca corta o layout original.
+// A câmera mantém o layout proporcional sem cortar o campo.
 const LARGURA_LAYOUT = Math.max(1080, (2160 * GW) / GH);
 const ALTURA_LAYOUT = Math.max(2160, (1080 * GH) / GW);
 
 const DURACAO_TURNO_MS = 40_000;
 
-// ---------- FONTE ESPECIAL DA CARTA LENDÁRIA ----------
-// Carrega a fonte "Cinzel" (Google Fonts, estilo entalhado/épico) só pra
-// usar no título e na etiqueta do modal de detalhe das cartas lendárias
-// — o resto do jogo (cartas normais, HUD etc.) continua na fonte padrão,
-// então isso não muda nada fora desse modal específico. O carregamento é
-// feito uma vez, aqui no topo, bem antes do modal poder ser aberto (só
-// abre depois de o jogador tocar numa carta), então na prática a fonte já
-// está pronta quando é usada — document.fonts.load() só garante isso e
-// evita qualquer "flash" da fonte padrão na primeiríssima vez.
+// Carrega Cinzel para os detalhes das cartas lendárias.
 if (typeof document !== "undefined" && document.head) {
   const linkFonteLendaria = document.createElement("link");
   linkFonteLendaria.rel = "stylesheet";
@@ -36,10 +26,7 @@ const VIDEOS_INVOCACAO_POR_CARTA = Object.freeze({
   "RaspClay MonteCorp": "efeitoRaspClayVertical",
 });
 
-// Gera o layout completo do campo (posições X/Y de cada uma das 4 fileiras
-// e das 5 colunas) a partir de um punhado de medidas base. Usado para gerar
-// dois layouts: um normal (com a mão visível) e um ampliado (mão escondida,
-// cartas maiores ocupando o espaço que a mão deixou livre).
+// Calcula as quatro fileiras e cinco colunas do campo.
 function calcularLayoutCampo(slotW, slotH, gapFileira, gapTimes, yInimigoTras) {
   const yInimigoFrente = yInimigoTras + slotH + gapFileira;
   const yJogadorFrente = yInimigoFrente + slotH + gapTimes;
@@ -64,8 +51,7 @@ function calcularLayoutCampo(slotW, slotH, gapFileira, gapTimes, yInimigoTras) {
   };
 }
 
-// Layout normal: mão visível embaixo.
-// Cartas maiores e menor distância entre o campo inimigo e o jogador.
+// Layout normal: mão visível embaixo. Cartas maiores e menor distância entre o campo inimigo e o jogador.
 const LAYOUT_CAMPO_NORMAL = calcularLayoutCampo(
   195, // slotW: largura da carta
   270, // slotH: altura da carta
@@ -74,8 +60,7 @@ const LAYOUT_CAMPO_NORMAL = calcularLayoutCampo(
   560, // yInimigoTras (empurrado pra baixo, deixa espaço pra mão do inimigo no topo)
 );
 
-// Layout ampliado: mão escondida.
-// Cartas ainda maiores, aproveitando o espaço liberado pela mão.
+// Layout ampliado: mão escondida. Cartas ainda maiores, aproveitando o espaço liberado pela mão.
 const LAYOUT_CAMPO_AMPLIADO = calcularLayoutCampo(
   195, // slotW: largura da carta
   280, // slotH: altura da carta
@@ -84,8 +69,7 @@ const LAYOUT_CAMPO_AMPLIADO = calcularLayoutCampo(
   585, // yInimigoTras
 );
 
-// Altura Y da faixa da mão do inimigo (topo da tela) e da mão do jogador
-// (perto do rodapé) — usadas em desenharMaoInimigo() e desenharMaoEmLeque().
+// Altura Y da faixa da mão do inimigo (topo da tela) e da mão do jogador (perto do rodapé) — usadas em desenharMaoInimigo() e desenharMaoEmLeque().
 const Y_MAO_INIMIGO = 230;
 const Y_MAO_JOGADOR = 1900;
 
@@ -99,11 +83,7 @@ class CenaJogo extends Phaser.Scene {
     return this.cameras.main.getWorldPoint(pointer.x, pointer.y);
   }
 
-  // Sem preload() aqui de propósito: todos os assets (imagens e sons)
-  // já foram carregados antes, pela CenaPreload (ver js/cenas/preload.js)
-  // — que roda primeiro e mostra a barra de carregamento — e ficam
-  // disponíveis no cache do Phaser em qualquer cena depois dela,
-  // incluindo esta.
+  // Os assets já foram carregados pela CenaPreload.
 
   create(dados = {}) {
     this.finalDebug = false;
@@ -169,18 +149,10 @@ class CenaJogo extends Phaser.Scene {
     this.musicaFundo.play();
     this.somTorcida.play();
 
-    // O fundo (parte_3 em loop) é desenhado logo abaixo, em
-    // desenharFundoJogo() — chamado dentro de desenharInterface(). A
-    // interface inteira (câmera desta cena) entra em fade in assim que a
-    // partida começa a rodar por cima do vídeo — mas só DEPOIS do primeiro
-    // desenharInterface() lá embaixo, porque ele chama tweens.killAll() e
-    // mataria esse tween se ele fosse criado aqui antes.
+    // O fade começa após o redesenho, que cancela os tweens existentes.
     this.cameras.main.setAlpha(0);
 
-    // Traçado preto padrão em TODOS os textos da cena: sobrescreve
-    // this.add.text para injetar stroke preto sempre que a chamada não
-    // definir um estilo de traçado próprio. Assim não precisamos repetir
-    // { stroke: '#000000', strokeThickness: N } em cada this.add.text().
+    // Aplica contorno preto nos textos sem estilo próprio.
     if (!this.__cyberduelStrokeTextInstalled) {
       const criarTextoOriginal = this.add.text.bind(this.add);
       this.add.text = (x, y, texto, estilo = {}) => {
@@ -193,20 +165,14 @@ class CenaJogo extends Phaser.Scene {
       this.__cyberduelStrokeTextInstalled = true;
     }
 
-    // Controla se a mão está escondida (para dar mais espaço/destaque
-    // ao campo). Começa visível.
+    // Controla se a mão está escondida (para dar mais espaço/destaque ao campo). Começa visível.
     this.maoEscondida = false;
     this.layout = LAYOUT_CAMPO_NORMAL;
 
-    // Trava a interação enquanto uma animação de "resposta" está rolando
-    // (jogar carta, conjurar efeito, devolver carta, passar turno) ou
-    // enquanto a visualização detalhada de uma carta está aberta, para
-    // evitar cliques duplos e conflitos de tween.
+    // Bloqueia comandos durante animações e modais.
     this.travado = false;
 
-    // Relógio da jogada. O update() desconta tempo apenas enquanto a cena
-    // aceita comandos do jogador; animações, modais e a vez do oponente
-    // pausam o contador sem alterar o tempo restante.
+    // Estado dos relógios de cada jogador.
     this.tempoRestanteTurno = DURACAO_TURNO_MS;
     this.tempoRestanteOponente = DURACAO_TURNO_MS;
     this.duracaoTurnoAtual = DURACAO_TURNO_MS;
@@ -221,20 +187,16 @@ class CenaJogo extends Phaser.Scene {
     this.timerHalo = null;
     this.timerUltimoSegundo = null;
     this.timerUltimoEstado = null;
+    this.proximaAtualizacaoAuras = 0;
 
-    // Estado do renderizador da arena. A cena ainda reconstrói os grupos
-    // dinâmicos quando o estado da partida muda, mas guarda quais cartas já
-    // estavam visíveis. Assim slots, cartas antigas, mão e HUD não repetem
-    // animações de entrada a cada clique — o maior pico de trabalho da cena.
+    // Registra cartas visíveis para não repetir animações de entrada.
     this.interfaceJaDesenhada = false;
     this.renderizandoInterface = false;
     this.chavesCampoRenderAnterior = new Set();
     this.chavesCampoNovasRender = new Set();
     this.atmosferaTatica = null;
 
-    // Referência ao texto de resultado do combate, para poder
-    // destruí-lo com segurança caso a interface seja redesenhada
-    // antes da animação dele terminar.
+    // Referência ao texto de resultado do combate, para poder destruí-lo com segurança caso a interface seja redesenhada antes da animação dele terminar.
     this.textoResultadoAtual = null;
 
     // Controle do modal de visualização de carta
@@ -243,41 +205,25 @@ class CenaJogo extends Phaser.Scene {
     this.overlayDetalheAtual = null;
     this.mascaraDetalheAtual = null;
 
-    // Controle da janela de zoom da arte (abre por cima do modal de
-    // detalhe, ao passar o mouse sobre a arte recortada — ver
-    // abrirZoomCarta()/fecharZoomCarta()).
+    // Estado do zoom sobre a ficha da carta.
     this.zoomAberto = false;
     this.painelZoomAtual = null;
     this.overlayZoomAtual = null;
     this.handlerTiltZoomAtual = null;
 
-    // Timestamp (this.time.now) até quando abrirZoomCarta() fica
-    // bloqueado — evita abrir o zoom sem querer logo ao abrir a
-    // visualização avançada (o dedo/mouse pode já estar em cima da
-    // arte nesse instante) ou logo depois de fechar o zoom (evita
-    // reabrir na hora por causa do ponteiro ainda estar ali perto).
+    // Bloqueia reaberturas acidentais do zoom após um toque.
     this.zoomBloqueadoAte = 0;
 
-    // Listeners globais (this.input.on) do arrastar-pra-rolar da descrição
-    // no modal de detalhe (ver habilitarScrollDescricao()). Precisam ser
-    // guardados aqui pra poderem ser desligados com this.input.off() ao
-    // fechar o modal — senão eles ficam acumulando toda vez que uma carta
-    // com descrição rolável é aberta.
+    // Guarda os listeners de rolagem para removê-los ao fechar o modal.
     this.handlersScrollDescAtual = null;
 
-    // Objetos do modo de mira (anéis + zonas de toque) do botão "Ativar
-    // Habilidade" do modal de detalhe — ver iniciarAtivacaoHabilidade().
+    // Objetos do modo de mira (anéis + zonas de toque) do botão "Ativar Habilidade" do modal de detalhe — ver iniciarAtivacaoHabilidade().
     this.objetosSelecaoAlvo = null;
 
-    // Botão de menu (☰) fixo no canto direito da tela — ver
-    // desenharRodaBotoes()/esconderRodaBotoes(). Só existe (não-null)
-    // quando está de fato visível em cena.
+    // Referência ao botão de menu enquanto estiver visível.
     this.rodaBotoesContainer = null;
 
-    // As 3 opções (Histórico / Passar Turno / Desistir) ficam escondidas
-    // até o botão de menu ser tocado — ver abrirOpcoesDaRoda()/
-    // fecharOpcoesDaRoda(). Só existe (não-null) enquanto o menu estiver
-    // aberto na tela.
+    // As opções existem apenas enquanto o menu está aberto.
     this.rodaOpcoesContainer = null;
 
     // Controle do modal de histórico de cartas jogadas
@@ -290,20 +236,10 @@ class CenaJogo extends Phaser.Scene {
     this.btnProximaHistorico = null;
     this.historicoPagina = 0;
 
-    // Só considera que um "arraste" de fato começou depois que o ponteiro
-    // se mover mais que este limiar. Sem isso, qualquer toque (mesmo um
-    // clique simples para abrir os detalhes da carta) dispararia
-    // dragstart/dragend e nunca chegaríamos a um "tap" limpo.
+    // Distingue toque de arraste pela distância percorrida.
     this.input.dragDistanceThreshold = 8;
 
-    // ---------- COMANDOS DE DEBUG (console do navegador) ----------
-    // window.puxarCarta("nome ou pedaço do nome") -> tira essa carta do
-    //   SEU deck (procura por nome, sem diferenciar maiúscula/minúscula
-    //   nem exigir o nome completo) e coloca na sua mão, redesenhando a
-    //   tela na hora. Ex: puxarCarta("cryptoacionistas") ou puxarCarta("vírus")
-    // window.listarDeck() -> mostra (console.table) todas as cartas que
-    //   ainda estão no seu deck, pra saber o nome exato de cada uma.
-    // window.listarMao() -> mesma coisa, mas pra mão.
+    // Atalhos de depuração para listar e puxar cartas.
     window.partida = this.partida;
     window.cena = this;
 
@@ -340,8 +276,7 @@ class CenaJogo extends Phaser.Scene {
       if (indice !== -1) {
         [carta] = deck.splice(indice, 1);
       } else {
-        // Não achou no deck: procura nos pools e cria a carta na hora,
-        // mesmo que ela nunca tenha entrado no deck desta partida.
+        // Não achou no deck: procura nos pools e cria a carta na hora, mesmo que ela nunca tenha entrado no deck desta partida.
         const baseEfeito = POOL_CARTAS_EFEITO.find((c) =>
           c.nome.toLowerCase().includes(termo),
         );
@@ -388,11 +323,7 @@ class CenaJogo extends Phaser.Scene {
       return carta;
     };
 
-    // Debug: cria (ou pega do deck do inimigo) uma carta pelo nome e já
-    // coloca direto numa posição do campo do oponente (0-9), sem passar
-    // pela mão nem pelo fluxo normal de jogada. Não dispara efeito "ao
-    // invocar" nem valida turno/travamento — é só pra testar visual e
-    // combate. Ex: invocarCartaInimigo("juggernaut", 6)
+    // Debug: coloca uma carta inimiga sem validar turno nem aplicar invocação.
     window.invocarCartaInimigo = (busca, posicao) => {
       if (posicao === undefined || posicao === null) {
         console.warn(
@@ -457,7 +388,7 @@ class CenaJogo extends Phaser.Scene {
       this.jogarCartaSelecionadaNoCampo(pointer);
     });
 
-    // --- Drag and Drop das cartas da mão ---
+    // Drag and Drop das cartas da mão
     this.input.on("dragstart", (pointer, gameObject) => {
       if (
         !this.podeJogarCartasAgora() ||
@@ -466,8 +397,7 @@ class CenaJogo extends Phaser.Scene {
         !gameObject.dadosCarta
       )
         return;
-      // Mesma defesa de tratarSoltarCarta: se a carta deste objeto não
-      // está mais na mão, nem deixa o arraste começar.
+      // Mesma defesa de tratarSoltarCarta: se a carta deste objeto não está mais na mão, nem deixa o arraste começar.
       if (!this.partida.jogador.mao.cartas.includes(gameObject.dadosCarta)) {
         return;
       }
@@ -534,9 +464,7 @@ class CenaJogo extends Phaser.Scene {
 
     if (this.multiplayerAtivo && this.travado) this.mostrarEsperaMultiplayer();
 
-    // Fade in da câmera por cima do vídeo de fundo — criado só agora,
-    // depois do primeiro desenharInterface(), porque ele começa com
-    // tweens.killAll() e mataria este tween se ele existisse antes.
+    // Inicia o fade após o redesenho para preservar seu tween.
     this.tweens.add({
       targets: this.cameras.main,
       alpha: 1,
@@ -550,9 +478,13 @@ class CenaJogo extends Phaser.Scene {
     this.scene?.manager?.keys?.CenaEfeitos?.receber?.(eventos);
   }
 
-  update() {
+  update(time) {
     this.apresentarEventosEfeito();
-    this.atualizarAurasHabilidade();
+    // A indicação visual não precisa recalcular alvos em cada frame.
+    if (time >= this.proximaAtualizacaoAuras) {
+      this.atualizarAurasHabilidade();
+      this.proximaAtualizacaoAuras = time + 100;
+    }
     if (!this.partida || this.partida.partidaEncerrada) return;
     if (this.multiplayerAtivo && !this.multiplayer.initialized) return;
     const restante = this.multiplayerAtivo
@@ -658,9 +590,7 @@ class CenaJogo extends Phaser.Scene {
     this.atualizarVisualTimerTurno(true);
   }
 
-  // NeoAnalista é uma passiva de campo: cada cópia reduz em 10 s o turno
-  // do adversário, acumulando reduções, sem jamais atravessar o piso
-  // configurado na própria carta (15 s no catálogo atual).
+  // NeoAnalistas reduzem o turno adversário, respeitando o mínimo da carta.
   duracaoPermitidaPara(donoDoTurno) {
     if (!this.partida || !donoDoTurno) return DURACAO_TURNO_MS;
     const adversario =
@@ -714,10 +644,7 @@ class CenaJogo extends Phaser.Scene {
     return `${String(minutos).padStart(2, "0")}:${String(segundos).padStart(2, "0")}`;
   }
 
-  // Reproduz o clipe especial da carta por cima de todo o campo. Retorna
-  // true quando existe vídeo para a carta; nesse caso, aoConcluir é chamado
-  // somente depois do fim do clipe. Isso permite manter a partida travada e
-  // abrir a seleção de alvos do RaspClay na ordem correta.
+  // O clipe especial bloqueia a partida até chamar aoConcluir.
   reproduzirEfeitoInvocacao(carta, aoConcluir = () => {}) {
     if (window.CenaEfeitos) return false;
     const chaveVideo = VIDEOS_INVOCACAO_POR_CARTA[carta?.nome];
@@ -731,10 +658,7 @@ class CenaJogo extends Phaser.Scene {
       .setInteractive();
     this.videoInvocacaoAtual = video;
 
-    // O Phaser troca a textura provisória pelo primeiro frame real e chama
-    // setSizeToFrame() nesse momento. Portanto o display size precisa ser
-    // aplicado DEPOIS do evento `created`; antes disso a escala provisória
-    // vira um zoom gigantesco quando o vídeo 1080x1920 finalmente chega.
+    // Ajusta o tamanho somente após created, quando existe um frame real.
     video.once("created", () => {
       if (!video.active) return;
       video.setDisplaySize(1080, 1636);
@@ -768,30 +692,18 @@ class CenaJogo extends Phaser.Scene {
     return cores[id % cores.length];
   }
 
-  // Recorta de verdade (setCrop, na textura original) a fatia da imagem
-  // que — depois de escalada — preenche exatamente a janela de
-  // larguraJanela x alturaJanela, sem esticar/distorcer a arte (mesma
-  // ideia do "object-fit: cover" do CSS) e sem deformar nada. "foco" (0 a
-  // 1 em cada eixo — ver POOL_CARTAS_MONSTRO em cartas.js) escolhe QUAL
-  // parte da imagem entra nessa fatia: 0.5/0.5 é o centro (padrão),
-  // 0/0 pega o canto superior esquerdo, 1/1 o canto inferior direito etc.
-  // Como o recorte é feito na textura mesmo (não só escondido atrás de
-  // uma máscara por cima), a arte NUNCA pode vazar da janela, custe o
-  // que custar o deslocamento pedido pelo foco — é só ajustar o "foco"
-  // de cada carta em cartas.js pra reenquadrar, sem tocar em mais nada.
+  // Recorta a arte como cover, respeitando o foco de 0 a 1.
   aplicarRecorteCover(imagem, larguraJanela, alturaJanela, foco) {
     const f = foco || { x: 0.5, y: 0.5 };
     const nativoW = imagem.width;
     const nativoH = imagem.height;
     const escala = Math.max(larguraJanela / nativoW, alturaJanela / nativoH);
 
-    // Tamanho (em pixels da textura ORIGINAL) da fatia que, nessa escala,
-    // preenche exatamente a janela — nunca maior que a imagem inteira.
+    // Tamanho (em pixels da textura ORIGINAL) da fatia que, nessa escala, preenche exatamente a janela — nunca maior que a imagem inteira.
     const cropW = Math.min(nativoW, larguraJanela / escala);
     const cropH = Math.min(nativoH, alturaJanela / escala);
 
-    // Desloca a fatia dentro da imagem conforme o foco, sempre dentro dos
-    // limites da própria imagem (então nunca sobra borda vazia).
+    // Desloca a fatia dentro da imagem conforme o foco, sempre dentro dos limites da própria imagem (então nunca sobra borda vazia).
     const cropX = Phaser.Math.Clamp(
       (nativoW - cropW) * f.x,
       0,
@@ -806,28 +718,12 @@ class CenaJogo extends Phaser.Scene {
     imagem.setCrop(cropX, cropY, cropW, cropH);
     imagem.setScale(escala);
 
-    // IMPORTANTE: setCrop() só decide QUAIS pixels da textura são
-    // desenhados — ele NÃO redimensiona a "caixa" (bounding box) que o
-    // Phaser usa pra posicionar o objeto (origin). Essa caixa continua
-    // do tamanho da imagem INTEIRA já escalada (nativoW x nativoH), não
-    // do recorte. Então, sem essa correção, sempre que o recorte não é
-    // simétrico dos dois lados — ou seja, sempre que "foco" é diferente
-    // de 0.5 em algum eixo — o pedaço visível fica deslocado dentro da
-    // janela e pode vazar pra fora dela (era exatamente o bug com o
-    // foco.y: 0.15 do CryptoAcionistas). Aqui a gente desloca a imagem
-    // de volta pra recentralizar o pedaço visível no meio da janela,
-    // não importa o foco escolhido.
+    // Compensa a origem: setCrop não altera a caixa da imagem.
     imagem.x = (nativoW * escala) / 2 - cropX * escala - larguraJanela / 2;
     imagem.y = (nativoH * escala) / 2 - cropY * escala - alturaJanela / 2;
   }
 
-  // Oposto do aplicarRecorteCover: modo "contain" (equivalente ao
-  // object-fit: contain do CSS). Em vez de recortar a arte pra preencher
-  // a janela inteira, escala pelo MENOR eixo e centraliza — a imagem
-  // INTEIRA fica visível, sem cortar nada, mesmo que sobre uma tarja dos
-  // lados ou em cima/embaixo (usado só no modal da carta lendária, por
-  // cima do fundo em degradê criado em mostrarDetalheCarta, que disfarça
-  // essa tarja em vez de deixar vazado).
+  // Ajusta a arte inteira à janela, sem recortar.
   aplicarRecorteContain(imagem, larguraJanela, alturaJanela) {
     imagem.setCrop(); // limpa qualquer recorte de um uso anterior da textura
     const nativoW = imagem.width;
@@ -873,8 +769,7 @@ class CenaJogo extends Phaser.Scene {
     this.scene.sendToBack();
   }
 
-  // Superfícies locais à CenaJogo. Camadas vetoriais translúcidas mantêm
-  // o vídeo visível sem filtros de desfoque por frame ou texturas extras.
+  // Superfícies locais à CenaJogo. Camadas vetoriais translúcidas mantêm o vídeo visível sem filtros de desfoque por frame ou texturas extras.
   criarSuperficieVidro(
     x,
     y,
@@ -922,9 +817,7 @@ class CenaJogo extends Phaser.Scene {
   aplicarMascaraRender(alvo, mascaraGraphics) {
     const renderer = this.sys.game.renderer;
     if (renderer.type === Phaser.WEBGL) {
-      // Phaser 4 removeu setMask no WebGL. O GameObject da máscara fica
-      // fora da display list (não aparece na arena), mas continua sendo
-      // capturado pelo filtro em coordenadas de mundo.
+      // No WebGL do Phaser 4, a máscara usa filtros fora da display list.
       this.children.remove(mascaraGraphics);
       alvo.enableFilters();
       const filtro = alvo.filters.external.addMask(
@@ -1112,9 +1005,7 @@ class CenaJogo extends Phaser.Scene {
     );
     this.renderizandoInterface = true;
 
-    // Mata tweens pendentes e remove qualquer texto de resultado que
-    // ainda estivesse na tela, evitando animações "órfãs" apontando
-    // para objetos destruídos.
+    // Cancela tweens e textos de resultado antes de destruir os objetos.
     this.tweens.killAll();
     // Uma atualização durante o fade inicial não pode deixar o campo transparente.
     if (this.interfaceJaDesenhada) this.cameras.main.setAlpha(1);
@@ -1123,29 +1014,16 @@ class CenaJogo extends Phaser.Scene {
       this.textoResultadoAtual = null;
     }
 
-    // O vídeo de fundo (parte_3, em loop) não pode ser destruído pelo
-    // removeAll(true) logo abaixo, senão ele reiniciaria do zero toda
-    // vez que a interface é redesenhada (o que acontece a cada jogada).
-    // this.children.remove(..., false) só desanexa (sem destruir) —
-    // ele volta pra cena logo depois, já com desenharFundoJogo().
+    // Desanexa o vídeo sem destruí-lo para preservar a reprodução.
     if (this.videoFundo) this.children.remove(this.videoFundo, false);
     // A camada de contraste não depende do estado da partida.
     if (this.atmosferaTatica) this.children.remove(this.atmosferaTatica, false);
 
-    // IMPORTANTE: removeAll(true) — o "true" manda destruir de verdade os
-    // objetos antigos, não só tirá-los da tela. Sem isso (removeAll()
-    // sozinho só desanexa, não destrói) as cartas da mão de uma
-    // renderização anterior continuavam "fantasmas": invisíveis, mas
-    // ainda registradas como interativas/arrastáveis no input do Phaser
-    // — daí dava pra arrastar no local onde a mão costumava estar e o
-    // jogo aceitava como se aquela carta (já jogada, e não mais na mão)
-    // ainda existisse.
+    // Destrói os objetos antigos para remover áreas de toque invisíveis.
     this.children.removeAll(true);
     this.cartaMaoSelecionada = null;
 
-    // O botão de menu e as opções (se existiam) acabaram de ser destruídos
-    // junto com o resto — zera as referências pra não mexer num objeto
-    // morto (ver esconderRodaBotoes()).
+    // Limpa referências aos controles destruídos.
     this.rodaBotoesContainer = null;
     this.rodaOpcoesContainer = null;
     this.timerContainer = null;
@@ -1155,8 +1033,7 @@ class CenaJogo extends Phaser.Scene {
     this.timerBarra = null;
     this.timerHalo = null;
 
-    // Se a interface for redesenhada, qualquer modal antigo perde a
-    // validade (os objetos já foram destruídos por removeAll acima)
+    // Se a interface for redesenhada, qualquer modal antigo perde a validade (os objetos já foram destruídos por removeAll acima)
     this.modalAberto = false;
     this.painelDetalheAtual = null;
     this.overlayDetalheAtual = null;
@@ -1202,10 +1079,7 @@ class CenaJogo extends Phaser.Scene {
     this.desenharTimerTurno();
     if (!this.maoEscondida) this.desenharMaoEmLeque();
 
-    // A roda só é (re)desenhada quando o jogador pode de fato interagir.
-    // Enquanto travado (vez do oponente resolvendo, efeito em execução,
-    // modal aberto etc.), ela fica de fora — ver esconderRodaBotoes() para
-    // quem dispara a animação de saída; aqui é só a entrada normal.
+    // Desenha o menu somente quando a interação está liberada.
     if (!this.travado) this.desenharRodaBotoes();
 
     if (this.multiplayer?.spectator) {
@@ -1232,15 +1106,13 @@ class CenaJogo extends Phaser.Scene {
       this.multiplayer.sendLiveState(this.partida);
   }
 
-  // Mostra as costas das cartas na mão do inimigo, no topo da tela — só
-  // pra dar noção visual de quantas cartas ele tem (não revela quais são).
+  // Mostra as costas das cartas na mão do inimigo, no topo da tela — só pra dar noção visual de quantas cartas ele tem (não revela quais são).
   desenharMaoInimigo(lado = "inimigo") {
     const cartasMao = this.partida[lado].mao.cartas;
     const total = cartasMao.length;
     if (total === 0) return;
 
-    // Nexus de Dados Global: enquanto esse terreno estiver no campo do
-    // jogador, a mão do inimigo fica revelada.
+    // Nexus de Dados Global: enquanto esse terreno estiver no campo do jogador, a mão do inimigo fica revelada.
     const revelada =
       !this.multiplayer?.spectator &&
       this.partida.maoRevelada(this.partida.jogador);
@@ -1282,7 +1154,7 @@ class CenaJogo extends Phaser.Scene {
         return;
       }
 
-      // --- Carta revelada: mesma lógica visual do leque do jogador ---
+      // Carta revelada: mesma lógica visual do leque do jogador
       const corFundo = this.obterCorPorId(carta.id);
       const ehEfeito = carta.tipo === "efeito";
       const ehTerreno = carta.tipo === "terreno";
@@ -1333,8 +1205,7 @@ class CenaJogo extends Phaser.Scene {
       container.setSize(larguraCarta, alturaCarta);
       container.setAngle(angulo);
 
-      // Controla a profundidade baseada no índice para que as cartas
-      // se sobreponham corretamente, assim como no leque original.
+      // Controla a profundidade baseada no índice para que as cartas se sobreponham corretamente, assim como no leque original.
       container.depthBase = 10 + indice;
       container.setDepth(container.depthBase);
 
@@ -1389,8 +1260,7 @@ class CenaJogo extends Phaser.Scene {
     });
   }
 
-  // Indicador de quantas cartas restam em cada deck (o do jogador, perto
-  // da mão dele embaixo; o do inimigo, perto da mão dele em cima).
+  // Indicador de quantas cartas restam em cada deck (o do jogador, perto da mão dele embaixo; o do inimigo, perto da mão dele em cima).
   desenharIndicadoresDeck() {
     this.criarIndicadorDeck(
       LARGURA_LAYOUT / 9,
@@ -1419,7 +1289,7 @@ class CenaJogo extends Phaser.Scene {
     placa.add([numero, rotulo]);
   }
 
-  // ---------- LÓGICA DE ARRASTAR E SOLTAR ----------
+  // LÓGICA DE ARRASTAR E SOLTAR
 
   tratarSoltarCarta(gameObject, ponto = gameObject) {
     if (!this.podeJogarCartasAgora()) {
@@ -1428,23 +1298,13 @@ class CenaJogo extends Phaser.Scene {
     }
     const carta = gameObject.dadosCarta;
 
-    // Defesa extra (além do removeAll(true) em desenharInterface()): se
-    // por qualquer motivo este objeto ainda estiver na tela depois da
-    // carta já ter saído da mão — por exemplo jogada, descartada, ou uma
-    // renderização antiga que sobrou por uma condição de corrida — a
-    // carta não vai mais estar em jogador.mao.cartas. Aqui a gente
-    // confirma isso nos DADOS antes de aceitar a jogada, não só
-    // confiando que o objeto visual está correto. Sem essa checagem, um
-    // objeto "fantasma" nessa situação ainda seria arrastável e o jogo
-    // aceitaria a jogada como se a carta estivesse na mão.
+    // Confirma nos dados que a carta ainda pertence à mão.
     if (!carta || !this.partida.jogador.mao.cartas.includes(carta)) {
       gameObject.destroy();
       return;
     }
 
-    // Efeitos são conjurações, não unidades de campo: depois que o
-    // jogador iniciou um arraste, podem ser soltos em qualquer ponto da
-    // arena. Seletores específicos continuam abrindo normalmente.
+    // Efeitos podem ser soltos em qualquer ponto da arena após iniciar o arraste.
     if (carta.tipo === "efeito") {
       this.tratarSoltarCartaEfeito(gameObject, carta);
       return;
@@ -1453,10 +1313,7 @@ class CenaJogo extends Phaser.Scene {
     let slots = this.children.list.filter((child) => child.isSlot);
     let slotAtingido = null;
 
-    // Usa o centro da carta arrastada (não a caixa inteira) para achar o
-    // slot: com 5 slots lado a lado a carta é mais larga que o espaço
-    // entre eles, então testar a bounding box inteira faria o mesmo
-    // arraste "bater" em dois slots vizinhos ao mesmo tempo.
+    // Usa o centro da carta para evitar colisão com dois slots vizinhos.
     slots.forEach((slot, index) => {
       if (Phaser.Geom.Rectangle.Contains(slot.getBounds(), ponto.x, ponto.y)) {
         slotAtingido = index;
@@ -1469,7 +1326,7 @@ class CenaJogo extends Phaser.Scene {
       return;
     }
 
-    // --- Cartas de monstro: comportamento original, vão para o campo ---
+    // Cartas de monstro: comportamento original, vão para o campo
     const temEspaco = this.partida.jogador.campo.temEspaco(slotAtingido);
     this.somJogarCarta.play();
 
@@ -1494,28 +1351,14 @@ class CenaJogo extends Phaser.Scene {
       ease: "Cubic.Out",
       onComplete: () => {
         if (!this.podeJogarCartasAgora()) return;
-        // CyberVendedor (e qualquer outra carta BUFF_ALIADO_ESCOLHIDO no
-        // futuro): o efeito não pode ser aplicado de cara porque depende de
-        // uma escolha do jogador. Em vez de jogarCartaDoJogador() (que já
-        // resolveria o efeito sozinho), coloca a carta em campo "crua" e
-        // abre a seleção — o efeito só é aplicado quando o jogador escolhe
-        // o alvo, em confirmarEscolhaBuffAliado().
-        // IMPORTANTE: isso é só pra efeito passivo "ao invocar" (Venda
-        // Casada). Cartas com habilidadeAtiva=true (ex: Estagiário de ML)
-        // NÃO devem abrir essa seleção na invocação — o alvo delas só é
-        // escolhido depois, em campo, pelo botão "Ativar Habilidade" (ver
-        // iniciarAtivacaoHabilidade). Sem esse filtro, o Estagiário também
-        // disparava a seleção de aliado assim que entrava em campo.
+        // Invoca primeiro e aplica o buff após a escolha do aliado.
         const precisaEscolherAlvo =
           carta.efeito &&
           (carta.efeito.tipo === TIPOS_EFEITO.BUFF_ALIADO_ESCOLHIDO ||
             carta.efeito.tipo === TIPOS_EFEITO.VINCULO_ALIADO) &&
           !carta.habilidadeAtiva;
 
-        // RaspClay MonteCorp (Potencialização de Capital): pode absorver
-        // VÁRIAS aliadas de uma vez, então usa um fluxo de seleção próprio
-        // (iniciarSelecaoDeAbsorcao), com marcar/desmarcar + botão
-        // "Confirmar", em vez do fluxo de alvo único acima.
+        // RaspClay permite selecionar várias aliadas antes de confirmar.
         const precisaEscolherAlvosAbsorcao =
           carta.efeito && carta.efeito.tipo === TIPOS_EFEITO.ABSORVER_ALIADOS;
 
@@ -1545,9 +1388,7 @@ class CenaJogo extends Phaser.Scene {
         this.partida.jogarCartaDoJogador(carta, slotAtingido);
         this.travado = false;
         this.desenharInterface();
-        // Faro (O Cão): mostra as cartas reveladas do inimigo logo após a
-        // carta entrar em campo (ultimaRevelacaoFaro só existe se o
-        // efeito disparou agora, ver aplicarEfeitoInvocacao em main.js).
+        // Mostra as cartas reveladas por Faro nesta invocação.
         if (carta.efeito?.tipo === TIPOS_EFEITO.REVELAR_CARTAS_INIMIGO) {
           this.mostrarRevelacaoFaro(this.partida.ultimaRevelacaoFaro || []);
         }
@@ -1607,8 +1448,7 @@ class CenaJogo extends Phaser.Scene {
     this.somPop.play();
   }
 
-  // Faro (O Cão): painel dedicado com arte, nome, nível, tipo e PA de
-  // cada carta farejada. Permanece aberto até o jogador confirmar.
+  // Faro (O Cão): painel dedicado com arte, nome, nível, tipo e PA de cada carta farejada. Permanece aberto até o jogador confirmar.
   mostrarRevelacaoFaro(cartas) {
     this.travado = true;
     const objetos = [];
@@ -1727,22 +1567,14 @@ class CenaJogo extends Phaser.Scene {
       duration: comErro ? 340 : 240,
       ease: comErro ? "Elastic.Out" : "Back.Out",
       onComplete: () => {
-        // Restaura a profundidade original da carta na pilha do leque.
-        // É essa linha (setDepth em vez de reordenar a lista de
-        // children) que garante que nenhuma carta fique "presa"
-        // atrás de outra depois de um hover ou de um drag.
+        // Restaura a profundidade da carta no leque após o arraste.
         gameObject.setDepth(gameObject.depthBase);
         this.travado = false;
       },
     });
   }
 
-  // ---------- CONJURAÇÃO DE CARTAS DE EFEITO ----------
-
-  // Quando o jogador solta uma carta de efeito: a própria carta arrastada
-  // voa até o meio da tela, cresce, "pulsa" no impacto (momento em que o
-  // efeito é de fato aplicado) e então desaparece. Só depois a interface
-  // é redesenhada e os alvos afetados recebem a animação de buff/debuff.
+  // Anima a conjuração, aplica o efeito e depois redesenha o campo.
   conjurarCartaDeEfeitoJogador(gameObject, carta, alvoEscolhido = null) {
     if (!this.podeJogarCartasAgora()) return;
     this.travado = true;
@@ -1797,9 +1629,7 @@ class CenaJogo extends Phaser.Scene {
     });
   }
 
-  // Versão usada quando é a IA quem conjura uma carta de efeito: não existe
-  // um objeto de carta sendo arrastado, então criamos uma carta temporária
-  // no meio da tela só para a animação de conjuração.
+  // Cria uma carta temporária para animar a conjuração da IA.
   conjurarCartaDeEfeitoInimigo(
     carta,
     aoConcluir,
@@ -1878,12 +1708,7 @@ class CenaJogo extends Phaser.Scene {
     });
   }
 
-  // Mostra um "+X"/"-X" flutuante sobre cada carta de campo afetada por um
-  // buff ou debuff, junto de um pequeno pulso de escala na própria carta.
-  //
-  // Só espera quando uma das cartas afetadas realmente acabou de entrar.
-  // Cartas que já estavam no campo agora são recriadas diretamente em
-  // escala 1, então o feedback de dano/buff pode começar sem atraso.
+  // Anima dano ou bônus; espera a entrada somente das cartas novas.
   animarCartasAfetadas(afetadas) {
     if (!afetadas || afetadas.length === 0) return;
 
@@ -1897,25 +1722,14 @@ class CenaJogo extends Phaser.Scene {
           (c) => c.dadosCartaCampo === cartaAfetada,
         );
         if (!alvo) return;
-        // delta negativo = dano de verdade (rasgo vermelho); delta
-        // positivo = fortalecimento; zero não produz animação de ganho — ver
-        // animarDanoCarta/animarBuffCarta logo abaixo.
+        // Delta negativo anima dano; positivo anima bônus; zero não anima.
         if (delta < 0) this.animarDanoCarta(alvo, delta);
         else if (delta > 0) this.animarBuffCarta(alvo, delta);
       });
     });
   }
 
-  // Ponto único de entrada para tratar cartas afetadas por um efeito quando
-  // ALGUMAS delas podem ter morrido (poder chegou a 0). Diferente de
-  // animarCartasAfetadas (que assume que a interface já foi redesenhada e
-  // a carta morta já sumiu do campo), esta função roda ANTES do redesenho:
-  // toca a animação de morte em cima do container que ainda está na tela,
-  // e só chama redesenharFn() (o desenharInterface() de sempre — a carta
-  // já foi removida do array pelo removerMortas() lá em main.js, só falta
-  // a interface refletir isso) depois que a animação de morte termina.
-  // Cartas que só foram feridas (mas sobreviveram) recebem a animação
-  // normal de dano/buff depois do redesenho, como sempre.
+  // Anima as mortes antes do redesenho e os bônus depois.
   processarCartasAfetadas(afetadas, redesenharFn) {
     afetadas = [...(afetadas || [])];
     const campo = [
@@ -1964,10 +1778,7 @@ class CenaJogo extends Phaser.Scene {
     });
   }
 
-  // Animação de dano "de verdade" (carta sobreviveu, mas perdeu poder):
-  // um rasgo vermelho corta o card e o número do dano sobe em vermelho,
-  // com um tremor mais brusco que o pulso suave do buff — pra ficar claro
-  // que é um golpe, não um reforço.
+  // Anima dano com rasgo vermelho, tremor e número flutuante.
   animarDanoCarta(containerCampo, delta) {
     if (!containerCampo || !containerCampo.active) return;
     this.tweens.killTweensOf(containerCampo);
@@ -2055,45 +1866,7 @@ class CenaJogo extends Phaser.Scene {
     this.cameras.main.shake(90, 0.004);
   }
 
-  // Animação de morte: a carta treme, racha e se despedaça (colapsa de
-  // escala com rotação) enquanto uma caveira sobe e se dissolve. Roda
-  // sobre o container que ESTÁ na tela agora, antes do redesenho tirar a
-  // carta morta do campo — ver processarCartasAfetadas().
-  // Animação de morte: treme, racha ao meio na mesma diagonal do rasgo de
-  // dano, e então a carta literalmente se despedaça — as duas metades
-  // voam pra lados opostos e um punhado de cacos menores explode entre
-  // elas, tudo girando, tingido de vermelho e sumindo num fade. Roda
-  // sobre o container que ESTÁ na tela agora, antes do redesenho tirar a
-  // carta morta do campo — ver processarCartasAfetadas().
-  // ============================================================================
-  // ANIMAÇÃO DE MORTE DA CARTA
-  // ============================================================================
-  // Fluxo:
-  // 1. Captura a carta atual numa RenderTexture.
-  // 2. Mostra a rachadura.
-  // 3. Esconde a carta original.
-  // 4. Divide a captura em duas metades + cacos.
-  // 5. Faz tudo voar, girar, diminuir e desaparecer.
-  // 6. Só depois destrói a carta original e libera o redraw.
-  //
-  // CORREÇÃO IMPORTANTE:
-  // A RenderTexture é criada em 0,0, mas a carta está em coordenadas de mundo
-  // (cx, cy). Então o draw() precisa compensar cx/cy. Sem isso a captura pode
-  // ficar fora da área da textura e os pedaços aparecem transparentes.
-  // ============================================================================
-
-  // ============================================================================
-  // ANIMAÇÃO DE MORTE DA CARTA
-  // ============================================================================
-  // Versão robusta:
-  // - NÃO usa RenderTexture
-  // - NÃO usa textura temporária
-  // - NÃO usa crop
-  // - NÃO usa GeometryMask
-  //
-  // A carta original é animada diretamente e, no momento da explosão,
-  // são criados cacos gráficos independentes.
-  // ============================================================================
+  // Anima a morte antes de remover a carta do campo.
 
   animarMorteCyberPolitico(container, concluir) {
     this.tweens.killTweensOf(container);
@@ -2190,9 +1963,7 @@ class CenaJogo extends Phaser.Scene {
     const CW = Math.max(1, containerCampo.width || 225);
     const CH = Math.max(1, containerCampo.height || 315);
 
-    // --------------------------------------------------------------------------
     // IMPACTO
-    // --------------------------------------------------------------------------
 
     this.cameras.main.shake(180, 0.008);
 
@@ -2204,9 +1975,7 @@ class CenaJogo extends Phaser.Scene {
       }
     }
 
-    // --------------------------------------------------------------------------
     // FLASH VERMELHO
-    // --------------------------------------------------------------------------
 
     const flash = this.add
       .rectangle(cx, cy, CW + 20, CH + 20, 0xff2222, 0.65)
@@ -2226,9 +1995,7 @@ class CenaJogo extends Phaser.Scene {
       },
     });
 
-    // --------------------------------------------------------------------------
     // RACHADURA
-    // --------------------------------------------------------------------------
 
     const rachadura = this.add.graphics().setDepth(3901);
 
@@ -2268,9 +2035,7 @@ class CenaJogo extends Phaser.Scene {
       ease: "Back.Out",
     });
 
-    // --------------------------------------------------------------------------
     // TREME A CARTA
-    // --------------------------------------------------------------------------
 
     this.tweens.add({
       targets: containerCampo,
@@ -2299,13 +2064,7 @@ class CenaJogo extends Phaser.Scene {
     });
   }
 
-  // ============================================================================
-  // EXPLOSÃO / DESPEDAÇAMENTO
-  // ============================================================================
-  // Essa função NÃO depende de nenhuma textura.
-  // Os cacos são Graphics independentes e, portanto, continuam sendo
-  // renderizados mesmo se a carta original tiver imagem, máscara, etc.
-  // ============================================================================
+  // Os cacos usam Graphics independentes da textura original.
 
   _explodirCartaMorta(
     containerOriginal,
@@ -2321,25 +2080,19 @@ class CenaJogo extends Phaser.Scene {
       rachadura.destroy();
     }
 
-    // --------------------------------------------------------------------------
     // ESCONDE A CARTA ORIGINAL
-    // --------------------------------------------------------------------------
 
     containerOriginal.setVisible(false);
     containerOriginal.disableInteractive();
 
-    // --------------------------------------------------------------------------
     // CRIA OS CACOS
-    // --------------------------------------------------------------------------
 
     const pedacos = [];
 
     // Cores dos cacos.
     const cores = [0xff2222, 0xff4444, 0xff5555, 0xcc1111, 0xff7777];
 
-    // --------------------------------------------------------------------------
     // DUAS GRANDES METADES
-    // --------------------------------------------------------------------------
 
     const metadeA = this.add.graphics().setDepth(3700);
 
@@ -2393,9 +2146,7 @@ class CenaJogo extends Phaser.Scene {
       escala: 0.7,
     });
 
-    // --------------------------------------------------------------------------
     // 12 CACOS MENORES
-    // --------------------------------------------------------------------------
 
     const COLS = 4;
     const LINHAS = 3;
@@ -2449,9 +2200,7 @@ class CenaJogo extends Phaser.Scene {
       }
     }
 
-    // --------------------------------------------------------------------------
     // EXPLOSÃO
-    // --------------------------------------------------------------------------
 
     let pendentes = pedacos.length;
 
@@ -2521,14 +2270,7 @@ class CenaJogo extends Phaser.Scene {
       });
     });
   }
-  // Cria o vídeo de fundo (parte_3, em loop mudo) só na primeira vez —
-  // depois disso só reanexa o mesmo objeto (ver o remove/re-add em volta
-  // do removeAll(true), lá em desenharInterface()), pra ele não reiniciar
-  // do zero a cada jogada. O arquivo otimizado tem 720x1440, mas o mundo
-  // lógico acompanha a proporção configurada. O ajuste precisa acontecer somente
-  // DEPOIS de `created`: antes do primeiro frame o Phaser ainda usa uma
-  // textura provisória, e setDisplaySize nesse estágio gera uma escala
-  // gigantesca quando a textura real entra (o "fundo esticado").
+  // Reutiliza o vídeo de fundo e ajusta o tamanho após o primeiro frame.
   desenharFundoJogo() {
     const ajustarCover = (video, larguraNativa, alturaNativa) => {
       if (!video?.active || !larguraNativa || !alturaNativa) return;
@@ -2573,9 +2315,7 @@ class CenaJogo extends Phaser.Scene {
   despedacarCarta(chaveTextura, cx, cy, CW, CH, containerOriginal, aoConcluir) {
     const pedacos = [];
 
-    // --------------------------------------------------------------------------
     // 1) DUAS METADES GRANDES
-    // --------------------------------------------------------------------------
 
     const metades = [
       {
@@ -2631,9 +2371,7 @@ class CenaJogo extends Phaser.Scene {
       });
     });
 
-    // --------------------------------------------------------------------------
     // 2) CACOS MENORES
-    // --------------------------------------------------------------------------
 
     const COLS = 3;
     const LINS = 3;
@@ -2673,14 +2411,11 @@ class CenaJogo extends Phaser.Scene {
       }
     }
 
-    // --------------------------------------------------------------------------
     // 3) ANIMA TODOS OS PEDAÇOS
-    // --------------------------------------------------------------------------
 
     let pendentes = pedacos.length;
 
-    // Segurança extrema: se por algum motivo não houver pedaços,
-    // não deixa a partida travada para sempre.
+    // Segurança extrema: se por algum motivo não houver pedaços, não deixa a partida travada para sempre.
     if (pendentes === 0) {
       this.textures.remove(chaveTextura);
 
@@ -2755,9 +2490,7 @@ class CenaJogo extends Phaser.Scene {
     });
   }
   animarBuffCarta(containerCampo, delta) {
-    // Defesa extra: garante que não haja nenhuma tween antiga ainda
-    // mexendo na escala desta carta, e parte de um estado conhecido
-    // (escala 1) antes de aplicar o pulso.
+    // Cancela tweens antigos e restaura a escala antes do pulso.
     if (!containerCampo || !containerCampo.active) return;
     this.tweens.killTweensOf(containerCampo);
     containerCampo.setScale(1);
@@ -2809,7 +2542,7 @@ class CenaJogo extends Phaser.Scene {
     this.somBuff.play();
   }
 
-  // ---------- DESENHO DO CAMPO ----------
+  // DESENHO DO CAMPO
 
   desenharCampoInimigo() {
     const L = this.layout;
@@ -2910,10 +2643,10 @@ class CenaJogo extends Phaser.Scene {
 
   atualizarAurasHabilidade() {
     for (const objeto of this.children.list) {
-      if (objeto.auraHabilidade)
-        objeto.auraHabilidade.setVisible(
-          this.habilidadeDisponivelAgora(objeto.dadosCartaCampo),
-        );
+      if (!objeto.auraHabilidade) continue;
+      const visivel = this.habilidadeDisponivelAgora(objeto.dadosCartaCampo);
+      if (objeto.auraHabilidade.visible !== visivel)
+        objeto.auraHabilidade.setVisible(visivel);
     }
   }
 
@@ -2946,9 +2679,7 @@ class CenaJogo extends Phaser.Scene {
     return true;
   }
 
-  // Carta do campo com pequena sombra e animação de "pop" ao aparecer.
-  // O poder fica centralizado embaixo, dentro de um selo circular.
-  // Também é clicável: um toque abre a visualização detalhada da carta.
+  // Carta do campo com PA, animação de entrada e acesso à ficha.
   criarCartaDeCampo(
     xPos,
     yPos,
@@ -3002,9 +2733,7 @@ class CenaJogo extends Phaser.Scene {
       poderTexto,
     ].filter(Boolean);
 
-    // Aura discreta apenas nas cartas do jogador cuja habilidade tem pelo
-    // menos um alvo válido neste turno. Ela comunica ação disponível sem
-    // competir visualmente com o anel forte de invocação/seleção.
+    // A aura indica habilidade disponível com alvo válido.
     let auraHabilidade = null;
     if (
       podeInteragirOculta &&
@@ -3019,8 +2748,7 @@ class CenaJogo extends Phaser.Scene {
       filhos.unshift(auraHabilidade);
     }
 
-    // Selo indicando que é uma carta de efeito (a passiva já foi
-    // disparada ao entrar em campo — este selo é só um lembrete visual)
+    // Selo indicando que é uma carta de efeito (a passiva já foi disparada ao entrar em campo — este selo é só um lembrete visual)
     if (carta.tipo === "efeito") {
       let selo = this.add
         .circle(
@@ -3038,8 +2766,7 @@ class CenaJogo extends Phaser.Scene {
       filhos.push(selo, iconeSelo);
     }
 
-    // Override da Aranha: deixa inequívoco que a carta continua no campo
-    // inimigo, mas agora pontua para a equipe que a capturou.
+    // Override da Aranha: deixa inequívoco que a carta continua no campo inimigo, mas agora pontua para a equipe que a capturou.
     if (carta.capturadaPor && !viradaParaBaixo) {
       const seloAranha = this.add
         .circle(
@@ -3082,8 +2809,7 @@ class CenaJogo extends Phaser.Scene {
         !this.interfaceJaDesenhada ||
         this.chavesCampoNovasRender.has(chaveCarta));
 
-    // O anel só existe na invocação real. Antes ele era recriado em toda
-    // atualização de HUD e fazia cartas antigas parecerem recém-jogadas.
+    // O anel só existe na invocação real. Antes ele era recriado em toda atualização de HUD e fazia cartas antigas parecerem recém-jogadas.
     let anel = null;
     if (animarEntrada) {
       anel = this.add
@@ -3097,8 +2823,7 @@ class CenaJogo extends Phaser.Scene {
     container.setSize(CW, CH);
     container.setInteractive({ useHandCursor: true });
 
-    // Referência à carta de dados, usada para localizar esta carta na
-    // tela quando um efeito de buff/debuff precisa animá-la.
+    // Referência à carta de dados, usada para localizar esta carta na tela quando um efeito de buff/debuff precisa animá-la.
     container.dadosCartaCampo = carta;
     container.auraHabilidade = auraHabilidade;
     // Nasce oculta: não espera o próximo update da camada de efeitos.
@@ -3115,9 +2840,7 @@ class CenaJogo extends Phaser.Scene {
       this.mostrarDetalheCarta(carta);
     });
 
-    // No desktop, passar o mouse já abre a visualização grande.
-    // Em touch não existe "hover" de verdade, então o toque continua
-    // sendo tratado pelo pointerup acima.
+    // Mouse abre a ficha no hover; telas de toque usam pointerup.
     container.on("pointerover", (pointer) => {
       if (
         this.cartaMaoSelecionada?.active ||
@@ -3174,8 +2897,7 @@ class CenaJogo extends Phaser.Scene {
     return [borda, faixa, texto];
   }
 
-  // Marcador persistente da Travessura do Macaco. Ele é redesenhado junto
-  // do campo e desaparece automaticamente quando a armadilha é consumida.
+  // Marcador persistente da Travessura do Macaco. Ele é redesenhado junto do campo e desaparece automaticamente quando a armadilha é consumida.
   criarIndicadorArmadilha(xPos, yPos, layout) {
     const L = layout || this.layout;
     const anel = this.add
@@ -3197,12 +2919,7 @@ class CenaJogo extends Phaser.Scene {
     icone.setAlpha(0.72);
   }
 
-  // ---------- DESENHO DA MÃO (LEQUE) ----------
-
-  // Posição de onde as cartas recém-compradas "saem" (o monte de compra)
-  // até chegarem na posição delas no leque — ver animarCompraCarta().
-  // Fica acima da mão, no centro, simulando o baralho entregando as
-  // cartas uma a uma para a mão do jogador.
+  // As compras partem do monte acima da mão.
   obterPosicaoMonteCompra() {
     return { x: LARGURA_LAYOUT / 2, y: 1230 };
   }
@@ -3217,17 +2934,13 @@ class CenaJogo extends Phaser.Scene {
 
     if (totalCartas === 0) return;
 
-    // --------------------------------------------------------------------------
     // CARTAS RECÉM-COMPRADAS
-    // --------------------------------------------------------------------------
 
     const recemCompradas = this.partida.jogador.cartasRecemCompradas || [];
 
     this.partida.jogador.cartasRecemCompradas = [];
 
-    // --------------------------------------------------------------------------
     // CONFIGURAÇÃO DO LEQUE
-    // --------------------------------------------------------------------------
 
     const centroX = LARGURA_LAYOUT / 2;
     const centroY = Y_MAO_JOGADOR;
@@ -3252,9 +2965,7 @@ class CenaJogo extends Phaser.Scene {
 
       let angulo = offset * anguloPasso;
 
-      // ------------------------------------------------------------------------
       // VISUAL DA CARTA
-      // ------------------------------------------------------------------------
 
       let corFundo = this.obterCorPorId(carta.id);
 
@@ -3286,9 +2997,7 @@ class CenaJogo extends Phaser.Scene {
 
       const filhos = [sombra, fundoCarta, borda, nomeTexto];
 
-      // ------------------------------------------------------------------------
       // SELO DE PODER
-      // ------------------------------------------------------------------------
 
       if (!ehEfeitoLeque && !ehTerrenoLeque) {
         const [poderBola, poderTexto] = this.criarSeloEstat(
@@ -3302,9 +3011,7 @@ class CenaJogo extends Phaser.Scene {
         filhos.push(poderBola, poderTexto);
       }
 
-      // ------------------------------------------------------------------------
       // CARTA DE EFEITO
-      // ------------------------------------------------------------------------
 
       if (ehEfeitoLeque) {
         let selo = this.add
@@ -3320,9 +3027,7 @@ class CenaJogo extends Phaser.Scene {
         filhos.push(selo, iconeSelo);
       }
 
-      // ------------------------------------------------------------------------
       // CONTAINER DA CARTA
-      // ------------------------------------------------------------------------
 
       let containerCarta = this.add.container(posX, posY, filhos);
 
@@ -3350,9 +3055,7 @@ class CenaJogo extends Phaser.Scene {
 
       this.input.setDraggable(containerCarta);
 
-      // =========================================================================
       // ANIMAÇÃO DE ENTRADA
-      // =========================================================================
 
       const indiceCompra = recemCompradas.indexOf(carta);
 
@@ -3404,8 +3107,7 @@ class CenaJogo extends Phaser.Scene {
         carta.animandoCompra
       )
         continue;
-      // Restaura imediatamente, antes de levantar outra carta. O gesto não
-      // pode reutilizar a posição elevada capturada no pointerdown anterior.
+      // Restaura imediatamente, antes de levantar outra carta. O gesto não pode reutilizar a posição elevada capturada no pointerdown anterior.
       this.tweens.killTweensOf(carta);
       Object.assign(carta, carta.posOriginal, {
         scaleX: 1,
@@ -3468,12 +3170,7 @@ class CenaJogo extends Phaser.Scene {
     return true;
   }
 
-  // Anima uma carta recém-comprada: sai do monte de compra (ver
-  // obterPosicaoMonteCompra) e "pousa" na posição dela no leque. Cada
-  // carta da leva de compras espera sua vez (atraso = indiceCompra *
-  // ATRASO_ENTRE_CARTAS), pra chegarem uma de cada vez, não todas juntas.
-  // Toca o som de compra bem no instante em que cada carta começa a
-  // voar — por enquanto o whoosh de "somComprarCarta" (ver preload()).
+  // Anima as cartas compradas em sequência, com som no início do voo.
   animarCompraCarta(
     containerCarta,
     destinoX,
@@ -3489,16 +3186,12 @@ class CenaJogo extends Phaser.Scene {
     containerCarta.animandoCompra = true;
     containerCarta.setPosition(origem.x, origem.y);
     containerCarta.setAngle(0);
-    // Escala fixa durante todo o voo. A antiga interpolação de escala era
-    // vulnerável a redraw/hover no mesmo frame e podia deixar um container
-    // recém-comprado gigantesco na mão.
+    // Mantém a escala fixa para evitar saltos durante redraw ou hover.
     containerCarta.setScale(1);
     containerCarta.setAlpha(0);
-    // Fica por cima de tudo enquanto está "voando", pra não passar por
-    // baixo de outras cartas do leque no meio do caminho.
+    // Fica por cima de tudo enquanto está "voando", pra não passar por baixo de outras cartas do leque no meio do caminho.
     containerCarta.setDepth(3000 + indiceCompra);
-    // Evita que o jogador consiga arrastar/clicar a carta enquanto ela
-    // ainda está em pleno voo, vindo do monte.
+    // Evita que o jogador consiga arrastar/clicar a carta enquanto ela ainda está em pleno voo, vindo do monte.
     containerCarta.disableInteractive();
 
     this.time.delayedCall(atraso, () => {
@@ -3513,8 +3206,7 @@ class CenaJogo extends Phaser.Scene {
         y: destinoY,
         angle: anguloFinal,
         duration: 380,
-        // Sem overshoot: Back.Out podia ampliar a carta no exato instante
-        // de um redraw/hover e deixar aquela escala gravada no container.
+        // Sem overshoot: Back.Out podia ampliar a carta no exato instante de um redraw/hover e deixar aquela escala gravada no container.
         ease: "Cubic.Out",
         onUpdate: () => {
           if (!containerCarta.active) return;
@@ -3535,12 +3227,7 @@ class CenaJogo extends Phaser.Scene {
     });
   }
 
-  // ---------- HISTÓRICO DE CARTAS JOGADAS ----------
-  //
-  // Modal com a lista (paginada) de todas as cartas jogadas na partida,
-  // mais recentes primeiro. Cada linha mostra o turno, quem jogou e o
-  // nome da carta; tocar numa linha abre a ficha detalhada dessa carta
-  // (reaproveitando mostrarDetalheCarta).
+  // Histórico paginado, das jogadas mais recentes às antigas.
 
   mostrarHistorico() {
     if (this.modalAberto) return;
@@ -3594,8 +3281,7 @@ class CenaJogo extends Phaser.Scene {
       { fontSize: "36px", color: "#999999" },
     ).setOrigin(0.5);
 
-    // Container que guarda só as linhas da página atual: fica fácil
-    // recriar apenas ele quando o usuário troca de página.
+    // Container que guarda só as linhas da página atual: fica fácil recriar apenas ele quando o usuário troca de página.
     let listaContainer = this.add.container(0, 0, []);
 
     let btnAnterior = this.criarBotaoPaginacaoHistorico(-180, 585, "‹", () =>
@@ -3656,8 +3342,7 @@ class CenaJogo extends Phaser.Scene {
     return btn;
   }
 
-  // Redesenha só as linhas da página atual (chamado ao abrir o modal e
-  // sempre que o usuário navega entre páginas).
+  // Redesenha só as linhas da página atual (chamado ao abrir o modal e sempre que o usuário navega entre páginas).
   atualizarListaHistorico() {
     if (!this.listaHistoricoContainer) return;
     this.listaHistoricoContainer.removeAll(true);
@@ -3713,8 +3398,7 @@ class CenaJogo extends Phaser.Scene {
     this.atualizarListaHistorico();
   }
 
-  // Uma linha da lista: turno + quem jogou de um lado, nome da carta no
-  // meio, seta indicando que é clicável. Tocar na linha abre a ficha da carta.
+  // Uma linha da lista: turno + quem jogou de um lado, nome da carta no meio, seta indicando que é clicável. Tocar na linha abre a ficha da carta.
   criarLinhaHistorico(entrada, y) {
     const corDono = entrada.quem === "jogador" ? 0x2ecc71 : 0xe74c3c;
     const labelDono = entrada.quem === "jogador" ? "Você" : "Inimigo";
@@ -3769,9 +3453,7 @@ class CenaJogo extends Phaser.Scene {
     return linha;
   }
 
-  // Chamado ao tocar numa linha do histórico: fecha o modal de histórico
-  // imediatamente (sem animação de saída, pra não brigar de estado com o
-  // modal de detalhe) e abre a ficha da carta na sequência.
+  // Fecha o histórico antes de abrir a ficha selecionada.
   abrirDetalheDoHistorico(carta) {
     if (this.painelHistoricoAtual) this.painelHistoricoAtual.destroy();
     if (this.overlayHistoricoAtual) this.overlayHistoricoAtual.destroy();
@@ -3812,22 +3494,11 @@ class CenaJogo extends Phaser.Scene {
     });
   }
 
-  // ---------- VISUALIZAÇÃO DETALHADA DA CARTA ----------
-
-  // Mostra um painel grande com a "arte" (placeholder colorido), nome,
-  // poder (no mesmo selo circular usado nas cartas) e a descrição
-  // completa (flavor text + efeito passivo).
-  // ---------- VISUALIZAÇÃO DETALHADA DA CARTA ----------
-
-  // ---------- VISUALIZAÇÃO DETALHADA DA CARTA ----------
-
-  // ---------- VISUALIZAÇÃO DETALHADA DA CARTA (PHASER 4) ----------
+  // Ficha da carta com arte, PA e descrição.
 
   mostrarDetalheCarta(carta) {
     if (this.modalAberto) return;
-    // Carta lendária tem um layout de modal totalmente diferente (arte
-    // grande ocupando o cartão inteiro, texto sobreposto) — ver
-    // mostrarDetalheCartaLendaria() logo abaixo desta função.
+    // Lendárias usam uma ficha própria com arte ampliada.
     if (carta.lendaria) {
       this.mostrarDetalheCartaLendaria(carta);
       return;
@@ -3887,12 +3558,7 @@ class CenaJogo extends Phaser.Scene {
       PAINEL_ALTURA,
       { opacidade: 0.94, raio: 44 },
     );
-    // Mesma pegadinha do Container explicada mais abaixo (ver habBg):
-    // sem uma forma explícita, a hit area real do painelBg fica deslocada
-    // meio painel pra direita/baixo, invadindo a área abaixo dele onde o
-    // botão "Ativar Habilidade" é desenhado e roubando o clique. Aqui a
-    // hit area é centralizada igual ao desenho, então ela some exatamente
-    // onde o painel visualmente termina.
+    // Centraliza a área de toque do painel para não cobrir o botão de habilidade.
     painelBg.setInteractive(
       new Phaser.Geom.Rectangle(
         -PAINEL_LARGURA / 2,
@@ -4033,7 +3699,7 @@ class CenaJogo extends Phaser.Scene {
 
     let containerDescricao = this.add.container(0, descY, textosDescricao);
 
-    // ===== NOVO SISMETA DE MÁSCARA - PHASER 4 =====
+    // NOVO SISMETA DE MÁSCARA - PHASER 4
     const maskX = (LARGURA_LAYOUT - DESC_LARGURA) / 2;
     const maskY = ALTURA_LAYOUT / 2 + descY;
 
@@ -4044,7 +3710,6 @@ class CenaJogo extends Phaser.Scene {
       containerDescricao,
       mascaraGraphics,
     );
-    // ==============================================
 
     const alturaTotalDescricao = Math.max(0, yParte - GAP_PARTES_DESC);
     const alturaExcedente = alturaTotalDescricao - DESC_ALTURA;
@@ -4138,23 +3803,7 @@ class CenaJogo extends Phaser.Scene {
       filhosPainel.push(habBg, habTexto);
 
       if (!habilidadeJaUsada) {
-        // habBg é um Container (ver criarSuperficieVidro) e Container tem
-        // um comportamento chato pra hit area: mesmo passando uma forma
-        // centralizada em setInteractive(), na prática o clique continuava
-        // instável porque o painelBg por trás (também um Container, com
-        // hit area de (0,0) até (largura,altura) em vez de centralizada)
-        // ficava se sobrepondo à metade do botão e "roubando" o toque
-        // dependendo da ordem de resolução do Phaser (já corrigimos o
-        // painelBg acima, mas isso ainda deixava o botão frágil a
-        // qualquer outro elemento nessa mesma pilha).
-        //
-        // Solução definitiva: em vez de tornar o Container clicável,
-        // criamos uma zona de toque própria — um Rectangle simples (que já
-        // usa origem central por padrão, sem as pegadinhas do Container) —
-        // do tamanho exato do botão, colocada por último na lista (ou
-        // seja, sempre por cima de qualquer coisa desenhada antes dela).
-        // Ela fica invisível (alpha 0), só serve pra capturar o toque; o
-        // visual continua sendo habBg/habTexto.
+        // Usa uma área de toque independente sobre o botão de habilidade.
         let habZonaToque = this.add
           .rectangle(
             0,
@@ -4212,14 +3861,7 @@ class CenaJogo extends Phaser.Scene {
     this.elevarModalCarta(overlay, painel);
   }
 
-  // ---------- VISUALIZAÇÃO DETALHADA DA CARTA LENDÁRIA ----------
-  //
-  // Layout bem diferente do modal normal: em vez de uma janelinha de arte
-  // no topo + texto embaixo num painel escuro, aqui a arte da carta ocupa
-  // o "cartão" inteiro (moldura dourada nas bordas), e todo o texto
-  // (etiqueta, nome, poder, descrição, botão de fechar) fica SOBREPOSTO
-  // em cima da imagem, cada bloco com uma placa preta semitransparente
-  // atrás pra garantir leitura mesmo em cima de artes claras/coloridas.
+  // Ficha lendária com arte inteira e textos sobrepostos.
   mostrarDetalheCartaLendaria(carta) {
     this.modalAberto = true;
     this.travado = true;
@@ -4265,15 +3907,11 @@ class CenaJogo extends Phaser.Scene {
     const habilidadeJaUsada =
       podeMostrarBotaoHabilidade && carta.usadaEsteTurno;
 
-    // Cartão bem grande, quase do tamanho da tela — é essa a diferença
-    // principal em relação ao modal normal (840x1320).
+    // Cartão bem grande, quase do tamanho da tela — é essa a diferença principal em relação ao modal normal (840x1320).
     const PAINEL_LARGURA = 980;
     const PAINEL_ALTURA = 1760;
 
-    // ===== DECORAÇÕES DOURADAS (sunburst girando + anel pulsante) =====
-    // tweensLendaria guarda os tweens em loop (repeat: -1) pra serem
-    // parados na mão em fecharDetalheCarta(), já que nunca terminam
-    // sozinhos.
+    // Guarda os tweens contínuos para pará-los ao fechar a ficha.
     let tweensLendaria = [];
     let sunburst = this.add.star(0, 0, 24, 60, 800, 0xffd966, 0.07);
     let glowAnel = this.add
@@ -4296,8 +3934,7 @@ class CenaJogo extends Phaser.Scene {
       }),
     );
 
-    // Moldura dupla (borda grossa + fina por dentro), tipo quadro
-    // emoldurado — a área de dentro é quase inteira ocupada pela arte.
+    // Moldura dupla (borda grossa + fina por dentro), tipo quadro emoldurado — a área de dentro é quase inteira ocupada pela arte.
     let painelBg = this.add
       .rectangle(0, 0, PAINEL_LARGURA, PAINEL_ALTURA, 0x14141c)
       .setStrokeStyle(14, 0xffd966);
@@ -4307,10 +3944,7 @@ class CenaJogo extends Phaser.Scene {
       .rectangle(0, 0, PAINEL_LARGURA - 26, PAINEL_ALTURA - 26)
       .setStrokeStyle(2, 0xffd966, 0.7);
 
-    // ===== ARTE GRANDE (a carta em si) =====
-    // "Contain": a imagem INTEIRA fica visível, sem cortar nada — o
-    // degradê (cor do tema da carta -> preto) atrás disfarça qualquer
-    // tarja que sobre dos lados/em cima/embaixo por causa da proporção.
+    // Mostra a arte inteira; o fundo cobre as margens restantes.
     const IMG_W = PAINEL_LARGURA - 52;
     const IMG_H = PAINEL_ALTURA - 52;
 
@@ -4332,8 +3966,7 @@ class CenaJogo extends Phaser.Scene {
         .setOrigin(0.5);
     }
 
-    // Losangos dourados nos 4 cantos da arte — acabamento de moldura
-    // ornamentada, tipo carta colecionável.
+    // Losangos dourados nos 4 cantos da arte — acabamento de moldura ornamentada, tipo carta colecionável.
     let ornamentosCantos = [];
     for (const cx of [-IMG_W / 2, IMG_W / 2]) {
       for (const cy of [-IMG_H / 2, IMG_H / 2]) {
@@ -4347,9 +3980,7 @@ class CenaJogo extends Phaser.Scene {
       [fundoArte, imagem, ...ornamentosCantos, iconeImagem].filter(Boolean),
     );
 
-    // ===== PLACA DO TÍTULO (etiqueta + nome), sobreposta no topo =====
-    // Cria os textos soltos primeiro só pra medir largura/altura e
-    // desenhar a placa escura do tamanho certo por trás deles.
+    // Mede os textos antes de dimensionar a placa do título.
     let etiquetaTipo = this.add
       .text(0, 0, "✦ CARTA LENDÁRIA ✦", {
         fontFamily: FONTE_LENDARIA,
@@ -4420,7 +4051,7 @@ class CenaJogo extends Phaser.Scene {
       }),
     );
 
-    // ===== CANTO SUPERIOR: selo de poder (esq.) e botão de fechar (dir.) =====
+    // CANTO SUPERIOR: selo de poder (esq.) e botão de fechar (dir.)
     const CANTO_Y = -PAINEL_ALTURA / 2 + 66;
     const elementosTopo = [placaTitulo, etiquetaTipo, nomeTexto];
 
@@ -4451,7 +4082,7 @@ class CenaJogo extends Phaser.Scene {
     fecharBtn.setInteractive({ useHandCursor: true });
     fecharBtn.on("pointerup", () => this.fecharDetalheCarta());
 
-    // ===== PLACA DA DESCRIÇÃO, sobreposta perto do rodapé =====
+    // PLACA DA DESCRIÇÃO, sobreposta perto do rodapé
     const DESC_PLACA_LARGURA = PAINEL_LARGURA - 80;
     const DESC_PLACA_ALTURA = 420;
     const DESC_PLACA_TOPO_Y = PAINEL_ALTURA / 2 - DESC_PLACA_ALTURA - 46;
@@ -4479,9 +4110,7 @@ class CenaJogo extends Phaser.Scene {
 
     const descY = DESC_PLACA_TOPO_Y + DESC_PAD;
 
-    // Texto de ambientação ("flavor") e texto de efeito/regra ganham cores
-    // diferentes, um embaixo do outro, pra ficar claro o que é fluff e o
-    // que é regra de jogo de verdade.
+    // Diferencia ambientação e regras pela cor do texto.
     const GAP_PARTES_DESC = 14;
     let textosDescricao = [];
     let yParte = 0;
@@ -4503,7 +4132,7 @@ class CenaJogo extends Phaser.Scene {
 
     let containerDescricao = this.add.container(0, descY, textosDescricao);
 
-    // ===== MÁSCARA (mesmo esquema usado no modal normal) =====
+    // MÁSCARA (mesmo esquema usado no modal normal)
     const maskX = (LARGURA_LAYOUT - DESC_LARGURA) / 2;
     const maskY = ALTURA_LAYOUT / 2 + descY;
 
@@ -4599,10 +4228,7 @@ class CenaJogo extends Phaser.Scene {
       filhosPainel.push(habBg, habTexto);
 
       if (!habilidadeJaUsada) {
-        // Mesmo problema do modal normal (ver comentário lá): em vez de
-        // depender da hit area do Container habBg, usamos uma zona de
-        // toque própria — um Rectangle simples, invisível, do tamanho
-        // exato do botão, adicionada por último (sempre por cima).
+        // A área de toque fica por cima do fundo do botão.
         let habZonaToque = this.add
           .rectangle(
             0,
@@ -4658,9 +4284,7 @@ class CenaJogo extends Phaser.Scene {
     this.overlayDetalheAtual = overlay;
     this.painelDetalheAtual = painel;
     this.elevarModalCarta(overlay, painel);
-    // Tweens em loop (repeat: -1) das decorações douradas — nunca
-    // terminam sozinhos, então precisam ser parados na mão quando o
-    // modal fecha (ver fecharDetalheCarta()).
+    // Para os tweens contínuos ao fechar a ficha.
     this.tweensLendariaAtual = tweensLendaria;
   }
 
@@ -4730,19 +4354,13 @@ class CenaJogo extends Phaser.Scene {
     this.handlersScrollDescAtual = { handlerMove, handlerUp, handlerWheel };
   }
 
-  // ---------- JANELA DE ZOOM DA ARTE (abre ao passar o mouse na arte) ----------
-  //
-  // Mostra a arte completa da carta, sem recorte, ampliada e centralizada
-  // na tela — por cima do painel de detalhe, porém menor que ele. É aqui
-  // (e só aqui) que mora o efeito de "inclinar" a carta conforme o mouse;
-  // a miniatura recortada em mostrarDetalheCarta() fica estática.
+  // Zoom da arte completa sobre a ficha, com inclinação pelo ponteiro.
   abrirZoomCarta(carta) {
     if (!carta.imagem || this.zoomAberto) return;
     if (this.time.now < this.zoomBloqueadoAte) return;
     this.zoomAberto = true;
 
-    // Overlay próprio: clicar fora da janela de zoom fecha só ela (não o
-    // painel de detalhe por baixo, que continua aberto normalmente).
+    // Overlay próprio: clicar fora da janela de zoom fecha só ela (não o painel de detalhe por baixo, que continua aberto normalmente).
     let overlayZoom = this.add.rectangle(
       LARGURA_LAYOUT / 2,
       ALTURA_LAYOUT / 2,
@@ -4755,9 +4373,7 @@ class CenaJogo extends Phaser.Scene {
     overlayZoom.setInteractive();
     overlayZoom.on("pointerup", () => this.fecharZoomCarta());
 
-    // Janela de zoom sempre menor que o painel de detalhe (840x1320).
-    // (Cartas lendárias não usam mais esse zoom: elas já abrem grandes
-    // direto no modal — ver mostrarDetalheCartaLendaria().)
+    // O zoom é menor que a ficha; lendárias já exibem a arte ampliada.
     const ZOOM_MAX_W = 680;
     const ZOOM_MAX_H = 1040;
     const PADDING = 36;
@@ -4777,8 +4393,7 @@ class CenaJogo extends Phaser.Scene {
     painelZoomBg.setInteractive();
     painelZoomBg.on("pointerup", () => {});
 
-    // Brilho que se desloca conforme o mouse, simulando reflexo de luz
-    // na superfície da carta (parte do efeito de "inclinar").
+    // Brilho que se desloca conforme o mouse, simulando reflexo de luz na superfície da carta (parte do efeito de "inclinar").
     let brilhoZoom = this.add
       .rectangle(0, 0, largImg, altImg, 0xffffff, 0.12)
       .setBlendMode(Phaser.BlendModes.ADD);
@@ -4804,9 +4419,7 @@ class CenaJogo extends Phaser.Scene {
     this.painelZoomAtual = containerZoom;
     this.elevarModalCarta(overlayZoom, containerZoom);
 
-    // ---------- EFEITO DE "INCLINAR" A CARTA CONFORME O MOUSE ----------
-    // Mesma lógica que existia na miniatura, só que agora só roda enquanto
-    // a janela de zoom estiver aberta.
+    // Inclina a arte somente enquanto o zoom está aberto.
     const centroZoomX = LARGURA_LAYOUT / 2;
     const centroZoomY = ALTURA_LAYOUT / 2;
     const metadeLarguraZoom = largImg / 2;
@@ -4849,8 +4462,7 @@ class CenaJogo extends Phaser.Scene {
       this.tweensZoomLendariaAtual = null;
     }
 
-    // Bloqueia reabertura por 2s — evita reabrir na hora se o
-    // dedo/mouse ainda estiver em cima da arte logo depois de fechar.
+    // Bloqueia reabertura por 2s — evita reabrir na hora se o dedo/mouse ainda estiver em cima da arte logo depois de fechar.
     this.zoomBloqueadoAte = this.time.now + 2000;
 
     if (this.handlerTiltZoomAtual) {
@@ -4883,9 +4495,7 @@ class CenaJogo extends Phaser.Scene {
       this.tweensLendariaAtual = null;
     }
 
-    // Se a janela de zoom ainda estiver aberta (não deveria, já que ela
-    // fica por cima e captura o clique primeiro — mas por segurança),
-    // fecha ela junto pra não sobrar objeto órfão na cena.
+    // Fecha também o zoom para não deixar objetos órfãos.
     if (this.zoomAberto) {
       if (this.handlerTiltZoomAtual) {
         this.input.off("pointermove", this.handlerTiltZoomAtual);
@@ -4937,12 +4547,7 @@ class CenaJogo extends Phaser.Scene {
       });
   }
 
-  // ---------- HABILIDADE ATIVA (ex: Atirador de Elite) ----------
-
-  // Chamada pelo botão "Ativar Habilidade" do modal de detalhe. Descobre
-  // quais alvos a habilidade alcançaria agora e decide se dá pra disparar
-  // direto (atinge todos, ou só existe 0/1 alvo possível) ou se precisa
-  // abrir o modo de seleção de alvo (ver iniciarSelecaoDeAlvo).
+  // HABILIDADE ATIVA (ex: Atirador de Elite) Chamada pelo botão "Ativar Habilidade" do modal de detalhe.
   iniciarAtivacaoHabilidade(carta) {
     if (!this.podeUsarHabilidadesAgora()) return;
     if (this.partida.partidaEncerrada) return;
@@ -4955,52 +4560,32 @@ class CenaJogo extends Phaser.Scene {
       oponente,
     );
     const atingeTodos = !!(carta.efeito && carta.efeito.atingeTodos);
-    // Machine Learning (Estagiário): habilidade ativa cujo alvo é uma
-    // carta ALIADA em campo, não uma inimiga — usa um modo de mira
-    // diferente (iniciarSelecaoDeAliadoParaHabilidade, abaixo), que
-    // destaca o campo do próprio jogador em vez do campo inimigo.
+    // Machine Learning seleciona uma carta aliada.
     const ehBuffAliado =
       carta.efeito && carta.efeito.tipo === TIPOS_EFEITO.BUFF_ALIADO_ESCOLHIDO;
-    // Gestor de RH (Reestruturação Interna): precisa de DOIS alvos aliados
-    // distintos (um perde poder, outro ganha) — fluxo de seleção em duas
-    // etapas, ver iniciarSelecaoDePerdaRedistribuir().
+    // O Gestor seleciona duas aliadas distintas para transferir PA.
     const ehRedistribuir =
       carta.efeito && carta.efeito.tipo === TIPOS_EFEITO.REDISTRIBUIR_PODER;
-    // Advogado Corporativo (Cessar e Desistir): alvo é um TERRENO no campo
-    // do oponente — reaproveita o mesmo modo de mira de ATACAR (destaca o
-    // campo inimigo), só com um texto de instrução diferente.
+    // Cessar e Desistir seleciona um terreno inimigo.
     const ehDestruirTerreno =
       carta.efeito &&
       carta.efeito.tipo === TIPOS_EFEITO.DESTRUIR_TERRENO_INIMIGO;
-    // O Boi (Novo Começo): alvo é uma carta ALIADA em campo — reaproveita
-    // o mesmo modo de mira do Estagiário de ML (iniciarSelecaoDeAliadoParaHabilidade),
-    // só com um texto de instrução diferente.
+    // O Boi seleciona uma carta de qualquer campo.
     const ehResetarPoder =
       carta.efeito && carta.efeito.tipo === TIPOS_EFEITO.RESETAR_PODER;
-    // O Tigre (Garra de aço): precisa de DOIS alvos inimigos distintos —
-    // fluxo de seleção em duas etapas próprio (ver
-    // iniciarSelecaoDoPrimeiroAlvoDuplo abaixo), só quando há pelo menos 2
-    // alvos possíveis; com só 1 em alcance, cai no modo de mira padrão
-    // (single-target) mais abaixo.
+    // O Tigre seleciona até dois inimigos dentro do alcance.
     const ehAtaqueDuplo =
       carta.efeito && carta.efeito.tipo === TIPOS_EFEITO.ATACAR_DOIS_ALVOS;
-    // A Aranha (Override): alvo é uma carta INIMIGA (mesmo modo de mira de
-    // ATACAR/Cessar e Desistir), só com texto de instrução próprio.
+    // A Aranha (Override): alvo é uma carta INIMIGA (mesmo modo de mira de ATACAR/Cessar e Desistir), só com texto de instrução próprio.
     const ehOverride =
       carta.efeito && carta.efeito.tipo === TIPOS_EFEITO.OVERRIDE;
-    // O Rato (Mãos Leves): alvo é uma carta INIMIGA em qualquer lugar do
-    // campo (mesmo modo de mira de ATACAR/Override), sem restrição de
-    // range — só texto de instrução próprio.
+    // O Rato seleciona qualquer carta inimiga válida.
     const ehRoubarPoder =
       carta.efeito && carta.efeito.tipo === TIPOS_EFEITO.ROUBAR_PODER;
-    // A Cabra (Escalada): alvo é um espaço do PRÓPRIO campo (livre ou
-    // ocupado) — reaproveita o mesmo modo de mira do Estagiário de ML/O
-    // Boi (iniciarSelecaoDeAliadoParaHabilidade), que já sabe destacar
-    // slots vazios além de ocupados.
+    // A Cabra seleciona um slot do próprio campo, livre ou ocupado.
     const ehReposicionar =
       carta.efeito && carta.efeito.tipo === TIPOS_EFEITO.REPOSICIONAR;
-    // A Cobra (Dose Letal): alvo é uma carta INIMIGA em alcance curto —
-    // mesmo modo de mira de ATACAR, só com texto de instrução próprio.
+    // A Cobra (Dose Letal): alvo é uma carta INIMIGA em alcance curto — mesmo modo de mira de ATACAR, só com texto de instrução próprio.
     const ehEnvenenar =
       carta.efeito && carta.efeito.tipo === TIPOS_EFEITO.ENVENENAR;
     const ehDistribuirDano =
@@ -5011,8 +4596,7 @@ class CenaJogo extends Phaser.Scene {
     this.travado = true;
     this.esconderRodaBotoes();
 
-    // "Atinge todos" não precisa de escolha (acerta o range inteiro de
-    // uma vez). Sem nenhum alvo em alcance também não há o que escolher.
+    // "Atinge todos" não precisa de escolha (acerta o range inteiro de uma vez). Sem nenhum alvo em alcance também não há o que escolher.
     if (carta.efeito?.tipo === TIPOS_EFEITO.RENOVAR_MAO) {
       this.executarHabilidade(carta, null);
       return;
@@ -5026,9 +4610,7 @@ class CenaJogo extends Phaser.Scene {
       return;
     }
 
-    // Mesmo com um único alvo possível, o jogador escolhe ativamente
-    // tocando nele — assim ele sempre confirma a ação, em vez do jogo
-    // disparar sozinho.
+    // Mesmo com um único alvo possível, o jogador escolhe ativamente tocando nele — assim ele sempre confirma a ação, em vez do jogo disparar sozinho.
     if (carta.efeito.tipo === TIPOS_EFEITO.SINDICATO) {
       this.iniciarSelecaoSindicato(carta, alvos);
     } else if (ehBuffAteDois) {
@@ -5036,8 +4618,7 @@ class CenaJogo extends Phaser.Scene {
     } else if (ehDistribuirDano) {
       this.iniciarDistribuicaoDeDano(carta, alvos);
     } else if (ehRedistribuir) {
-      // Precisa de pelo menos 2 aliadas em campo (o Gestor + mais uma) pra
-      // fazer sentido escolher "quem perde" e "quem ganha" separadamente.
+      // Precisa de pelo menos 2 aliadas em campo (o Gestor + mais uma) pra fazer sentido escolher "quem perde" e "quem ganha" separadamente.
       const todosAliados = dono.campo.cartas
         .map((alvo, indice) =>
           alvo && alvo.tipo !== "terreno" ? indice : null,
@@ -5151,9 +4732,7 @@ class CenaJogo extends Phaser.Scene {
     );
   }
 
-  // Dieh'Go — Eu Sou a Lei: cada toque aplica um ponto da reserva ao alvo.
-  // O mesmo inimigo pode receber vários pontos; escolhas não são removíveis.
-  // O jogador pode confirmar antes de usar os 6 pontos; eles são um limite.
+  // Cada toque aloca dano; permite confirmar antes de gastar toda a reserva.
   iniciarDistribuicaoDeDano(carta, alvos) {
     const total = carta.efeito.total || 6;
     const totalDistribuivel = Math.min(
@@ -5288,9 +4867,7 @@ class CenaJogo extends Phaser.Scene {
     this.objetosSelecaoAlvo = objetos;
   }
 
-  // Mostra um avisinho rápido de "nenhum alvo em alcance" quando o
-  // jogador tenta ativar uma habilidade sem ter nenhum inimigo dentro do
-  // range dela, e destrava a interação sem gastar o turno da habilidade.
+  // Avisa sobre a falta de alvos sem gastar a habilidade.
   avisarSemAlvo() {
     let texto = this.add
       .text(LARGURA_LAYOUT / 2, 140, "Nenhum alvo em alcance", {
@@ -5317,10 +4894,7 @@ class CenaJogo extends Phaser.Scene {
     this.desenharRodaBotoes();
   }
 
-  // Modo de mira: destaca (com um anel pulsante amarelo) cada slot inimigo
-  // dentro do alcance da habilidade e espera o jogador tocar num deles.
-  // Tocar fora dos alvos destacados cancela a ativação sem gastar o turno
-  // da habilidade.
+  // Destaca alvos válidos; tocar fora cancela sem gastar a habilidade.
   iniciarSelecaoDeAlvo(
     carta,
     alvos,
@@ -5331,9 +4905,7 @@ class CenaJogo extends Phaser.Scene {
     const L = this.layout;
     const objetos = [];
 
-    // Fundo escurecido (bem sutil) só pra dar contraste ao texto e aos
-    // anéis, sem esconder o campo por trás — o jogador precisa continuar
-    // vendo as cartas pra escolher o alvo.
+    // Escurece o fundo sem esconder os alvos.
     let overlay = this.add
       .rectangle(
         LARGURA_LAYOUT / 2,
@@ -5419,12 +4991,7 @@ class CenaJogo extends Phaser.Scene {
     this.desenharRodaBotoes();
   }
 
-  // ---------- SELEÇÃO DE CARTA DO BARALHO (Sugestão Algorítmica) ----------
-  // Mostra as cartas restantes como cards visuais paginados pra escolher
-  // qual puxar direto pra mão. A carta de efeito arrastada
-  // ainda NÃO foi consumida nesse ponto — só é jogada de fato quando o
-  // jogador confirma uma escolha (ver confirmarEscolhaCartaDoBaralho).
-  // Cancelar (toque fora) devolve a carta arrastada pro leque, sem gastá-la.
+  // Seleciona uma carta do deck antes de consumir a conjuração.
   iniciarSelecaoDeCartaDoBaralho(gameObject, carta, origem = "deck") {
     const deck =
       origem === "descarte"
@@ -5666,10 +5233,7 @@ class CenaJogo extends Phaser.Scene {
     this.animarRetornoAoLeque(gameObject, false);
   }
 
-  // O Trotar do Cavalo: destaca as colunas do campo inimigo que têm ao
-  // menos uma carta (ver Partida.colunasComAlvoInimigo), pra o jogador
-  // escolher qual coluna inteira sofre o dano. Sem coluna válida (campo
-  // inimigo vazio), a carta simplesmente volta pro leque sem efeito.
+  // O Cavalo seleciona uma coluna inimiga com alvo válido.
   iniciarSelecaoDeColunaInimiga(gameObject, carta) {
     const colunas = this.partida.colunasComAlvoInimigo();
     if (colunas.length === 0) {
@@ -5786,8 +5350,7 @@ class CenaJogo extends Phaser.Scene {
     this.animarRetornoAoLeque(gameObject, false);
   }
 
-  // A Travessura do Macaco: destaca todos os slots vazios do inimigo e
-  // guarda a armadilha no campo até uma carta ser invocada naquele espaço.
+  // A Travessura do Macaco: destaca todos os slots vazios do inimigo e guarda a armadilha no campo até uma carta ser invocada naquele espaço.
   iniciarSelecaoDeArmadilha(gameObject, carta) {
     const alvos = this.partida.inimigo.campo.cartas
       .map((c, i) =>
@@ -5951,8 +5514,7 @@ class CenaJogo extends Phaser.Scene {
     this.objetosSelecaoAlvo = objetos;
   }
 
-  // O Canto do Galo: exige dois aliados distintos. A ordem importa porque
-  // o primeiro recebe +2 PA e o segundo +1 PA.
+  // O Canto do Galo: exige dois aliados distintos. A ordem importa porque o primeiro recebe +2 PA e o segundo +1 PA.
   iniciarSelecaoDoCantoDoGalo(gameObject, carta, primeiroAlvo = null) {
     if (this.objetosSelecaoAlvo) {
       this.objetosSelecaoAlvo.forEach((o) => o.destroy());
@@ -6049,13 +5611,7 @@ class CenaJogo extends Phaser.Scene {
     this.objetosSelecaoAlvo = objetos;
   }
 
-  // Modo de mira da habilidade ativa "Machine Learning" (Estagiário de ML):
-  // igual em espírito a iniciarSelecaoDeAlvo() (ataque), mas destaca as
-  // cartas ALIADAS em campo (anel verde, mesma cor de
-  // iniciarSelecaoDeAliadoParaBuff) em vez das inimigas, já que aqui o
-  // alvo é quem vai RECEBER o +poder. Tocar fora dos alvos cancela a
-  // ativação sem gastar o turno da habilidade (diferente da Venda Casada,
-  // que é resolvida na hora de invocar e por isso não tem cancelamento).
+  // Destaca aliadas válidas para Machine Learning.
   iniciarSelecaoDeAliadoParaHabilidade(
     carta,
     alvos,
@@ -6200,11 +5756,7 @@ class CenaJogo extends Phaser.Scene {
     this.objetosSelecaoAlvo = objetos;
   }
 
-  // O Boi (Novo Começo): igual em espírito a iniciarSelecaoDeAliadoParaHabilidade,
-  // mas destaca os DOIS campos (aliado e inimigo) — os índices em `alvos`
-  // vêm deslocados (0..TAM-1 = campo do jogador, TAM..2*TAM-1 = campo do
-  // inimigo, TAM = cartas por campo), esquema gerado em
-  // alvosParaHabilidadeEmCampo() e decodificado em Partida.ativarHabilidade().
+  // O Boi destaca ambos os campos; índices inimigos começam em TAM.
   iniciarSelecaoDeQualquerCartaParaHabilidade(
     carta,
     alvos,
@@ -6290,11 +5842,7 @@ class CenaJogo extends Phaser.Scene {
     this.objetosSelecaoAlvo = objetos;
   }
 
-  // Resolve de fato a ativação (via Partida.ativarHabilidade) e anima as
-  // cartas inimigas afetadas, reaproveitando animarCartasAfetadas — o
-  // mesmo efeito visual usado pelos buffs/debuffs de invocação.
-  // alvoSecundario só é usado pelo Gestor de RH (REDISTRIBUIR_PODER): é o
-  // segundo alvo, quem ganha poder (alvoEscolhido é quem perde).
+  // Resolve a habilidade e anima as cartas afetadas.
   executarHabilidade(carta, alvoEscolhido, alvoSecundario = null) {
     if (!this.podeUsarHabilidadesAgora()) return;
     if (this.objetosSelecaoAlvo) {
@@ -6365,10 +5913,7 @@ class CenaJogo extends Phaser.Scene {
     });
     som.play();
 
-    // A conclusão da habilidade não pode depender do áudio: navegadores
-    // podem bloquear o AudioContext, deixando a Toca removida nos dados
-    // mas ainda desenhada e a interface travada. O som apenas antecipa a
-    // finalização; um timer curto sempre garante a atualização do campo.
+    // Um timer garante a conclusão mesmo se o navegador bloquear o áudio.
     let finalizado = false;
     const finalizarRemocao = () => {
       if (finalizado) return;
@@ -6391,10 +5936,7 @@ class CenaJogo extends Phaser.Scene {
     this.time.delayedCall(1100, finalizarRemocao);
   }
 
-  // Passo 1/2 da habilidade "Reestruturação Interna" (Gestor de RH):
-  // destaca (anel vermelho pulsante) cada aliada em campo — incluindo o
-  // próprio Gestor — e espera o jogador escolher QUEM PERDE poder. Tocar
-  // fora cancela a ativação inteira, sem gastar o turno da habilidade.
+  // Seleciona a aliada que perde PA, incluindo o próprio Gestor.
   iniciarSelecaoDePerdaRedistribuir(carta, alvos, todosAliados = alvos) {
     const L = this.layout;
     const objetos = [];
@@ -6473,10 +6015,7 @@ class CenaJogo extends Phaser.Scene {
     this.objetosSelecaoAlvo = objetos;
   }
 
-  // Passo 2/2 da habilidade "Reestruturação Interna" (Gestor de RH):
-  // igual em espírito ao passo 1, mas com anel verde e destaca só as
-  // aliadas restantes (já excluindo quem foi escolhida pra perder poder
-  // no passo anterior) — espera o jogador escolher QUEM GANHA poder.
+  // Seleciona uma aliada diferente para receber PA.
   iniciarSelecaoDeGanhoRedistribuir(carta, alvoPerda, alvosRestantes) {
     if (this.objetosSelecaoAlvo) {
       this.objetosSelecaoAlvo.forEach((o) => o.destroy());
@@ -6556,10 +6095,7 @@ class CenaJogo extends Phaser.Scene {
     this.objetosSelecaoAlvo = objetos;
   }
 
-  // ---------- SELEÇÃO DE DOIS ALVOS INIMIGOS (O Tigre - Garra de aço) ----------
-  // Mesma ideia dos dois passos de Redistribuir Poder (acima), mas os dois
-  // alvos são INIMIGOS (campo do oponente, anel vermelho nos dois passos,
-  // já que os dois sofrem o mesmo dano) em vez de aliados.
+  // Seleciona dois inimigos distintos para o Tigre.
   iniciarSelecaoDoPrimeiroAlvoDuplo(carta, alvos) {
     const L = this.layout;
     const objetos = [];
@@ -6658,9 +6194,7 @@ class CenaJogo extends Phaser.Scene {
       )
       .setDepth(3700)
       .setInteractive();
-    // Tocar fora aqui não cancela a habilidade inteira — o primeiro alvo
-    // já é válido sozinho, então resolve com só ele em vez de descartar
-    // tudo (Garra de aço funciona com 1 ou 2 alvos, ver ativarHabilidade).
+    // Tocar fora após o primeiro alvo confirma o ataque com apenas ele.
     overlay.on("pointerup", () => this.executarHabilidade(carta, alvo1));
     objetos.push(overlay);
 
@@ -6720,13 +6254,7 @@ class CenaJogo extends Phaser.Scene {
     this.objetosSelecaoAlvo = objetos;
   }
 
-  // Modo de mira "Venda Casada": igual em espírito a iniciarSelecaoDeAlvo(),
-  // mas em vez de mirar no campo inimigo pra atacar, destaca (anel pulsante
-  // verde) cada carta ALIADA em campo — incluindo o CyberVendedor recém
-  // colocado — pra o jogador escolher quem ganha o +poder. A carta já está
-  // em campo nesse momento (colocarCartaDoJogador já rodou), então não tem
-  // "cancelar". Para Troca de Favores, tocar fora mantém a seleção aberta:
-  // o vínculo exige um toque explícito em outra carta aliada.
+  // Venda Casada seleciona uma aliada, inclusive o CyberVendedor.
   iniciarSelecaoDeAliadoParaBuff(carta, posicaoPropria) {
     const L = this.layout;
     const objetos = [];
@@ -6820,9 +6348,7 @@ class CenaJogo extends Phaser.Scene {
     this.objetosSelecaoAlvo = objetos;
   }
 
-  // Resolve de fato o efeito (via Partida.aplicarEfeitoInvocacao) e anima a
-  // carta aliada escolhida, reaproveitando processarCartasAfetadas — mesmo
-  // efeito visual usado pelos outros buffs/debuffs de invocação.
+  // Aplica o efeito escolhido e anima a aliada afetada.
   confirmarEscolhaBuffAliado(carta, posicaoPropria, alvoEscolhido) {
     if (this.objetosSelecaoAlvo) {
       this.objetosSelecaoAlvo.forEach((o) => o.destroy());
@@ -6843,16 +6369,7 @@ class CenaJogo extends Phaser.Scene {
     });
   }
 
-  // ---------- SELEÇÃO MÚLTIPLA (ex: Potencialização de Capital) ----------
-
-  // Modo de mira "Potencialização de Capital" (RaspClay MonteCorp):
-  // diferente das seleções de alvo único acima (que resolvem no primeiro
-  // toque), aqui o jogador pode marcar/desmarcar até efeito.maxAlvos
-  // cartas aliadas elegíveis (nível baixo/médio — ver
-  // Partida.alvosParaAbsorverAliados) e só confirma quando quiser, com um
-  // botão. A carta já está em campo neste momento (colocarCartaDoJogador
-  // já rodou), então tocar fora só confirma a seleção atual, mesmo que
-  // esteja vazia — não existe "cancelar" essa jogada.
+  // Seleciona aliadas para absorção e exige confirmação.
   iniciarSelecaoDeAbsorcao(carta, posicaoPropria) {
     const L = this.layout;
     const objetos = [];
@@ -6865,9 +6382,7 @@ class CenaJogo extends Phaser.Scene {
     );
     const maxAlvos = carta.efeito.maxAlvos || 3;
 
-    // Efeitos de invocação que dependem de alvo simplesmente não ativam
-    // quando não existe escolha válida. A carta continua invocada, mas não
-    // abrimos seletor vazio e não chamamos aplicarEfeitoInvocacao().
+    // Sem alvos válidos, mantém a invocação sem abrir seletor nem aplicar o efeito.
     if (alvos.length === 0) {
       this.partida.resolverEfeitosContinuos(this.partida.jogador);
       this.partida.resolverEfeitosContinuos(this.partida.inimigo);
@@ -6975,10 +6490,7 @@ class CenaJogo extends Phaser.Scene {
     this.objetosSelecaoAlvo = objetos;
   }
 
-  // Resolve de fato o efeito (via Partida.aplicarEfeitoInvocacao, passando
-  // o array de índices escolhidos) e anima tanto o ganho de poder do
-  // RaspClay quanto a "morte"/remoção das aliadas absorvidas, reaproveitando
-  // processarCartasAfetadas — mesmo fluxo visual usado pelos outros efeitos.
+  // Aplica a absorção e anima o ganho de PA e a remoção das aliadas.
   confirmarAbsorcao(carta, posicaoPropria, indices) {
     if (this.objetosSelecaoAlvo) {
       this.objetosSelecaoAlvo.forEach((o) => o.destroy());
@@ -6999,13 +6511,7 @@ class CenaJogo extends Phaser.Scene {
     });
   }
 
-  // ---------- STATUS / UI ----------
-
-  // Turno + placar melhor-de-7. Normalmente fica compacto no canto
-  // superior esquerdo; quando a mão está escondida (this.maoEscondida),
-  // não faz sentido deixá-los ali "perdidos" embaixo do campo ampliado —
-  // então eles migram pro centro horizontal, na faixa onde a mão ficaria
-  // (Y_MAO_JOGADOR), maiores e mais fáceis de ler.
+  // Reposiciona turno e placar conforme a visibilidade da mão.
   desenharStatus() {
     const centralizado = this.maoEscondida;
     const x = centralizado ? LARGURA_LAYOUT / 2 : 45;
@@ -7046,8 +6552,7 @@ class CenaJogo extends Phaser.Scene {
     painel.add([turno, placar]);
   }
 
-  // Contadores estáveis deixam a comparação de poder legível sem
-  // alterar o tamanho do HUD a cada carta colocada.
+  // Contadores estáveis deixam a comparação de poder legível sem alterar o tamanho do HUD a cada carta colocada.
   desenharIndicadoresPoder() {
     const L = this.layout;
     this.criarIndicadorPoder(
@@ -7078,28 +6583,7 @@ class CenaJogo extends Phaser.Scene {
     placa.add([numero, label]);
   }
 
-  // ---------- MENU DE BOTÕES (Histórico / Passar Turno / Desistir) ----------
-  //
-  // Só o botão de menu (☰), um círculo fixo no canto direito da tela,
-  // fica sempre visível (dentro de this.rodaBotoesContainer). As 3 opções
-  // (Histórico / Passar Turno / Desistir) ficam escondidas até esse botão
-  // ser tocado — aí elas aparecem centralizadas na tela, por cima de um
-  // fundo escurecido (this.rodaOpcoesContainer) — ver abrirOpcoesDaRoda()/
-  // fecharOpcoesDaRoda(). Tocar em qualquer lugar fora dos botões (ou
-  // seja, no fundo escurecido) fecha o menu de novo.
-  //
-  // O botão de menu inteiro some (deslizando rápido pra fora, ver
-  // esconderRodaBotoes()) sempre que um efeito está sendo executado ou é a
-  // vez do oponente ser resolvida (Passar Turno), e volta a aparecer
-  // quando o controle volta pro jogador — nesse caso, via
-  // desenharInterface() chamando esta função de novo (gate em
-  // `if (!this.travado)`, lá em desenharInterface()).
-  //
-  // IMPORTANTE: em alguns fluxos (ex: nenhum alvo em alcance pra
-  // habilidade, cancelar seleção de alvo, desistir cancelado) a interação
-  // é destravada SEM que desenharInterface() seja chamado de novo — nesses
-  // pontos, chamamos desenharRodaBotoes() diretamente pra trazer o botão
-  // de volta, já que ninguém mais vai fazer isso.
+  // O botão fixo abre histórico, passagem de turno e desistência.
   desenharRodaBotoes() {
     const RAIO = 62;
     const X = LARGURA_LAYOUT - RAIO - 24;
@@ -7154,10 +6638,7 @@ class CenaJogo extends Phaser.Scene {
     }
   }
 
-  // Revela as 3 opções (Histórico / Passar Turno / Desistir), centralizadas
-  // na tela, por cima de um fundo escurecido que cobre a tela toda. Tocar
-  // em qualquer lugar fora dos botões (ou seja, no fundo escurecido) fecha
-  // o menu de novo.
+  // Abre as opções; tocar no fundo fecha o menu.
   abrirOpcoesDaRoda() {
     if (this.rodaOpcoesContainer) return;
 
@@ -7178,9 +6659,7 @@ class CenaJogo extends Phaser.Scene {
       },
     ];
 
-    // Fundo escurecido cobrindo a tela toda — tocar nele fecha o menu.
-    // Vem primeiro na lista de filhos (mais embaixo, atrás dos botões),
-    // então um toque num botão nunca "vaza" pra ele.
+    // O fundo fecha o menu sem interceptar os botões.
     const overlay = this.add
       .rectangle(
         LARGURA_LAYOUT / 2,
@@ -7205,8 +6684,7 @@ class CenaJogo extends Phaser.Scene {
         def.rotulo,
         def.cor,
         () => {
-          // Fecha o menu antes de disparar a ação escolhida, pra não
-          // deixar o fundo escurecido por cima de um modal/transição.
+          // Fecha o menu antes de disparar a ação escolhida, pra não deixar o fundo escurecido por cima de um modal/transição.
           this.fecharOpcoesDaRoda();
           def.aoClicar();
         },
@@ -7228,8 +6706,7 @@ class CenaJogo extends Phaser.Scene {
     });
   }
 
-  // Esconde de novo as 3 opções e o fundo escurecido (mas mantém o botão
-  // de menu visível no canto).
+  // Esconde de novo as 3 opções e o fundo escurecido (mas mantém o botão de menu visível no canto).
   fecharOpcoesDaRoda() {
     if (!this.rodaOpcoesContainer) return;
     const opcoes = this.rodaOpcoesContainer;
@@ -7245,8 +6722,7 @@ class CenaJogo extends Phaser.Scene {
     });
   }
 
-  // Cria um botão individual (fundo + texto + hover/click) já posicionado
-  // dentro do menu de opções. `x`/`y` são relativos ao container pai.
+  // Cria um botão individual (fundo + texto + hover/click) já posicionado dentro do menu de opções. `x`/`y` são relativos ao container pai.
   criarBotaoDaRoda(x, y, largura, altura, rotulo, cor, aoClicar) {
     const bg = this.criarSuperficieVidro(0, 0, largura, altura, {
       cor,
@@ -7280,11 +6756,7 @@ class CenaJogo extends Phaser.Scene {
     return btn;
   }
 
-  // Sumiço rápido: desliza o botão de menu pra fora da tela, pela direita,
-  // e destrói ao final; se as 3 opções estiverem abertas na hora (menu +
-  // fundo escurecido), elas são destruídas na hora, sem animação. Não-
-  // destrutivo se o botão já não existir (ex: desenharInterface() já o
-  // destruiu via removeAll(true)) — checa e sai.
+  // Retira o botão com animação e fecha as opções imediatamente.
   esconderRodaBotoes() {
     if (this.rodaOpcoesContainer) {
       this.rodaOpcoesContainer.destroy();
@@ -7304,10 +6776,7 @@ class CenaJogo extends Phaser.Scene {
     });
   }
 
-  // Handler do botão "Passar Turno": trava a interação, tira a roda de
-  // cena (a "vez do oponente" começa aqui) e só então resolve o turno —
-  // fim de turno do jogador, jogada da IA, efeitos de turno e, se for o
-  // último turno, o combate final.
+  // Bloqueia comandos e resolve o encerramento do turno.
   aoClicarPassarTurno() {
     if (
       this.travado ||
@@ -7460,9 +6929,7 @@ class CenaJogo extends Phaser.Scene {
     else if (!podeJogar && eraMeuTurno) this.reiniciarTimerOponente();
     else if (!podeJogar) this.atualizarVisualTimerTurno(true);
     this.travado = !podeJogar || !!resultado?.resultadoRodada;
-    // Uma animação remota pode ter redesenhado o tabuleiro ainda com o
-    // turno marcado como adversário. Ao receber a vez, redesenha para
-    // ativar controles e auras de habilidade no estado correto.
+    // Redesenha após receber a vez para atualizar controles e auras.
     if (!interfaceDesenhada || update.phaseChanged || podeJogar !== eraMeuTurno)
       this.desenharInterface();
 
@@ -7791,8 +7258,7 @@ class CenaJogo extends Phaser.Scene {
     this.mostrarEsperaMultiplayer("O OPONENTE SAIU DA PARTIDA");
   }
 
-  // Apresenta as invocações da IA uma por vez sem redesenhar a interface
-  // inteira a cada carta. Isso evita os flashes dos objetos já existentes.
+  // Apresenta as invocações da IA uma por vez sem redesenhar a interface inteira a cada carta. Isso evita os flashes dos objetos já existentes.
   animarJogadasCampoInimigo(jogadas, aoTerminar) {
     const validas = jogadas.filter(
       ({ carta, posicao }) =>
@@ -7813,8 +7279,7 @@ class CenaJogo extends Phaser.Scene {
 
     const mostrar = (indice) => {
       if (indice >= validas.length) {
-        // O redesenho final do turno aplica a aparência definitiva da Toca.
-        // Não redesenhamos aqui para evitar um segundo flash desnecessário.
+        // O redesenho final do turno aplica a aparência definitiva da Toca. Não redesenhamos aqui para evitar um segundo flash desnecessário.
         this.time.delayedCall(650, aoTerminar);
         return;
       }
@@ -7847,8 +7312,7 @@ class CenaJogo extends Phaser.Scene {
     this.time.delayedCall(420, () => mostrar(0));
   }
 
-  // Quando a Toca é jogada depois de outra carta, vira somente as cartas
-  // inimigas que já estão desenhadas, sem redesenhar/piscar a tela inteira.
+  // Quando a Toca é jogada depois de outra carta, vira somente as cartas inimigas que já estão desenhadas, sem redesenhar/piscar a tela inteira.
   animarFlipCartasInimigasParaBaixo(tocaRecemJogada) {
     const campoInimigo = this.partida.inimigo.campo.cartas;
     this.children.list
@@ -7887,10 +7351,7 @@ class CenaJogo extends Phaser.Scene {
       });
   }
 
-  // Banner central rápido (aparece e some sozinho) avisando quem venceu a
-  // rodada que acabou de fechar — VOCÊ VENCEU / VOCÊ PERDEU / EMPATE.
-  // Chama `aoTerminar` depois que ele já sumiu, pra encadear o resto do
-  // fluxo (ex: liberar a interação de novo).
+  // Exibe o resultado da rodada e chama aoTerminar ao concluir.
   mostrarBannerRodada(resultadoRodada, aoTerminar) {
     const config = {
       jogador: { texto: "VOCÊ VENCEU A RODADA", cor: "#66ff88" },
@@ -7934,8 +7395,7 @@ class CenaJogo extends Phaser.Scene {
     });
   }
 
-  // Handler do botão "Desistir": pede confirmação (ação irreversível)
-  // antes de encerrar a partida como derrota do jogador.
+  // Handler do botão "Desistir": pede confirmação (ação irreversível) antes de encerrar a partida como derrota do jogador.
   aoClicarDesistir() {
     if (this.partida.partidaEncerrada || this.modalAberto) return;
 
@@ -8025,9 +7485,7 @@ class CenaJogo extends Phaser.Scene {
     );
   }
 
-  // Botão simples (fundo + texto + clique) usado pelo diálogo de
-  // confirmação de "Desistir". Posição em coordenadas absolutas de tela
-  // (não é relativo a nenhum container pai).
+  // Botão da confirmação de desistência em coordenadas absolutas.
   criarBotaoConfirmacao(x, y, rotulo, cor, aoClicar) {
     let bg = this.criarSuperficieVidro(0, 0, 300, 124, {
       cor,
@@ -8050,9 +7508,7 @@ class CenaJogo extends Phaser.Scene {
     return btn;
   }
 
-  // Botão flutuante, sempre no rodapé, para esconder/mostrar a mão e dar
-  // mais espaço/destaque ao campo. Some/reaparece com uma animação da
-  // própria mão, não só um corte seco.
+  // Botão inferior que alterna a mão e o tamanho do campo.
   desenharBotaoToggleMao() {
     const qtd = this.partida.jogador.mao.cartas.length;
     const rotulo = this.maoEscondida ? `▲ Mostrar Mão (${qtd})` : "▼";
@@ -8089,13 +7545,9 @@ class CenaJogo extends Phaser.Scene {
     });
   }
 
-  // Alterna a visibilidade da mão. Ao esconder, as cartas na tela deslizam
-  // para baixo e somem antes do campo ser redesenhado (maior); ao mostrar
-  // de novo, a própria entrada animada do leque já cuida da transição.
+  // Anima a mão antes de recalcular o layout do campo.
   alternarMao() {
-    // ============================================================
     // MOSTRAR A MÃO NOVAMENTE
-    // ============================================================
 
     if (this.maoEscondida) {
       this.maoEscondida = false;
@@ -8118,13 +7570,7 @@ class CenaJogo extends Phaser.Scene {
     // Cancela qualquer animação anterior dessas cartas.
     this.tweens.killTweensOf(cartasNaTela);
 
-    // ============================================================
-    // ESCONDER A MÃO
-    //
-    // As cartas deslizam PARA BAIXO, saindo da tela.
-    // Elas continuam visíveis durante a maior parte do movimento
-    // e só começam a desaparecer perto do final.
-    // ============================================================
+    // Desliza a mão para fora da tela antes de ocultá-la.
 
     let finalizadas = 0;
 
@@ -8137,8 +7583,7 @@ class CenaJogo extends Phaser.Scene {
       // Garante que a carta fique por cima durante a animação.
       carta.setDepth(2000 + indice);
 
-      // Pequena diferença entre as cartas para dar sensação
-      // de que a mão inteira está deslizando para baixo.
+      // Pequena diferença entre as cartas para dar sensação de que a mão inteira está deslizando para baixo.
       const delay = indice * 25;
 
       this.tweens.add({
@@ -8199,13 +7644,7 @@ class CenaJogo extends Phaser.Scene {
     this.mostrarTelaFimDeJogo(resultado);
   }
 
-  // Tela final da partida (chamada só uma vez, ao fechar o 7º turno):
-  // fundo desfocado + camada verde/vermelha translúcida cobrindo a tela,
-  // texto gigante "VOCÊ VENCEU"/"VOCÊ PERDEU" (verde ou vermelho, com
-  // traçado branco) e, embaixo, a carta de maior poder (PA) do lado
-  // vencedor. Não é mais destruída/redesenhada por desenharInterface(),
-  // já que a partida acaba aqui — fica por cima de tudo até o jogador
-  // recarregar a página.
+  // Exibe uma única tela final com o resultado e a carta de destaque.
   mostrarTelaFimDeJogo(resultadoCombate) {
     if (!resultadoCombate || this.telaFinalExibida) return;
     this.apresentarEventosEfeito();
@@ -8274,16 +7713,12 @@ class CenaJogo extends Phaser.Scene {
       vitoria ? 136 : derrota ? 59 : 200,
     );
 
-    // Desfoca o campo de batalha por trás do overlay. postFX.addBlur só
-    // existe em Phaser 3.60+ rodando em WebGL; se não estiver disponível
-    // (ex: fallback Canvas), a tela de fim de jogo continua funcionando
-    // normalmente, só sem o desfoque.
+    // Aplica desfoque apenas quando o renderer oferece postFX.
     if (this.cameras.main.postFX && this.cameras.main.postFX.addBlur) {
       this.cameras.main.postFX.addBlur(0, 2, 2, 0.15, 0xffffff, 6);
     }
 
-    // Camada escura por baixo da cor, pra garantir contraste do texto
-    // não importa o fundo do campo naquele momento.
+    // Camada escura por baixo da cor, pra garantir contraste do texto não importa o fundo do campo naquele momento.
     let escurecido = this.add.rectangle(
       LARGURA_LAYOUT / 2,
       ALTURA_LAYOUT / 2,
@@ -8377,9 +7812,7 @@ class CenaJogo extends Phaser.Scene {
     ).setOrigin(0.5);
     filhos.push(subtitulo);
 
-    // ALTURA_LAYOUT / 2 - 220: sobe o conjunto (texto + carta + subtítulo) em
-    // relação ao centro da tela. Aumenta esse valor pra subir mais,
-    // diminui (ou zera) pra centralizar de novo.
+    // Posiciona o resultado acima do centro da tela.
     let container = this.add.container(
       LARGURA_LAYOUT / 2,
       ALTURA_LAYOUT / 2 - 220,
@@ -8399,33 +7832,10 @@ class CenaJogo extends Phaser.Scene {
     });
     this.somBuff.play();
   }
-  // ============================================================================
-  // GESTO DE DESLIZAR A MÃO
-  // ============================================================================
-  //
-  // MÃO VISÍVEL:
-  //   swipe para baixo -> esconde
-  //
-  // MÃO ESCONDIDA:
-  //   swipe para cima -> mostra
-  //
-  // Não existe botão.
-  // O jogador literalmente puxa a mão com o dedo.
-  // ============================================================================
+  // Gestos verticais alternam a visibilidade da mão.
 
   configurarGestosMao() {
-    // ============================================================
-    // GESTO DE SWIPE DA MÃO
-    //
-    // Mão visível:
-    //   arrastar para baixo -> esconder
-    //
-    // Mão escondida:
-    //   arrastar para cima -> mostrar
-    //
-    // Se o gesto não atingir o limite:
-    //   volta para posição + alpha originais.
-    // ============================================================
+    // Arrastar para baixo esconde a mão; para cima, mostra.
 
     if (this.gestosMaoConfigurados) return;
 
@@ -8435,20 +7845,14 @@ class CenaJogo extends Phaser.Scene {
     this.gestoMaoX = 0;
     this.gestoMaoY = 0;
 
-    // --------------------------------------------------------------------------
     // COMEÇOU O TOQUE
-    // --------------------------------------------------------------------------
 
     this.input.on("pointerdown", (pointer) => {
       if (this.travado) return;
 
       const LIMITE_MAO = ALTURA_LAYOUT - 650;
 
-      // A mão escondida não está visível, então permitimos começar
-      // o gesto na parte inferior da tela.
-      //
-      // A mão visível também pode ser agarrada diretamente em cima
-      // de qualquer carta.
+      // A mão escondida não está visível, então permitimos começar o gesto na parte inferior da tela.
       if (!this.maoEscondida && this.pontoDoPonteiro(pointer).y < LIMITE_MAO) {
         return;
       }
@@ -8462,9 +7866,7 @@ class CenaJogo extends Phaser.Scene {
       this.gestoMaoX = this.pontoDoPonteiro(pointer).x;
       this.gestoMaoY = this.pontoDoPonteiro(pointer).y;
 
-      // ============================================================
       // GUARDA A POSIÇÃO ORIGINAL DE TODAS AS CARTAS
-      // ============================================================
 
       const cartas = this.children.list.filter((c) => c.dadosCarta);
 
@@ -8477,9 +7879,7 @@ class CenaJogo extends Phaser.Scene {
       });
     });
 
-    // --------------------------------------------------------------------------
     // MOVIMENTO DO DEDO
-    // --------------------------------------------------------------------------
 
     this.input.on("pointermove", (pointer) => {
       if (!this.gestoMaoAtivo) return;
@@ -8496,25 +7896,10 @@ class CenaJogo extends Phaser.Scene {
         return;
       }
 
-      // ============================================================
-      // IMPORTANTE:
-      //
-      // O dedo NÃO move a mão durante o gesto.
-      //
-      // Assim:
-      // 20px  -> nada muda
-      // 50px  -> nada muda
-      // 90px  -> nada muda
-      // 100px -> dispara a animação
-      //
-      // Isso evita a mão ficar transparente ou deslocada
-      // quando o jogador solta no meio.
-      // ============================================================
+      // Dispara a animação apenas após ultrapassar o limite do gesto.
     });
 
-    // --------------------------------------------------------------------------
     // SOLTOU O DEDO
-    // --------------------------------------------------------------------------
 
     const finalizarGesto = (pointer) => {
       if (!this.gestoMaoAtivo) return;
@@ -8527,36 +7912,21 @@ class CenaJogo extends Phaser.Scene {
 
       const LIMITE_GESTO = 45;
 
-      // ============================================================
       // SWIPE PARA BAIXO COMPLETO
-      // ============================================================
 
       if (!this.maoEscondida && deslocamentoY >= LIMITE_GESTO) {
         this.esconderMaoComSwipe();
         return;
       }
 
-      // ============================================================
       // SWIPE PARA CIMA COMPLETO
-      // ============================================================
 
       if (this.maoEscondida && deslocamentoY <= -LIMITE_GESTO) {
         this.mostrarMaoComSwipe();
         return;
       }
 
-      // ============================================================
-      // SWIPE CANCELADO
-      //
-      // Não atingiu o limite.
-      //
-      // Restaura:
-      // - X
-      // - Y
-      // - alpha
-      //
-      // exatamente como estavam antes do gesto.
-      // ============================================================
+      // Restaura a mão se o gesto não atingir o limite.
 
       this.voltarMaoParaPosicao();
     };
@@ -8566,16 +7936,12 @@ class CenaJogo extends Phaser.Scene {
     this.input.on("pointerupoutside", finalizarGesto);
   }
 
-  // ============================================================================
   // RESTAURA A MÃO QUANDO O SWIPE NÃO FOI COMPLETO
-  // ============================================================================
 
   voltarMaoParaPosicao() {
     this.baixarOutrasCartasDaMao(this.cartaMaoSelecionada);
   }
-  // ============================================================================
   // MOVE A MÃO JUNTO COM O DEDO
-  // ============================================================================
 
   moverMaoDuranteGesto(deslocamentoY) {
     const cartas = this.children.list.filter((c) => c.dadosCarta);
@@ -8597,8 +7963,7 @@ class CenaJogo extends Phaser.Scene {
 
       carta.y = carta._maoSwipeYOriginal + deslocamento;
 
-      // Quando descendo, começa a desaparecer.
-      // Quando subindo, reaparece.
+      // Quando descendo, começa a desaparecer. Quando subindo, reaparece.
       const progresso = Math.min(1, Math.abs(deslocamento) / 500);
 
       if (!this.maoEscondida) {
@@ -8609,9 +7974,7 @@ class CenaJogo extends Phaser.Scene {
     });
   }
 
-  // ============================================================================
   // ESCONDE A MÃO
-  // ============================================================================
 
   esconderMaoComSwipe(deslocamento) {
     const cartas = this.children.list.filter((c) => c.dadosCarta);
@@ -8660,14 +8023,10 @@ class CenaJogo extends Phaser.Scene {
     });
   }
 
-  // ============================================================================
   // MOSTRA A MÃO
-  // ============================================================================
 
   mostrarMaoComSwipe() {
-    // ============================================================
     // MOSTRAR A MÃO COM SWIPE PARA CIMA
-    // ============================================================
 
     this.travado = true;
 
@@ -8685,9 +8044,7 @@ class CenaJogo extends Phaser.Scene {
       return;
     }
 
-    // ============================================================
     // FAZ A MÃO ENTRAR DE BAIXO PARA CIMA
-    // ============================================================
 
     cartas.forEach((carta, indice) => {
       if (!carta || !carta.active) return;
@@ -8701,8 +8058,7 @@ class CenaJogo extends Phaser.Scene {
       // Começa invisível.
       carta.alpha = 0;
 
-      // Garante que a carta fique acima dos elementos do campo
-      // durante a entrada.
+      // Garante que a carta fique acima dos elementos do campo durante a entrada.
       carta.setDepth(2000 + indice);
 
       this.tweens.add({
@@ -8716,8 +8072,7 @@ class CenaJogo extends Phaser.Scene {
 
         duration: 300,
 
-        // Pequeno atraso entre as cartas para dar sensação
-        // de que a mão inteira está subindo.
+        // Pequeno atraso entre as cartas para dar sensação de que a mão inteira está subindo.
         delay: indice * 18,
 
         ease: "Cubic.Out",
@@ -8730,9 +8085,7 @@ class CenaJogo extends Phaser.Scene {
       });
     });
 
-    // ============================================================
     // LIBERA O JOGO DEPOIS DA ANIMAÇÃO
-    // ============================================================
 
     this.time.delayedCall(340 + cartas.length * 18, () => {
       this.travado = false;

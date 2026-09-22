@@ -99,8 +99,7 @@ const FACTION_CARDS = Object.freeze({
   ],
 });
 
-// O painel administrativo concede exatamente as cartas implementadas no jogo.
-// O catálogo é código local do projeto, carregado uma vez na inicialização.
+// O catálogo administrativo usa apenas as cartas implementadas no jogo.
 const ALL_AVAILABLE_CARDS = Object.freeze(
   runInNewContext(
     `${readFileSync(path.join(PUBLIC_ROOT, "js/cartas.js"), "utf8")}

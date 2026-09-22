@@ -4,6 +4,16 @@ Novidades, correções e verificações realizadas no projeto. As entregas mais 
 
 ## 2026-09-22
 
+### Nitidez no celular, versão e simplificação da cena
+
+- Substituída a redução automática para 480×987 por resolução ajustada à densidade e à área da tela, entre 720×1480 e 1080×2220 no layout atual. Mantido `?quality=mobile` como opção econômica explícita; desativado o arredondamento de posições para suavizar movimentos.
+- Substituído o “CD” do topo por `v1.0.0`, correspondente ao `package.json`, com apresentação discreta e sem moldura.
+- Limitada a reavaliação visual das auras de habilidade a uma vez a cada 100 ms, evitando recalcular alvos em todos os frames e atualizar a visibilidade sem mudança. Eventos de efeitos e relógios continuam no fluxo por frame.
+- Reescritos comentários extensos em linhas simples nos arquivos próprios de JavaScript, CSS e HTML; preservadas bibliotecas de terceiros. A limpeza inicial retirou 59.464 bytes de JavaScript e teve a equivalência estrutural do código verificada antes das mudanças funcionais. A cena de jogo ficou aproximadamente 39 KB menor.
+- Atualizadas as versões dos assets no HTML. Sintaxe de 22 arquivos próprios e `git diff --check` aprovados; equivalência estrutural confirmada em 19 arquivos sem mudanças funcionais.
+- Aprovados 26 dos 28 testes, incluindo resolução por densidade, limite de pixels, perfil econômico, frequência das auras, contas e multiplayer. Confirmadas também no código anterior as falhas de `card-modal-layer.test.js` (mock sem `bringToTop`) e `effect-events.test.js` (descrição de O Bom divergente do documento).
+- Validado no Chromium com tela móvel simulada de 390×844 e DPR 3: canvas de 1080×2220, versão no menu, abertura da partida, dez slots do jogador, ficha e rotação para paisagem, sem exceções JavaScript. Desempenho em aparelho físico não medido.
+
 ### Correção da inicialização do servidor no Docker
 
 - Confirmado nos logs o erro `ENOENT` ao ler `/app/assets/fotosdeperfil`: o catálogo passou a ser obrigatório na inicialização, mas não era copiado para a imagem do servidor.

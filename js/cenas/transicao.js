@@ -1,20 +1,4 @@
-// ============================================================================
-// CENA DE TRANSIÇÃO
-// ============================================================================
-// Roda entre o título e o jogo. Só toca o vídeo "Transicao_de_tela" em tela
-// cheia, ajustado à proporção configurada sem deformar o vídeo.
-// Mantém o áudio original do vídeo
-// (play(loop=false) sem mute). Ao terminar, manda direto pra CenaJogo, que
-// desenha a parte_3 em loop como fundo (ver desenharFundoJogo() em
-// jogo.js) e faz a interface dar fade in por cima dela.
-//
-// Pular a transição: aperta ESPAÇO (pula na hora) ou segura o dedo/mouse
-// na tela por 2 segundos (mostra um anelzinho de progresso enquanto
-// segura, pra dar feedback visual). Qualquer um dos dois caminhos —
-// inclusive o vídeo terminando sozinho — passa pelo mesmo pularParaJogo(),
-// que tem uma trava (jaTransicionou) pra garantir que a cena só troca uma
-// vez, não importa quantos gatilhos disparem em cima da hora.
-// ============================================================================
+// Reproduz o vídeo de transição antes de abrir a partida.
 class CenaTransicao extends Phaser.Scene {
   constructor() {
     super("CenaTransicao");
@@ -44,9 +28,7 @@ class CenaTransicao extends Phaser.Scene {
     this.criarSkip(video);
   }
 
-  // Troca de cena de forma segura (só executa uma vez, mesmo que o vídeo
-  // termine, o espaço seja apertado e o toque seguro completem quase ao
-  // mesmo tempo) e para o vídeo pra não ficar tocando por baixo do fade.
+  // Troca de cena uma única vez e interrompe o vídeo.
   pularParaJogo(video) {
     if (this.jaTransicionou) return;
     this.jaTransicionou = true;
@@ -59,12 +41,12 @@ class CenaTransicao extends Phaser.Scene {
   }
 
   criarSkip(video) {
-    // ---------- Atalho de teclado: ESPAÇO pula na hora ----------
+    // Atalho de teclado: ESPAÇO pula na hora
     this.input.keyboard.on("keydown-SPACE", () => {
       this.pularParaJogo(video);
     });
 
-    // ---------- Segurar a tela por 2s pula também ----------
+    // Segurar a tela por 2s pula também
     const raio = 46;
     const duracaoSegurar = 2000;
     const x = LARGURA_LAYOUT - 110;

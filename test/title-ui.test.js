@@ -57,3 +57,6 @@ assert.match(css, /\.title-room-input\s*\{/);
 assert.match(css, /\.title-action--solo\s*\{/);
 
 console.log("Tela inicial, estado do deck e código de sala validados.");
+
+const version = require('../package.json').version;
+assert.ok(fs.readFileSync('js/title-ui.js', 'utf8').includes(`"title-system-id__mark", "v${version}"`), 'A versão do menu acompanha o projeto.');

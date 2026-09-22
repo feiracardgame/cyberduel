@@ -90,3 +90,18 @@ console.log('Seleção cumulativa de caveiras e transições de fase validadas.'
   scene.ehMeuTurno=true;scene.multiplayer.spectator=true;scene.atualizarAurasHabilidade();assert.equal(aura.visible,false);
   scene.multiplayer.spectator=false;scene.faseAtual='colocar';scene.atualizarAurasHabilidade();assert.equal(aura.visible,false);
 }
+
+// Auras atualizam no máximo dez vezes por segundo; os demais eventos continuam por frame.
+{
+  let auras = 0, effects = 0;
+  const scene = Object.assign(Object.create(CenaJogo.prototype), {
+    proximaAtualizacaoAuras: 0,
+    apresentarEventosEfeito() { effects++; },
+    atualizarAurasHabilidade() { auras++; },
+  });
+  for (let time = 0; time < 1000; time += 10) scene.update(time);
+  assert.equal(auras, 10);
+  assert.equal(effects, 100);
+  scene.update(5000);
+  assert.equal(auras, 11, 'Retomar após uma pausa sem acumular atualizações.');
+}

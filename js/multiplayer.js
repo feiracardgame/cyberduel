@@ -1,5 +1,4 @@
-// Camada multiplayer do Cyberduel. O servidor controla a sala e de quem é
-// a vez; o estado completo da partida viaja entre os clientes ao passar a vez.
+// O servidor controla a sala e sincroniza o estado da partida.
 class CyberduelMultiplayer {
   constructor() {
     this.socket = null;

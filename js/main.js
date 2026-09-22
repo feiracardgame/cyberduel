@@ -1,8 +1,6 @@
 console.log("Cyberduel iniciou!");
 
-// Os dados de carta (classe Carta, TIPOS_EFEITO, descreverEfeito e o pool
-// POOL_CARTAS_EFEITO) agora moram em js/cartas.js, que é carregado antes
-// deste arquivo — veja index.html.
+// Os dados das cartas são carregados antes deste arquivo.
 
 class Deck {
   constructor() {
@@ -31,10 +29,7 @@ class Mao {
 class Campo {
   constructor(dono = null) {
     this.dono = dono;
-    // 10 posições por jogador (layout 2x5: 2 fileiras de 5 slots cada,
-    // por jogador — ou seja, 4 fileiras no total: 2 do inimigo em cima,
-    // 2 do jogador embaixo). Índices 0-4 = fileira de trás, 5-9 =
-    // fileira da frente (ver CenaJogo.desenharCampoInimigo/Jogador).
+    // Campo 2×5: índices 0–4 atrás e 5–9 na frente.
     this.cartas = new Array(10).fill(null);
     this.limite = 10;
     this.armadilhas = new Set();
@@ -57,8 +52,7 @@ class Campo {
   temEspaco(posicao) {
     return this.cartas[posicao] === null;
   }
-  // Tira cartas com poder 0 do campo (deixa o slot null de novo).
-  // Terrenos ficam de fora: eles sempre têm 0 PA e não "morrem" por isso.
+  // Tira cartas com poder 0 do campo (deixa o slot null de novo). Terrenos ficam de fora: eles sempre têm 0 PA e não "morrem" por isso.
   removerMortas() {
     for (let i = 0; i < this.cartas.length; i++) {
       const c = this.cartas[i];
@@ -74,15 +68,12 @@ class Campo {
   }
 }
 
-// Profundidade da linha dentro do campo do dono (1 = fileira da frente,
-// mais perto do inimigo; 2 = fileira de trás, mais longe).
+// Profundidade da linha dentro do campo do dono (1 = fileira da frente, mais perto do inimigo; 2 = fileira de trás, mais longe).
 function profundidadeLinha(posicao) {
   return posicao < 5 ? 2 : 1;
 }
 
-// Acha os alvos possíveis no campo do oponente pra uma carta atacante numa
-// posição, respeitando rangeH (colunas) e rangeV (linhas, olha as duas
-// fileiras dos dois lados). Retorna índices do campo do oponente.
+// Retorna os índices inimigos dentro do alcance horizontal e vertical.
 function alvosEmRange(posicaoAtacante, rangeH, rangeV, campoOponente) {
   const colAtk = posicaoAtacante % 5;
   const profAtk = profundidadeLinha(posicaoAtacante);
@@ -108,11 +99,7 @@ class Jogador {
     this.penalidadesInvocacao = [];
     this.vitorias = 0;
 
-    // Cartas compradas desde a última vez que a cena consumiu essa
-    // lista (ver CenaJogo.desenharMaoEmLeque, em jogo.js). Serve só
-    // pra cena saber QUAIS cartas da mão são "novas" e por isso devem
-    // receber a animação de compra (voar do monte até o leque) em vez
-    // de simplesmente entrar com o fade padrão.
+    // Registra as compras para animar apenas as cartas novas.
     this.cartasRecemCompradas = [];
   }
 
@@ -128,8 +115,7 @@ class Jogador {
     return true;
   }
 
-  // Cartas de efeito nunca ocupam o campo: são consumidas na hora,
-  // aplicam sua passiva e vão descartadas.
+  // Cartas de efeito nunca ocupam o campo: são consumidas na hora, aplicam sua passiva e vão descartadas.
   jogarCartaEfeito(carta) {
     const indice = this.mao.cartas.indexOf(carta);
     if (indice !== -1) {
@@ -193,9 +179,7 @@ class Jogador {
     if (this.deck.cartas.length > 0) {
       const compra = this.deck.cartas.pop();
       this.mao.adicionarCarta(compra);
-      // Registrada aqui pra cena poder animar essa carta especificamente
-      // como uma "compra" (voando do monte até o leque) na próxima
-      // renderização — ver CenaJogo.desenharMaoEmLeque, em jogo.js.
+      // Marca a carta para a animação de compra.
       this.cartasRecemCompradas.push(compra);
     }
   }
@@ -226,10 +210,7 @@ class Partida {
     }
 
     this.turno = 1;
-    // Duração máxima da partida em turnos — mas o confronto pode terminar
-    // antes disso: cada turno vira uma "rodada" (compara o poder total em
-    // campo dos dois lados) e quem fizer 4 rodadas primeiro vence, no
-    // estilo melhor de 7 — ver resolverRodada()/fimTurno().
+    // A partida termina ao atingir quatro rodadas vencidas ou o limite de turnos.
     this.maxTurnos = 7;
     this.rodadasParaVencer = 4;
     this.rodadasJogador = 0;
@@ -237,18 +218,14 @@ class Partida {
     this.partidaEncerrada = false;
     this.cartaSelecionada = null;
 
-    // Cartas afetadas por efeitos de turno (ex: CryptoAcionistas) no
-    // último fimTurno() resolvido, para a cena poder animar o buff.
+    // Cartas afetadas por efeitos de turno (ex: CryptoAcionistas) no último fimTurno() resolvido, para a cena poder animar o buff.
     this.efeitosDeTurno = [];
 
-    // Guarda a carta de efeito jogada pela IA no turno atual (se houver),
-    // junto das cartas que foram afetadas por ela, para a cena poder
-    // mostrar a animação de conjuração e de buff/debuff no momento certo.
+    // Guarda o efeito da IA e os alvos para animá-los na cena.
     this.efeitoInimigoTurno = null;
     this.jogadasCampoInimigoTurno = [];
 
-    // Histórico de todas as cartas jogadas na partida, na ordem em que
-    // foram jogadas. Cada entrada: { turno, quem: 'jogador'|'inimigo', carta }.
+    // Histórico de todas as cartas jogadas na partida, na ordem em que foram jogadas. Cada entrada: { turno, quem: 'jogador'|'inimigo', carta }.
     this.historico = [];
   }
 
@@ -299,12 +276,7 @@ class Partida {
     if (carta.tipo !== "efeito") this.registrarEventoEfeito(carta, this[quem], "invocacao");
   }
 
-  // Variante de jogarCartaDoJogador() usada quando o efeito da carta exige
-  // uma ESCOLHA do jogador antes de poder ser resolvido (hoje, só
-  // BUFF_ALIADO_ESCOLHIDO/CyberVendedor). A cena chama isto primeiro só pra
-  // colocar a carta em campo — sem aplicar nenhum efeito ainda — mostra a UI
-  // de seleção de alvo, e só então chama aplicarEfeitoInvocacao() (abaixo,
-  // já público) com o alvoEscolhido de fato.
+  // Invoca sem aplicar o efeito até o jogador escolher o alvo.
   colocarCartaDoJogador(carta, posicao) {
     if (this.fase && this.fase !== "colocar") return false;
     const sucesso = this.jogador.jogarCarta(carta, posicao);
@@ -312,15 +284,13 @@ class Partida {
     return sucesso;
   }
 
-  // Ponto único de entrada para o jogador jogar uma carta de monstro: garante
-  // que o efeito passivo de invocação seja aplicado sempre que a jogada for válida.
+  // Invoca monstros e aplica seus efeitos após validar a jogada.
   jogarCartaDoJogador(carta, posicao, alvoEscolhido = null) {
     if (this.fase && this.fase !== "colocar") return { sucesso: false, afetadas: [] };
     const sucesso = this.jogador.jogarCarta(carta, posicao);
     let afetadas = [];
     if (sucesso && carta.tipo === "terreno") {
-      // Terreno não tem efeito de invocação — só ativa o efeito contínuo,
-      // que fica sendo recalculado do zero (ver resolverEfeitosContinuos).
+      // Terreno não tem efeito de invocação — só ativa o efeito contínuo, que fica sendo recalculado do zero (ver resolverEfeitosContinuos).
       this.resolverEfeitosContinuos(this.jogador);
       this.resolverEfeitosContinuos(this.inimigo);
     } else if (sucesso) {
@@ -338,12 +308,7 @@ class Partida {
     return { sucesso, afetadas };
   }
 
-  // Recalcula, do zero, o bônus de PA que os terrenos do "dono" concedem ao
-  // campo dele. Reverte o bônus aplicado anteriormente (bonusTerreno) e
-  // reaplica com base nos terrenos que estão em campo agora — assim
-  // terrenos que saem de campo, entram, ou se somam não acumulam bônus à
-  // toa. Deve ser chamado sempre que o campo do "dono" mudar (jogar carta,
-  // fim de turno, etc.).
+  // Remove o bônus anterior e reaplica os terrenos atuais.
   atualizarSupressoes() {
     const campos = [this.jogador, this.inimigo];
     const cartas = campos.flatMap((d) => d.campo.cartas.filter(Boolean));
@@ -581,8 +546,7 @@ class Partida {
     dono.campo.removerMortas();
   }
 
-  // true se o "dono" tiver algum terreno com REVELAR_MAO_CONTINUO em campo
-  // — a cena usa isso para decidir se mostra a mão do oponente virada.
+  // true se o "dono" tiver algum terreno com REVELAR_MAO_CONTINUO em campo — a cena usa isso para decidir se mostra a mão do oponente virada.
   maoRevelada(dono) {
     const oponente = dono === this.jogador ? this.inimigo : this.jogador;
     if (
@@ -599,9 +563,7 @@ class Partida {
     );
   }
 
-  // Lista os índices do campo inimigo que uma carta ATACAR alcançaria se
-  // fosse jogada em "posicao" agora — pra UI mostrar o range antes de
-  // confirmar e deixar escolher o alvo (quando atingeTodos for false).
+  // Retorna alvos no alcance de ataque para a seleção visual.
   previsualizarAlvosAtaque(carta, posicao) {
     if (!carta.efeito || carta.efeito.tipo !== TIPOS_EFEITO.ATACAR) return [];
     return alvosEmRange(
@@ -612,18 +574,7 @@ class Partida {
     );
   }
 
-  // Ativa a habilidade de uma carta que JÁ ESTÁ em campo, uma vez por turno
-  // por carta (controlado por carta.usadaEsteTurno, liberado a cada
-  // fimTurno()). dono/oponente são os Jogador donos dos campos. Suporta
-  // três tipos de efeito ativo hoje:
-  //   ATACAR                -> dano em alvo(s) do campo INIMIGO
-  //   BUFF_ALIADO_ESCOLHIDO -> +poder em uma carta ALIADA escolhida
-  //   REDISTRIBUIR_PODER    -> uma carta ALIADA escolhida perde poder, OUTRA ganha
-  // (Agente da DIPSP/Juggernaut usam o primeiro; Estagiário de ML usa o
-  // segundo; Gestor de RH usa o terceiro — ver POOL_CARTAS_MONSTRO em
-  // cartas.js.) alvoSecundario só é usado por REDISTRIBUIR_PODER (é o
-  // segundo alvo escolhido, quem ganha poder; alvoEscolhido é quem perde).
-  // Finaliza qualquer habilidade no mesmo ponto, inclusive habilidades aprendidas.
+  // Ativa a habilidade uma vez por turno, após validar os alvos.
   ativarHabilidade(carta, dono, oponente, alvo = null, secundario = null) {
     this.atualizarSupressoes();
     const antesEfeito = this.capturarCampoEfeitos();
@@ -799,9 +750,7 @@ class Partida {
     }
 
     if (carta.efeito.tipo === TIPOS_EFEITO.BUFF_ALIADO_ESCOLHIDO) {
-      // Machine Learning: alvo tem que ser outra carta aliada em campo
-      // (não pode escolher a si mesma). Sem alvo válido, a habilidade não
-      // é gasta — o jogador tem que escolher outra aliada em campo antes.
+      // Machine Learning: alvo tem que ser outra carta aliada em campo (não pode escolher a si mesma).
       const alvoValido =
         alvoEscolhido !== null &&
         alvoEscolhido !== undefined &&
@@ -892,9 +841,7 @@ class Partida {
     }
 
     if (carta.efeito.tipo === TIPOS_EFEITO.REDISTRIBUIR_PODER) {
-      // Reestruturação Interna (Gestor de RH): dois alvos DISTINTOS, ambos
-      // aliados em campo (qualquer um dos dois pode ser o próprio Gestor).
-      // alvoEscolhido = quem perde poder; alvoSecundario = quem ganha.
+      // O Gestor transfere poder entre duas aliadas distintas, podendo ser uma delas.
       const alvoPerdaValido =
         alvoEscolhido !== null &&
         alvoEscolhido !== undefined &&
@@ -914,8 +861,6 @@ class Partida {
 
       const cartaPerda = dono.campo.cartas[alvoEscolhido];
       // O custo precisa existir por inteiro antes da habilidade acontecer.
-      // Sem esta guarda, uma carta com 1 PA era aceita e ainda gerava o
-      // bônus de +3, criando poder do nada.
       if (cartaPerda.poder < perda)
         return { sucesso: false, afetadas: [] };
       afetadas.push({ carta: cartaPerda, delta: cartaPerda.buff(-perda) });
@@ -931,8 +876,7 @@ class Partida {
     }
 
     if (carta.efeito.tipo === TIPOS_EFEITO.DESTRUIR_TERRENO_INIMIGO) {
-      // Cessar e Desistir: alvo tem que ser um terreno no campo do
-      // oponente. Sem alvo válido, a habilidade não é gasta.
+      // Cessar e Desistir: alvo tem que ser um terreno no campo do oponente. Sem alvo válido, a habilidade não é gasta.
       const alvoValido =
         alvoEscolhido !== null &&
         alvoEscolhido !== undefined &&
@@ -946,9 +890,7 @@ class Partida {
 
       const terrenoDestruido = oponente.campo.removerCarta(alvoEscolhido);
 
-      // Bônus contínuo do terreno destruído deixa de existir — recalcula
-      // do zero pro lado do oponente (mesmo mecanismo do bug corrigido
-      // antes: garante que o campo inimigo perca o buff na hora).
+      // Recalcula os bônus após remover o terreno inimigo.
       this.resolverEfeitosContinuos(oponente);
 
       carta.usadaEsteTurno = true; // também trava o botão neste turno, por consistência visual
@@ -957,12 +899,7 @@ class Partida {
     }
 
     if (carta.efeito.tipo === TIPOS_EFEITO.RESETAR_PODER) {
-      // Novo Começo (O Boi): alvo pode ser QUALQUER carta em campo, aliada
-      // ou inimiga (terrenos não têm poder, então nunca são alvo válido).
-      // alvoEscolhido usa índice deslocado: 0..TAM-1 é o campo do dono,
-      // TAM..2*TAM-1 é o campo do oponente (TAM = tamanho do campo) —
-      // ver alvosParaHabilidadeEmCampo() e iniciarSelecaoDeQualquerCarta-
-      // ParaHabilidade() em jogo.js, que geram/consomem esse mesmo esquema.
+      // O Boi usa índices 0..TAM-1 para aliados e TAM..2*TAM-1 para inimigos.
       const TAM = dono.campo.cartas.length;
       const lado =
         alvoEscolhido !== null && alvoEscolhido !== undefined
@@ -1005,10 +942,7 @@ class Partida {
     }
 
     if (carta.efeito.tipo === TIPOS_EFEITO.ATACAR_DOIS_ALVOS) {
-      // Garra de aço (O Tigre): alvoEscolhido e alvoSecundario são dois
-      // índices distintos no campo do oponente, ambos dentro do range —
-      // se só um alvo válido foi escolhido (ex: só havia 1 em alcance), o
-      // efeito ainda se aplica a esse um, sem gastar o segundo.
+      // O Tigre ataca um ou dois inimigos distintos dentro do alcance.
       const { valor, rangeH, rangeV } = carta.efeito;
       const possiveis = alvosEmRange(posicao, rangeH, rangeV, oponente.campo);
       if (!possiveis.includes(alvoEscolhido))
@@ -1039,9 +973,7 @@ class Partida {
     }
 
     if (carta.efeito.tipo === TIPOS_EFEITO.OVERRIDE) {
-      // Override (A Aranha): a carta-alvo CONTINUA no campo do oponente
-      // (não muda de dono nem de slot) — só passa a contar ponto pro
-      // dono da Aranha, via a flag capturadaPor (ver calcularPoderTotal).
+      // Override mantém a carta no campo inimigo e transfere apenas seus pontos.
       const hackAnterior = this.obterCartaHackeadaPor(carta);
       const alvoValido =
         alvoEscolhido !== null &&
@@ -1053,9 +985,7 @@ class Partida {
         oponente.campo.cartas[alvoEscolhido].poder < carta.poder;
       if (!alvoValido) return { sucesso: false, afetadas: [] };
 
-      // Troca atômica de alvo: o vínculo antigo só é solto depois que o
-      // novo alvo foi completamente validado. Assim um clique inválido não
-      // faz a Aranha perder o controle que já possuía.
+      // Troca atômica de alvo: o vínculo antigo só é solto depois que o novo alvo foi completamente validado.
       if (hackAnterior) {
         hackAnterior.capturadaPor = null;
         hackAnterior.capturadaPorAranha = null;
@@ -1075,8 +1005,7 @@ class Partida {
     }
 
     if (carta.efeito.tipo === TIPOS_EFEITO.ROUBAR_PODER) {
-      // Mãos Leves (O Rato): alvo pode ser QUALQUER carta inimiga em campo
-      // (sem restrição de range/coluna, diferente do ATACAR).
+      // Mãos Leves (O Rato): alvo pode ser QUALQUER carta inimiga em campo (sem restrição de range/coluna, diferente do ATACAR).
       const alvoValido =
         alvoEscolhido !== null &&
         alvoEscolhido !== undefined &&
@@ -1104,9 +1033,7 @@ class Partida {
     }
 
     if (carta.efeito.tipo === TIPOS_EFEITO.REPOSICIONAR) {
-      // Escalada (A Cabra): troca de lugar com outra carta aliada, ou se
-      // move pra um espaço livre — sempre dentro do próprio campo. Nunca
-      // troca com terreno (terreno não sai do lugar).
+      // Escalada (A Cabra): troca de lugar com outra carta aliada, ou se move pra um espaço livre — sempre dentro do próprio campo.
       const alvoOcupante = dono.campo.cartas[alvoEscolhido];
       const alvoValido =
         alvoEscolhido !== null &&
@@ -1124,10 +1051,7 @@ class Partida {
     }
 
     if (carta.efeito.tipo === TIPOS_EFEITO.ENVENENAR) {
-      // Dose Letal (A Cobra): alvo é uma carta inimiga em alcance curto
-      // (mesmo esquema de range de ATACAR). A picada em si não causa dano
-      // na hora — só marca a carta como envenenada; o dano por turno é
-      // resolvido em Partida.resolverEfeitosDeTurno().
+      // O veneno aplica dano no fim do turno, não na picada.
       const { rangeH, rangeV, valor } = carta.efeito;
       const possiveis = alvosEmRange(posicao, rangeH, rangeV, oponente.campo);
       if (!possiveis.includes(alvoEscolhido))
@@ -1152,11 +1076,7 @@ class Partida {
     return { sucesso: false, afetadas: [] };
   }
 
-  // Lista os índices de campo que ativarHabilidade() atingiria agora, pra
-  // UI destacar os alvos possíveis e deixar o jogador escolher antes de
-  // confirmar. Pra ATACAR, os alvos são no campo do OPONENTE; pra
-  // BUFF_ALIADO_ESCOLHIDO (Estagiário de ML), os alvos são no campo do
-  // próprio DONO, exceto a própria carta.
+  // Retorna alvos válidos para o seletor da habilidade.
   alvosParaHabilidadeEmCampo(carta, dono, oponente) {
     this.atualizarSupressoes();
     if (!carta.efeito || !carta.habilidadeAtiva) return [];
@@ -1177,8 +1097,7 @@ class Partida {
       );
     }
 
-    // Eu Sou a Lei ignora completamente posição, fileira e alcance:
-    // toda carta inimiga que tenha PA é um alvo válido.
+    // Eu Sou a Lei ignora completamente posição, fileira e alcance: toda carta inimiga que tenha PA é um alvo válido.
     if (carta.efeito.tipo === TIPOS_EFEITO.DISTRIBUIR_DANO) {
       return oponente.campo.cartas
         .map((c, i) => (c && c.tipo !== "terreno" ? i : null))
@@ -1200,9 +1119,7 @@ class Partida {
     }
 
     if (carta.efeito.tipo === TIPOS_EFEITO.REDISTRIBUIR_PODER) {
-      // Diferente do BUFF_ALIADO_ESCOLHIDO, aqui a própria carta (o Gestor)
-      // TAMBÉM pode ser escolhida como um dos dois alvos — a UI (jogo.js)
-      // é quem cuida de excluir o primeiro alvo escolhido da segunda lista.
+      // O Gestor pode participar da troca; a UI exige alvos distintos.
       const indices = [];
       const custo = Math.max(0, Number(carta.efeito.perda) || 0);
       dono.campo.cartas.forEach((c, i) => {
@@ -1220,10 +1137,7 @@ class Partida {
     }
 
     if (carta.efeito.tipo === TIPOS_EFEITO.RESETAR_PODER) {
-      // Novo Começo (O Boi): alvo é QUALQUER carta em campo — aliada
-      // (incluindo o próprio Boi) ou inimiga. Índice deslocado: 0..TAM-1
-      // = campo do dono, TAM..2*TAM-1 = campo do oponente (mesmo esquema
-      // decodificado em ativarHabilidade()).
+      // O Boi alcança ambos os campos; inimigos usam índices deslocados por TAM.
       const TAM = dono.campo.cartas.length;
       const indices = [];
       dono.campo.cartas.forEach((c, i) => {
@@ -1236,9 +1150,7 @@ class Partida {
     }
 
     if (carta.efeito.tipo === TIPOS_EFEITO.ATACAR_DOIS_ALVOS) {
-      // Garra de aço (O Tigre): mesmo range de ATACAR — a diferença (dois
-      // alvos em vez de um) é resolvida pela UI em duas etapas, ver
-      // iniciarSelecaoDoPrimeiroAlvoDuplo() em jogo.js.
+      // O Tigre usa o alcance de ataque e seleciona até dois alvos.
       return alvosEmRange(
         posicao,
         carta.efeito.rangeH,
@@ -1250,9 +1162,7 @@ class Partida {
     if (carta.efeito.tipo === TIPOS_EFEITO.OVERRIDE) {
       this.atualizarOverrides();
       const hackAtual = this.obterCartaHackeadaPor(carta);
-      // Override (A Aranha): só cartas inimigas com poder MENOR que o
-      // dela — a carta capturada fica no campo do oponente, então não
-      // precisa de slot livre no campo do dono.
+      // Override exige inimigo com menos PA e não ocupa um novo slot.
       const indices = [];
       oponente.campo.cartas.forEach((c, i) => {
         if (
@@ -1278,8 +1188,7 @@ class Partida {
     }
 
     if (carta.efeito.tipo === TIPOS_EFEITO.REPOSICIONAR) {
-      // Escalada (A Cabra): qualquer espaço do PRÓPRIO campo, livre ou
-      // ocupado por aliada (não-terreno), exceto a posição atual dela.
+      // Escalada (A Cabra): qualquer espaço do PRÓPRIO campo, livre ou ocupado por aliada (não-terreno), exceto a posição atual dela.
       const indices = [];
       dono.campo.cartas.forEach((c, i) => {
         if (i !== posicao && (c === null || c.tipo !== "terreno")) {
@@ -1302,9 +1211,7 @@ class Partida {
     return [];
   }
 
-  // O Trotar do Cavalo: lista as colunas (0-4) do campo inimigo que têm ao
-  // menos uma carta (não-terreno), pra UI saber quais colunas destacar
-  // antes do jogador confirmar (ver iniciarSelecaoDeColunaInimiga, jogo.js).
+  // Lista as colunas inimigas com cartas que não sejam terrenos.
   colunasComAlvoInimigo() {
     const colunas = [];
     for (let col = 0; col < 5; col++) {
@@ -1316,10 +1223,7 @@ class Partida {
     return colunas;
   }
 
-  // Ponto único de entrada para o jogador conjurar uma carta de efeito:
-  // ela nunca vai para o campo, só é consumida e aplica sua passiva.
-  // alvoEscolhido só é usado pela Sugestão Algorítmica (BUSCAR_CARTA_DECK):
-  // é o índice, no baralho do jogador, da carta escolhida pra ir pra mão.
+  // Consome a carta de efeito e aplica a conjuração sem ocupar o campo.
   jogarCartaEfeitoDoJogador(carta, alvoEscolhido = null) {
     if (this.fase && this.fase !== "colocar") return { sucesso: false, afetadas: [] };
     const sucesso = this.jogador.jogarCartaEfeito(carta);
@@ -1336,10 +1240,7 @@ class Partida {
     return { sucesso, afetadas };
   }
 
-  // Aplica o efeito passivo de uma carta no momento em que ela é invocada.
-  // "dono" é quem jogou a carta, "oponente" é o outro jogador.
-  // Retorna a lista de cartas de campo afetadas (com o delta de poder
-  // aplicado), para que a cena possa animar exatamente essas cartas.
+  // Aplica a invocação e retorna as cartas afetadas para animação.
   aplicarEfeitoInvocacao(carta, dono, oponente, posicao = null, alvoEscolhido = null) {
     this.atualizarSupressoes();
     const antes = this.capturarCampoEfeitos();
@@ -1411,13 +1312,7 @@ class Partida {
         }
         break;
       case TIPOS_EFEITO.BUFF_ALIADO_ESCOLHIDO: {
-        // alvoEscolhido é um índice no campo do dono (Venda Casada permite
-        // escolher qualquer aliada em campo, inclusive esta mesma carta,
-        // que nesse momento já está em "posicao"). Sem escolha válida,
-        // cai no padrão de buffar a própria carta recém-invocada. Terreno
-        // nunca é alvo válido (não tem PA).
-        // (Cartas com habilidadeAtiva=true, como o Estagiário de ML, nunca
-        // chegam aqui — ver o early return de habilidadeAtiva acima.)
+        // Venda Casada aceita qualquer aliada, inclusive a carta recém-invocada.
         const idxAlvo =
           alvoEscolhido !== null &&
           alvoEscolhido !== undefined &&
@@ -1448,14 +1343,7 @@ class Partida {
         break;
       }
       case TIPOS_EFEITO.ABSORVER_ALIADOS: {
-        // Potencialização de Capital (RaspClay MonteCorp): alvoEscolhido
-        // aqui é um ARRAY de índices no campo do dono (não um índice só,
-        // como nos outros efeitos) — já filtrados pela UI (jogo.js) como
-        // aliadas elegíveis (nível baixo/médio, ver alvosParaAbsorverAliados
-        // abaixo) e limitados a efeito.maxAlvos. Cada aliada escolhida é
-        // sacrificada diretamente e o poder somado delas vira ganho pra esta
-        // carta. Sacrifício não é redução de PA: por isso ele ignora efeitos
-        // como Casca Grossa, que protege O Porco apenas contra debuffs.
+        // RaspClay recebe um array de índices de aliadas elegíveis para absorção.
         const indices = Array.isArray(alvoEscolhido) ? alvoEscolhido : [];
         const maxAlvos = carta.efeito.maxAlvos || 0;
         let somaPoder = 0;
@@ -1477,9 +1365,7 @@ class Partida {
         break;
       }
       case TIPOS_EFEITO.ATACAR_COLUNA: {
-        // O Trotar do Cavalo: alvoEscolhido é a COLUNA (0-4) escolhida pelo
-        // jogador (ver alvosParaAtacarColuna abaixo e a seleção em jogo.js).
-        // Atinge as duas fileiras dessa coluna no campo do oponente.
+        // O Trotar do Cavalo: alvoEscolhido é a COLUNA (0-4) escolhida pelo jogador (ver alvosParaAtacarColuna abaixo e a seleção em jogo.js).
         const coluna = alvoEscolhido;
         if (coluna !== null && coluna !== undefined) {
           [coluna, coluna + 5].forEach((idx) => {
@@ -1511,10 +1397,7 @@ class Partida {
         break;
       }
       case TIPOS_EFEITO.REVELAR_CARTAS_INIMIGO: {
-        // Faro (O Cão): junta mão + baralho do oponente e revela até
-        // `valor` cartas (prioriza a mão, completa com o baralho) — não
-        // mexe no campo, então "afetadas" fica vazio. A UI (jogo.js) lê
-        // this.ultimaRevelacaoFaro pra mostrar os nomes revelados.
+        // Faro revela mão e depois deck; a UI lê ultimaRevelacaoFaro.
         const poolInimigo = [...oponente.mao.cartas, ...oponente.deck.cartas];
         this.ultimaRevelacaoFaro = poolInimigo.slice(0, valor);
         break;
@@ -1546,12 +1429,7 @@ class Partida {
     return afetadas;
   }
 
-  // Lista os índices do campo do DONO que uma carta ABSORVER_ALIADOS (ex:
-  // RaspClay MonteCorp) pode escolher pra absorver agora: aliadas cuja
-  // classificação oficial esteja permitida pelo efeito, sem contar terrenos
-  // nem a própria carta recém-invocada. Usada pela
-  // UI (iniciarSelecaoDeAbsorcao, em jogo.js) pra saber quais slots
-  // destacar antes do jogador confirmar.
+  // Lista aliadas de nível permitido para absorção, sem terrenos nem a própria carta.
   alvosParaAbsorverAliados(carta, dono, posicaoPropria) {
     if (!carta.efeito || carta.efeito.tipo !== TIPOS_EFEITO.ABSORVER_ALIADOS)
       return [];
@@ -1572,12 +1450,7 @@ class Partida {
     return indices;
   }
 
-  // Fecha o turno atual. A cada turno fechado, uma rodada é resolvida
-  // (resolverRodada): quem tiver mais poder total em campo fatura o
-  // ponto daquela rodada. A partida termina — e fimTurno() para de fazer
-  // qualquer coisa depois disso (this.partidaEncerrada = true) — assim
-  // que um dos lados chegar a 4 rodadas vencidas (melhor de 7) ou o turno
-  // máximo (7) for atingido, o que vier primeiro.
+  // Fecha o turno e resolve a rodada; partidas encerradas não avançam.
   fimTurno(opcoes = {}) {
     if (this.partidaEncerrada) {
       return { resultadoCombate: null, fimDeJogo: true, resultadoRodada: null };
@@ -1590,9 +1463,7 @@ class Partida {
       },
     );
 
-    // No multiplayer, o segundo cliente ocupa o lugar da IA. O estado da
-    // primeira metade da rodada já chegou pela rede, então fechamos a rodada
-    // sem gerar uma jogada automática.
+    // No multiplayer, o segundo cliente ocupa o lugar da IA.
     if (!opcoes.semIA) this.turnoIA();
     // Veneno e recuperação fecham a rodada; investimentos são sorteados no início da próxima.
     this.efeitosDeTurno = this.resolverEfeitosDeTurno();
@@ -1626,19 +1497,11 @@ class Partida {
       }
     }
 
-    // fimDeJogo avisa a cena que é hora de mostrar a tela de
-    // VOCÊ VENCEU / VOCÊ PERDEU em vez do fluxo normal de próximo turno.
-    // resultadoRodada é o placar da rodada que acabou de fechar (quem tinha
-    // mais poder em campo), útil pra cena mostrar o placar melhor-de-7
-    // mesmo nos turnos em que a partida ainda não terminou.
+    // Retorna o fim da partida e o placar da rodada para a cena.
     return { resultadoCombate, fimDeJogo, resultadoRodada };
   }
 
-  // Percorre o campo dos dois jogadores e reavalia o efeitoTurno de cada
-  // carta presente. Retorna a lista de cartas afetadas (com o delta de
-  // poder aplicado), no mesmo formato de aplicarEfeitoInvocacao(), para a
-  // cena poder animar exatamente essas cartas (reaproveita
-  // animarCartasAfetadas em jogo.js).
+  // Resolve os efeitos de turno dos dois campos e retorna as cartas afetadas.
   resolverEfeitosInicioRodada() {
     this.atualizarSupressoes();
     [this.jogador, this.inimigo].forEach((dono) => dono.campo.cartas.forEach((carta) => {
@@ -1654,9 +1517,7 @@ class Partida {
     this.atualizarSupressoes();
     const afetadas = [];
 
-    // Dose Letal (A Cobra): cartas envenenadas perdem poder a cada turno,
-    // sempre respeitando Casca Grossa (buff() já ignora reduções nesse
-    // caso). Cada aplicação dura apenas enquanto sua fonte estiver em campo.
+    // Dose Letal (A Cobra): cartas envenenadas perdem poder a cada turno, sempre respeitando Casca Grossa (buff() já ignora reduções nesse caso).
     [this.jogador, this.inimigo].forEach((dono) => {
       dono.campo.cartas.forEach((c) => {
         if (c && c.envenenada) {
@@ -1684,9 +1545,7 @@ class Partida {
       });
     });
 
-    // Recupera dano de cartas aliadas enquanto um terreno Beira-mar (ou
-    // qualquer outro RECUPERAR_DANO_CONTINUO) estiver em campo — nunca
-    // passa do PA original da carta (poderBase).
+    // A recuperação contínua não ultrapassa o poderBase da carta.
     [this.jogador, this.inimigo].forEach((dono) => {
       const terrenos = dono.campo.cartas.filter(
         (c) =>
@@ -1713,9 +1572,7 @@ class Partida {
       });
     });
 
-    // Reavalia bônus contínuos dos terrenos (Torre MonteCorp etc.) antes de
-    // remover mortas, já que o buff/recuperação pode ter tirado uma carta
-    // da zona de "morta".
+    // Recalcula bônus e recuperação antes de remover cartas sem PA.
     this.resolverEfeitosContinuos(this.jogador);
     this.resolverEfeitosContinuos(this.inimigo);
 
@@ -1814,9 +1671,7 @@ class Partida {
       };
     }
 
-    // Reavalia uma última vez depois das duas jogadas. Isso é importante
-    // quando a Toca do Coelho foi a primeira: a segunda carta também deve
-    // nascer oculta antes de a cena iniciar a animação sequencial.
+    // Reavalia uma última vez depois das duas jogadas.
     this.resolverEfeitosContinuos(this.inimigo);
     this.resolverEfeitosContinuos(this.jogador);
 
@@ -1825,9 +1680,7 @@ class Partida {
     // IA também ativa habilidades de ataque disponíveis em campo (1x cada).
     this.inimigo.campo.cartas.forEach((c) => {
       if (c && c.habilidadeAtiva && !c.usadaEsteTurno) {
-        // Cessar e Desistir (Advogado Corporativo): a IA precisa de um
-        // alvo explícito (terreno do jogador) — sem isso ativarHabilidade
-        // sempre falharia em silêncio, então mira no primeiro disponível.
+        // A IA escolhe um terreno explícito para Cessar e Desistir.
         const alvoTerrenoIA =
           [TIPOS_EFEITO.DESTRUIR_TERRENO_INIMIGO, TIPOS_EFEITO.SILENCIAR_CARTA, TIPOS_EFEITO.BUFF_ALIADO_ESCOLHIDO].includes(c.efeito?.tipo)
             ? this.alvosParaHabilidadeEmCampo(c, this.inimigo, this.jogador)[0]
@@ -1863,9 +1716,7 @@ class Partida {
     return distribuicao;
   }
 
-  // A identidade da própria instância da Aranha define o vínculo. Assim,
-  // duas ou mais Aranhas podem manter hacks diferentes sem compartilhar
-  // estado; somente um alvo já hackeado fica indisponível para as demais.
+  // A identidade da própria instância da Aranha define o vínculo.
   obterCartaHackeadaPor(aranha) {
     for (const dono of [this.jogador, this.inimigo]) {
       const alvo = dono.campo.cartas.find(
@@ -1876,9 +1727,7 @@ class Partida {
     return null;
   }
 
-  // Mantém o Override da Dona Aranha como um vínculo contínuo. Ela pode
-  // controlar somente uma carta; se sair de campo ou deixar de ter PA
-  // estritamente maior que o alvo, o hack acaba imediatamente.
+  // Mantém o Override da Dona Aranha como um vínculo contínuo.
   atualizarOverrides() {
     this.atualizarSupressoes();
     [this.jogador, this.inimigo].forEach((donoDoCampoFisico) => {
@@ -1900,10 +1749,7 @@ class Partida {
     });
   }
 
-  // Recebe o JOGADOR (não mais o campo) porque, com Override (A Aranha),
-  // uma carta pode fisicamente estar no campo do oponente mas contar
-  // ponto pro dono da Aranha (carta.capturadaPor) — então é preciso
-  // varrer os dois campos e decidir o dono efetivo de cada carta.
+  // Soma ambos os campos respeitando os vínculos de Override.
   calcularPoderTotal(jogadorAlvo) {
     this.atualizarOverrides();
     let total = 0;
@@ -1917,9 +1763,7 @@ class Partida {
     return total;
   }
 
-  // Retorna a carta com maior poder (PA) presente num campo, ou null se
-  // o campo estiver vazio. Usada pela tela de fim de jogo para mostrar a
-  // carta "MVP" embaixo do texto de VOCÊ VENCEU / VOCÊ PERDEU.
+  // Retorna a carta com maior poder (PA) presente num campo, ou null se o campo estiver vazio.
   obterCartaComMaiorPoder(campo) {
     let maior = null;
     for (const carta of campo.cartas) {
@@ -1930,11 +1774,7 @@ class Partida {
     return maior;
   }
 
-  // Encerra a partida na hora, como derrota do jogador — usado pelo botão
-  // "Desistir" da roda de botões (jogo.js). Diferente de resolverCombate(),
-  // o resultado aqui não depende do poder em campo: quem desiste perde,
-  // ponto final. Ainda assim reaproveita calcularPoderTotal/
-  // obterCartaComMaiorPoder pra preencher a mesma tela de fim de jogo.
+  // Encerra a partida na hora, como derrota do jogador — usado pelo botão "Desistir" da roda de botões (jogo.js).
   desistir() {
     if (this.partidaEncerrada) return null;
     this.partidaEncerrada = true;
@@ -1954,10 +1794,7 @@ class Partida {
     };
   }
 
-  // Resolve UMA rodada (chamada a cada fimTurno): compara o poder total em
-  // campo dos dois lados neste instante e dá o ponto pra quem estiver na
-  // frente (empate não pontua ninguém). Isso é só o placar da rodada —
-  // quem vence a PARTIDA é decidido em finalizarPartida().
+  // Compara os poderes e pontua a rodada; empate não pontua.
   resolverRodada() {
     const poderJogador = this.calcularPoderTotal(this.jogador);
     const poderInimigo = this.calcularPoderTotal(this.inimigo);
@@ -1989,11 +1826,7 @@ class Partida {
     return this.finalizarPartida();
   }
 
-  // Fecha a PARTIDA (chamada só quando fimTurno detecta que ela terminou):
-  // o lado com mais rodadas vencidas (melhor de 7) leva a vitória; se os
-  // dois turnos acabarem empatados em rodadas, é empate mesmo. Monta o
-  // mesmo formato de resultado de antes (poder final em campo + carta
-  // destaque) pra tela de fim de jogo não precisar mudar.
+  // Encerra a partida pelo total de rodadas vencidas.
   finalizarPartida() {
     const poderJogador = this.calcularPoderTotal(this.jogador);
     const poderInimigo = this.calcularPoderTotal(this.inimigo);
@@ -2009,8 +1842,7 @@ class Partida {
       resultado = "empate";
     }
 
-    // Carta de maior poder do lado vencedor, para a tela de fim de jogo.
-    // Em caso de empate, mostra a maior carta entre os dois campos.
+    // Carta de maior poder do lado vencedor, para a tela de fim de jogo. Em caso de empate, mostra a maior carta entre os dois campos.
     let cartaDestaque = null;
     if (resultado === "jogador") {
       cartaDestaque = this.obterCartaComMaiorPoder(this.jogador.campo);
@@ -2030,8 +1862,7 @@ class Partida {
       `Rodadas Jogador: ${this.rodadasJogador} | Rodadas Inimigo: ${this.rodadasInimigo} | Resultado: ${resultado}`,
     );
 
-    // Retorna o resultado em vez de só logar, para a cena (jogo.js)
-    // poder mostrar feedback visual (texto, flash de câmera etc.)
+    // Retorna o resultado em vez de só logar, para a cena (jogo.js) poder mostrar feedback visual (texto, flash de câmera etc.)
     return {
       poderJogador,
       poderInimigo,
@@ -2043,8 +1874,7 @@ class Partida {
   }
 }
 
-// GW/GH controlam a saída; as cenas compartilham um mundo lógico proporcional.
-// O perfil móvel reduz somente os pixels renderizados, mantendo o mesmo layout.
+// A resolução de saída muda sem alterar o mundo lógico das cenas.
 const usarCanvasParaDiagnostico =
   typeof window !== "undefined" &&
   typeof URLSearchParams !== "undefined" &&
@@ -2065,7 +1895,14 @@ const usarPerfilMovel =
   (qualidadeSolicitada === "mobile" ||
     (quantidadeToques > 0 && telaCompacta) ||
     (ponteiroGrosso && telaCompacta));
-const ESCALA_RENDER = usarPerfilMovel ? 2 / 3 : 1;
+// Ajusta a nitidez à tela, limitando o custo a 1,5× a resolução base.
+const escalaTela = Math.min(
+  (window.innerWidth || GW) / GW,
+  (window.innerHeight || GH) / GH,
+);
+const ESCALA_RENDER = qualidadeSolicitada === "mobile"
+  ? 2 / 3
+  : Math.min(1.5, Math.max(1, escalaTela * (window.devicePixelRatio || 1)));
 const LARGURA_RENDER = Math.round(GW * ESCALA_RENDER);
 const ALTURA_RENDER = Math.round(GH * ESCALA_RENDER);
 
@@ -2115,7 +1952,7 @@ const config = {
   render: {
     antialias: true,
     antialiasGL: false,
-    roundPixels: usarPerfilMovel,
+    roundPixels: false,
     powerPreference: "high-performance",
     batchSize: 4096,
     skipUnreadyShaders: usarPerfilMovel,

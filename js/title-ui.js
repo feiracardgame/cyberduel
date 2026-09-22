@@ -148,9 +148,7 @@ class CyberduelTitleUI {
       return card;
     };
     for (let i = 0; i < 3; i++) cards.push(makeCard(false));
-    // Two extra cards, always present but parked off-screen (offset ±2,
-    // invisible via the --ghost class) so the drag can rotate a real,
-    // already-painted card into view instead of popping new artwork in.
+    // Cartas extras ficam fora da tela para entrar no arraste sem piscar.
     const ghosts = { left: makeCard(true), right: makeCard(true) };
     categories.forEach((category, index) => {
       const tab = this.button("card-menu__tab", category.title, () =>
@@ -191,12 +189,7 @@ class CyberduelTitleUI {
     return section;
   }
 
-  // Resting geometry for a card at a given (possibly fractional) offset
-  // from the centered card: -1 = left, 0 = center, 1 = right, ±2 = the
-  // hidden cards waiting just off-screen. Used to animate a smooth
-  // hand-off during drag: interpolating between these keyframes makes the
-  // old card slide left, the incoming one slide into the middle, and the
-  // next one fade in from the right (or the mirror, dragging the other way).
+  // Offsets -1, 0 e 1 são visíveis; ±2 aguardam fora da tela.
   static CARD_KEYFRAMES = {
     "-2": {
       x: -140,
@@ -370,10 +363,7 @@ class CyberduelTitleUI {
       `assets/menus/${item.art}.png`;
     card.setAttribute("aria-label", item.title);
     const locked = mode === "options" && !item.handler;
-    // Stay enabled (not `disabled`) even when locked: a disabled button
-    // suppresses pointer events in most browsers, which would break a
-    // drag gesture that starts on top of it. triggerOptionAction() already
-    // no-ops when there's no handler.
+    // Não desabilite o botão: ele precisa receber eventos de arraste.
     card.setAttribute("aria-disabled", String(locked));
     card.classList.toggle("is-locked", locked);
   }
@@ -461,9 +451,7 @@ class CyberduelTitleUI {
     this.fitMenuTitle(title);
   }
 
-  // Two-word titles like "Visualizar anúncios" wrap onto a second line;
-  // shrink the font once that happens rather than letting it dominate the
-  // caption. Retries a couple of frames if not laid out yet.
+  // Reduz títulos quebrados em duas linhas após o layout.
   fitMenuTitle(titleEl, attemptsLeft = 4) {
     titleEl.classList.remove("card-menu__title--wrap");
     const lineHeight = parseFloat(getComputedStyle(titleEl).lineHeight);
@@ -608,10 +596,7 @@ class CyberduelTitleUI {
     el.style.zIndex = style.zIndex;
   }
 
-  // Advances the ring one step in `direction`, keeping every card's
-  // painted content attached to its element as it slides to a new slot —
-  // only the card rotating off the far edge gets repainted, and it's
-  // always invisible (offset ±2) when that happens.
+  // Gira o carrossel e repinta apenas a carta que saiu da tela.
   commitRingDrag(direction) {
     const state = this.cardMenuState;
     const total = state.items.length;
@@ -663,9 +648,7 @@ class CyberduelTitleUI {
         Math.abs(entry.offset) === 2,
       );
     });
-    // Keep the plain (non-drag) accessors pointing at whichever elements
-    // now hold each role, so clicks and the open/close transition keep
-    // working once the ring settles back into ordinary rest styling.
+    // Atualiza as referências dos botões após girar o carrossel.
     this.cardMenuEls.cards = [
       byOffset.get(-1),
       byOffset.get(0),
@@ -685,10 +668,7 @@ class CyberduelTitleUI {
     let pendingT = 0;
     let frameQueued = false;
 
-    // Pointer/touch can deliver several move events per animation frame.
-    // Writing transform/filter/opacity to 5 cards on every single one of
-    // those is wasted work the browser never gets to paint anyway — so we
-    // just remember the latest position and apply it once per frame.
+    // Aplica apenas a posição mais recente do arraste a cada frame.
     const flush = () => {
       frameQueued = false;
       if (!dragging) return;
@@ -708,9 +688,7 @@ class CyberduelTitleUI {
       }
     };
 
-    // Once every card is back at an integer offset, drop the inline
-    // styles so the plain dataset.position CSS (which mirrors the exact
-    // same values) takes back over.
+    // Remove os estilos de arraste ao voltar às posições definidas no CSS.
     const settle = () => {
       this.cardMenuRing.forEach((entry) => {
         entry.el.style.transform = "";
@@ -741,10 +719,7 @@ class CyberduelTitleUI {
         }, 60);
         committed = this.commitRingDrag(direction);
       }
-      // Whether committed or cancelled, every card already knows its
-      // resting offset — just ease it there from wherever the drag left
-      // it. Same motion, no pop. (commitRingDrag already applied the
-      // target style for the committed case.)
+      // Finaliza o arraste na posição de repouso, mesmo ao cancelar.
       if (!committed) {
         this.cardMenuRing.forEach((entry) =>
           this.applyCardDragStyle(entry.el, entry.offset, 0),
@@ -982,7 +957,7 @@ class CyberduelTitleUI {
     const topbar = this.element("header", "title-topbar");
     const system = this.element("div", "title-system-id");
     system.append(
-      this.element("span", "title-system-id__mark", "CD"),
+      this.element("span", "title-system-id__mark", "v1.0.0"),
       this.element("span", "", "NEOFLORIPA OS"),
     );
     const online = this.element("div", "title-online");

@@ -1,8 +1,6 @@
 console.log("cartas.js carregado");
 
-// ============================================================================
-// ARQUIVO DE DADOS DAS CARTAS
-// ============================================================================
+// Dados das cartas.
 
 const NIVEIS_CARTAS = {
   "IA de treinamento": "baixa", "HAL 9001": "media", "H.A.R.V.I.S": "media", "Replicantes": "alta",
@@ -52,18 +50,7 @@ function classificarNivelCarta(nome, poder, tipo, lendaria) {
   if (poder <= 7) return "media";
   return "alta";
 }
-// Tudo relacionado a "o que é uma carta" mora aqui: a classe Carta, os tipos
-// de efeito passivo e o pool de cartas de efeito usado para montar os decks.
-//
-// Para adicionar uma carta de efeito nova, basta acrescentar um objeto ao
-// array POOL_CARTAS_EFEITO lá embaixo — não precisa mexer em mais nada.
-// Para mudar como o jogo resolve/mostra os efeitos, mexa nas funções
-// descreverEfeito() e (em main.js) Partida.aplicarEfeitoInvocacao().
-// ============================================================================
-
-// ---------- EFEITOS DE INVOCAÇÃO, CONTÍNUOS E HABILIDADES ATIVAS ----------
-// `habilidadeAtiva` distingue as ações usadas na fase de habilidades dos
-// efeitos disparados na invocação ou mantidos enquanto a carta está em campo.
+// Catálogo e regras de descrição das cartas.
 
 const TIPOS_EFEITO = {
   BUFF_ADJACENTES: "buff_adjacentes", BONUS_POR_TERRENOS: "bonus_por_terrenos",
@@ -81,7 +68,7 @@ const TIPOS_EFEITO = {
   BUSCAR_CARTA_DECK: "buscar_carta_deck", // ao conjurar: dono escolhe uma carta do próprio baralho e a compra direto pra mão
   ABSORVER_ALIADOS: "absorver_aliados", // dono escolhe ATÉ N cartas aliadas de nível baixo/médio em campo: elas somem, e esta carta ganha o poder somado delas
 
-  // ---- EchoSsystem (booster 2) ----
+  // EchoSsystem (booster 2)
   RESETAR_PODER: "resetar_poder", // O Boi (Novo Começo): escolhe uma carta aliada em campo e a devolve ao poder original (poderBase), zerando bônus/reduções acumulados
   ATACAR_DOIS_ALVOS: "atacar_dois_alvos", // O Tigre (Garra de aço): igual a ATACAR, mas escolhe DOIS alvos inimigos distintos em vez de um só (mesmo range para os dois)
   OVERRIDE: "override", // A Aranha (Override): escolhe uma carta inimiga com poder MENOR que o dela; a carta é "capturada" pro campo do dono, se houver espaço livre
@@ -104,10 +91,7 @@ const TIPOS_EFEITO = {
   TEXTO_REGRA: "texto_regra", // texto de regras sem interação, como Adormecido
 };
 
-// O campo `nivel` é a fonte oficial para regras de baixa, média, alta e
-// lendária. Nenhum efeito deve inferir a categoria pelo PA atual.
-
-// Gera a frase descritiva de um efeito, usada na visualização detalhada da carta
+// Use o nível cadastrado da carta, nunca o PA atual, para classificar efeitos.
 function descreverEfeito(efeito) {
   if (!efeito) return "";
   switch (efeito.tipo) {
@@ -190,12 +174,7 @@ function descreverEfeito(efeito) {
   }
 }
 
-// ---------- SISTEMA DE EFEITOS DE TERRENO (CONTÍNUOS, ENQUANTO EM CAMPO) ----------
-//
-// Cartas de terreno: ocupam um espaço normal do campo, têm poder sempre 0
-// (não têm PA, não atacam nem podem ser atacadas) e seu efeito fica ativo
-// continuamente enquanto a carta estiver em campo (recalculado a cada
-// mudança relevante por Partida.resolverEfeitosContinuos(), em main.js).
+// Terrenos não têm PA e aplicam efeitos enquanto estão em campo.
 
 const TIPOS_EFEITO_CONTINUO = {
   BUFF_CAMPO_CONTINUO: "buff_campo_continuo", // enquanto em campo: cartas aliadas (de um booster, se definido) ganham +poder
@@ -226,12 +205,7 @@ function descreverEfeitoContinuo(efeito) {
   }
 }
 
-// ----------------------------------------------------------------------------
-// POOL DE CARTAS DE TERRENO
-// ----------------------------------------------------------------------------
-// Molde igual aos outros pools: sem id (gerado ao montar deck) e sem "poder"
-// (terrenos são sempre 0 PA — ver classe Carta).
-// ----------------------------------------------------------------------------
+// Modelos de terrenos; o deck define os IDs.
 const POOL_CARTAS_TERRENO = [
 {
   "nome": "DeepClaude ChatGemini",
@@ -337,20 +311,13 @@ const POOL_CARTAS_TERRENO = [
   // Adicione novas cartas de terreno aqui, seguindo o mesmo formato acima.
 ];
 
-// ---------- SISTEMA DE EFEITOS DE TURNO (A CADA FIM DE TURNO) ----------
-//
-// Diferente dos efeitos acima (que disparam 1x, ao entrar em campo), estes
-// são reavaliados a cada fim de turno, para cada carta que ainda estiver
-// viva em campo. Quem resolve isso é Partida.resolverEfeitosDeTurno(),
-// em main.js.
+// Efeitos de turno são reavaliados ao fim de cada turno.
 
 const TIPOS_EFEITO_TURNO = {
   CHANCE_GANHAR_PODER: "chance_ganhar_poder", // % de chance de ganhar +poder a cada turno
 };
 
-// Gera a frase descritiva de um efeito de turno, usada na visualização
-// detalhada da carta (mesma ideia de descreverEfeito(), mas para este
-// segundo tipo de efeito).
+// Descreve o efeito de turno na ficha da carta.
 function descreverEfeitoTurno(efeito) {
   if (!efeito) return "";
   switch (efeito.tipo) {
@@ -361,14 +328,7 @@ function descreverEfeitoTurno(efeito) {
   }
 }
 
-// ----------------------------------------------------------------------------
-// POOL DE CARTAS MONSTRO ESPECIAIS
-// ----------------------------------------------------------------------------
-// Assim como POOL_CARTAS_EFEITO (mais abaixo), cada entrada aqui é um
-// "molde" de carta — mas de tipo "monstro" (vai a campo), com efeitoTurno
-// em vez de efeito. O id também é gerado só quando o deck de teste é
-// montado (Jogador.criardeckteste(), em main.js).
-// ----------------------------------------------------------------------------
+// Modelos de monstros e suas habilidades.
 const POOL_CARTAS_MONSTRO = [
 {
   "nome": "IA de treinamento",
@@ -569,16 +529,7 @@ const POOL_CARTAS_MONSTRO = [
       "Após a implementação das moedas digitais em escala global, os CryptoAcionistas rapidamente se tornaram a nova tendência. Defensores ferrenhos da sustentabilidade, continuam trabalhando diariamente para maximizar o ROI, elevar o valuation e garantir um futuro melhor para as próximas gerações de suas CryptoWallets.",
     imagem: "cryptoacionistas",
     booster: "raspcorp",
-    // Ponto da imagem que fica centralizado dentro do retângulo de arte
-    // (0 a 1, em cada eixo — 0.5/0.5 é o centro da imagem, que é o
-    // padrão se você não definir "foco"). Como o retângulo de exibição é
-    // mais largo que alto e a arte é um retrato em pé, a imagem é
-    // ampliada até cobrir o retângulo inteiro (sem distorcer) e o que
-    // sobra é recortado; "foco" só decide QUAL PARTE da imagem fica
-    // visível depois do recorte.
-    //   x: 0 = mostra mais a esquerda da imagem, 1 = mais a direita
-    //   y: 0 = mostra mais o topo (ótimo pra garantir que o rosto
-    //      apareça), 1 = mostra mais a base da imagem
+    // Foco da arte entre 0 e 1; o padrão é o centro (0.5, 0.5).
     foco: { x: 0.5, y: 0.15 },
     efeitoTurno: {
       tipo: TIPOS_EFEITO_TURNO.CHANCE_GANHAR_PODER,
@@ -601,8 +552,7 @@ const POOL_CARTAS_MONSTRO = [
       valor: 1,
       permiteProprio: true,
     },
-    // Venda Casada: efeito passivo normal (dispara ao invocar), não é
-    // habilidade ativa — segue o mesmo fluxo de BUFF_ALIADOS/DEBUFF_INIMIGOS.
+    // Venda Casada: efeito passivo normal (dispara ao invocar), não é habilidade ativa — segue o mesmo fluxo de BUFF_ALIADOS/DEBUFF_INIMIGOS.
   },
 
   {
@@ -634,10 +584,7 @@ const POOL_CARTAS_MONSTRO = [
     efeito: {
       tipo: TIPOS_EFEITO.ATACAR,
       valor: 5,
-      // rangeH:5 e rangeV:3 cobrem o campo inimigo inteiro (5 colunas,
-      // 2 fileiras de profundidade), o que na prática implementa
-      // "escolha qualquer carta do campo inimigo" (Protocolo de
-      // Segurança) reaproveitando 100% do sistema de ATACAR existente.
+      // Este alcance cobre todo o campo inimigo.
       rangeH: 5,
       rangeV: 3,
       atingeTodos: false,
@@ -659,8 +606,7 @@ const POOL_CARTAS_MONSTRO = [
       custoProprio: 1, // Machine Learning: além de buffar o alvo, o próprio Estagiário perde 1 PA
     },
     habilidadeAtiva: true, // Machine Learning: NÃO dispara ao invocar — ativa em campo, 1x por turno, mesma
-    // família de "carta em campo com botão de habilidade" do Agente da DIPSP/Juggernaut,
-    // só que aqui alvo é ALIADO (ver ativarHabilidade() em main.js) em vez de inimigo.
+    // A habilidade seleciona uma carta aliada.
   },
 
   {
@@ -721,7 +667,7 @@ const POOL_CARTAS_MONSTRO = [
     habilidadeAtiva: true,
   },
 
-  // ---------- Os Remanescentes (booster 4) ----------
+  // Os Remanescentes (booster 4)
   {
     nome: "Povo da Areia",
     poder: 4,
@@ -823,16 +769,10 @@ const POOL_CARTAS_MONSTRO = [
       maxAlvos: 3, // Potencialização de Capital: até 3 cartas aliadas por ativação
       niveisPermitidos: ["baixa", "media"],
     },
-    // Potencialização de Capital: efeito passivo normal (dispara ao
-    // invocar, como a Venda Casada do CyberVendedor), não é habilidade
-    // ativa — mas como pode ter VÁRIOS alvos (não só um), a UI usa um
-    // fluxo de seleção próprio com um botão "Confirmar" em vez de resolver
-    // no primeiro toque — ver iniciarSelecaoDeAbsorcao() em jogo.js.
+    // A absorção ocorre na invocação e permite confirmar vários alvos.
   },
 
-  // ---------- EchoSsystem (booster 2) ----------
-  // As 3 primeiras cartas do booster 2 a entrar no jogo — escolhidas por já
-  // terem arte pronta em assets/cartas/ (ver Cartas_e_boosters.md).
+  // Cartas da Echossystem.
 
   {
     nome: "O Tigre",
@@ -844,8 +784,7 @@ const POOL_CARTAS_MONSTRO = [
     efeito: {
       tipo: TIPOS_EFEITO.ATACAR_DOIS_ALVOS,
       valor: 3,
-      // "Alcance curto": só a coluna imediatamente vizinha (rangeH:1) e a
-      // fileira adjacente (rangeV:1) — combate corpo a corpo.
+      // "Alcance curto": só a coluna imediatamente vizinha (rangeH:1) e a fileira adjacente (rangeV:1) — combate corpo a corpo.
       rangeH: 5,
       rangeV: 1,
     },
@@ -864,9 +803,7 @@ const POOL_CARTAS_MONSTRO = [
     efeito: {
       tipo: TIPOS_EFEITO.OVERRIDE,
     },
-    // Override mantém a carta fisicamente no campo inimigo, mas transfere
-    // os pontos. Em um turno posterior a Aranha pode escolher um alvo novo,
-    // soltando o vínculo anterior.
+    // Override mantém a carta fisicamente no campo inimigo, mas transfere os pontos.
     habilidadeAtiva: true, // Override: não dispara ao invocar — ativa em campo, 1x por turno
   },
 
@@ -925,8 +862,7 @@ const POOL_CARTAS_MONSTRO = [
       tipo: TIPOS_EFEITO.PENALIZAR_PROXIMA_INVOCACAO,
       valor: 3,
     },
-    // Faro: efeito passivo normal (dispara ao invocar), não é habilidade
-    // ativa — mesma família de BUFF_ALIADOS/DEBUFF_INIMIGOS.
+    // Faro: efeito passivo normal (dispara ao invocar), não é habilidade ativa — mesma família de BUFF_ALIADOS/DEBUFF_INIMIGOS.
   },
 
   {
@@ -958,25 +894,10 @@ const POOL_CARTAS_MONSTRO = [
     habilidadeAtiva: true, // Dose Letal: não dispara ao invocar — ativa em campo, 1x por turno
   },
 
-  // Adicione novas cartas de monstro especiais aqui, seguindo o mesmo
-  // formato acima. O campo "foco" é opcional — se não colocar, usa 0.5/0.5
-  // (centro da imagem), sem precisar mexer em nenhum outro lugar do código.
+  // Novas cartas usam este formato; foco é opcional.
 ];
 
-// ----------------------------------------------------------------------------
-// POOL DE CARTAS DE EFEITO
-// ----------------------------------------------------------------------------
-// Cada entrada é um "molde" (não tem id ainda — o id é gerado quando o deck
-// de teste é montado, em Jogador.criardeckteste(), no main.js).
-//
-// Para criar uma carta nova, copie um bloco abaixo e ajuste os campos:
-//   nome       -> nome exibido na carta
-//   poder      -> poder da carta (usado só se ela também pudesse ir a campo;
-//                 hoje cartas de efeito nunca vão a campo, mas o valor ainda
-//                 aparece no selo da carta)
-//   descricao  -> texto de "flavor", mostrado na visualização detalhada
-//   efeito     -> { tipo: TIPOS_EFEITO.<algum>, valor: <número> }
-// ----------------------------------------------------------------------------
+// Modelos de efeitos; o deck define os IDs.
 const POOL_CARTAS_EFEITO = [
   {
     nome: "Sugestão Algorítmica",
@@ -1056,9 +977,7 @@ const POOL_CARTAS_EFEITO = [
   // Adicione novas cartas de efeito aqui, seguindo o mesmo formato acima.
 ];
 
-// ----------------------------------------------------------------------------
 // CLASSE CARTA
-// ----------------------------------------------------------------------------
 class Carta {
   constructor(id, poder, tipo, opcoes = {}) {
     this.id = id;
@@ -1123,9 +1042,7 @@ class Carta {
       .join(" ");
   }
 
-  // Igual a descricaoCompleta(), mas separado em partes com a tag "flavor"
-  // (texto de ambientação) ou "efeito" (regra de jogo) — usado pra colorir
-  // cada trecho de forma diferente na visualização detalhada (ver jogo.js).
+  // Separa ambientação e regras para colorir a descrição.
   partesDescricao() {
     const partes = [];
     if (this.efeitoDesabilitado) partes.push({ tipo: "efeito", texto: "EFEITOS DESABILITADOS — " + (this.silenciadaPorNome || "Controle de Risco") });

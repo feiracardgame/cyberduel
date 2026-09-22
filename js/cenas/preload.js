@@ -1,14 +1,4 @@
-// ============================================================================
-// CENA DE PRELOAD
-// ============================================================================
-// Primeira cena a rodar (ver a lista "scene" em main.js). Carrega TODOS os
-// assets do jogo (imagens e sons) de uma vez só, mostrando uma barra de
-// carregamento, e ao terminar manda pra CenaTitulo.
-//
-// Pra adicionar um asset novo no jogo, carregue ele aqui dentro de
-// preload() — não precisa mexer em mais nada, a barra já reage a
-// qualquer coisa que passe por this.load.
-// ============================================================================
+// Carrega os assets e mostra o progresso antes do título.
 window.CYBERDUEL_IMAGE_ASSETS = Object.freeze({
   ia_treinamento: "assets/cartas/ia_de_treinamento.png",
   hal9001: "assets/cartas/hal_9001.png",
@@ -71,10 +61,7 @@ window.CYBERDUEL_IMAGE_ASSETS = Object.freeze({
   efeitoAdvogado: "assets/efeitos/efeito-advogado.png",
 });
 
-// O DOM do deck builder continua usando as artes originais acima. Dentro do
-// Phaser, onde nenhuma carta normal precisa exceder 720px de largura, usamos
-// WebP dimensionado: o download das cartas cai de dezenas de MB para poucos
-// MB e a memória de textura da GPU também diminui bastante.
+// Usa WebP reduzido no Phaser e mantém as artes originais no DOM.
 window.CYBERDUEL_GAME_IMAGE_ASSETS = Object.freeze(
   Object.fromEntries(
     Object.entries(window.CYBERDUEL_IMAGE_ASSETS).map(([key, url]) => [
@@ -97,14 +84,14 @@ class CenaPreload extends Phaser.Scene {
     configurarCameraLogica(this);
     this.criarBarraDeCarregamento();
 
-    // ---------- ASSETS DO JOGO ----------
+    // ASSETS DO JOGO
     Object.entries(window.CYBERDUEL_GAME_IMAGE_ASSETS).forEach(([key, url]) =>
       this.load.image(key, url),
     );
-    //musicas
+    // musicas
     this.load.audio("musicaFundo", "assets/sons/jogo-musica.wav");
     this.load.audio("somJogarCarta", "assets/sons/jogo-cartawhoosh.wav");
-    //sons
+    // sons
     this.load.audio("somTorcida", "assets/sons/jogo-torcida.wav");
     this.load.audio("somPop", "assets/sons/jogo-pop.mp3");
     this.load.audio("somComprarCarta", "assets/sons/jogo-compra.mp3");
@@ -119,22 +106,20 @@ class CenaPreload extends Phaser.Scene {
     this.load.audio("somGRPH", "assets/sons/som-grph.mp3");
     this.load.audio("somCryptoAcionistas", "assets/sons/jogo-cyberacionistaefeito.wav");
     this.load.video("efeitoNeoAnalista", "assets/efeitos/efeito-neoanalista-alpha.webm?v=20260916-alpha");
-    //videos
+    // videos
     this.load.video("videoTransicao", "assets/videos/transicaocerta.mp4");
     this.load.video(
       "videoParte3",
       "assets/videos/game/parte_3-720p.mp4?v=20260902a",
     );
-    //efeitos
+    // efeitos
     this.load.video(
       "efeitoRaspClayVertical",
       "assets/efeitos/efeito-raspclay-vertical-alpha.webm",
     );
   }
 
-  // Monta o logo + a barra de carregamento (fundo + preenchimento + %)
-  // e liga os listeners de progresso do loader do Phaser pra ela reagir
-  // em tempo real, conforme cada asset vai terminando de baixar.
+  // Atualiza logo e barra conforme o carregamento dos assets.
   criarBarraDeCarregamento() {
     this.cameras.main.setBackgroundColor("#030509");
 
@@ -143,8 +128,7 @@ class CenaPreload extends Phaser.Scene {
     const x = LARGURA_LAYOUT / 2 - larguraBarra / 2;
     const y = ALTURA_LAYOUT / 2 + 150;
 
-    // Mesmo vocabulário visual do título/deck forge: grade técnica,
-    // painéis escuros, linhas finas e ciano como sinal ativo.
+    // Mesmo vocabulário visual do título/deck forge: grade técnica, painéis escuros, linhas finas e ciano como sinal ativo.
     const grade = this.add.graphics();
     grade.lineStyle(1, 0x45a6c4, 0.09);
     for (let gx = 0; gx <= LARGURA_LAYOUT; gx += 72) grade.lineBetween(gx, 0, gx, ALTURA_LAYOUT);
@@ -213,15 +197,12 @@ class CenaPreload extends Phaser.Scene {
     // Trilho vazio (o "fundo" da barra, atrás do preenchimento)
     this.add.rectangle(LARGURA_LAYOUT / 2, y, larguraBarra, alturaBarra, 0x020408, 1);
 
-    // Preenchimento que cresce da esquerda pra direita conforme o
-    // progresso — origin (0, 0.5) pra crescer só em largura, sem se
-    // deslocar do lugar.
+    // Preenchimento que cresce da esquerda pra direita conforme o progresso — origin (0, 0.5) pra crescer só em largura, sem se deslocar do lugar.
     let barraFill = this.add
       .rectangle(x, y, 4, alturaBarra, 0x23d7ff)
       .setOrigin(0, 0.5);
 
-    // Brilho sutil por cima do preenchimento, só pra dar um respiro
-    // visual (mesma ideia dos "brilho" já usados nas cartas de campo).
+    // Brilho sutil por cima do preenchimento, só pra dar um respiro visual (mesma ideia dos "brilho" já usados nas cartas de campo).
     let brilhoFill = this.add
       .rectangle(x, y - alturaBarra / 2 + 3, 4, 4, 0xffffff, 0.5)
       .setOrigin(0, 0.5);
@@ -260,8 +241,7 @@ class CenaPreload extends Phaser.Scene {
   }
 
   create() {
-    // `?deck=1` também funciona como atalho direto para o montador. Além
-    // de ser útil no celular, permite validar a cena sem atravessar menus.
+    // `?deck=1` também funciona como atalho direto para o montador. Além de ser útil no celular, permite validar a cena sem atravessar menus.
     const abrirDeck =
       new URLSearchParams(window.location.search).get("deck") === "1";
     this.time.delayedCall(abrirDeck ? 0 : 300, () => {

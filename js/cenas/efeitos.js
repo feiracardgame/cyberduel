@@ -1,5 +1,4 @@
-// Camada independente: redesenhar o tabuleiro não interrompe efeitos em andamento.
-// Cada evento tem identidade própria; atualizações acumuladas nunca apagam ativações.
+// A cena independente preserva os efeitos durante o redesenho do campo.
 const APRESENTACAO_EFEITOS = Object.freeze({
   "CyberVendedor da RaspCorp": { passiva: "somBuff" },
   "Estagiário de Machine Learning": { habilidade: "somEstagiario" },

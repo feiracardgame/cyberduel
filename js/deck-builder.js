@@ -1,7 +1,6 @@
 class CyberduelDeckBuilder {
   constructor() {
-    // v3 começa sem o antigo deck automático. Só decks montados e salvos
-    // manualmente pelo jogador passam a existir nesta versão.
+    // v3 começa sem o antigo deck automático. Só decks montados e salvos manualmente pelo jogador passam a existir nesta versão.
     this.storageKey = "cyberduel.deck.v3";
     this.maxCards = 20;
     this.minimums = { baixa: 6, media: 4, alta: 2 };

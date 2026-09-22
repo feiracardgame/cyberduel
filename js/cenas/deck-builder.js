@@ -1,5 +1,4 @@
-// A cena Phaser funciona apenas como ponte para o editor responsivo em DOM.
-// Assim o montador se adapta a qualquer tela sem herdar a grade fixa do jogo.
+// A cena conecta o Phaser ao editor responsivo em HTML.
 class CenaDeckBuilder extends Phaser.Scene {
   constructor() {
     super("CenaDeckBuilder");

@@ -60,8 +60,7 @@
       try {
         this.storage?.setItem(STORAGE_KEY, JSON.stringify(this.values));
       } catch {
-        // O jogo continua com as preferências da sessão se o navegador
-        // bloquear armazenamento (modo privado ou política do aparelho).
+        // O jogo continua com as preferências da sessão se o navegador bloquear armazenamento (modo privado ou política do aparelho).
       }
     }
 

@@ -892,9 +892,7 @@ class CyberduelDeckBuilderUI {
     if (this.imageSourceCache.has(textureKey))
       return this.imageSourceCache.get(textureKey);
 
-    // O deck builder é HTML e deve usar a URL estável do servidor. No
-    // Chrome a fonte interna da textura pode ser um ImageBitmap, que não
-    // possui `src` nem `currentSrc` e fazia todas as artes caírem no verso.
+    // Use a URL original: ImageBitmap não fornece src.
     const assetPath = window.CYBERDUEL_IMAGE_ASSETS?.[textureKey];
     if (assetPath) {
       const url = new URL(assetPath, document.baseURI).href;
