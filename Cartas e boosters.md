@@ -376,11 +376,11 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
 <img alt="image" src="assets/cartas/Anarcoboi.png" />3
 
- #### Assets
+ #### Assets -> quando ativa a habilidade dele
 
- Som: 
+ Som: som-boi
 
- Efeito visual:
+ Efeito visual: efeito-boi
 
 
 ### 2x carta de efeito 1 -> O Trotar do Cavalo
@@ -606,11 +606,11 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
 <img alt="image" src="assets/cartas/humba_brain.png" />
 
- #### Assets
+ #### Assets -> quando invoca ele em campo
 
- Som: 
+ Som: som-humba
 
- Efeito visual:
+ Efeito visual: efeito-humba
 
 
 #### 1x carta de terreno 1 -> DeepClaude ChatGemini
@@ -755,7 +755,7 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 
 ### 1x carta alta 2 -> O Bom
 
-* Descrição: Apesar de também ser um fora da lei, o rígido código moral do Bom faz com que ele sempre busque a justiça ética, mesmo quando ela entra em conflito com as próprias leis dos Remanescentes. Seu verdadeiro nome nunca foi descoberto, ele se recusa a revelá-lo, acreditando que uma reputação deve ser construída pelos atos, não pelo nome de quem os pratica.
+* Descrição: Apesar de também ser um fora da lei, o Bom segue um rígido código moral e sempre busca fazer o que considera justo, mesmo quando isso entra em conflito com as leis dos Remanescentes. Seu verdadeiro nome nunca foi revelado, pois acredita que uma reputação deve ser construída pelos atos, não pelo nome de quem os pratica. Seu único companheiro constante é José, um pequeno pássaro que o acompanha por onde quer que vá.
 * PA: 7
 * Efeito: O Número Perfeito -> Escolha até 6 cartas no campo inimigo. Cada uma perde 1 de PA. 
 
@@ -776,16 +776,18 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 
 * Descrição: Dentre os Remanescentes, a lei não é um código escrito. A lei é Dieh'Go. Nunca foi eleito nem nomeado xerife, simplesmente assumiu o posto quando o povo mais precisou. Sua autoridade não vem apenas da força, mas da confiança conquistada por anos protegendo o Povo da Areia. Até os maiores foras da lei respeitam seu julgamento. Para os forasteiros ele é a última pessoa que se deseja encontrar no deserto.
 * PA: 9
-* Efeito: Eu Sou a Lei -> A cada turno, distribua 6 pontos de dano de PA entre as cartas inimigas como desejar.
+* Efeito: Eu Sou a Lei -> A cada turno, distribua 6 pontos de dano de PA entre as cartas inimigas como desejar. Uma vez que um alvo é selecionado, não se pode voltar atrás.
 * Visual:
 
  <img alt="image" src="assets/cartas/Di_Ego_caçador_de_recompensas.png"/>
 
-  #### Assets
+  #### Assets -> quando ativa a habilidade dele
 
- Som: 
+ Som: som-diego
 
  Efeito visual: efeito-diego -> Quando for distribuir os PA de dano do diego, aparece em cima da carta uma quantidade de caveiras proporcional à quantidade de dano desferido na carta (ex: 5 PA de dano, aparece 5 caveiras em cima da carta).
+
+ Assim que confirma a habilidade, tem que fazer o cut-in do "efeito-diego"
 
 
 ### 1x carta de efeito 1 -> Vento dos Ermos
@@ -1040,8 +1042,8 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 * Visual:
 <img alt="image" src="assets/cartas/professores_de_duelo.png" />
 
- #### Assets
+ #### Assets -> quando ativa habilidade deles
 
- Som: 
+ Som: som-professores
 
- Efeito visual:
+ Efeito visual: efeito-professores.mp4
