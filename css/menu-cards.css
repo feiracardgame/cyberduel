@@ -4,37 +4,22 @@
   --menu-paper: #dbf5e4;
   container-type: inline-size;
   color: var(--menu-paper);
-  background: #060a10;
-}
-.title-terminal--cards::before {
-  content: "";
-  position: absolute;
-  inset: -5%;
-  background:
-    linear-gradient(180deg, #051209eb 0%, #061e0e8c 36%, #051209f5 85%),
-    url("../assets/menus/menu_de_partida.png") center / cover;
-  filter: saturate(0.3) blur(5px);
-  opacity: 0.6;
-  pointer-events: none;
-}
-.title-terminal--cards::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: radial-gradient(ellipse at 50% 46%, #14662f3f, transparent 60%);
+  background: #000;
 }
 .title-terminal--cards .title-atmosphere {
   display: none;
 }
 .title-terminal--cards .title-shell {
-  padding: 4cqw 5cqw 3cqw;
+  padding: 0 5cqw;
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-width: thin;
   scrollbar-color: #4a7057 transparent;
 }
 .title-terminal--cards .title-topbar {
+  background: #000;
+  margin: 0 -5cqw;
+  padding: 4cqw 5cqw 10px;
   gap: 2cqw;
   min-height: 10cqw;
   border-color: #5fe88d30;
@@ -343,11 +328,13 @@
   filter: none;
 }
 .card-menu__shortcuts {
+  background: #000;
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 2cqw;
   border-top: 1px solid #5fe88d29;
-  padding: 4cqw 0 3cqw;
+  margin: 0 -5cqw;
+  padding: 4cqw 5cqw 3cqw;
   flex: 0 0 auto;
 }
 .title-terminal .card-menu__shortcut {
@@ -374,9 +361,11 @@
 }
 .title-terminal--cards .title-status {
   min-height: 6cqw;
-  padding: 1.5cqw 0;
-  margin-top: 0;
-  background: none;
+  padding: 1.5cqw 5cqw 4.5cqw;
+  margin: 0 -5cqw;
+  flex: 1 0 auto;
+  align-content: start;
+  background: #000;
   border: 0;
   border-radius: 0;
   gap: 2cqw;
@@ -481,4 +470,19 @@
     animation: none !important;
     transition: none !important;
   }
+}
+/* Chuva Matrix atrás dos modos; removida junto com o menu. */
+.title-matrix { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 1; }
+.title-matrix-stream {
+  position: absolute; top: -100%; height: 100%;
+  display: flex; flex-direction: column; justify-content: flex-end;
+  font: clamp(14px, 3.4cqw, 36px)/1.15 monospace;
+  white-space: pre; text-align: center;
+  animation: title-matrix-fall linear infinite;
+}
+.title-matrix-trail { color: #23ff6c; opacity: 0.35; }
+.title-matrix-head { color: #dfffeb; opacity: 0.75; }
+@keyframes title-matrix-fall { to { transform: translateY(200%); } }
+@media (prefers-reduced-motion: reduce) {
+  .title-matrix { display: none; }
 }

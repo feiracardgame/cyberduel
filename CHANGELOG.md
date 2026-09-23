@@ -4,6 +4,67 @@ Novidades, correções e verificações realizadas no projeto. As entregas mais 
 
 ## 2026-09-23
 
+### Som somente ao clicar no menu
+
+- Removido o som da navegação por arraste e da troca programática das cartas. O clique nas cartas, nas abas que alteram a seleção e no botão de ação reproduz `clique-menu.mp3`; cliques suprimidos após arraste permanecem silenciosos.
+- Atualizada a versão da interface no HTML. Testes da tela inicial (cliques, arraste silencioso, volume e limpeza), sintaxe e `git diff --check` aprovados.
+
+### Som ao trocar cartas do menu
+
+- Integrado `assets/sons/clique-menu.mp3` à navegação das cartas por clique, abas e arraste confirmado, respeitando o volume de efeitos. Seleção da mesma aba e arrastes além dos limites não tocam o som.
+- Reutilizado o elemento de áudio e interrompida sua reprodução ao sair do menu. Atualizada a versão da interface no HTML.
+- Aprovados testes da tela inicial (trocas, volume, limites e limpeza), interface do matchmaking, sintaxe e `git diff --check`. Reprodução de áudio em navegador não verificada.
+
+### Caracteres Matrix mudando durante a queda
+
+- Cada coluna agora troca um caractere da trilha e sorteia o caractere da ponta a cada 180 ms, sem reiniciar a animação de queda.
+- Atualização interrompida ao sair do menu; recriar a chuva limpa o temporizador anterior. Aba oculta e preferência por movimento reduzido suspendem as trocas.
+- Renovada a versão da interface no HTML. Testes da tela inicial/Matrix (troca, preservação do comprimento, aba oculta e limpeza), interface do matchmaking, sintaxe e `git diff --check` aprovados. Aparência não verificada em navegador.
+
+### Laterais dos atalhos e velocidade da chuva Matrix
+
+- Estendido o fundo preto dos atalhos inferiores, incluindo Ajustes, até as bordas laterais do menu, mantendo o alinhamento dos botões.
+- Acelerada levemente a chuva: duração de cada percurso reduzida de 12–26 segundos para 10–22 segundos, mantendo velocidades variadas entre colunas.
+- Renovadas as versões do CSS e da interface no HTML. Aprovados testes da tela inicial/Matrix e interface do matchmaking, sintaxe e `git diff --check`; aparência não verificada em navegador.
+
+### Cabeçalho preto no menu
+
+- Aplicado fundo preto opaco ao cabeçalho com a versão `v1.0.0`, estendido às laterais e ao espaço superior do menu para cobrir a chuva Matrix nessa região.
+- Renovada a versão do CSS no HTML. Testes da tela inicial e Matrix e `git diff --check` aprovados; aparência não verificada em navegador.
+
+### Rodapé preto até a borda inferior
+
+- Transferido o espaçamento inferior do menu para o painel preto de status, que agora ocupa também o espaço livre restante e se estende às bordas laterais. Isso cobre a faixa abaixo de “Conectado ao servidor” onde os caracteres ainda apareciam.
+- Renovada a versão do CSS no HTML. Testes da tela inicial e Matrix e `git diff --check` aprovados; aparência não verificada em navegador.
+
+### Fundo preto no status da conexão
+
+- Aplicado fundo preto opaco à área de status, incluindo “Conectado ao servidor”, para cobrir os caracteres Matrix atrás da mensagem.
+- Renovada a versão do CSS no HTML. Testes da tela inicial e Matrix e `git diff --check` aprovados; aparência não verificada em navegador.
+
+### Fundo opaco nos atalhos inferiores
+
+- Aplicado fundo preto opaco ao submenu inferior de atalhos, incluindo Ajustes, para encobrir os caracteres Matrix atrás dos botões e dos espaços entre eles.
+- Atualizada a versão do CSS no HTML. Testes da tela inicial e Matrix e `git diff --check` aprovados; aparência não verificada em navegador.
+
+### Menu preto com caracteres Matrix maiores
+
+- Removidos a imagem anterior e os gradientes decorativos do fundo do menu de modos; aplicado preto puro atrás da chuva Matrix.
+- Aumentado o tamanho responsivo dos caracteres de `clamp(9px, 2.2cqw, 24px)` para `clamp(14px, 3.4cqw, 36px)` e renovada a versão do CSS no HTML.
+- Testes da tela inicial e Matrix e `git diff --check` aprovados. Aparência não verificada em navegador.
+
+### Correção: chuva Matrix no menu de modos
+
+- Removida a chuva de caracteres da cena de partida e adicionada ao fundo do menu principal, onde são selecionados os modos de jogo, conforme esclarecimento do usuário.
+- Adaptada para 24 colunas DOM com animação CSS, velocidades variadas, caracteres verdes e ponta clara. A camada fica atrás dos controles, não captura cliques e é removida ao sair do menu; respeita a preferência do sistema por movimento reduzido.
+- Atualizadas as versões dos arquivos no HTML. Aprovados testes da tela inicial (incluindo colunas e ausência do efeito na partida), desempenho da cena e interface do matchmaking, além de sintaxe e `git diff --check`. Aparência não verificada em navegador.
+
+### Chuva de caracteres Matrix no fundo da partida
+
+- Examinadas `criarChuvaCaracteres` e `atualizarChuvaCaracteres` de `src/Scenes/CenaStart.js` no repositório S.N.R-Soul-Network-Reborn indicado pelo usuário. Implementada adaptação com 24 colunas verdes de letras, números e katakana, velocidades variadas, ponta clara e troca periódica de caracteres.
+- Chuva exibida sobre o vídeo da cidade e atrás do campo, com transparência para preservar a leitura. Os 48 objetos de texto são reutilizados nos redesenhos; a opção de desativar o fundo libera também a chuva, e a reentrada na cena reinicializa sua referência.
+- Atualizada a versão da cena no HTML. Aprovados testes de desempenho da cena, animações do oponente e sincronização, sintaxe e `git diff --check`. Teste específico cobre reutilização, movimento, limite após pausas, troca dos caracteres, retorno ao topo e desativação. Aparência em navegador e desempenho em celular físico não verificados.
+
 ### Identidade visual verde
 
 - Convertidos os tons ciano e azul-ciano definidos em CSS e JavaScript para verde, preservando luminosidade, saturação e transparência. Destaque principal alterado para `#23ff6c`, com a variável `--forge-accent` substituindo `--forge-cyan`.

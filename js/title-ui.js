@@ -62,7 +62,7 @@ class CyberduelTitleUI {
       this.createMenuShortcuts(),
       this.createStatusBar(),
     );
-    this.root.append(atmosphere, shell);
+    this.root.append(atmosphere, this.createMatrixRain(), shell);
     document.body.appendChild(this.root);
     document.addEventListener("keydown", this.handleKeydown);
     const mountedRoot = this.root;
@@ -73,6 +73,39 @@ class CyberduelTitleUI {
     });
     this.settings?.queueDomTextUpdate(this.root);
     return this;
+  }
+
+  createMatrixRain() {
+    clearInterval(this.matrixTimer);
+    const streams = [];
+    const rain = this.element("div", "title-matrix");
+    rain.setAttribute("aria-hidden", "true");
+    const alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZアイウエオカキクケコ";
+    for (let column = 0; column < 24; column++) {
+      const stream = this.element("div", "title-matrix-stream");
+      stream.style.left = `${(column + 0.5) * 100 / 24}%`;
+      stream.style.animationDuration = `${10 + Math.random() * 12}s`;
+      stream.style.animationDelay = `${-Math.random() * 22}s`;
+      const characters = Array.from({ length: 8 + Math.floor(Math.random() * 9) },
+        () => alphabet[Math.floor(Math.random() * alphabet.length)]);
+      stream.append(
+        this.element("span", "title-matrix-trail", characters.join("\n")),
+        this.element("span", "title-matrix-head", characters.at(-1)),
+      );
+      rain.append(stream);
+      streams.push({ characters, trail: stream.children[0], head: stream.children[1] });
+    }
+    this.matrixTimer = setInterval(() => {
+      if (document.hidden || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+      for (const { characters, trail, head } of streams) {
+        const index = Math.floor(Math.random() * characters.length);
+        const offset = 1 + Math.floor(Math.random() * (alphabet.length - 1));
+        characters[index] = alphabet[(alphabet.indexOf(characters[index]) + offset) % alphabet.length];
+        trail.textContent = characters.join("\n");
+        head.textContent = alphabet[Math.floor(Math.random() * alphabet.length)];
+      }
+    }, 180);
+    return rain;
   }
 
   createCardMenu() {
@@ -468,9 +501,20 @@ class CyberduelTitleUI {
     }
   }
 
+  playMenuClick() {
+    const volume = this.settings?.effects(0.5) ?? 0.5;
+    if (!volume) return;
+    this.menuClickAudio ||= new Audio("assets/sons/clique-menu.mp3");
+    this.menuClickAudio.volume = volume;
+    this.menuClickAudio.currentTime = 0;
+    this.menuClickAudio.play().catch(() => {});
+  }
+
   selectCategory(index) {
     if (this.cardMenuState.mode !== "categories" || this.cardMenuTransitioning)
       return;
+    if (this.cardMenuState.categoryIndex === index) return;
+    this.playMenuClick();
     this.cardMenuState.categoryIndex = index;
     this.menuCategory = this.menuCategories[index].id;
     this.renderCardMenu();
@@ -494,6 +538,7 @@ class CyberduelTitleUI {
 
   handleCardClick(card) {
     if (this.cardMenuDragged || this.cardMenuTransitioning) return;
+    this.playMenuClick();
     const position = card.dataset.position;
     if (position === "left") return this.navigateCardMenu(-1);
     if (position === "right") return this.navigateCardMenu(1);
@@ -505,6 +550,8 @@ class CyberduelTitleUI {
   }
 
   handleCardMenuAction() {
+    if (this.cardMenuTransitioning) return;
+    this.playMenuClick();
     const state = this.cardMenuState;
     if (state.mode === "categories")
       this.openCategoryOptions(this.menuCategory);
@@ -2396,6 +2443,10 @@ class CyberduelTitleUI {
   }
 
   destroy() {
+    this.menuClickAudio?.pause();
+    this.menuClickAudio = null;
+    clearInterval(this.matrixTimer);
+    this.matrixTimer = null;
     clearTimeout(this.versusTimer);
     document.removeEventListener("keydown", this.handleKeydown);
     document.body.classList.remove("title-terminal-open");
