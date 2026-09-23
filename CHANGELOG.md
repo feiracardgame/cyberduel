@@ -4,6 +4,23 @@ Novidades, correções e verificações realizadas no projeto. As entregas mais 
 
 ## 2026-09-23
 
+### Prioridade do vídeo na abertura
+
+- O carregamento dos assets agora começa após o primeiro frame do vídeo de abertura. A tela permanece por pelo menos um segundo após esse início, inclusive com os arquivos em cache.
+- Erro de vídeo libera o carregamento; espera máxima de dez segundos evita bloquear a aplicação quando a reprodução não inicia. Mantido o acesso direto ao deck e atualizada a versão do preload no HTML.
+- Aprovados testes de carregamento (ordem, cache quente, erro, timeout e saída), assets, sintaxe e `git diff --check`. Reprodução real no navegador não verificada nesta alteração.
+
+### Título na tela de carregamento
+
+- Adicionado “CYBERDUEL” centralizado na parte superior do vídeo de carregamento, com texto branco, contorno escuro e brilho ciano.
+- Atualizada a versão do preload no HTML. Teste do carregamento, sintaxe e `git diff --check` aprovados; aparência não verificada em navegador.
+
+### Tela de carregamento EchoRasp
+
+- Integrado `assets/videos/carregamento_echorasp.mp4` ao carregamento inicial, em loop sem som e com ajuste proporcional para cobrir a tela. A barra e o percentual permanecem sobre um painel escuro na parte inferior.
+- O vídeo carrega diretamente, sem depender da fila de assets; é interrompido ao sair da cena. Falhas no vídeo não impedem o progresso nem a entrada no menu, e o atalho `?deck=1` foi preservado.
+- Atualizada a versão do preload no HTML. Aprovados testes do vídeo de carregamento e assets, sintaxe e `git diff --check`. ffprobe confirmou H.264, 1080×1920 e 8 segundos; reprodução visual em navegador não verificada nesta alteração.
+
 ### Aguardar os efeitos do oponente antes de agir
 
 - Adiada a liberação local da vez até terminar o último efeito visual do oponente, incluindo os eventos aguardando na fila, tanto contra a IA quanto no multiplayer.

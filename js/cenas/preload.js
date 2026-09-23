@@ -96,6 +96,9 @@ class CenaPreload extends Phaser.Scene {
     configurarCameraLogica(this);
     this.criarBarraDeCarregamento();
 
+  }
+
+  carregarAssets() {
     // ASSETS DO JOGO
     Object.entries(window.CYBERDUEL_GAME_IMAGE_ASSETS).forEach(([key, url]) =>
       this.load.image(key, url),
@@ -131,67 +134,47 @@ class CenaPreload extends Phaser.Scene {
     );
   }
 
-  // Atualiza logo e barra conforme o carregamento dos assets.
+  // Reproduz o fundo enquanto os assets carregam e mantém o progresso visível.
   criarBarraDeCarregamento() {
     this.cameras.main.setBackgroundColor("#030509");
 
     const larguraBarra = 850;
     const alturaBarra = 22;
     const x = LARGURA_LAYOUT / 2 - larguraBarra / 2;
-    const y = ALTURA_LAYOUT / 2 + 150;
+    const y = ALTURA_LAYOUT * 0.86;
 
-    // Mesmo vocabulário visual do título/deck forge: grade técnica, painéis escuros, linhas finas e ciano como sinal ativo.
-    const grade = this.add.graphics();
-    grade.lineStyle(1, 0x45a6c4, 0.09);
-    for (let gx = 0; gx <= LARGURA_LAYOUT; gx += 72) grade.lineBetween(gx, 0, gx, ALTURA_LAYOUT);
-    for (let gy = 0; gy <= ALTURA_LAYOUT; gy += 72) grade.lineBetween(0, gy, LARGURA_LAYOUT, gy);
-
-    this.add.rectangle(LARGURA_LAYOUT / 2, 72, LARGURA_LAYOUT - 96, 1, 0x7cd3ff, 0.18);
-    this.add
-      .text(60, 38, "CD  //  NEOFLORIPA OS", {
-        fontSize: "19px",
-        color: "#6f8593",
-        fontStyle: "bold",
-      })
-      .setOrigin(0, 0.5);
-    this.add
-      .text(LARGURA_LAYOUT - 60, 38, "●  REDE ATIVA", {
-        fontSize: "17px",
-        color: "#38f2a0",
-        fontStyle: "bold",
-      })
-      .setOrigin(1, 0.5);
+    // Carrega diretamente: o fundo não depende da fila de assets que ele apresenta.
+    const video = this.add.video(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2);
+    this.videoCarregamento = video;
+    this.videoFalhou = false;
+    video.setVisible(false);
+    video.once("created", (_video, largura, altura) => {
+      if (!video.active || !largura || !altura) return;
+      const escala = Math.max(LARGURA_LAYOUT / largura, ALTURA_LAYOUT / altura);
+      video.setDisplaySize(largura * escala, altura * escala).setVisible(true);
+    });
+    video.once("error", () => {
+      this.videoFalhou = true;
+      video.setVisible(false);
+    });
+    video.loadURL("assets/videos/carregamento_echorasp.mp4?v=20260923", true);
+    video.setMute(true);
+    video.play(true);
+    this.events.once("shutdown", () => video.stop());
 
     this.add
-      .text(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2 - 300, "CYBER", {
+      .text(LARGURA_LAYOUT / 2, ALTURA_LAYOUT * 0.16, "CYBERDUEL", {
         fontFamily: "Impact, Arial Narrow, sans-serif",
-        fontSize: "150px",
+        fontSize: "140px",
+        fontStyle: "bold italic",
         color: "#ffffff",
-        fontStyle: "bold italic",
         stroke: "#030509",
-        strokeThickness: 6,
+        strokeThickness: 10,
+        shadow: { offsetX: 0, offsetY: 4, color: "#23d7ff", blur: 12, fill: true },
       })
       .setOrigin(0.5);
 
-    this.add
-      .text(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2 - 170, "DUEL", {
-        fontFamily: "Impact, Arial Narrow, sans-serif",
-        fontSize: "150px",
-        color: "#030509",
-        fontStyle: "bold italic",
-        stroke: "#23d7ff",
-        strokeThickness: 3,
-      })
-      .setOrigin(0.5);
-
-    this.add
-      .text(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2 - 50, "AUDIÊNCIA É PODER", {
-        fontSize: "19px",
-        color: "#8291a3",
-        fontStyle: "bold",
-        letterSpacing: 8,
-      })
-      .setOrigin(0.5);
+    this.add.rectangle(LARGURA_LAYOUT / 2, y, LARGURA_LAYOUT, 240, 0x030509, 0.8);
 
     let textoStatus = this.add
       .text(x, y - 54, "INICIALIZANDO SIMULAÇÃO", {
@@ -253,11 +236,30 @@ class CenaPreload extends Phaser.Scene {
   }
 
   create() {
-    // `?deck=1` também funciona como atalho direto para o montador. Além de ser útil no celular, permite validar a cena sem atravessar menus.
     const abrirDeck =
       new URLSearchParams(window.location.search).get("deck") === "1";
-    this.time.delayedCall(abrirDeck ? 0 : 300, () => {
-      this.scene.start(abrirDeck ? "CenaDeckBuilder" : "CenaTitulo");
-    });
+    const video = this.videoCarregamento;
+    let iniciado = false;
+    const iniciar = () => {
+      if (iniciado) return;
+      iniciado = true;
+      espera.remove();
+      video.off("created", iniciar);
+      video.off("error", iniciar);
+      const inicio = this.time.now;
+      this.load.once("complete", () => {
+        // Mesmo com cache quente, deixa a abertura visível por pelo menos um segundo.
+        this.time.delayedCall(Math.max(0, 1000 - (this.time.now - inicio)), () => {
+          this.scene.start(abrirDeck ? "CenaDeckBuilder" : "CenaTitulo");
+        });
+      });
+      this.carregarAssets();
+      this.load.start();
+    };
+    // Falha ou bloqueio de reprodução não pode prender a abertura indefinidamente.
+    const espera = this.time.delayedCall(10000, iniciar);
+    video.once("created", iniciar);
+    video.once("error", iniciar);
+    if (video.frameReady || this.videoFalhou) iniciar();
   }
 }
