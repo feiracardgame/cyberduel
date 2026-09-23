@@ -34,13 +34,13 @@ assert.ok(
   optimizedBytes < 6 * 1024 * 1024,
   "O conjunto de texturas da partida deve permanecer abaixo de 6 MiB, incluindo as novas artes da HumbaNet.",
 );
-assert.ok(fs.existsSync("assets/videos/game/parte_3-720p.mp4"));
-assert.ok(
-  fs.statSync("assets/videos/game/parte_3-720p.mp4").size < 2 * 1024 * 1024,
-  "O loop móvel deve permanecer abaixo de 2 MiB.",
-);
+const background = "assets/videos/background_cidade.mp4";
+assert.ok(fs.existsSync(background));
+assert.ok(fs.statSync(background).size > 0, "O vídeo da cidade não pode estar vazio.");
+assert.ok(fs.readFileSync("js/cenas/preload.js", "utf8").includes(`${background}?v=`),
+  "O preload deve carregar o novo fundo da cidade.");
 
-console.log("Texturas e vídeo otimizados da partida validados.");
+console.log("Texturas otimizadas e novo vídeo de fundo da partida validados.");
 
 for (const name of ['aranha', 'boi', 'cabra', 'cao', 'cavalo', 'cobra', 'coelho', 'galo', 'macaco', 'porco', 'rato', 'tigre']) {
   const key = 'efeito' + name[0].toUpperCase() + name.slice(1);

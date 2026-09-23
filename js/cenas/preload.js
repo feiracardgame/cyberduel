@@ -122,7 +122,7 @@ class CenaPreload extends Phaser.Scene {
     this.load.video("videoTransicao", "assets/videos/transicaocerta.mp4");
     this.load.video(
       "videoParte3",
-      "assets/videos/game/parte_3-720p.mp4?v=20260902a",
+      "assets/videos/background_cidade.mp4?v=20260923-cidade",
     );
     // efeitos
     this.load.video(

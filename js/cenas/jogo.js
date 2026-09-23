@@ -163,6 +163,7 @@ class CenaJogo extends Phaser.Scene {
 
     // Bloqueia comandos durante animações e modais.
     this.travado = false;
+    this.turnoAposEfeitos = null;
 
     // Estado dos relógios de cada jogador.
     this.tempoRestanteTurno = DURACAO_TURNO_MS;
@@ -472,8 +473,21 @@ class CenaJogo extends Phaser.Scene {
       efeitos.receber(eventos);
   }
 
+  efeitosOponentePendentes() {
+    const efeitos = this.scene?.manager?.keys?.CenaEfeitos;
+    return Boolean(
+      (efeitos?.executando && efeitos.eventoAtual?.lado === "inimigo") ||
+      efeitos?.fila?.some((evento) => evento.lado === "inimigo"),
+    );
+  }
+
   update(time) {
     this.apresentarEventosEfeito();
+    if (this.turnoAposEfeitos && !this.efeitosOponentePendentes()) {
+      const continuar = this.turnoAposEfeitos;
+      this.turnoAposEfeitos = null;
+      continuar();
+    }
     // A indicação visual não precisa recalcular alvos em cada frame.
     if (time >= this.proximaAtualizacaoAuras) {
       this.atualizarAurasHabilidade();
@@ -514,6 +528,7 @@ class CenaJogo extends Phaser.Scene {
   podeJogarCartasAgora() {
     return (
       this.ehMeuTurno &&
+      !this.efeitosOponentePendentes() &&
       this.faseAtual === "colocar" &&
       !this.timerTurnoExpirado &&
       !this.multiplayer?.spectator
@@ -523,6 +538,7 @@ class CenaJogo extends Phaser.Scene {
   podeUsarHabilidadesAgora() {
     return (
       this.ehMeuTurno &&
+      !this.efeitosOponentePendentes() &&
       this.faseAtual === "habilidades" &&
       !this.timerTurnoExpirado &&
       !this.multiplayer?.spectator
@@ -6609,6 +6625,7 @@ class CenaJogo extends Phaser.Scene {
   // Bloqueia comandos e resolve o encerramento do turno.
   aoClicarPassarTurno() {
     if (
+      this.efeitosOponentePendentes() ||
       this.travado ||
       !this.ehMeuTurno ||
       this.partida.partidaEncerrada ||
@@ -6623,6 +6640,13 @@ class CenaJogo extends Phaser.Scene {
   }
 
   avancarFaseSolo() {
+    this.apresentarEventosEfeito();
+    if (this.efeitosOponentePendentes()) {
+      this.ehMeuTurno = false;
+      this.travado = true;
+      this.turnoAposEfeitos = () => this.avancarFaseSolo();
+      return;
+    }
     this.soloStep++;
     let result = null;
     if (this.soloStep === 4) {
@@ -6704,7 +6728,7 @@ class CenaJogo extends Phaser.Scene {
       : this.detectarEventosVisuaisMultiplayer(partidaAnterior, novaPartida);
 
     if (window.CenaEfeitos) {
-      // O estado é aplicado já; a camada de efeitos reproduz a sequência completa sem prender o tabuleiro.
+      // Aplica o estado já, mas só libera a vez após os efeitos do oponente.
       this.partida = novaPartida;
       window.partida = this.partida;
       this.finalizarRecebimentoMultiplayer(resultado, update, false);
@@ -6746,6 +6770,16 @@ class CenaJogo extends Phaser.Scene {
   }
 
   finalizarRecebimentoMultiplayer(resultado, update, interfaceDesenhada) {
+    // Uma atualização mais nova substitui a liberação pendente da anterior.
+    this.turnoAposEfeitos = null;
+    if (this.efeitosOponentePendentes()) {
+      this.ehMeuTurno = false;
+      this.travado = true;
+      this.turnoAposEfeitos = () =>
+        this.finalizarRecebimentoMultiplayer(resultado, update, false);
+      this.desenharInterface();
+      return;
+    }
     const podeJogar =
       !this.multiplayer.spectator &&
       update.activePlayer === this.multiplayer.player;

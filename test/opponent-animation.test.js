@@ -169,3 +169,52 @@ for (const [name, texture, moment] of [
   assert.equal(learned.objects.filter(o => o.value === 'efeitoTigre').length, 1);
 }
 console.log('EchoSsystem: 12 símbolos, gatilhos, perspectiva, proporção, limpeza, sigilo e habilidade aprendida validados.');
+
+// O turno só é liberado quando o último efeito remoto termina.
+vm.runInContext(fs.readFileSync('js/cenas/jogo.js', 'utf8'), context);
+const Game = vm.runInContext('CenaJogo', context);
+for (const multiplayerAtivo of [false, true]) {
+  const f = fixture();
+  let starts = 0, passes = 0;
+  const game = Object.assign(Object.create(Game.prototype), {
+    scene: { manager: { keys: { CenaEfeitos: f.s } } },
+    partida: { fase: 'colocar', jogador: {}, inimigo: {} },
+    multiplayerAtivo, multiplayer: { player: 1, initialized: true, remainingMs: () => 30000,
+      finishTurn() { passes++; } },
+    soloStep: 0, soloStarter: 2, ehMeuTurno: false, faseAtual: 'colocar',
+    proximaAtualizacaoAuras: Infinity, prazoFaseLocal: Date.now() + 30000,
+    desenharInterface() {}, atualizarVisualTimerTurno() {},
+    iniciarNovoTurnoDoJogador() { starts++; this.ehMeuTurno = true; },
+    desenharRodaBotoes() {}, mostrarEsperaMultiplayer() {},
+    encerrarSelecoesDaFase() {}, pausarTimerAteProximoTurno() {},
+  });
+  f.s.receber([f.event(1, 'invocacao'), f.event(2, 'habilidade')]);
+  if (multiplayerAtivo) game.finalizarRecebimentoMultiplayer(null, { activePlayer: 1, phase: 'colocar' }, false);
+  else game.avancarFaseSolo();
+  assert.equal(game.ehMeuTurno, false);
+  assert.equal(starts, 0);
+  // Mesmo um controle com estado antigo não permite comandos durante a fila.
+  game.ehMeuTurno = true; game.travado = false;
+  assert.equal(game.podeJogarCartasAgora(), false);
+  game.faseAtual = 'habilidades';
+  assert.equal(game.podeUsarHabilidadesAgora(), false);
+  game.aoClicarPassarTurno();
+  assert.equal(passes, 0);
+  game.ehMeuTurno = false; game.faseAtual = 'colocar';
+  while (f.s.exibidos.length < 2) assert.ok(f.step());
+  game.update(0);
+  assert.equal(starts, 0, 'O segundo efeito ainda bloqueia a vez.');
+  if (multiplayerAtivo) {
+    game.finalizarRecebimentoMultiplayer(null, { activePlayer: 2, phase: 'habilidades' }, false);
+    game.finalizarRecebimentoMultiplayer(null, { activePlayer: 1, phase: 'habilidades' }, false);
+  }
+  f.flush(); game.update(0);
+  assert.equal(starts, 1);
+  assert.equal(game.ehMeuTurno, true);
+  assert.equal(game.travado, false);
+  assert.equal(game.turnoAposEfeitos, null);
+  if (multiplayerAtivo) assert.equal(game.faseAtual, 'habilidades', 'Usa a atualização mais recente.');
+  game.update(0);
+  assert.equal(starts, 1, 'Não inicia a mesma vez duas vezes.');
+}
+console.log('Turno aguarda todos os efeitos remotos no solo e multiplayer; comandos bloqueados e atualização mais recente preservada.');

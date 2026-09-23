@@ -4,6 +4,19 @@ Novidades, correções e verificações realizadas no projeto. As entregas mais 
 
 ## 2026-09-23
 
+### Aguardar os efeitos do oponente antes de agir
+
+- Adiada a liberação local da vez até terminar o último efeito visual do oponente, incluindo os eventos aguardando na fila, tanto contra a IA quanto no multiplayer.
+- Bloqueados os comandos de jogar cartas, usar habilidades e passar durante os efeitos remotos. Atualizações multiplayer recebidas durante a espera substituem a liberação pendente, preservando a fase mais recente.
+- Atualizada a versão da cena de jogo no HTML. Teste reproduz dois efeitos sequenciais, bloqueio dos comandos, liberação única e atualizações recebidas durante a espera.
+- Aprovados testes de animações do oponente, sincronização e desempenho da cena, sintaxe e `git diff --check`. Sem validação visual em navegador; o prazo multiplayer permanece controlado pelo servidor e não ganha tempo adicional durante a espera local.
+
+### Fundo da partida com vídeo da cidade
+
+- Substituído o vídeo `parte_3-720p.mp4` por `assets/videos/background_cidade.mp4` no carregamento do fundo da partida, preservando reprodução em loop, sem som, ajuste proporcional e opção de desativar a animação.
+- Atualizada a versão do preload no HTML para renovar o cache e ajustado o teste de assets para conferir o novo arquivo.
+- Aprovados testes de assets, desempenho da cena e configurações, sintaxe do preload e `git diff --check`. Vídeo confirmado com ffprobe: H.264, 1080×1920, 8 segundos, 3,15 MiB; substitui o anterior de menos de 2 MiB. Reprodução visual e desempenho em celular não verificados nesta alteração.
+
 ### Fotos de perfil na leaderboard e Juggernaut
 
 - A leaderboard agora mostra a foto de perfil ao lado do apelido, com miniatura circular e iniciais para jogadores sem foto.
