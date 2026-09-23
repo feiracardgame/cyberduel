@@ -4,6 +4,13 @@ Novidades, correções e verificações realizadas no projeto. As entregas mais 
 
 ## 2026-09-23
 
+### Fotos de perfil na leaderboard e Juggernaut
+
+- A leaderboard agora mostra a foto de perfil ao lado do apelido, com miniatura circular e iniciais para jogadores sem foto.
+- Confirmada a disponibilidade de `juggernaut_icon.png` no catálogo automático existente; o teste de perfil passou a validar explicitamente sua presença, salvamento e persistência após reiniciar o servidor.
+- Atualizadas as versões do CSS e da interface no HTML para renovar o cache.
+- Aprovados os testes de interface do matchmaking/leaderboard, perfil e tela inicial, além da verificação de sintaxe e `git diff --check`. Layout visual não verificado em navegador nesta alteração.
+
 ### Novos símbolos de efeitos da EchoSsystem
 
 - Integradas ao carregamento as doze imagens novas de `assets/efeitos`: Aranha, Boi, Cabra, Cão, Cavalo, Cobra, Coelho, Galo, Macaco, Porco, Rato e Tigre.

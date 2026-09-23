@@ -24,7 +24,7 @@ async function api(route, body, method = 'POST') {
   });
   return { status: response.status, body: await response.json() };
 }
-const avatar = 'assets/fotosdeperfil/advogado_icon.png';
+const avatar = 'assets/fotosdeperfil/juggernaut_icon.png';
 (async () => {
   await start();
   assert.equal((await api('account/profile', { nickname: 'Teste', avatar: '' }, 'PUT')).status, 401);
@@ -35,6 +35,7 @@ const avatar = 'assets/fotosdeperfil/advogado_icon.png';
   assert.equal(registered.body.avatar, '');
   assert.deepEqual(registered.body.profilePhotos, fs.readdirSync('assets/fotosdeperfil')
     .filter(name => name.endsWith('_icon.png')).map(name => `assets/fotosdeperfil/${name}`).sort());
+  assert.ok(registered.body.profilePhotos.includes(avatar), "Juggernaut disponível na galeria.");
   for (const photo of registered.body.profilePhotos) {
     assert.equal((await api('account/profile', { nickname: 'Teste', avatar: photo }, 'PUT')).status, 200);
     assert.equal((await fetch(`http://127.0.0.1:${port}/${photo}`)).status, 200);

@@ -1710,7 +1710,21 @@ class CyberduelTitleUI {
       const body = this.element("tbody", "");
       for (const entry of response.entries) {
         const row = this.element("tr", "");
-        for (const value of [entry.position, entry.nickname, entry.rank, entry.rating, `${entry.wins} / ${entry.losses}`])
+        row.append(this.element("td", "", String(entry.position)));
+        const player = this.element("td", "");
+        const identity = this.element("div", "leaderboard-player");
+        const avatar = this.element(entry.avatar ? "img" : "span", "leaderboard-avatar");
+        if (entry.avatar) {
+          avatar.src = entry.avatar;
+          avatar.alt = "";
+        } else {
+          avatar.textContent = Array.from(entry.nickname || "?").slice(0, 2).join("").toUpperCase();
+          avatar.setAttribute("aria-hidden", "true");
+        }
+        identity.append(avatar, this.element("span", "", entry.nickname));
+        player.append(identity);
+        row.append(player);
+        for (const value of [entry.rank, entry.rating, `${entry.wins} / ${entry.losses}`])
           row.append(this.element("td", "", String(value)));
         body.append(row);
       }

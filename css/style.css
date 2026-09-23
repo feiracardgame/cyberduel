@@ -3095,3 +3095,6 @@ body.title-terminal-open #game-viewport canvas {
 }
 .title-small-button:disabled { opacity: 0.55; cursor: wait; }
 .title-small-button:focus-visible { outline: 2px solid #ffce80; outline-offset: 3px; }
+
+.leaderboard-player { display: flex; align-items: center; gap: 8px; }
+.leaderboard-avatar { width: clamp(28px, 5vw, 40px); height: clamp(28px, 5vw, 40px); flex-shrink: 0; border-radius: 50%; object-fit: cover; display: grid; place-items: center; background: #163043; color: #8cdbec; }
