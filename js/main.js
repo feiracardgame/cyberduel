@@ -1895,14 +1895,14 @@ const usarPerfilMovel =
   (qualidadeSolicitada === "mobile" ||
     (quantidadeToques > 0 && telaCompacta) ||
     (ponteiroGrosso && telaCompacta));
-// Ajusta a nitidez à tela, limitando o custo a 1,5× a resolução base.
+// No celular, limita os pixels à resolução base; high permite até 1,5×.
 const escalaTela = Math.min(
   (window.innerWidth || GW) / GW,
   (window.innerHeight || GH) / GH,
 );
 const ESCALA_RENDER = qualidadeSolicitada === "mobile"
   ? 2 / 3
-  : Math.min(1.5, Math.max(1, escalaTela * (window.devicePixelRatio || 1)));
+  : Math.min(usarPerfilMovel ? 1 : 1.5, Math.max(1, escalaTela * (window.devicePixelRatio || 1)));
 const LARGURA_RENDER = Math.round(GW * ESCALA_RENDER);
 const ALTURA_RENDER = Math.round(GH * ESCALA_RENDER);
 
@@ -1943,6 +1943,7 @@ const config = {
   type: usarCanvasParaDiagnostico ? Phaser.CANVAS : Phaser.AUTO,
   width: LARGURA_RENDER,
   height: ALTURA_RENDER,
+  fps: { limit: usarPerfilMovel ? 60 : 0 },
   scale: {
     expandParent: false,
     mode: Phaser.Scale.FIT,

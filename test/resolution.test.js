@@ -51,11 +51,12 @@ for (const [width, height] of [[720, 1480], [1080, 2160], [720, 1280]]) {
 console.log('Resolução, limites do campo/mão, câmera, ponteiro e proporção HTML validados nos dois perfis.');
 
 for (const [viewportWidth, viewportHeight, dpr, quality, expectedWidth] of [
-  [390, 844, 3, '', 1080],
+  [390, 844, 3, '', 720],
   [360, 780, 2, '', 720],
-  [430, 932, 3, '', 1080],
-  [390, 844, 4, '', 1080],
+  [430, 932, 3, '', 720],
+  [390, 844, 4, '', 720],
   [390, 844, 3, 'mobile', 480],
+  [390, 844, 3, 'high', 1080],
   [1920, 1080, 1, '', 720],
   [844, 390, 3, '', 720],
 ]) {
@@ -74,5 +75,11 @@ for (const [viewportWidth, viewportHeight, dpr, quality, expectedWidth] of [
   assert.equal(profile.width, expectedWidth, `Resolução em ${viewportWidth}×${viewportHeight}, DPR ${dpr}, ${quality || 'auto'}`);
   assert.ok(profile.width * profile.height <= 1080 * 2220, 'Limitar pixels em aparelhos de alta densidade.');
   assert.equal(vm.runInContext('config.render.roundPixels', context), false);
+  if (profile.mobile) {
+    assert.ok(profile.width * profile.height <= 720 * 1480, 'Celular não excede a resolução base.');
+    assert.equal(vm.runInContext('config.fps.limit', context), 60, 'Limitar trabalho em telas de 90/120 Hz.');
+  } else {
+    assert.equal(vm.runInContext('config.fps.limit', context), 0);
+  }
 }
 console.log('Nitidez automática, limite de pixels, orientação e perfil econômico validados.');

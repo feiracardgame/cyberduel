@@ -5,6 +5,7 @@
     musicVolume: 0.75,
     effectsVolume: 0.9,
     textScale: 1.12,
+    animatedBackground: 1,
   });
 
   const clamp = (value, minimum, maximum) =>
@@ -33,6 +34,7 @@
       this.values.musicVolume = clamp(this.values.musicVolume, 0, 1);
       this.values.effectsVolume = clamp(this.values.effectsVolume, 0, 1);
       this.values.textScale = clamp(this.values.textScale, 1, 1.35);
+      this.values.animatedBackground = this.values.animatedBackground === 0 ? 0 : 1;
       for (const [key, fallback] of Object.entries(DEFAULTS)) {
         if (!Number.isFinite(this.values[key])) this.values[key] = fallback;
       }

@@ -26,6 +26,7 @@ class CenaEfeitos extends Phaser.Scene {
     this.executando = false;
     this.invocacaoEmCurso = null;
     this.invocacoesPendentes = new Map();
+    this.haCartasOcultas = false;
     this.events.once("shutdown", () => this.cancelarInvocacoesPendentes());
     this.scene.bringToTop();
   }
@@ -67,12 +68,15 @@ class CenaEfeitos extends Phaser.Scene {
   }
 
   atualizarVisibilidadeInvocacoes() {
+    if (!this.invocacoesPendentes?.size && !this.haCartasOcultas) return;
+    this.haCartasOcultas = false;
     // Inclui quem ainda espera na fila, não só a carta que já está voando.
     for (const objeto of this.jogo.children.list) {
       const ocultar = this.deveOcultarCarta(objeto.dadosCartaCampo);
       if (ocultar || objeto.ocultaPorInvocacao) {
         objeto.setVisible(!ocultar);
         objeto.ocultaPorInvocacao = ocultar;
+        if (ocultar) this.haCartasOcultas = true;
       }
     }
   }

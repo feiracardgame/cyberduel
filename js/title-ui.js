@@ -1047,6 +1047,15 @@ class CyberduelTitleUI {
         maximum: 135,
       }),
     ];
+    const backgroundRow = this.element("label", "title-setting title-setting--toggle");
+    const background = this.element("input");
+    background.type = "checkbox";
+    background.checked = this.settings.get("animatedBackground") !== 0;
+    background.addEventListener("change", () => {
+      this.settings.set("animatedBackground", background.checked);
+    });
+    backgroundRow.append(background, this.element("span", "", "FUNDO ANIMADO DA PARTIDA"));
+    controls.append(backgroundRow);
     const actions = this.element(
       "div",
       "title-dialog__actions title-dialog__actions--triple",
@@ -1060,6 +1069,7 @@ class CyberduelTitleUI {
     actions.append(
       this.button("title-dialog__cancel", "RESTAURAR", () => {
         this.settings.reset();
+        background.checked = true;
         const keys = [
           "masterVolume",
           "musicVolume",

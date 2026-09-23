@@ -88,8 +88,14 @@ class CenaJogo extends Phaser.Scene {
   create(dados = {}) {
     this.finalDebug = false;
     this.camadaModalCarta = null;
-    this.events.once("shutdown", () => this.limparCamadaModalCarta());
+    this.events.once("shutdown", () => {
+      this.limparEventosDescricao();
+      this.limparCamadaModalCarta();
+    });
     this.videoFundo = null;
+    this.baseCampo = null;
+    this.layoutBaseCampo = null;
+    this.gestosMaoConfigurados = false;
     this.partidaRegistradaNaConta = !!dados.debug;
     configurarCameraLogica(this);
     const sessao = window.cyberduelMultiplayer;
@@ -114,38 +120,24 @@ class CenaJogo extends Phaser.Scene {
       window.cyberduelSettings?.music(base) ?? base;
     const volumeEfeito = (base) =>
       window.cyberduelSettings?.effects(base) ?? base;
-    this.musicaFundo = this.sound.add("musicaFundo", {
-      loop: true,
-      volume: volumeMusica(0.3),
+    const sons = [
+      ["musicaFundo", true, 0.3],
+      ["somTorcida", true, 0.03],
+      ["somJogarCarta", false, 0.3],
+      ["somPop", false, 0.3],
+      ["somComprarCarta", false, 0.3],
+      ["somBuff", false, 0.3],
+      ["somHover", false, 0.15],
+      ["somRaspClay", false, 0.3],
+    ].map(([chave, loop, volume]) => {
+      const som = this.sound.add(chave, {
+        loop,
+        volume: (loop ? volumeMusica : volumeEfeito)(volume),
+      });
+      this[chave] = som;
+      return som;
     });
-    this.somTorcida = this.sound.add("somTorcida", {
-      loop: true,
-      volume: volumeMusica(0.03),
-    });
-    this.somJogarCarta = this.sound.add("somJogarCarta", {
-      loop: false,
-      volume: volumeEfeito(0.3),
-    });
-    this.somPop = this.sound.add("somPop", {
-      loop: false,
-      volume: volumeEfeito(0.3),
-    });
-    this.somComprarCarta = this.sound.add("somComprarCarta", {
-      loop: false,
-      volume: volumeEfeito(0.3),
-    });
-    this.somBuff = this.sound.add("somBuff", {
-      loop: false,
-      volume: volumeEfeito(0.3),
-    });
-    this.somHover = this.sound.add("somHover", {
-      loop: false,
-      volume: volumeEfeito(0.15),
-    });
-    this.somRaspClay = this.sound.add("somRaspClay", {
-      loop: false,
-      volume: volumeEfeito(0.3),
-    });
+    this.events.once("shutdown", () => sons.forEach((som) => som.destroy()));
     this.musicaFundo.play();
     this.somTorcida.play();
 
@@ -475,7 +467,9 @@ class CenaJogo extends Phaser.Scene {
 
   apresentarEventosEfeito(eventos = this.partida?.eventosEfeito) {
     if (this.finalDebug) return;
-    this.scene?.manager?.keys?.CenaEfeitos?.receber?.(eventos);
+    const efeitos = this.scene?.manager?.keys?.CenaEfeitos;
+    if (eventos?.length && efeitos && eventos.at(-1).id > efeitos.ultimoEvento)
+      efeitos.receber(eventos);
   }
 
   update(time) {
@@ -723,17 +717,7 @@ class CenaJogo extends Phaser.Scene {
     imagem.y = (nativoH * escala) / 2 - cropY * escala - alturaJanela / 2;
   }
 
-  // Ajusta a arte inteira à janela, sem recortar.
-  aplicarRecorteContain(imagem, larguraJanela, alturaJanela) {
-    imagem.setCrop(); // limpa qualquer recorte de um uso anterior da textura
-    const nativoW = imagem.width;
-    const nativoH = imagem.height;
-    const escala = Math.min(larguraJanela / nativoW, alturaJanela / nativoH);
-    imagem.setScale(escala);
-    imagem.setPosition(0, 0);
-  }
-
-  // Encurta nomes longos para caber no espaço pequeno das cartas
+  // Encurta nomes longos sem alterar o texto original.
   truncarTexto(texto, maximo) {
     if (texto.length <= maximo) return texto;
     return texto.slice(0, maximo - 1) + "…";
@@ -1018,6 +1002,7 @@ class CenaJogo extends Phaser.Scene {
     if (this.videoFundo) this.children.remove(this.videoFundo, false);
     // A camada de contraste não depende do estado da partida.
     if (this.atmosferaTatica) this.children.remove(this.atmosferaTatica, false);
+    if (this.baseCampo) this.children.remove(this.baseCampo, false);
 
     // Destrói os objetos antigos para remover áreas de toque invisíveis.
     this.children.removeAll(true);
@@ -1046,16 +1031,7 @@ class CenaJogo extends Phaser.Scene {
       this.input.off("pointermove", this.handlerTiltZoomAtual);
       this.handlerTiltZoomAtual = null;
     }
-    if (this.handlersScrollDescAtual) {
-      this.input.off("pointermove", this.handlersScrollDescAtual.handlerMove);
-      this.input.off("pointerup", this.handlersScrollDescAtual.handlerUp);
-      this.input.off(
-        "pointerupoutside",
-        this.handlersScrollDescAtual.handlerUp,
-      );
-      this.input.off("wheel", this.handlersScrollDescAtual.handlerWheel);
-      this.handlersScrollDescAtual = null;
-    }
+    this.limparEventosDescricao();
     this.historicoAberto = false;
     this.painelHistoricoAtual = null;
     this.overlayHistoricoAtual = null;
@@ -1070,6 +1046,7 @@ class CenaJogo extends Phaser.Scene {
 
     this.desenharStatus();
     this.desenharMaoInimigo();
+    this.desenharBaseCampo();
     this.desenharCampoInimigo();
     this.desenharCampoJogador();
     this.desenharIndicadoresPoder();
@@ -2270,8 +2247,23 @@ class CenaJogo extends Phaser.Scene {
       });
     });
   }
-  // Reutiliza o vídeo de fundo e ajusta o tamanho após o primeiro frame.
+  fundoAnimadoAtivo() {
+    return window.cyberduelSettings?.get("animatedBackground") !== 0;
+  }
+
+  definirFundoAnimado(ativo) {
+    window.cyberduelSettings?.set("animatedBackground", ativo);
+    this.desenharFundoJogo();
+  }
+
+  // Desativar destrói o vídeo para interromper a reprodução e liberar recursos.
   desenharFundoJogo() {
+    if (!this.fundoAnimadoAtivo()) {
+      this.videoFundo?.destroy();
+      this.videoFundo = null;
+      this.cameras.main.setBackgroundColor("#07111f");
+      return null;
+    }
     const ajustarCover = (video, larguraNativa, alturaNativa) => {
       if (!video?.active || !larguraNativa || !alturaNativa) return;
       const escala = Math.max(
@@ -2312,183 +2304,6 @@ class CenaJogo extends Phaser.Scene {
     return this.videoFundo;
   }
 
-  despedacarCarta(chaveTextura, cx, cy, CW, CH, containerOriginal, aoConcluir) {
-    const pedacos = [];
-
-    // 1) DUAS METADES GRANDES
-
-    const metades = [
-      {
-        // Triângulo superior/direito.
-        pontos: [-CW / 2, -CH / 2, CW / 2, -CH / 2, CW / 2, CH / 2],
-
-        dir: {
-          x: 1,
-          y: -0.4,
-        },
-      },
-
-      {
-        // Triângulo inferior/esquerdo.
-        pontos: [-CW / 2, -CH / 2, CW / 2, CH / 2, -CW / 2, CH / 2],
-
-        dir: {
-          x: -1,
-          y: 0.4,
-        },
-      },
-    ];
-
-    metades.forEach(({ pontos, dir }) => {
-      let imagem = this.add.image(cx, cy, chaveTextura).setOrigin(0.5);
-
-      imagem.setDepth(3700);
-      imagem.setTint(0xff5555);
-
-      // Máscara triangular.
-      let mascaraG = this.add.graphics();
-
-      mascaraG.fillStyle(0xffffff);
-
-      mascaraG.beginPath();
-
-      mascaraG.moveTo(cx + pontos[0], cy + pontos[1]);
-
-      mascaraG.lineTo(cx + pontos[2], cy + pontos[3]);
-
-      mascaraG.lineTo(cx + pontos[4], cy + pontos[5]);
-
-      mascaraG.closePath();
-      mascaraG.fillPath();
-
-      // Phaser 4 usa filtro no WebGL e GeometryMask apenas no Canvas.
-      imagem._mascaraRender = this.aplicarMascaraRender(imagem, mascaraG);
-
-      pedacos.push({
-        obj: imagem,
-        dir,
-        giro: Phaser.Math.Between(20, 60) * (dir.x >= 0 ? 1 : -1),
-      });
-    });
-
-    // 2) CACOS MENORES
-
-    const COLS = 3;
-    const LINS = 3;
-
-    const pecaW = CW / COLS;
-    const pecaH = CH / LINS;
-
-    for (let l = 0; l < LINS; l++) {
-      for (let c = 0; c < COLS; c++) {
-        let caco = this.add.image(cx, cy, chaveTextura).setOrigin(0.5);
-
-        // Recorta um pedaço da textura.
-        caco.setCrop(c * pecaW, l * pecaH, pecaW, pecaH);
-
-        caco.setTint(0xff6666);
-        caco.setDepth(3701);
-
-        // Posição original desse caco dentro da carta.
-        const offX = -CW / 2 + pecaW * (c + 0.5);
-
-        const offY = -CH / 2 + pecaH * (l + 0.5);
-
-        const dist = Math.hypot(offX, offY) || 1;
-
-        pedacos.push({
-          obj: caco,
-
-          dir: {
-            x: offX / dist,
-            y: offY / dist,
-          },
-
-          giro: Phaser.Math.Between(-180, 180),
-
-          pequeno: true,
-        });
-      }
-    }
-
-    // 3) ANIMA TODOS OS PEDAÇOS
-
-    let pendentes = pedacos.length;
-
-    // Segurança extrema: se por algum motivo não houver pedaços, não deixa a partida travada para sempre.
-    if (pendentes === 0) {
-      this.textures.remove(chaveTextura);
-
-      if (containerOriginal && containerOriginal.active) {
-        containerOriginal.destroy();
-      }
-
-      aoConcluir();
-      return;
-    }
-
-    pedacos.forEach(({ obj, dir, giro, pequeno }) => {
-      const distancia = pequeno
-        ? Phaser.Math.Between(90, 220)
-        : Phaser.Math.Between(160, 260);
-
-      const atraso = pequeno ? Phaser.Math.Between(0, 90) : 0;
-
-      // Salva posição inicial antes do tween.
-      const destinoX = obj.x + dir.x * distancia;
-
-      const destinoY = obj.y + dir.y * distancia + 60;
-
-      this.tweens.add({
-        targets: obj,
-
-        x: destinoX,
-        y: destinoY,
-
-        angle: giro,
-
-        alpha: 0,
-
-        scaleX: pequeno ? 0.4 : 0.75,
-        scaleY: pequeno ? 0.4 : 0.75,
-
-        duration: pequeno ? 480 : 560,
-
-        delay: atraso,
-
-        ease: "Cubic.In",
-
-        onComplete: () => {
-          // Destrói o filtro/GeometryMask específico das metades.
-          if (obj._mascaraRender) {
-            this.limparMascaraRender(obj._mascaraRender);
-            obj._mascaraRender = null;
-          }
-
-          // Destrói o pedaço.
-          if (obj && obj.active) {
-            obj.destroy();
-          }
-
-          pendentes--;
-
-          // Quando TODOS os pedaços terminaram:
-          if (pendentes === 0) {
-            // Libera a textura temporária.
-            this.textures.remove(chaveTextura);
-
-            // Agora sim destrói a carta original.
-            if (containerOriginal && containerOriginal.active) {
-              containerOriginal.destroy();
-            }
-
-            // Libera o fluxo para o redraw.
-            aoConcluir();
-          }
-        },
-      });
-    });
-  }
   animarBuffCarta(containerCampo, delta) {
     // Cancela tweens antigos e restaura a escala antes do pulso.
     if (!containerCampo || !containerCampo.active) return;
@@ -2544,6 +2359,26 @@ class CenaJogo extends Phaser.Scene {
 
   // DESENHO DO CAMPO
 
+  desenharBaseCampo() {
+    if (this.baseCampo?.active && this.layoutBaseCampo === this.layout) {
+      this.children.add(this.baseCampo);
+      return;
+    }
+    this.baseCampo?.destroy();
+    const L = this.layout;
+    this.baseCampo = this.add.container(0, 0).setDepth(-1);
+    this.layoutBaseCampo = L;
+    for (const [fileiras, cor] of [[L.yInimigo, 0xe5a5b4], [L.yJogador, 0xa5d8ca]]) {
+      for (const y of fileiras) {
+        for (const x of L.x) {
+          this.baseCampo.add(this.criarSuperficieVidro(x, y, L.slotW, L.slotH, {
+            cor, opacidade: 0.18, raio: 18,
+          }));
+        }
+      }
+    }
+  }
+
   desenharCampoInimigo() {
     const L = this.layout;
     const nomeOponente = this.multiplayerAtivo
@@ -2569,11 +2404,6 @@ class CenaJogo extends Phaser.Scene {
       const xPos = L.x[col];
       const yPos = L.yInimigo[fileira];
 
-      this.criarSuperficieVidro(xPos, yPos, L.slotW, L.slotH, {
-        cor: 0xe5a5b4,
-        opacidade: 0.18,
-        raio: 18,
-      });
 
       if (
         !this.multiplayer?.spectator &&
@@ -2619,11 +2449,6 @@ class CenaJogo extends Phaser.Scene {
       const xPos = L.x[col];
       const yPos = L.yJogador[fileira];
 
-      this.criarSuperficieVidro(xPos, yPos, L.slotW, L.slotH, {
-        cor: 0xa5d8ca,
-        opacidade: 0.18,
-        raio: 18,
-      });
       let slot = this.add.rectangle(xPos, yPos, L.slotW, L.slotH, 0x000000, 0);
       slot.isSlot = true; // Identificador para a colisão do Drag & Drop
 
@@ -4288,6 +4113,16 @@ class CenaJogo extends Phaser.Scene {
     this.tweensLendariaAtual = tweensLendaria;
   }
 
+  limparEventosDescricao() {
+    const handlers = this.handlersScrollDescAtual;
+    if (!handlers) return;
+    this.input.off("pointermove", handlers.handlerMove);
+    this.input.off("pointerup", handlers.handlerUp);
+    this.input.off("pointerupoutside", handlers.handlerUp);
+    this.input.off("wheel", handlers.handlerWheel);
+    this.handlersScrollDescAtual = null;
+  }
+
   habilitarScrollDescricao(
     areaArraste,
     descTexto,
@@ -4323,8 +4158,9 @@ class CenaJogo extends Phaser.Scene {
 
     const handlerMove = (pointer) => {
       if (!arrastando) return;
-      const delta = this.pontoDoPonteiro(pointer).y - ultimoY;
-      ultimoY = this.pontoDoPonteiro(pointer).y;
+      const y = this.pontoDoPonteiro(pointer).y;
+      const delta = y - ultimoY;
+      ultimoY = y;
       aplicarScroll(descTexto.y + delta);
     };
 
@@ -4512,16 +4348,7 @@ class CenaJogo extends Phaser.Scene {
       this.zoomAberto = false;
     }
 
-    if (this.handlersScrollDescAtual) {
-      this.input.off("pointermove", this.handlersScrollDescAtual.handlerMove);
-      this.input.off("pointerup", this.handlersScrollDescAtual.handlerUp);
-      this.input.off(
-        "pointerupoutside",
-        this.handlersScrollDescAtual.handlerUp,
-      );
-      this.input.off("wheel", this.handlersScrollDescAtual.handlerWheel);
-      this.handlersScrollDescAtual = null;
-    }
+    this.limparEventosDescricao();
 
     const concluir = () => {
       this.limparMascaraRender(this.mascaraDescricaoAtual);
@@ -6514,12 +6341,10 @@ class CenaJogo extends Phaser.Scene {
   // Reposiciona turno e placar conforme a visibilidade da mão.
   desenharStatus() {
     const centralizado = this.maoEscondida;
-    const x = centralizado ? LARGURA_LAYOUT / 2 : 45;
-    const yTurno = centralizado ? Y_MAO_JOGADOR - 30 : 1590;
-    const yPlacar = centralizado ? Y_MAO_JOGADOR + 30 : 1645;
-
-    const painelX = centralizado ? x : 190;
-    const painelY = (yTurno + yPlacar) / 2;
+    const painelX = centralizado ? LARGURA_LAYOUT / 2 : 190;
+    const painelY = centralizado
+      ? Y_MAO_JOGADOR
+      : this.layout.yJogadorTras + this.layout.slotH / 2 + 120;
     const painel = this.criarPainelTatico(
       painelX,
       painelY,
@@ -6651,6 +6476,11 @@ class CenaJogo extends Phaser.Scene {
         rotulo: "Histórico de cartas",
         cor: 0x23d7ff,
         aoClicar: () => this.mostrarHistorico(),
+      },
+      {
+        rotulo: this.fundoAnimadoAtivo() ? "Desativar fundo" : "Ativar fundo",
+        cor: 0x9adfc4,
+        aoClicar: () => this.definirFundoAnimado(!this.fundoAnimadoAtivo()),
       },
       {
         rotulo: "Desistir da partida",
@@ -7852,19 +7682,11 @@ class CenaJogo extends Phaser.Scene {
 
       const LIMITE_MAO = ALTURA_LAYOUT - 650;
 
-      // A mão escondida não está visível, então permitimos começar o gesto na parte inferior da tela.
-      if (!this.maoEscondida && this.pontoDoPonteiro(pointer).y < LIMITE_MAO) {
-        return;
-      }
-
-      if (this.maoEscondida && this.pontoDoPonteiro(pointer).y < LIMITE_MAO) {
-        return;
-      }
-
+      const ponto = this.pontoDoPonteiro(pointer);
+      if (ponto.y < LIMITE_MAO) return;
       this.gestoMaoAtivo = true;
-
-      this.gestoMaoX = this.pontoDoPonteiro(pointer).x;
-      this.gestoMaoY = this.pontoDoPonteiro(pointer).y;
+      this.gestoMaoX = ponto.x;
+      this.gestoMaoY = ponto.y;
 
       // GUARDA A POSIÇÃO ORIGINAL DE TODAS AS CARTAS
 
@@ -7877,26 +7699,6 @@ class CenaJogo extends Phaser.Scene {
         carta._maoSwipeXOriginal = carta.x;
         carta._maoSwipeAlphaOriginal = carta.alpha;
       });
-    });
-
-    // MOVIMENTO DO DEDO
-
-    this.input.on("pointermove", (pointer) => {
-      if (!this.gestoMaoAtivo) return;
-      if (this.travado) return;
-
-      const deslocamentoY = this.pontoDoPonteiro(pointer).y - this.gestoMaoY;
-
-      const deslocamentoX = Math.abs(
-        this.pontoDoPonteiro(pointer).x - this.gestoMaoX,
-      );
-
-      // Ignora movimentos predominantemente horizontais.
-      if (deslocamentoX > Math.abs(deslocamentoY) * 1.5) {
-        return;
-      }
-
-      // Dispara a animação apenas após ultrapassar o limite do gesto.
     });
 
     // SOLTOU O DEDO
@@ -7941,41 +7743,7 @@ class CenaJogo extends Phaser.Scene {
   voltarMaoParaPosicao() {
     this.baixarOutrasCartasDaMao(this.cartaMaoSelecionada);
   }
-  // MOVE A MÃO JUNTO COM O DEDO
-
-  moverMaoDuranteGesto(deslocamentoY) {
-    const cartas = this.children.list.filter((c) => c.dadosCarta);
-
-    if (cartas.length === 0) return;
-
-    // Limita o quanto pode puxar.
-    const limite = 600;
-
-    const deslocamento = Phaser.Math.Clamp(deslocamentoY, -limite, limite);
-
-    cartas.forEach((carta) => {
-      if (!carta || !carta.active) return;
-
-      // Guarda posição original somente uma vez.
-      if (carta._maoSwipeYOriginal === undefined) {
-        carta._maoSwipeYOriginal = carta.y;
-      }
-
-      carta.y = carta._maoSwipeYOriginal + deslocamento;
-
-      // Quando descendo, começa a desaparecer. Quando subindo, reaparece.
-      const progresso = Math.min(1, Math.abs(deslocamento) / 500);
-
-      if (!this.maoEscondida) {
-        carta.alpha = 1 - progresso * 0.9;
-      } else {
-        carta.alpha = progresso;
-      }
-    });
-  }
-
-  // ESCONDE A MÃO
-
+  // Esconde a mão após o gesto.
   esconderMaoComSwipe(deslocamento) {
     const cartas = this.children.list.filter((c) => c.dadosCarta);
 

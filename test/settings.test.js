@@ -27,3 +27,14 @@ settings.set("textScale", 9);
 assert.equal(settings.get("textScale"), 1.35, "A escala deve ser limitada para não quebrar a UI.");
 
 console.log("Volume e escala de texto persistentes validados.");
+
+assert.equal(settings.get('animatedBackground'), 1);
+settings.set('animatedBackground', false);
+assert.equal(settings.get('animatedBackground'), 0);
+assert.equal(new context.window.CyberduelSettings(localStorage).get('animatedBackground'), 0);
+settings.set('animatedBackground', true);
+assert.equal(settings.get('animatedBackground'), 1);
+settings.set('animatedBackground', false);
+settings.reset();
+assert.equal(settings.get('animatedBackground'), 1);
+console.log('Fundo animado: padrão, persistência, reativação e restauração validados.');

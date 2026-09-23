@@ -2,6 +2,35 @@
 
 Novidades, correções e verificações realizadas no projeto. As entregas mais recentes aparecem primeiro.
 
+## 2026-09-23
+
+### Fundo opcional e placar abaixo do campo
+
+- Adicionada a opção “Fundo animado da partida” nas configurações e as ações “Desativar fundo”/“Ativar fundo” no menu do duelo. A preferência fica salva no aparelho e pode ser aplicada pela função `definirFundoAnimado(ativo)` da cena.
+- Desativar destrói o objeto de vídeo e usa fundo escuro; redesenhos e novas partidas respeitam a escolha. Reativar recria o vídeo, e restaurar configurações liga a opção novamente.
+- Rebaixado o painel de turno e rodadas em aproximadamente 62 unidades no layout normal. Sua posição agora acompanha a borda inferior do campo, mantendo distância também no layout ampliado.
+- Aprovados testes de configurações, cena, tela inicial, resolução e sincronização; sintaxe e `git diff --check` sem erros. No Chromium móvel simulado foram verificadas a opção nas configurações, ativação/desativação pelo menu, persistência em nova partida e a posição do placar sem sobreposição, sem exceções JavaScript.
+- Atualizadas as versões dos scripts e do CSS no HTML para renovar o cache.
+
+### Reutilização de objetos e limpeza da cena de jogo
+
+- Os vinte fundos de vidro do campo agora são reutilizados entre jogadas e recriados apenas quando o layout muda. Cartas, áreas de toque e indicadores dinâmicos continuam sendo renovados normalmente.
+- A CenaJogo só encaminha o histórico de efeitos quando há um evento novo; a cena de efeitos deixa de varrer os objetos do campo quando não há invocações pendentes nem cartas a restaurar.
+- Consolidada a criação dos oito sons da partida e adicionada sua destruição ao sair da cena. Centralizada a remoção dos listeners da descrição e reiniciado o controle de gestos a cada nova partida.
+- Removidos três métodos sem chamadas e um listener de movimento sem efeito. Evitada conversão repetida de coordenadas durante a rolagem. `jogo.js` ficou 250 linhas e 6.341 bytes menor, sem dividir o arquivo em novos módulos.
+- Novo teste comprova reutilização em cinquenta redesenhos, recriação ao trocar o layout, envio apenas de eventos novos, ausência de varredura ociosa e limpeza seletiva dos listeners.
+- No Chromium móvel simulado foram validados dez redesenhos mantendo campo e vídeo, dez slots sem duplicação, troca entre os layouts, abertura/fechamento da ficha, reinstalação dos gestos e quantidade estável de sons ao iniciar a segunda partida, além da rotação sem exceções JavaScript. Ganho de FPS em aparelho físico não medido.
+- Aprovados 27 dos 29 testes. Permanecem as duas falhas anteriores: `card-modal-layer.test.js` usa um mock sem `bringToTop`, e `effect-events.test.js` diverge da descrição documental de O Bom. Sintaxe das cenas e `git diff --check` aprovados.
+- Atualizadas as versões das duas cenas no HTML; preservados os ajustes locais de resolução móvel do pedido anterior.
+
+### Redução do custo de renderização no celular
+
+- Corrigido o aumento automático da resolução em celulares de alta densidade: o padrão móvel fica em 720×1480, em vez de chegar a 1080×2220. São 55,6% menos pixels por frame no caso máximo anterior, mantendo mais definição que o antigo perfil de 480×987.
+- Limitada a renderização móvel a 60 FPS para evitar trabalho adicional em telas de 90/120 Hz. Mantidos `?quality=high` para maior resolução e `?quality=mobile` para o perfil econômico.
+- Atualizada a versão de `main.js` no HTML para renovar o cache. A foto nova foi dispensada pelo usuário; nenhuma alteração no catálogo.
+- Aprovados testes de resolução, viewport, habilidades, sincronização e animações do oponente; sintaxe e `git diff --check` sem erros.
+- Confirmados no Chromium com tela móvel simulada e DPR 3: canvas de 720×1480, limite real do Phaser em 60 FPS, abertura da partida e da ficha, dez slots e rotação sem exceções JavaScript. A redução de pixels foi verificada; ganho de FPS em aparelho físico não foi medido.
+
 ## 2026-09-22
 
 ### Nitidez no celular, versão e simplificação da cena
