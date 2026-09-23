@@ -8,9 +8,20 @@ const APRESENTACAO_EFEITOS = Object.freeze({
   "Advogado Corporativo": { habilidade: "somAdvogado", visual: "juridico" },
   "Agente da DIPSP": { habilidade: "somTiro", visual: "plasma" },
   'UCC "Juggernaut"': { habilidade: "somTiro", visual: "plasma" },
-  "O Tigre": { habilidade: "somTigreAtaque" },
+  "O Tigre": { habilidade: "somTigreAtaque", imagem: "efeitoTigre", momentos: ["habilidade"] },
   "RaspClay MonteCorp": { invocacao: "somRaspClay", video: "efeitoRaspClayVertical" },
   "Dieh'Go, o Xerife": { visual: "caveiras" },
+  "A Aranha": { imagem: "efeitoAranha", momentos: ["habilidade"] },
+  "O Boi": { imagem: "efeitoBoi", momentos: ["habilidade"] },
+  "A Cabra": { imagem: "efeitoCabra", momentos: ["habilidade"] },
+  "O Cão": { imagem: "efeitoCao", momentos: ["passiva"] },
+  "O Trotar do Cavalo": { imagem: "efeitoCavalo", momentos: ["conjuracao"] },
+  "A Cobra": { imagem: "efeitoCobra", momentos: ["habilidade", "veneno"] },
+  "A Toca do Coelho": { imagem: "efeitoCoelho", momentos: ["invocacao"] },
+  "O Canto do Galo": { imagem: "efeitoGalo", momentos: ["conjuracao"] },
+  "A Travessura do Macaco": { imagem: "efeitoMacaco", momentos: ["conjuracao"] },
+  "O Porco": { imagem: "efeitoPorco", momentos: ["passiva"] },
+  "O Rato": { imagem: "efeitoRato", momentos: ["habilidade"] },
 });
 
 class CenaEfeitos extends Phaser.Scene {
@@ -180,6 +191,13 @@ class CenaEfeitos extends Phaser.Scene {
         this.tweens.add({ targets: halo, scale: 1.12, alpha: 0.15, duration: 420, yoyo: true });
       };
       if (fonte.indice >= 0) pulsar(origem);
+      if (perfil.momentos?.includes(evento.momento) && this.textures.exists(perfil.imagem)) {
+        const simbolo = guardar(this.add.image(origem.x, origem.y, perfil.imagem));
+        const escala = Math.min(200 / simbolo.width, 240 / simbolo.height);
+        simbolo.setScale(escala);
+        this.tweens.add({ targets: simbolo, scaleX: escala * 1.15, scaleY: escala * 1.15,
+          alpha: 0, delay: 150, duration: 700, ease: "Sine.Out" });
+      }
       let alvos = (evento.alvos || []).filter((alvo) => alvo.lado !== evento.lado || alvo.id !== fonte.id || alvo.delta);
       // O uso da armadilha é público, mas o espaço escolhido continua privado.
       if (remoto && fonte.efeito?.tipo === TIPOS_EFEITO.ARMADILHA_ESPACO) alvos = [];

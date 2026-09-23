@@ -4,6 +4,14 @@ Novidades, correções e verificações realizadas no projeto. As entregas mais 
 
 ## 2026-09-23
 
+### Novos símbolos de efeitos da EchoSsystem
+
+- Integradas ao carregamento as doze imagens novas de `assets/efeitos`: Aranha, Boi, Cabra, Cão, Cavalo, Cobra, Coelho, Galo, Macaco, Porco, Rato e Tigre.
+- Ligados Aranha, Boi, Cabra, Rato e Tigre às habilidades; Cobra à habilidade e ao dano de veneno; Cão e Porco às passivas; Cavalo, Galo e Macaco às conjurações; Coelho à invocação do terreno.
+- Cada evento exibe um símbolo proporcional com expansão suave e desaparecimento, aproveitando a fila existente. O objeto é destruído ao concluir; fontes ocultas não revelam símbolos identificáveis e habilidades aprendidas usam o símbolo correspondente.
+- Atualizadas as versões do preload e da cena de efeitos no HTML. Aprovados testes de assets, animações, cena, sincronização e habilidades, além de sintaxe e `git diff --check`.
+- No Chromium móvel simulado foram carregadas as doze texturas e reproduzidos os doze símbolos em sequência, com tamanho limitado, proporção preservada e objetos liberados ao concluir, sem exceções JavaScript. Desempenho em celular físico não medido.
+
 ### Fundo opcional e placar abaixo do campo
 
 - Adicionada a opção “Fundo animado da partida” nas configurações e as ações “Desativar fundo”/“Ativar fundo” no menu do duelo. A preferência fica salva no aparelho e pode ser aplicada pela função `definirFundoAnimado(ativo)` da cena.

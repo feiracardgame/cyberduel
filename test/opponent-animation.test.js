@@ -12,7 +12,7 @@ function fixture(spectator = false) {
   let time = 0;
   const schedule = (delay, fn) => tasks.push({ at: time + delay, fn });
   const object = (type, x, y, value) => {
-    const o = { type, x, y, value, active: true, visible: true,
+    const o = { type, x, y, value, active: true, visible: true, width: 512, height: 768,
       setDisplaySize(w,h) { this.width=w; this.height=h; return this; },
       setStrokeStyle() { return this; }, setOrigin() { return this; },
       setVisible(v) { this.visible=v; return this; }, setDepth() { return this; },
@@ -132,3 +132,40 @@ for (const separado of [false, true]) {
   f.s.restaurarCartaEmTransito(); assert.equal(f.fieldObject.visible,true);
 }
 console.log('Animações do oponente: voo, conjuração, habilidade, fila, redesenho, sigilo e perspectiva validados.');
+
+// Os símbolos seguem o efeito, preservam a proporção e são destruídos ao concluir.
+for (const [name, texture, moment] of [
+  ['A Aranha', 'efeitoAranha', 'habilidade'], ['O Boi', 'efeitoBoi', 'habilidade'],
+  ['A Cabra', 'efeitoCabra', 'habilidade'], ['O Cão', 'efeitoCao', 'passiva'],
+  ['O Trotar do Cavalo', 'efeitoCavalo', 'conjuracao'], ['A Cobra', 'efeitoCobra', 'habilidade'],
+  ['A Cobra', 'efeitoCobra', 'veneno'], ['A Toca do Coelho', 'efeitoCoelho', 'invocacao'],
+  ['O Canto do Galo', 'efeitoGalo', 'conjuracao'], ['A Travessura do Macaco', 'efeitoMacaco', 'conjuracao'],
+  ['O Porco', 'efeitoPorco', 'passiva'], ['O Rato', 'efeitoRato', 'habilidade'],
+  ['O Tigre', 'efeitoTigre', 'habilidade'],
+]) {
+  for (const side of ['jogador', 'inimigo']) {
+    const f = fixture();
+    f.s.receber([f.event(1, moment, { lado: side, fonte: { ...f.source, nome: name } })]);
+    f.flush();
+    const symbols = f.objects.filter(o => o.type === 'image' && o.value === texture);
+    assert.equal(symbols.length, 1, `${name}: um símbolo por evento, ${side}`);
+    assert.equal(symbols[0].active, false, 'Liberar o símbolo após o efeito.');
+    assert.ok(Number.isFinite(symbols[0].scaleX));
+    assert.equal(symbols[0].scaleX, symbols[0].scaleY, 'Preservar a proporção.');
+  }
+}
+{
+  const hidden = fixture();
+  hidden.s.receber([hidden.event(1, 'invocacao', { fonte: { ...hidden.source, nome: 'A Toca do Coelho', oculto: true } })]);
+  hidden.flush();
+  assert.ok(!hidden.objects.some(o => o.value === 'efeitoCoelho'), 'Não revelar a identidade de fonte oculta.');
+  const inactive = fixture();
+  inactive.s.receber([inactive.event(1, 'invocacao', { fonte: { ...inactive.source, nome: 'A Aranha' } })]);
+  inactive.flush();
+  assert.ok(!inactive.objects.some(o => o.value === 'efeitoAranha'), 'Habilidade ativa não dispara na invocação.');
+  const learned = fixture();
+  learned.s.receber([learned.event(1, 'habilidade', { fonte: { ...learned.source, habilidadeAprendidaDe: 'O Tigre' } })]);
+  learned.flush();
+  assert.equal(learned.objects.filter(o => o.value === 'efeitoTigre').length, 1);
+}
+console.log('EchoSsystem: 12 símbolos, gatilhos, perspectiva, proporção, limpeza, sigilo e habilidade aprendida validados.');

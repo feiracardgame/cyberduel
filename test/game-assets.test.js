@@ -41,3 +41,10 @@ assert.ok(
 );
 
 console.log("Texturas e vídeo otimizados da partida validados.");
+
+for (const name of ['aranha', 'boi', 'cabra', 'cao', 'cavalo', 'cobra', 'coelho', 'galo', 'macaco', 'porco', 'rato', 'tigre']) {
+  const key = 'efeito' + name[0].toUpperCase() + name.slice(1);
+  assert.equal(game[key], `assets/efeitos/efeito-${name}.png`);
+  assert.ok(fs.existsSync(game[key]), `Símbolo ausente: ${name}`);
+}
+console.log('Os 12 novos efeitos estão no catálogo de carregamento.');

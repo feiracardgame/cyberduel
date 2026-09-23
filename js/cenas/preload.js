@@ -59,6 +59,18 @@ window.CYBERDUEL_IMAGE_ASSETS = Object.freeze({
   jogoFundo: "assets/fundo/jogo-fundo.png",
   efeitoDiego: "assets/efeitos/efeito-diego.png",
   efeitoAdvogado: "assets/efeitos/efeito-advogado.png",
+  efeitoAranha: "assets/efeitos/efeito-aranha.png",
+  efeitoBoi: "assets/efeitos/efeito-boi.png",
+  efeitoCabra: "assets/efeitos/efeito-cabra.png",
+  efeitoCao: "assets/efeitos/efeito-cao.png",
+  efeitoCavalo: "assets/efeitos/efeito-cavalo.png",
+  efeitoCobra: "assets/efeitos/efeito-cobra.png",
+  efeitoCoelho: "assets/efeitos/efeito-coelho.png",
+  efeitoGalo: "assets/efeitos/efeito-galo.png",
+  efeitoMacaco: "assets/efeitos/efeito-macaco.png",
+  efeitoPorco: "assets/efeitos/efeito-porco.png",
+  efeitoRato: "assets/efeitos/efeito-rato.png",
+  efeitoTigre: "assets/efeitos/efeito-tigre.png",
 });
 
 // Usa WebP reduzido no Phaser e mantém as artes originais no DOM.
