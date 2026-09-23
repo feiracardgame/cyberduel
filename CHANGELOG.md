@@ -4,6 +4,14 @@ Novidades, correções e verificações realizadas no projeto. As entregas mais 
 
 ## 2026-09-23
 
+### Identidade visual verde
+
+- Convertidos os tons ciano e azul-ciano definidos em CSS e JavaScript para verde, preservando luminosidade, saturação e transparência. Destaque principal alterado para `#23ff6c`, com a variável `--forge-accent` substituindo `--forge-cyan`.
+- Atualizados menus, montador de decks, perfil, leaderboard, carregamento, painéis da partida e efeitos desenhados pelo Phaser, incluindo bordas, brilhos, sombras, gradientes e cores de destaque das cartas.
+- Renovadas as versões dos sete arquivos visuais no HTML e ajustada a expectativa de cor do fundo no teste da cena.
+- Aprovados testes de carregamento, animações do oponente, desempenho da cena, tela inicial, interface do matchmaking e sincronização, além de sintaxe e `git diff --check`. Varredura confirmou ausência dos tons da faixa convertida nas cores de CSS/JavaScript próprios.
+- Cores incorporadas a imagens e vídeos permanecem nas artes originais. Aparência e contraste não verificados em navegador nesta alteração.
+
 ### Prioridade do vídeo na abertura
 
 - O carregamento dos assets agora começa após o primeiro frame do vídeo de abertura. A tela permanece por pelo menos um segundo após esse início, inclusive com os arquivos em cache.

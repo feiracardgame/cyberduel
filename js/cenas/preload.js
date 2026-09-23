@@ -170,7 +170,7 @@ class CenaPreload extends Phaser.Scene {
         color: "#ffffff",
         stroke: "#030509",
         strokeThickness: 10,
-        shadow: { offsetX: 0, offsetY: 4, color: "#23d7ff", blur: 12, fill: true },
+        shadow: { offsetX: 0, offsetY: 4, color: "#23ff6c", blur: 12, fill: true },
       })
       .setOrigin(0.5);
 
@@ -179,7 +179,7 @@ class CenaPreload extends Phaser.Scene {
     let textoStatus = this.add
       .text(x, y - 54, "INICIALIZANDO SIMULAÇÃO", {
         fontSize: "19px",
-        color: "#23d7ff",
+        color: "#23ff6c",
         fontStyle: "bold",
       })
       .setOrigin(0, 0.5);
@@ -187,14 +187,14 @@ class CenaPreload extends Phaser.Scene {
     // Moldura externa da barra
     this.add
       .rectangle(LARGURA_LAYOUT / 2, y, larguraBarra + 28, alturaBarra + 28, 0x090e17, 0.96)
-      .setStrokeStyle(2, 0x7cd3ff, 0.22);
+      .setStrokeStyle(2, 0x7cffa8, 0.22);
 
     // Trilho vazio (o "fundo" da barra, atrás do preenchimento)
     this.add.rectangle(LARGURA_LAYOUT / 2, y, larguraBarra, alturaBarra, 0x020408, 1);
 
     // Preenchimento que cresce da esquerda pra direita conforme o progresso — origin (0, 0.5) pra crescer só em largura, sem se deslocar do lugar.
     let barraFill = this.add
-      .rectangle(x, y, 4, alturaBarra, 0x23d7ff)
+      .rectangle(x, y, 4, alturaBarra, 0x23ff6c)
       .setOrigin(0, 0.5);
 
     // Brilho sutil por cima do preenchimento, só pra dar um respiro visual (mesma ideia dos "brilho" já usados nas cartas de campo).
@@ -205,7 +205,7 @@ class CenaPreload extends Phaser.Scene {
     let textoPorcentagem = this.add
       .text(LARGURA_LAYOUT - x, y - 54, "00%", {
         fontSize: "21px",
-        color: "#f3f8fc",
+        color: "#f3fcf6",
         fontStyle: "bold",
         fontFamily: "monospace",
       })
@@ -214,7 +214,7 @@ class CenaPreload extends Phaser.Scene {
     const textoModulo = this.add
       .text(LARGURA_LAYOUT / 2, y + 66, "Sincronizando protocolos de duelo", {
         fontSize: "18px",
-        color: "#607180",
+        color: "#60806b",
       })
       .setOrigin(0.5);
 

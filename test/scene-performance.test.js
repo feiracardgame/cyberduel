@@ -95,7 +95,7 @@ console.log('Cena: reutilização do campo, eventos incrementais, ociosidade e l
     get: () => enabled, set: (key, value) => { enabled = Number(value); },
   };
   const scene = Object.assign(Object.create(Scene.prototype), {
-    cameras: { main: { setBackgroundColor(color) { assert.equal(color, '#07111f'); } } },
+    cameras: { main: { setBackgroundColor(color) { assert.equal(color, '#071f0f'); } } },
     children: { addAt() {} },
     add: { video() {
       created++;

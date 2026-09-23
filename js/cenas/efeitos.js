@@ -127,12 +127,12 @@ class CenaEfeitos extends Phaser.Scene {
     const chave = oculta ? "fundoCarta" : fonte.imagem;
     const arte = chave && this.textures.exists(chave)
       ? this.add.image(0, 0, chave).setDisplaySize(largura, altura)
-      : this.add.rectangle(0, 0, largura, altura, 0x142334);
+      : this.add.rectangle(0, 0, largura, altura, 0x14341f);
     const moldura = this.add.rectangle(0, 0, largura, altura, 0x000000, 0)
-      .setStrokeStyle(4, 0x60cfff);
+      .setStrokeStyle(4, 0x60ff95);
     const frente = this.add.container(0, 0, [arte, moldura]);
     if (!oculta) {
-      const placa = this.add.rectangle(0, altura / 2 - 31, largura - 8, 56, 0x07111d, 0.9);
+      const placa = this.add.rectangle(0, altura / 2 - 31, largura - 8, 56, 0x071d0e, 0.9);
       const nome = this.add.text(0, altura / 2 - 31, fonte.nome, {
         fontSize: "18px", fontStyle: "bold", align: "center", color: "#ffffff",
         wordWrap: { width: largura - 18 },
@@ -187,7 +187,7 @@ class CenaEfeitos extends Phaser.Scene {
     const aplicar = () => {
       const origem = this.ponto(evento.lado, fonte.indice);
       const pulsar = (p, largura = 170, altura = 240) => {
-        const halo = guardar(this.add.rectangle(p.x, p.y, largura, altura, 0x000000, 0).setStrokeStyle(5, 0x60cfff));
+        const halo = guardar(this.add.rectangle(p.x, p.y, largura, altura, 0x000000, 0).setStrokeStyle(5, 0x60ff95));
         this.tweens.add({ targets: halo, scale: 1.12, alpha: 0.15, duration: 420, yoyo: true });
       };
       if (fonte.indice >= 0) pulsar(origem);
@@ -221,11 +221,11 @@ class CenaEfeitos extends Phaser.Scene {
         const texto = alvo.removida ? "REMOVIDA" : alvo.delta ? `${alvo.delta > 0 ? "+" : ""}${alvo.delta} PA` : alvo.bloqueado ? "PA BLOQUEADO" : "EFEITO APLICADO";
         guardar(this.add.text(destino.x, destino.y - 70, texto, {
           fontSize: "22px", fontStyle: "bold", color: alvo.delta < 0 ? "#ff889e" : "#9affbd",
-          stroke: "#061322", strokeThickness: 6,
+          stroke: "#06220f", strokeThickness: 6,
         }).setOrigin(0.5));
         if (evento.momento === "habilidade" && perfil.visual === "plasma" && alvo.lado !== evento.lado) {
           for (let i = 0; i < 5; i++) {
-            const orb = guardar(this.add.circle(origem.x, origem.y, 6 + i, 0x43cfff, 0.85));
+            const orb = guardar(this.add.circle(origem.x, origem.y, 6 + i, 0x43ff82, 0.85));
             this.tweens.add({ targets: orb, x: destino.x + (i - 2) * 13, y: destino.y,
               duration: 220 + i * 60, onComplete: () => {
                 orb.setRadius(24); this.tweens.add({ targets: orb, alpha: 0, scale: 2, duration: 220 });

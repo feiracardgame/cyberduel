@@ -912,13 +912,13 @@ class CyberduelDeckBuilderUI {
   levelColor(card) {
     return (
       {
-        baixa: "#17c9ff",
+        baixa: "#17ff64",
         media: "#a970ff",
         alta: "#ff9f43",
         lendaria: "#ffe16a",
         efeito: "#34e6a1",
         terreno: "#e66cff",
-      }[card.nivel] || "#87a8bd"
+      }[card.nivel] || "#87bd99"
     );
   }
 

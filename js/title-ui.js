@@ -1888,7 +1888,7 @@ class CyberduelTitleUI {
         "raspcorp",
         "RaspCorp",
         "O poder tem um preço.",
-        "#36dfff",
+        "#36ff79",
         "RaspClay MonteCorp",
       ],
       [

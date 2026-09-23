@@ -19,11 +19,11 @@ body {
   gap: 9px;
   width: min(390px, calc(100vw - 44px));
   padding: 18px;
-  border: 2px solid #55dfff;
+  border: 2px solid #55ff8e;
   border-radius: 16px;
   color: #fff;
   background: rgba(9, 11, 18, 0.97);
-  box-shadow: 0 0 30px rgba(0, 210, 255, 0.35);
+  box-shadow: 0 0 30px rgba(0, 255, 85, 0.35);
   font-family: Arial, sans-serif;
   text-align: center;
   touch-action: manipulation;
@@ -65,12 +65,12 @@ body {
   --forge-bg: #030509;
   --forge-panel: rgba(9, 14, 23, 0.92);
   --forge-panel-solid: #090e17;
-  --forge-line: rgba(124, 211, 255, 0.14);
-  --forge-cyan: #23d7ff;
+  --forge-line: rgba(124, 255, 168, 0.14);
+  --forge-accent: #23ff6c;
   --forge-green: #38f2a0;
   --forge-violet: #a970ff;
-  --forge-text: #f3f8fc;
-  --forge-muted: #8291a3;
+  --forge-text: #f3fcf6;
+  --forge-muted: #82a38d;
   --forge-danger: #ff5573;
 }
 
@@ -100,7 +100,7 @@ body.deck-forge-open #game-viewport canvas {
   background:
     radial-gradient(
       circle at 8% 0%,
-      rgba(25, 119, 150, 0.14),
+      rgba(25, 150, 67, 0.14),
       transparent 30rem
     ),
     radial-gradient(
@@ -111,7 +111,7 @@ body.deck-forge-open #game-viewport canvas {
     var(--forge-bg);
   font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
   touch-action: pan-y;
-  scrollbar-color: #244154 #080d14;
+  scrollbar-color: #245434 #08140c;
   opacity: 0;
   transform: translate(-50%, -50%);
   transition: opacity 0.35s ease;
@@ -139,7 +139,7 @@ body.deck-forge-open #game-viewport canvas {
 
 .deck-forge button:focus-visible,
 .deck-forge input:focus-visible {
-  outline: 2px solid var(--forge-cyan);
+  outline: 2px solid var(--forge-accent);
   outline-offset: 3px;
 }
 
@@ -154,8 +154,8 @@ body.deck-forge-open #game-viewport canvas {
 .forge-grid {
   opacity: 0.2;
   background-image:
-    linear-gradient(rgba(69, 166, 196, 0.09) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(69, 166, 196, 0.09) 1px, transparent 1px);
+    linear-gradient(rgba(69, 196, 111, 0.09) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(69, 196, 111, 0.09) 1px, transparent 1px);
   background-size: 48px 48px;
   mask-image: linear-gradient(to bottom, black, transparent 80%);
 }
@@ -196,18 +196,18 @@ body.deck-forge-open #game-viewport canvas {
 .forge-icon-button {
   width: 54px;
   height: 54px;
-  border: 1px solid rgba(111, 218, 255, 0.28);
+  border: 1px solid rgba(111, 255, 159, 0.28);
   border-radius: 14px;
-  color: #dff8ff;
-  background: rgba(12, 22, 34, 0.8);
+  color: #dfffea;
+  background: rgba(12, 34, 19, 0.8);
   font-size: 28px;
   transition: 0.18s ease;
 }
 
 .forge-icon-button:hover {
-  border-color: var(--forge-cyan);
-  background: rgba(24, 74, 91, 0.55);
-  box-shadow: 0 0 24px rgba(35, 215, 255, 0.12);
+  border-color: var(--forge-accent);
+  background: rgba(24, 91, 46, 0.55);
+  box-shadow: 0 0 24px rgba(35, 255, 108, 0.12);
   transform: translateX(-3px);
 }
 
@@ -215,7 +215,7 @@ body.deck-forge-open #game-viewport canvas {
 .forge-kicker {
   display: block;
   margin-bottom: 5px;
-  color: var(--forge-cyan);
+  color: var(--forge-accent);
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.24em;
@@ -235,8 +235,8 @@ body.deck-forge-open #game-viewport canvas {
 
 .forge-title__accent {
   color: transparent;
-  -webkit-text-stroke: 1.5px var(--forge-cyan);
-  filter: drop-shadow(0 0 12px rgba(35, 215, 255, 0.3));
+  -webkit-text-stroke: 1.5px var(--forge-accent);
+  filter: drop-shadow(0 0 12px rgba(35, 255, 108, 0.3));
 }
 
 .forge-subtitle {
@@ -252,8 +252,8 @@ body.deck-forge-open #game-viewport canvas {
   padding: 10px 14px;
   border: 1px solid rgba(56, 242, 160, 0.18);
   border-radius: 999px;
-  color: #b7c4ce;
-  background: rgba(7, 19, 18, 0.7);
+  color: #b7cebf;
+  background: rgba(7, 19, 11, 0.7);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -350,22 +350,22 @@ body.deck-forge-open #game-viewport canvas {
   align-items: center;
   height: 46px;
   margin-top: 20px;
-  border: 1px solid rgba(120, 187, 214, 0.16);
+  border: 1px solid rgba(120, 214, 151, 0.16);
   border-radius: 12px;
-  background: #060b12;
+  background: #06120a;
   transition:
     border-color 0.2s,
     box-shadow 0.2s;
 }
 
 .forge-search:focus-within {
-  border-color: rgba(35, 215, 255, 0.55);
-  box-shadow: 0 0 0 3px rgba(35, 215, 255, 0.06);
+  border-color: rgba(35, 255, 108, 0.55);
+  box-shadow: 0 0 0 3px rgba(35, 255, 108, 0.06);
 }
 
 .forge-search__icon {
   padding-left: 15px;
-  color: var(--forge-cyan);
+  color: var(--forge-accent);
   font-size: 23px;
 }
 
@@ -376,13 +376,13 @@ body.deck-forge-open #game-viewport canvas {
   padding: 0 14px;
   border: 0;
   outline: 0;
-  color: #eaf7fc;
+  color: #eafcf0;
   background: transparent;
   font-size: 13px;
 }
 
 .forge-search__input::placeholder {
-  color: #526170;
+  color: #52705c;
 }
 
 .forge-controls {
@@ -408,8 +408,8 @@ body.deck-forge-open #game-viewport canvas {
   padding: 0 12px;
   border: 1px solid transparent;
   border-radius: 9px;
-  color: #7f91a0;
-  background: rgba(25, 37, 50, 0.55);
+  color: #7fa08a;
+  background: rgba(25, 50, 33, 0.55);
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.05em;
@@ -419,15 +419,15 @@ body.deck-forge-open #game-viewport canvas {
 
 .forge-filter:hover,
 .forge-order:hover {
-  color: #d9f7ff;
-  background: rgba(34, 57, 72, 0.7);
+  color: #d9ffe6;
+  background: rgba(34, 72, 47, 0.7);
 }
 
 .forge-filter.is-active {
-  border-color: rgba(35, 215, 255, 0.38);
-  color: var(--forge-cyan);
-  background: rgba(21, 118, 145, 0.2);
-  box-shadow: inset 0 0 18px rgba(35, 215, 255, 0.05);
+  border-color: rgba(35, 255, 108, 0.38);
+  color: var(--forge-accent);
+  background: rgba(21, 145, 62, 0.2);
+  box-shadow: inset 0 0 18px rgba(35, 255, 108, 0.05);
 }
 
 .forge-order {
@@ -459,7 +459,7 @@ body.deck-forge-open #game-viewport canvas {
 .forge-faction-group__title {
   margin: 0;
   padding: 8px 10px;
-  border: 1px solid rgba(140, 162, 178, 0.3);
+  border: 1px solid rgba(140, 178, 153, 0.3);
   border-radius: 10px;
   font-size: 10px;
   letter-spacing: 0.14em;
@@ -467,9 +467,9 @@ body.deck-forge-open #game-viewport canvas {
 }
 
 .forge-faction-group__title.is-raspcorp {
-  border-color: rgba(31, 194, 255, 0.45);
-  color: #73ddff;
-  background: rgba(11, 75, 104, 0.24);
+  border-color: rgba(31, 255, 106, 0.45);
+  color: #73ffa2;
+  background: rgba(11, 104, 42, 0.24);
 }
 
 .forge-faction-group__title.is-echossystem {
@@ -487,7 +487,7 @@ body.deck-forge-open #game-viewport canvas {
 .forge-faction-group__title.is-humbanet {
   border-color: rgba(132, 255, 212, 0.45);
   color: #9df8dc;
-  background: rgba(24, 88, 74, 0.24);
+  background: rgba(24, 88, 45, 0.24);
 }
 
 .forge-faction-group__title.is-sindicato {
@@ -512,7 +512,7 @@ body.deck-forge-open #game-viewport canvas {
   position: relative;
   min-width: 0;
   overflow: hidden;
-  border: 1px solid rgba(132, 180, 201, 0.13);
+  border: 1px solid rgba(132, 201, 155, 0.13);
   border-radius: 16px;
   background: #090f18;
   box-shadow: 0 14px 30px rgba(0, 0, 0, 0.24);
@@ -546,10 +546,10 @@ body.deck-forge-open #game-viewport canvas {
 }
 
 .forge-card.is-faction-sorted.faction-raspcorp::after {
-  border-color: rgba(23, 201, 255, 0.72);
+  border-color: rgba(23, 255, 100, 0.72);
   box-shadow:
-    inset 0 0 0 1px rgba(23, 201, 255, 0.28),
-    0 0 16px rgba(23, 201, 255, 0.24);
+    inset 0 0 0 1px rgba(23, 255, 100, 0.28),
+    0 0 16px rgba(23, 255, 100, 0.24);
 }
 
 .forge-card.is-faction-sorted.faction-echossystem::after {
@@ -612,7 +612,7 @@ body.deck-forge-open #game-viewport canvas {
   overflow: hidden;
   padding: 0;
   border: 0;
-  background: #0b131d;
+  background: #0b1d11;
 }
 
 .forge-card__image {
@@ -632,7 +632,7 @@ body.deck-forge-open #game-viewport canvas {
 .forge-card__wash {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to bottom, transparent 42%, rgba(4, 8, 13, 0.88));
+  background: linear-gradient(to bottom, transparent 42%, rgba(4, 13, 7, 0.88));
 }
 
 .forge-card__level,
@@ -649,7 +649,7 @@ body.deck-forge-open #game-viewport canvas {
   border: 1px solid color-mix(in srgb, var(--card-color) 55%, transparent);
   border-radius: 5px;
   color: var(--card-color);
-  background: rgba(3, 7, 12, 0.82);
+  background: rgba(3, 12, 6, 0.82);
   font-size: 8px;
   font-weight: 900;
   letter-spacing: 0.08em;
@@ -664,7 +664,7 @@ body.deck-forge-open #game-viewport canvas {
   place-items: center;
   border: 1px solid var(--card-color);
   border-radius: 50%;
-  background: rgba(2, 6, 10, 0.9);
+  background: rgba(2, 10, 5, 0.9);
   box-shadow: 0 0 14px color-mix(in srgb, var(--card-color) 24%, transparent);
   font-size: 13px;
   font-weight: 900;
@@ -725,7 +725,7 @@ body.deck-forge-open #game-viewport canvas {
   gap: 7px;
   align-items: center;
   padding: 10px 12px 12px;
-  border-top: 1px solid rgba(128, 176, 196, 0.09);
+  border-top: 1px solid rgba(128, 196, 151, 0.09);
 }
 
 .forge-qty-button {
@@ -734,16 +734,16 @@ body.deck-forge-open #game-viewport canvas {
   height: 36px;
   place-items: center;
   padding: 0;
-  border: 1px solid rgba(154, 177, 193, 0.18);
+  border: 1px solid rgba(154, 193, 167, 0.18);
   border-radius: 9px;
-  color: #b2bdc6;
-  background: rgba(23, 32, 43, 0.8);
+  color: #b2c6b9;
+  background: rgba(23, 43, 30, 0.8);
   font-size: 21px;
   transition: 0.15s;
 }
 
 .forge-qty-button:hover:not(:disabled) {
-  border-color: #9fc3d2;
+  border-color: #9fd2b0;
   color: white;
   transform: translateY(-1px);
 }
@@ -767,7 +767,7 @@ body.deck-forge-open #game-viewport canvas {
   font-size: 18px;
 }
 .forge-card__counter span {
-  color: #536170;
+  color: #53705d;
   font-size: 10px;
 }
 
@@ -779,7 +779,7 @@ body.deck-forge-open #game-viewport canvas {
   text-align: center;
 }
 .forge-empty-search__icon {
-  color: var(--forge-cyan);
+  color: var(--forge-accent);
   font-size: 54px;
 }
 .forge-empty-search strong {
@@ -808,14 +808,14 @@ body.deck-forge-open #game-viewport canvas {
   padding: 7px 9px;
   border: 0;
   border-bottom: 1px solid currentColor;
-  color: var(--forge-cyan);
+  color: var(--forge-accent);
   background: transparent;
   font-size: 9px;
   font-weight: 900;
   letter-spacing: 0.13em;
 }
 .forge-text-button:hover {
-  text-shadow: 0 0 14px var(--forge-cyan);
+  text-shadow: 0 0 14px var(--forge-accent);
 }
 
 .forge-deck-actions {
@@ -848,10 +848,10 @@ body.deck-forge-open #game-viewport canvas {
   place-items: center;
   border-radius: 50%;
   background: conic-gradient(
-    var(--forge-cyan) var(--progress),
-    rgba(75, 104, 119, 0.16) 0
+    var(--forge-accent) var(--progress),
+    rgba(75, 119, 90, 0.16) 0
   );
-  box-shadow: 0 0 28px rgba(35, 215, 255, 0.1);
+  box-shadow: 0 0 28px rgba(35, 255, 108, 0.1);
   transition: background 0.3s;
 }
 
@@ -866,7 +866,7 @@ body.deck-forge-open #game-viewport canvas {
   grid-template-columns: auto auto;
   place-content: center;
   align-items: baseline;
-  border: 1px solid rgba(127, 203, 230, 0.11);
+  border: 1px solid rgba(127, 230, 161, 0.11);
   border-radius: 50%;
   background: #080e17;
 }
@@ -875,13 +875,13 @@ body.deck-forge-open #game-viewport canvas {
   line-height: 1;
 }
 .forge-progress__inner span {
-  color: #60717f;
+  color: #607f6a;
   font-size: 10px;
 }
 .forge-progress__inner small {
   grid-column: 1 / -1;
   margin-top: 5px;
-  color: #6d8291;
+  color: #6d9179;
   font-size: 7px;
   font-weight: 900;
   letter-spacing: 0.17em;
@@ -902,21 +902,21 @@ body.deck-forge-open #game-viewport canvas {
   align-items: center;
   min-height: 30px;
   padding: 0 8px;
-  border: 1px solid rgba(111, 148, 165, 0.11);
+  border: 1px solid rgba(111, 165, 129, 0.11);
   border-radius: 8px;
-  color: #8c9aa6;
-  background: rgba(15, 22, 31, 0.6);
+  color: #8ca695;
+  background: rgba(15, 31, 20, 0.6);
   font-size: 10px;
 }
 .forge-level-dot {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #8292a0;
+  background: #82a08c;
 }
 .forge-level-dot.level-baixa {
-  background: #17c9ff;
-  box-shadow: 0 0 8px #17c9ff;
+  background: #17ff64;
+  box-shadow: 0 0 8px #17ff64;
 }
 .forge-level-dot.level-media {
   background: #a970ff;
@@ -936,11 +936,11 @@ body.deck-forge-open #game-viewport canvas {
   place-items: center;
   border-radius: 50%;
   color: #697985;
-  background: #171f28;
+  background: #17281d;
   font-size: 8px;
 }
 .forge-requirement.is-complete {
-  color: #d7e3e8;
+  color: #d7e8dd;
 }
 .forge-requirement.is-complete .forge-requirement__check {
   color: #04130c;
@@ -952,7 +952,7 @@ body.deck-forge-open #game-viewport canvas {
   margin: 0 24px;
   padding: 13px 0 10px;
   border-top: 1px solid var(--forge-line);
-  color: #647685;
+  color: #64856f;
   font-size: 8px;
   font-weight: 900;
   letter-spacing: 0.16em;
@@ -981,10 +981,10 @@ body.deck-forge-open #game-viewport canvas {
   min-height: 54px;
   margin-bottom: 6px;
   padding: 6px 8px 6px 6px;
-  border: 1px solid rgba(117, 156, 173, 0.1);
+  border: 1px solid rgba(117, 173, 136, 0.1);
   border-left: 2px solid var(--card-color);
   border-radius: 9px;
-  background: rgba(14, 21, 30, 0.8);
+  background: rgba(14, 30, 19, 0.8);
   contain: layout paint style;
 }
 .forge-deck-row__preview {
@@ -1019,7 +1019,7 @@ body.deck-forge-open #game-viewport canvas {
   display: block;
   margin-top: 3px;
   overflow: hidden;
-  color: #61717f;
+  color: #617f6b;
   font-size: 7px;
   letter-spacing: 0.04em;
   text-overflow: ellipsis;
@@ -1035,10 +1035,10 @@ body.deck-forge-open #game-viewport canvas {
   width: 24px;
   height: 24px;
   padding: 0;
-  border: 1px solid rgba(124, 164, 181, 0.13);
+  border: 1px solid rgba(124, 181, 143, 0.13);
   border-radius: 6px;
-  color: #9eafb9;
-  background: #151e28;
+  color: #9eb9a7;
+  background: #15281b;
 }
 .forge-deck-row__controls button:hover:not(:disabled) {
   border-color: var(--card-color);
@@ -1065,19 +1065,19 @@ body.deck-forge-open #game-viewport canvas {
   height: 44px;
   margin-bottom: 10px;
   place-items: center;
-  border: 1px dashed #345064;
+  border: 1px dashed #346444;
   border-radius: 50%;
-  color: #4a6c81;
+  color: #4a815c;
   font-size: 24px;
 }
 .forge-empty-deck strong {
-  color: #a1adb6;
+  color: #a1b6a8;
   font-size: 11px;
 }
 .forge-empty-deck p {
   max-width: 190px;
   margin: 5px 0 0;
-  color: #566673;
+  color: #567360;
   font-size: 9px;
   line-height: 1.5;
 }
@@ -1100,10 +1100,10 @@ body.deck-forge-open #game-viewport canvas {
   width: 100%;
   height: 48px;
   overflow: hidden;
-  border: 1px solid #283a47;
+  border: 1px solid #284732;
   border-radius: 10px;
-  color: #596975;
-  background: #111921;
+  color: #597562;
+  background: #112116;
   font-size: 11px;
   font-weight: 900;
   letter-spacing: 0.14em;
@@ -1143,7 +1143,7 @@ body.deck-forge-open #game-viewport canvas {
   overflow: hidden auto;
   place-items: center;
   padding: 24px;
-  background: rgba(0, 3, 7, 0.82);
+  background: rgba(0, 7, 2, 0.82);
   opacity: 0;
   transition: opacity 0.18s;
 }
@@ -1182,7 +1182,7 @@ body.deck-forge-open #game-viewport canvas {
   border: 1px solid rgba(255, 255, 255, 0.22);
   border-radius: 50%;
   color: white;
-  background: rgba(3, 6, 10, 0.65);
+  background: rgba(3, 10, 5, 0.65);
   font-size: 24px;
 }
 .forge-modal-close:hover {
@@ -1194,7 +1194,7 @@ body.deck-forge-open #game-viewport canvas {
   position: relative;
   min-height: 560px;
   overflow: hidden;
-  background: #101720;
+  background: #102015;
 }
 .forge-detail__visual img {
   width: 100%;
@@ -1218,7 +1218,7 @@ body.deck-forge-open #game-viewport canvas {
   place-items: center;
   border: 2px solid var(--card-color);
   border-radius: 50%;
-  background: rgba(3, 7, 12, 0.88);
+  background: rgba(3, 12, 6, 0.88);
   box-shadow: 0 0 25px color-mix(in srgb, var(--card-color) 25%, transparent);
   font-size: 28px;
 }
@@ -1248,7 +1248,7 @@ body.deck-forge-open #game-viewport canvas {
 .forge-detail__description {
   flex: 1;
   margin: 24px 0;
-  color: #a8b4bd;
+  color: #a8bdaf;
   font-size: 13px;
   line-height: 1.7;
 }
@@ -1258,7 +1258,7 @@ body.deck-forge-open #game-viewport canvas {
 .forge-detail__description .is-efeito {
   padding-left: 13px;
   border-left: 2px solid var(--card-color);
-  color: #e7eff3;
+  color: #e7f3eb;
   font-weight: 650;
 }
 .forge-detail__description .is-flavor {
@@ -1282,7 +1282,7 @@ body.deck-forge-open #game-viewport canvas {
 }
 .forge-detail__quantity span {
   display: block;
-  color: #677886;
+  color: #678671;
   font-size: 8px;
   font-weight: 900;
   letter-spacing: 0.13em;
@@ -1296,9 +1296,9 @@ body.deck-forge-open #game-viewport canvas {
 .forge-confirm {
   width: min(440px, 100%);
   padding: 36px;
-  border: 1px solid rgba(132, 182, 203, 0.2);
+  border: 1px solid rgba(132, 203, 156, 0.2);
   border-radius: 20px;
-  background: linear-gradient(145deg, #101925, #070b12);
+  background: linear-gradient(145deg, #102517, #070b12);
   box-shadow: 0 30px 90px #000;
   text-align: center;
 }
@@ -1322,7 +1322,7 @@ body.deck-forge-open #game-viewport canvas {
 }
 .forge-confirm > p {
   margin: 12px 0 28px;
-  color: #8796a2;
+  color: #87a290;
   font-size: 12px;
   line-height: 1.6;
 }
@@ -1339,14 +1339,14 @@ body.deck-forge-open #game-viewport canvas {
   letter-spacing: 0.1em;
 }
 .forge-confirm__cancel {
-  border: 1px solid #31414e;
-  color: #8e9ca7;
-  background: #131c25;
+  border: 1px solid #314e3b;
+  color: #8ea796;
+  background: #132519;
 }
 .forge-confirm__accept {
-  border: 1px solid var(--forge-cyan);
-  color: #031217;
-  background: var(--forge-cyan);
+  border: 1px solid var(--forge-accent);
+  color: #03170a;
+  background: var(--forge-accent);
 }
 .forge-confirm__accept.is-danger {
   border-color: #ff5573;
@@ -1364,10 +1364,10 @@ body.deck-forge-open #game-viewport canvas {
   align-items: center;
   max-width: min(420px, calc(100% - 32px));
   padding: 14px 18px;
-  border: 1px solid rgba(35, 215, 255, 0.32);
+  border: 1px solid rgba(35, 255, 108, 0.32);
   border-radius: 12px;
-  color: #dbe8ed;
-  background: rgba(8, 15, 23, 0.96);
+  color: #dbede1;
+  background: rgba(8, 23, 13, 0.96);
   box-shadow: 0 20px 55px rgba(0, 0, 0, 0.5);
   font-size: 11px;
   transform: translateY(20px);
@@ -1470,11 +1470,11 @@ body.deck-forge-open #game-viewport canvas {
     align-items: center;
     margin-bottom: 10px;
     padding: 10px 12px;
-    border: 1px solid rgba(94, 190, 220, 0.18);
+    border: 1px solid rgba(94, 220, 136, 0.18);
     border-radius: 13px;
     background: linear-gradient(
       110deg,
-      rgba(13, 38, 50, 0.92),
+      rgba(13, 50, 25, 0.92),
       rgba(9, 14, 23, 0.94)
     );
     box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25);
@@ -1491,7 +1491,7 @@ body.deck-forge-open #game-viewport canvas {
   }
 
   .forge-mobile-status__count span {
-    color: var(--forge-cyan);
+    color: var(--forge-accent);
     font-size: 7px;
     font-weight: 900;
     letter-spacing: 0.16em;
@@ -1511,15 +1511,15 @@ body.deck-forge-open #game-viewport canvas {
     height: 4px;
     overflow: hidden;
     border-radius: 999px;
-    background: rgba(97, 126, 141, 0.2);
+    background: rgba(97, 141, 112, 0.2);
   }
 
   .forge-mobile-status__progress span {
     display: block;
     height: 100%;
     border-radius: inherit;
-    background: linear-gradient(90deg, var(--forge-cyan), var(--forge-green));
-    box-shadow: 0 0 10px var(--forge-cyan);
+    background: linear-gradient(90deg, var(--forge-accent), var(--forge-green));
+    box-shadow: 0 0 10px var(--forge-accent);
     transition: width 0.25s ease;
   }
 
@@ -1570,12 +1570,12 @@ body.deck-forge-open #game-viewport canvas {
     grid-template-columns: 1fr 1fr;
     gap: 7px;
     padding: 7px;
-    border: 1px solid rgba(111, 209, 239, 0.24);
+    border: 1px solid rgba(111, 239, 154, 0.24);
     border-radius: 17px;
-    background: rgba(6, 12, 20, 0.96);
+    background: rgba(6, 20, 11, 0.96);
     box-shadow:
       0 18px 55px rgba(0, 0, 0, 0.62),
-      0 0 28px rgba(35, 215, 255, 0.08);
+      0 0 28px rgba(35, 255, 108, 0.08);
   }
 
   .forge-mobile-dock__button {
@@ -1587,7 +1587,7 @@ body.deck-forge-open #game-viewport canvas {
     align-items: center;
     border: 1px solid transparent;
     border-radius: 12px;
-    color: #667988;
+    color: #668871;
     background: transparent;
   }
 
@@ -1597,13 +1597,13 @@ body.deck-forge-open #game-viewport canvas {
   }
 
   .forge-mobile-dock__button.is-active {
-    border-color: rgba(35, 215, 255, 0.35);
-    color: #e9fbff;
-    background: rgba(24, 116, 143, 0.22);
+    border-color: rgba(35, 255, 108, 0.35);
+    color: #e9fff0;
+    background: rgba(24, 143, 64, 0.22);
   }
 
   .forge-mobile-dock__icon {
-    color: var(--forge-cyan);
+    color: var(--forge-accent);
     font-size: 19px;
   }
 
@@ -1612,10 +1612,10 @@ body.deck-forge-open #game-viewport canvas {
     width: 31px;
     height: 31px;
     place-items: center;
-    border: 1px solid #496271;
+    border: 1px solid #497156;
     border-radius: 50%;
     color: white;
-    background: #101a23;
+    background: #102316;
     font-size: 11px;
     font-weight: 900;
   }
@@ -1700,7 +1700,7 @@ body.deck-forge-open #game-viewport canvas {
   .forge-filter-swipe-hint {
     display: block;
     margin: 5px 3px 0;
-    color: #526b79;
+    color: #52795f;
     font-size: 6px;
     font-weight: 900;
     letter-spacing: 0.12em;
@@ -1942,7 +1942,7 @@ body.title-terminal-open #game-viewport canvas {
   overflow: hidden;
   color: var(--forge-text);
   background:
-    radial-gradient(circle at 8% 0%, rgba(25, 152, 185, 0.16), transparent 46%),
+    radial-gradient(circle at 8% 0%, rgba(25, 185, 78, 0.16), transparent 46%),
     radial-gradient(
       circle at 100% 65%,
       rgba(112, 60, 170, 0.12),
@@ -1972,7 +1972,7 @@ body.title-terminal-open #game-viewport canvas {
 
 .title-terminal button:focus-visible,
 .title-terminal input:focus-visible {
-  outline: 2px solid var(--forge-cyan);
+  outline: 2px solid var(--forge-accent);
   outline-offset: 3px;
 }
 
@@ -1987,8 +1987,8 @@ body.title-terminal-open #game-viewport canvas {
 .title-grid {
   opacity: 0.18;
   background-image:
-    linear-gradient(rgba(69, 166, 196, 0.09) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(69, 166, 196, 0.09) 1px, transparent 1px);
+    linear-gradient(rgba(69, 196, 111, 0.09) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(69, 196, 111, 0.09) 1px, transparent 1px);
   background-size: 24px 24px;
   mask-image: linear-gradient(to bottom, black, transparent 86%);
 }
@@ -2017,7 +2017,7 @@ body.title-terminal-open #game-viewport canvas {
   justify-content: space-between;
   align-items: center;
   padding-bottom: 10px;
-  border-bottom: 1px solid rgba(124, 211, 255, 0.14);
+  border-bottom: 1px solid rgba(124, 255, 168, 0.14);
 }
 
 .title-system-id,
@@ -2025,7 +2025,7 @@ body.title-terminal-open #game-viewport canvas {
   display: flex;
   gap: 7px;
   align-items: center;
-  color: #6f8593;
+  color: #6f937b;
   font-size: 7px;
   font-weight: 900;
   letter-spacing: 0.13em;
@@ -2036,10 +2036,10 @@ body.title-terminal-open #game-viewport canvas {
   width: 28px;
   height: 22px;
   place-items: center;
-  border: 1px solid rgba(35, 215, 255, 0.45);
+  border: 1px solid rgba(35, 255, 108, 0.45);
   border-radius: 5px;
-  color: var(--forge-cyan);
-  background: rgba(17, 101, 126, 0.14);
+  color: var(--forge-accent);
+  background: rgba(17, 126, 53, 0.14);
   font-size: 9px;
 }
 
@@ -2063,7 +2063,7 @@ body.title-terminal-open #game-viewport canvas {
 
 .title-account {
   border: 1px solid rgba(56, 242, 160, 0.48);
-  background: rgba(4, 17, 22, 0.82);
+  background: rgba(4, 22, 10, 0.82);
   color: #8fffc3;
   padding: 7px 9px;
   font: 700 7px/1 var(--font-mono, monospace);
@@ -2077,18 +2077,18 @@ body.title-terminal-open #game-viewport canvas {
   height: 30px;
   flex: 0 0 auto;
   place-items: center;
-  border: 1px solid rgba(35, 215, 255, 0.42);
+  border: 1px solid rgba(35, 255, 108, 0.42);
   border-radius: 8px;
-  color: var(--forge-cyan);
-  background: rgba(4, 17, 22, 0.82);
+  color: var(--forge-accent);
+  background: rgba(4, 22, 10, 0.82);
   font-size: 14px;
   cursor: pointer;
 }
 
 .title-settings-button:hover,
 .title-settings-button:focus-visible {
-  border-color: var(--forge-cyan);
-  box-shadow: 0 0 18px rgba(35, 215, 255, 0.2);
+  border-color: var(--forge-accent);
+  box-shadow: 0 0 18px rgba(35, 255, 108, 0.2);
 }
 
 .title-account:hover,
@@ -2156,16 +2156,16 @@ body.title-terminal-open #game-viewport canvas {
   gap: 8px;
   min-height: 128px;
   padding: 16px;
-  border: 1px solid rgba(35, 215, 255, 0.35);
+  border: 1px solid rgba(35, 255, 108, 0.35);
   border-radius: 12px;
   color: #fff;
-  background: rgba(7, 15, 24, 0.94);
+  background: rgba(7, 24, 13, 0.94);
   text-align: left;
   cursor: pointer;
 }
 
 .title-faction--raspcorp {
-  border-color: rgba(35, 215, 255, 0.58);
+  border-color: rgba(35, 255, 108, 0.58);
 }
 .title-faction--echossystem {
   border-color: rgba(255, 85, 115, 0.58);
@@ -2183,7 +2183,7 @@ body.title-terminal-open #game-viewport canvas {
   font-size: 13px;
 }
 .title-faction span {
-  color: #92a4b1;
+  color: #92b19c;
   font-size: 9px;
   line-height: 1.45;
 }
@@ -2199,47 +2199,47 @@ body.title-terminal-open #game-viewport canvas {
 
 /* Loja de pacotes: um pacote em destaque, seguido por cinco revelações. */
 .title-booster-dialog {
-  --pack-color: #36dfff;
+  --pack-color: #36ff79;
   padding: 22px 20px max(22px, env(safe-area-inset-bottom));
   border-top-color: var(--pack-color);
-  background: radial-gradient(ellipse at 50% 42%, #152532 0, #080d16 53%, #05080f 100%);
+  background: radial-gradient(ellipse at 50% 42%, #15321f 0, #080d16 53%, #05080f 100%);
   scrollbar-width: thin;
 }
 .title-booster-dialog [hidden] { display: none !important; }
 .booster-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .booster-header h2 { margin: 3px 0 14px; font-size: clamp(26px, 7cqw, 42px); letter-spacing: -0.055em; }
-.title-booster-dialog .booster-close { flex-shrink: 0; width: 36px; height: 36px; border: 1px solid #35404c; border-radius: 50%; color: #b7cad5; background: #101923; font-size: 25px; cursor: pointer; }
-.booster-wallet { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 0; border-block: 1px solid #24303b; }
+.title-booster-dialog .booster-close { flex-shrink: 0; width: 36px; height: 36px; border: 1px solid #354c3d; border-radius: 50%; color: #b7d5c1; background: #102316; font-size: 25px; cursor: pointer; }
+.booster-wallet { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 0; border-block: 1px solid #243b2c; }
 .title-booster-balance { color: #ffda87; font-size: 11px; letter-spacing: .04em; font-variant-numeric: tabular-nums; }
-.title-booster-dialog .booster-admin { border: 0; padding: 7px 0 7px 8px; background: none; color: #8d9caa; font-size: 8px; cursor: pointer; }
+.title-booster-dialog .booster-admin { border: 0; padding: 7px 0 7px 8px; background: none; color: #8daa97; font-size: 8px; cursor: pointer; }
 .booster-factions { display: flex; gap: 6px; overflow-x: auto; padding: 15px 0 8px; scrollbar-width: thin; }
-.title-booster-dialog .booster-faction { flex-shrink: 0; padding: 9px 11px; border: 1px solid #293442; border-radius: 6px; background: #101721; color: #92a0ad; font-size: 9px; cursor: pointer; }
-.booster-faction[aria-pressed="true"] { border-color: var(--pack-color); color: var(--pack-color); background: #15232f; }
+.title-booster-dialog .booster-faction { flex-shrink: 0; padding: 9px 11px; border: 1px solid #294231; border-radius: 6px; background: #101721; color: #92ad9b; font-size: 9px; cursor: pointer; }
+.booster-faction[aria-pressed="true"] { border-color: var(--pack-color); color: var(--pack-color); background: #152f1e; }
 .booster-stage { margin: 12px 0; position: relative; display: grid; place-items: center; height: clamp(205px, 57cqw, 330px); perspective: 900px; isolation: isolate; }
 .booster-stage::before { content: ""; position: absolute; width: 70%; height: 70%; border-radius: 50%; background: radial-gradient(ellipse, var(--pack-color), transparent 65%); opacity: .14; filter: blur(25px); }
-.booster-pack { position: relative; width: clamp(125px, 36cqw, 204px); aspect-ratio: .67; isolation: isolate; transform: rotate(-7deg); border: 1px solid var(--pack-color); background: #101a26; box-shadow: 12px 18px 26px #0009, inset 0 0 0 4px #101823; animation: booster-float 4s ease-in-out infinite; }
-.booster-pack::before, .booster-pack::after { content: ""; position: absolute; z-index: 4; inset: -5px -3px auto; height: 15px; background: repeating-linear-gradient(90deg, #15202c 0 3px, var(--pack-color) 4px, #182a37 5px 7px); border-block: 2px solid var(--pack-color); }
+.booster-pack { position: relative; width: clamp(125px, 36cqw, 204px); aspect-ratio: .67; isolation: isolate; transform: rotate(-7deg); border: 1px solid var(--pack-color); background: #102617; box-shadow: 12px 18px 26px #0009, inset 0 0 0 4px #102316; animation: booster-float 4s ease-in-out infinite; }
+.booster-pack::before, .booster-pack::after { content: ""; position: absolute; z-index: 4; inset: -5px -3px auto; height: 15px; background: repeating-linear-gradient(90deg, #152c1d 0 3px, var(--pack-color) 4px, #183722 5px 7px); border-block: 2px solid var(--pack-color); }
 .booster-pack::after { top: auto; bottom: -5px; height: 12px; }
 .booster-pack-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .8; filter: saturate(.8); }
-.booster-pack-foil { position: absolute; inset: 0; background: linear-gradient(165deg, #061018 5%, transparent 38%, #020812 92%), linear-gradient(110deg, transparent 30%, #fff3 45%, transparent 47%, #fff2 49%, transparent 65%); }
+.booster-pack-foil { position: absolute; inset: 0; background: linear-gradient(165deg, #06180c 5%, transparent 38%, #020812 92%), linear-gradient(110deg, transparent 30%, #fff3 45%, transparent 47%, #fff2 49%, transparent 65%); }
 .booster-pack-brand { position: absolute; inset: 20px 10px auto; color: white; font-size: 10px; font-weight: 900; letter-spacing: .2em; text-align: center; }
 .booster-pack-name { position: absolute; inset: auto 8px 33px; color: white; font-family: Impact, sans-serif; font-weight: 400; text-transform: uppercase; font-size: clamp(17px, 5cqw, 29px); text-align: center; overflow-wrap: anywhere; text-shadow: 0 2px 8px #000; }
 .booster-pack-seal { position: absolute; inset: auto 0 15px; color: var(--pack-color); font-size: 8px; font-weight: 800; letter-spacing: .2em; text-align: center; }
 .booster-flash { position: absolute; inset: 0; z-index: 5; pointer-events: none; background: radial-gradient(ellipse, #fff, var(--pack-color) 12%, transparent 65%); opacity: 0; }
 .booster-intro { text-align: center; }
 .booster-intro h3 { margin: 0; font-size: 23px; letter-spacing: -.035em; }
-.booster-intro p { margin: 6px 0 0; color: #899dad; font-size: 10px; }
-.booster-status { min-height: 28px; margin: 15px 0 0; color: #aabfca; text-align: center; font-size: 10px; line-height: 1.5; }
-.title-booster-dialog .booster-buy { display: block; width: 100%; min-height: 48px; padding: 13px 8px; border: 1px solid var(--pack-color); border-radius: 9px; background: var(--pack-color); color: #041018; font-size: 10px; font-weight: 900; letter-spacing: .06em; cursor: pointer; }
+.booster-intro p { margin: 6px 0 0; color: #89ad95; font-size: 10px; }
+.booster-status { min-height: 28px; margin: 15px 0 0; color: #aacab5; text-align: center; font-size: 10px; line-height: 1.5; }
+.title-booster-dialog .booster-buy { display: block; width: 100%; min-height: 48px; padding: 13px 8px; border: 1px solid var(--pack-color); border-radius: 9px; background: var(--pack-color); color: #04180b; font-size: 10px; font-weight: 900; letter-spacing: .06em; cursor: pointer; }
 .title-booster-dialog button:disabled { opacity: .45; cursor: not-allowed; }
 .title-booster-dialog button:focus-visible { outline: 2px solid white; outline-offset: 3px; }
 .title-booster-dialog.is-opening .booster-pack { animation: booster-rip 1.1s ease-in both; }
 .title-booster-dialog.is-opening .booster-pack::before { animation: booster-seal .9s .15s ease-in both; }
 .title-booster-dialog.is-opening .booster-flash { animation: booster-flash 1.1s ease-in-out both; }
 .title-booster-results { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; margin: 18px 0 4px; }
-.title-booster-card { --rarity-color: #648391; display: grid; grid-template-rows: auto auto 1fr; grid-column: span 2; min-width: 0; gap: 6px; padding: 6px 6px 10px; border: 1px solid var(--rarity-color); border-radius: 8px; background: linear-gradient(155deg, #172333, #080e17); animation: booster-reveal .6s calc(var(--reveal-index, 0) * .15s) both; }
+.title-booster-card { --rarity-color: #649173; display: grid; grid-template-rows: auto auto 1fr; grid-column: span 2; min-width: 0; gap: 6px; padding: 6px 6px 10px; border: 1px solid var(--rarity-color); border-radius: 8px; background: linear-gradient(155deg, #173320, #080e17); animation: booster-reveal .6s calc(var(--reveal-index, 0) * .15s) both; }
 .title-booster-card:nth-child(4) { grid-column: 2 / span 2; }
-.title-booster-card[data-rarity="media"] { --rarity-color: #54cfff; }
+.title-booster-card[data-rarity="media"] { --rarity-color: #54ff8d; }
 .title-booster-card[data-rarity="alta"] { --rarity-color: #c18cff; }
 .title-booster-card[data-rarity="lendaria"] { --rarity-color: #ffd166; box-shadow: 0 0 18px #ffca4a40; }
 .title-booster-card img { width: 100%; aspect-ratio: .72; border-radius: 4px; object-fit: cover; }
@@ -2272,9 +2272,9 @@ body.title-terminal-open #game-viewport canvas {
   box-sizing: border-box;
   margin-top: 10px;
   padding: 14px 16px;
-  border: 1px solid rgba(35, 215, 255, 0.42);
-  background: rgba(0, 5, 10, 0.88);
-  color: #f5fbff;
+  border: 1px solid rgba(35, 255, 108, 0.42);
+  background: rgba(0, 10, 3, 0.88);
+  color: #f5fff8;
   font: 700 14px/1.2 var(--font-mono, monospace);
   outline: none;
 }
@@ -2295,7 +2295,7 @@ body.title-terminal-open #game-viewport canvas {
 }
 
 .title-kicker {
-  color: var(--forge-cyan);
+  color: var(--forge-accent);
   font-size: 7px;
   font-weight: 900;
   letter-spacing: 0.25em;
@@ -2310,7 +2310,7 @@ body.title-terminal-open #game-viewport canvas {
   font-weight: 900;
   letter-spacing: -0.055em;
   line-height: 0.72;
-  filter: drop-shadow(0 0 24px rgba(35, 215, 255, 0.16));
+  filter: drop-shadow(0 0 24px rgba(35, 255, 108, 0.16));
 }
 
 .title-logo span {
@@ -2323,12 +2323,12 @@ body.title-terminal-open #game-viewport canvas {
 
 .title-logo__duel {
   color: transparent;
-  -webkit-text-stroke: 1.5px var(--forge-cyan);
+  -webkit-text-stroke: 1.5px var(--forge-accent);
 }
 
 .title-manifesto {
   margin: 12px 0 6px;
-  color: #8596a2;
+  color: #85a28f;
   font-size: 8px;
   font-weight: 900;
   letter-spacing: 0.32em;
@@ -2340,10 +2340,10 @@ body.title-terminal-open #game-viewport canvas {
   background: linear-gradient(
     90deg,
     transparent,
-    var(--forge-cyan),
+    var(--forge-accent),
     transparent
   );
-  box-shadow: 0 0 12px var(--forge-cyan);
+  box-shadow: 0 0 12px var(--forge-accent);
 }
 
 .title-loadout {
@@ -2355,11 +2355,11 @@ body.title-terminal-open #game-viewport canvas {
   align-items: center;
   margin-bottom: 10px;
   padding: 9px 11px;
-  border: 1px solid rgba(120, 176, 198, 0.16);
+  border: 1px solid rgba(120, 198, 146, 0.16);
   border-radius: 13px;
   background: linear-gradient(
     110deg,
-    rgba(13, 27, 38, 0.92),
+    rgba(13, 38, 21, 0.92),
     rgba(8, 13, 21, 0.94)
   );
 }
@@ -2426,13 +2426,13 @@ body.title-terminal-open #game-viewport canvas {
   width: 28px;
   height: 34px;
   place-items: center;
-  border: 1px solid rgba(109, 160, 181, 0.15);
+  border: 1px solid rgba(109, 181, 133, 0.15);
   border-radius: 7px;
-  background: rgba(16, 26, 35, 0.7);
+  background: rgba(16, 35, 22, 0.7);
 }
 
 .title-loadout__levels small {
-  color: #627583;
+  color: #62836d;
   font-size: 6px;
   font-weight: 900;
 }
@@ -2466,11 +2466,11 @@ body.title-terminal-open #game-viewport canvas {
   gap: 10px;
   align-items: center;
   padding: 10px 13px;
-  border: 1px solid rgba(110, 180, 207, 0.2);
+  border: 1px solid rgba(110, 207, 142, 0.2);
   border-radius: 13px;
   background: linear-gradient(
     110deg,
-    rgba(14, 25, 36, 0.96),
+    rgba(14, 36, 21, 0.96),
     rgba(8, 13, 21, 0.96)
   );
   text-align: left;
@@ -2484,17 +2484,17 @@ body.title-terminal-open #game-viewport canvas {
   position: absolute;
   inset: 0 auto 0 0;
   width: 2px;
-  background: var(--forge-cyan);
-  box-shadow: 0 0 12px var(--forge-cyan);
+  background: var(--forge-accent);
+  box-shadow: 0 0 12px var(--forge-accent);
   content: "";
 }
 
 .title-action:hover:not(:disabled),
 .title-action:active:not(:disabled) {
-  border-color: rgba(35, 215, 255, 0.62);
+  border-color: rgba(35, 255, 108, 0.62);
   box-shadow:
     0 14px 30px rgba(0, 0, 0, 0.3),
-    inset 0 0 25px rgba(35, 215, 255, 0.04);
+    inset 0 0 25px rgba(35, 255, 108, 0.04);
   transform: translateY(-2px);
 }
 
@@ -2506,13 +2506,13 @@ body.title-terminal-open #game-viewport canvas {
 
 .title-action--solo {
   min-height: 88px;
-  border-color: rgba(35, 215, 255, 0.38);
+  border-color: rgba(35, 255, 108, 0.38);
   background: linear-gradient(
     115deg,
-    rgba(13, 65, 82, 0.8),
-    rgba(8, 17, 27, 0.96) 65%
+    rgba(13, 82, 36, 0.8),
+    rgba(8, 27, 14, 0.96) 65%
   );
-  box-shadow: 0 12px 36px rgba(35, 215, 255, 0.07);
+  box-shadow: 0 12px 36px rgba(35, 255, 108, 0.07);
 }
 
 .title-action--deck::before {
@@ -2529,10 +2529,10 @@ body.title-terminal-open #game-viewport canvas {
   width: 42px;
   height: 42px;
   place-items: center;
-  border: 1px solid rgba(35, 215, 255, 0.35);
+  border: 1px solid rgba(35, 255, 108, 0.35);
   border-radius: 11px;
-  color: var(--forge-cyan);
-  background: rgba(35, 215, 255, 0.08);
+  color: var(--forge-accent);
+  background: rgba(35, 255, 108, 0.08);
   font-size: 17px;
   font-weight: 900;
 }
@@ -2556,7 +2556,7 @@ body.title-terminal-open #game-viewport canvas {
 
 .title-action__copy small {
   margin-bottom: 3px;
-  color: var(--forge-cyan);
+  color: var(--forge-accent);
   font-size: 6px;
   font-weight: 900;
   letter-spacing: 0.15em;
@@ -2588,7 +2588,7 @@ body.title-terminal-open #game-viewport canvas {
 }
 
 .title-action__arrow {
-  color: #67808f;
+  color: #678f74;
   font-size: 24px;
   text-align: right;
 }
@@ -2634,10 +2634,10 @@ body.title-terminal-open #game-viewport canvas {
   align-items: center;
   margin-top: 10px;
   padding: 8px 10px;
-  border: 1px solid rgba(104, 158, 180, 0.12);
+  border: 1px solid rgba(104, 180, 129, 0.12);
   border-radius: 10px;
-  color: #627482;
-  background: rgba(7, 12, 19, 0.86);
+  color: #62826d;
+  background: rgba(7, 19, 11, 0.86);
   font-size: 7px;
 }
 
@@ -2645,12 +2645,12 @@ body.title-terminal-open #game-viewport canvas {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--forge-cyan);
-  box-shadow: 0 0 8px var(--forge-cyan);
+  background: var(--forge-accent);
+  box-shadow: 0 0 8px var(--forge-accent);
 }
 
 .title-status__label {
-  color: #89a0ad;
+  color: #89ad95;
   font-weight: 900;
   letter-spacing: 0.12em;
 }
@@ -2690,7 +2690,7 @@ body.title-terminal-open #game-viewport canvas {
   z-index: 100;
   display: grid;
   align-items: end;
-  background: rgba(0, 3, 7, 0.84);
+  background: rgba(0, 7, 2, 0.84);
   opacity: 0;
   transition: opacity 0.18s;
 }
@@ -2702,12 +2702,12 @@ body.title-terminal-open #game-viewport canvas {
 .title-dialog {
   width: 100%;
   padding: 28px 22px calc(24px + env(safe-area-inset-bottom));
-  border: 1px solid rgba(35, 215, 255, 0.38);
+  border: 1px solid rgba(35, 255, 108, 0.38);
   border-right: 0;
   border-bottom: 0;
   border-left: 0;
   border-radius: 22px 22px 0 0;
-  background: linear-gradient(150deg, #101b27, #070b12 62%);
+  background: linear-gradient(150deg, #102718, #070b12 62%);
   box-shadow: 0 -24px 70px rgba(0, 0, 0, 0.58);
   transform: translateY(28px);
   transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -2725,7 +2725,7 @@ body.title-terminal-open #game-viewport canvas {
 
 .title-dialog > p {
   margin: 0 0 20px;
-  color: #7e8f9b;
+  color: #7e9b88;
   font-size: 11px;
   line-height: 1.55;
 }
@@ -2734,11 +2734,11 @@ body.title-terminal-open #game-viewport canvas {
   width: 100%;
   height: 70px;
   padding: 0 12px;
-  border: 1px solid rgba(35, 215, 255, 0.36);
+  border: 1px solid rgba(35, 255, 108, 0.36);
   border-radius: 12px;
   outline: 0;
   color: white;
-  background: rgba(3, 8, 13, 0.86);
+  background: rgba(3, 13, 6, 0.86);
   font-size: 31px;
   font-weight: 800;
   letter-spacing: 0.32em;
@@ -2746,12 +2746,12 @@ body.title-terminal-open #game-viewport canvas {
 }
 
 .title-room-input::placeholder {
-  color: #273744;
+  color: #274431;
 }
 
 .title-room-input:focus {
-  border-color: var(--forge-cyan);
-  box-shadow: 0 0 24px rgba(35, 215, 255, 0.12);
+  border-color: var(--forge-accent);
+  box-shadow: 0 0 24px rgba(35, 255, 108, 0.12);
 }
 
 .title-dialog__error {
@@ -2783,16 +2783,16 @@ body.title-terminal-open #game-viewport canvas {
 }
 
 .title-dialog__cancel {
-  border: 1px solid #344651;
-  color: #91a1ac;
-  background: #121c25;
+  border: 1px solid #34513e;
+  color: #91ac9a;
+  background: #122518;
 }
 
 .title-dialog__confirm {
-  border: 1px solid var(--forge-cyan);
-  color: #021116;
-  background: linear-gradient(100deg, #19bbde, #40e4ff);
-  box-shadow: 0 0 24px rgba(35, 215, 255, 0.15);
+  border: 1px solid var(--forge-accent);
+  color: #021609;
+  background: linear-gradient(100deg, #19de5b, #40ff80);
+  box-shadow: 0 0 24px rgba(35, 255, 108, 0.15);
 }
 
 .title-settings-dialog {
@@ -2815,20 +2815,20 @@ body.title-terminal-open #game-viewport canvas {
   display: grid;
   gap: 8px;
   padding: 10px;
-  border: 1px solid rgba(109, 160, 181, 0.24);
+  border: 1px solid rgba(109, 181, 133, 0.24);
   border-radius: 10px;
-  background: rgba(8, 14, 22, 0.75);
+  background: rgba(8, 22, 13, 0.75);
 }
 
 .title-admin-section h3 {
   margin: 0;
-  color: #d8f0ff;
+  color: #d8ffe5;
   font-size: 12px;
 }
 
 .title-admin-note {
   margin: 0;
-  color: #83939f;
+  color: #839f8c;
   font-size: 9px;
   line-height: 1.45;
 }
@@ -2850,14 +2850,14 @@ body.title-terminal-open #game-viewport canvas {
 .title-setting {
   display: grid;
   gap: 9px;
-  color: #a8bbc7;
+  color: #a8c7b2;
   font-size: 9px;
   font-weight: 900;
   letter-spacing: 0.1em;
 }
 
 .title-setting--toggle { display: flex; align-items: center; min-height: 44px; cursor: pointer; }
-.title-setting--toggle input { width: 20px; height: 20px; accent-color: var(--forge-cyan); }
+.title-setting--toggle input { width: 20px; height: 20px; accent-color: var(--forge-accent); }
 
 .title-setting__heading {
   display: flex;
@@ -2866,14 +2866,14 @@ body.title-terminal-open #game-viewport canvas {
 }
 
 .title-setting__value {
-  color: var(--forge-cyan);
+  color: var(--forge-accent);
   font-size: 11px;
 }
 
 .title-setting__range {
   width: 100%;
   height: 6px;
-  accent-color: var(--forge-cyan);
+  accent-color: var(--forge-accent);
   cursor: pointer;
 }
 
@@ -2888,16 +2888,16 @@ body.title-terminal-open #game-viewport canvas {
   padding: 7px;
   border-radius: 12px;
   background: white;
-  box-shadow: 0 0 32px rgba(35, 215, 255, 0.18);
+  box-shadow: 0 0 32px rgba(35, 255, 108, 0.18);
 }
 
 .title-room-dialog__code {
   margin: 12px 0;
-  color: var(--forge-cyan);
+  color: var(--forge-accent);
   font-size: 30px;
   font-weight: 900;
   letter-spacing: 0.22em;
-  text-shadow: 0 0 16px rgba(35, 215, 255, 0.3);
+  text-shadow: 0 0 16px rgba(35, 255, 108, 0.3);
 }
 
 @media (max-height: 720px) {
@@ -2954,11 +2954,11 @@ body.title-terminal-open #game-viewport canvas {
 
 /* Abertura por gesto e revelação individual do booster. */
 .title-booster-dialog { position: relative; }
-.booster-scratch { position: absolute; z-index: 6; top: -9px; left: -8%; width: 116%; min-height: 38px; border: 1px dashed var(--pack-color); background: linear-gradient(90deg, #fff var(--scratch, 0%), #182a37 var(--scratch, 0%)); color: var(--pack-color); font-size: 8px; font-weight: 900; touch-action: none; cursor: ew-resize; }
+.booster-scratch { position: absolute; z-index: 6; top: -9px; left: -8%; width: 116%; min-height: 38px; border: 1px dashed var(--pack-color); background: linear-gradient(90deg, #fff var(--scratch, 0%), #183722 var(--scratch, 0%)); color: var(--pack-color); font-size: 8px; font-weight: 900; touch-action: none; cursor: ew-resize; }
 .title-booster-results { display: block; position: relative; height: clamp(300px, 82cqw, 420px); margin: 22px 0; perspective: 1000px; touch-action: pan-x; user-select: none; }
 .title-booster-results .title-booster-card { position: absolute; inset: 0; margin: auto; width: min(65%, 240px); height: 90%; box-sizing: border-box; animation: none; transform: translate(calc(var(--stack-index) * 3px), calc(var(--stack-index) * 3px)); transition: transform .4s ease, opacity .35s ease; overflow: hidden; }
 .title-booster-results .title-booster-card > * { visibility: hidden; }
-.title-booster-results .title-booster-card::after { content: 'CYBER / DUEL'; position: absolute; inset: 8px; display: grid; place-items: center; border: 2px solid #4ba6bb; border-radius: 5px; color: #83e6f4; font-size: 20px; font-weight: 900; letter-spacing: .12em; background: repeating-linear-gradient(45deg, #101e30 0 12px, #18324a 12px 14px); box-shadow: inset 0 0 35px #020811; }
+.title-booster-results .title-booster-card::after { content: 'CYBER / DUEL'; position: absolute; inset: 8px; display: grid; place-items: center; border: 2px solid #4bbb70; border-radius: 5px; color: #83f4a9; font-size: 20px; font-weight: 900; letter-spacing: .12em; background: repeating-linear-gradient(45deg, #10301b 0 12px, #184a29 12px 14px); box-shadow: inset 0 0 35px #020811; }
 .title-booster-results .title-booster-card.is-front { transform: none; animation: booster-turn .45s ease both; }
 .title-booster-results .title-booster-card.is-front > * { visibility: visible; }
 .title-booster-results .title-booster-card.is-front::after { display: none; }
@@ -2985,7 +2985,7 @@ body.title-terminal-open #game-viewport canvas {
   padding: 5px 9px;
   border-radius: 20px;
   background: #080e17b8;
-  color: #d0dce2;
+  color: #d0e2d6;
   font-size: 10px;
   font-weight: 400;
   white-space: nowrap;
@@ -2994,13 +2994,13 @@ body.title-terminal-open #game-viewport canvas {
 
 /* Pacotes comprados ficam no inventário; a abertura ocupa o viewport. */
 .booster-inventory-list { display: grid; gap: 12px; margin: 20px 0; }
-.booster-inventory-item { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px; border: 1px solid #293442; border-left: 3px solid var(--pack-color); border-radius: 8px; background: #0b1420; }
+.booster-inventory-item { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px; border: 1px solid #294231; border-left: 3px solid var(--pack-color); border-radius: 8px; background: #0b2012; }
 .booster-inventory-item strong { display: block; color: var(--pack-color); font-size: 15px; }
-.booster-inventory-item small { display: block; margin-top: 6px; color: #91a6b5; font-size: 11px; }
+.booster-inventory-item small { display: block; margin-top: 6px; color: #91b59d; font-size: 11px; }
 .booster-inventory-item .booster-buy { width: auto; flex-shrink: 0; padding-inline: 12px; }
-.booster-inventory-link { display: block; width: 100%; padding: 14px; margin-top: 8px; border: 0; background: none; color: #b9d3df; font: inherit; font-size: 11px; cursor: pointer; }
-.title-modal.booster-fullscreen { position: fixed; inset: 0; z-index: 10000; align-items: stretch; background: #030812; color: #e6f3fa; font-family: Arial, sans-serif; }
-.booster-fullscreen .title-booster-dialog { box-sizing: border-box; width: 100%; height: 100%; max-height: none; margin: 0; padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left)); border: 0; border-radius: 0; box-shadow: none; transform: none; display: flex; flex-direction: column; align-items: center; background: radial-gradient(ellipse at center, #122536, #030812 72%); }
+.booster-inventory-link { display: block; width: 100%; padding: 14px; margin-top: 8px; border: 0; background: none; color: #b9dfc6; font: inherit; font-size: 11px; cursor: pointer; }
+.title-modal.booster-fullscreen { position: fixed; inset: 0; z-index: 10000; align-items: stretch; background: #030812; color: #e6faed; font-family: Arial, sans-serif; }
+.booster-fullscreen .title-booster-dialog { box-sizing: border-box; width: 100%; height: 100%; max-height: none; margin: 0; padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left)); border: 0; border-radius: 0; box-shadow: none; transform: none; display: flex; flex-direction: column; align-items: center; background: radial-gradient(ellipse at center, #12361e, #030812 72%); }
 .booster-fullscreen .booster-header { width: 100%; flex-shrink: 0; }
 .booster-fullscreen .booster-header h2 { font-size: clamp(22px, 4vw, 34px); margin-bottom: 0; }
 .booster-fullscreen .booster-stage { flex: 1; min-height: 240px; width: 100%; margin: 20px 0 0; }
@@ -3013,7 +3013,7 @@ body.title-terminal-open #game-viewport canvas {
 .booster-fullscreen .title-booster-card { width: min(65%, 280px); max-height: 480px; }
 .booster-fullscreen .booster-cutin strong { font-size: clamp(36px, 8vw, 80px); }
 .booster-fullscreen .title-dialog__error { flex-shrink: 0; }
-.booster-fullscreen .title-kicker { color: #91a6b5; font-size: 10px; letter-spacing: .18em; }
+.booster-fullscreen .title-kicker { color: #91b59d; font-size: 10px; letter-spacing: .18em; }
 @media (max-height: 550px) and (min-width: 600px) {
   .booster-fullscreen .booster-header { position: absolute; inset: 14px 20px auto; width: auto; }
   .booster-fullscreen .booster-stage { min-height: 160px; }
@@ -3024,25 +3024,25 @@ body.title-terminal-open #game-viewport canvas {
 }
 
 /* Perfil da conta: identidade editável sem alterar o usuário de login. */
-.title-modal.profile-screen { position: fixed; inset: 0; z-index: 10000; display: grid; place-items: center; overflow-y: auto; background: radial-gradient(ellipse at top, #152a3a, #050b13 70%); color: #e2edf4; font-family: Arial, sans-serif; padding: 24px; box-sizing: border-box; }
+.title-modal.profile-screen { position: fixed; inset: 0; z-index: 10000; display: grid; place-items: center; overflow-y: auto; background: radial-gradient(ellipse at top, #153a21, #05130a 70%); color: #e2f4e8; font-family: Arial, sans-serif; padding: 24px; box-sizing: border-box; }
 .profile-panel { width: min(100%, 420px); margin: auto; }
 .profile-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; }
 .profile-header h2 { margin: 0; font-size: 30px; letter-spacing: -.04em; }
-.profile-close { width: 36px; height: 36px; border: 1px solid #385164; border-radius: 50%; background: transparent; color: #c5dae5; font-size: 24px; cursor: pointer; }
-.profile-avatar { padding: 0; cursor: pointer; width: 112px; height: 112px; margin: 0 auto 16px; display: grid; place-items: center; border: 1px solid #4891a5; border-radius: 50%; overflow: hidden; background: #163043; color: #8cdbec; font-size: 32px; }
+.profile-close { width: 36px; height: 36px; border: 1px solid #386447; border-radius: 50%; background: transparent; color: #c5e5d0; font-size: 24px; cursor: pointer; }
+.profile-avatar { padding: 0; cursor: pointer; width: 112px; height: 112px; margin: 0 auto 16px; display: grid; place-items: center; border: 1px solid #48a567; border-radius: 50%; overflow: hidden; background: #164325; color: #8cecac; font-size: 32px; }
 .profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .profile-screen [hidden] { display: none !important; }
 .profile-photo-picker { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 20px; }
-.profile-photo-option { padding: 3px; border: 2px solid transparent; border-radius: 10px; background: #163043; cursor: pointer; }
-.profile-photo-option[aria-pressed="true"] { border-color: #70d5e6; background: #285166; }
+.profile-photo-option { padding: 3px; border: 2px solid transparent; border-radius: 10px; background: #164325; cursor: pointer; }
+.profile-photo-option[aria-pressed="true"] { border-color: #70e697; background: #28663d; }
 .profile-photo-option img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 6px; }
-.profile-identity { text-align: center; font-size: 14px; color: #b9cbd6; margin-bottom: 6px; overflow-wrap: anywhere; }
+.profile-identity { text-align: center; font-size: 14px; color: #b9d6c3; margin-bottom: 6px; overflow-wrap: anywhere; }
 .profile-identity + .profile-note { text-align: center; margin-bottom: 28px; }
-.profile-field { display: grid; gap: 10px; font-size: 10px; letter-spacing: .12em; color: #a6c2d1; }
+.profile-field { display: grid; gap: 10px; font-size: 10px; letter-spacing: .12em; color: #a6d1b4; }
 .profile-field input { box-sizing: border-box; width: 100%; margin: 0; font-size: 16px; }
-.profile-note { font-size: 12px; line-height: 1.5; color: #849cac; }
+.profile-note { font-size: 12px; line-height: 1.5; color: #84ac91; }
 .profile-status { min-height: 18px; color: #85ddbe; font-size: 12px; }
-.profile-save { width: 100%; min-height: 46px; border: 0; border-radius: 8px; color: #07121b; background: #70d5e6; font-weight: 700; cursor: pointer; }
+.profile-save { width: 100%; min-height: 46px; border: 0; border-radius: 8px; color: #071b0e; background: #70e697; font-weight: 700; cursor: pointer; }
 .profile-screen button:disabled { opacity: .5; cursor: wait; }
 .profile-screen button:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
 .card-menu__shortcut .profile-shortcut-avatar { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
@@ -3076,20 +3076,20 @@ body.title-terminal-open #game-viewport canvas {
 .versus-matchup { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 16px; align-items: center; margin: 30px 0; }
 .versus-player { min-width: 0; }
 .versus-player h3 { overflow-wrap: anywhere; font-size: clamp(16px, 3vw, 26px); color: #fff; }
-.versus-avatar { width: clamp(64px, 18vw, 140px); aspect-ratio: 1; object-fit: cover; border-radius: 50%; border: 2px solid #23d7ff; margin: auto; }
-.versus-initials { display: grid; place-items: center; background: #102c40; color: #fff; font-size: 32px; }
+.versus-avatar { width: clamp(64px, 18vw, 140px); aspect-ratio: 1; object-fit: cover; border-radius: 50%; border: 2px solid #23ff6c; margin: auto; }
+.versus-initials { display: grid; place-items: center; background: #104020; color: #fff; font-size: 32px; }
 .versus-mark { color: #ffb84d; font-size: clamp(24px, 5vw, 48px); }
 .versus-rank { color: #ffce80; }
 .leaderboard-table { width: 100%; border-collapse: collapse; font-size: clamp(11px, 2vw, 16px); margin-top: 20px; }
-.leaderboard-table th, .leaderboard-table td { padding: 10px 5px; border-bottom: 1px solid #244052; text-align: left; }
+.leaderboard-table th, .leaderboard-table td { padding: 10px 5px; border-bottom: 1px solid #245233; text-align: left; }
 .leaderboard-table td:nth-child(2) { overflow-wrap: anywhere; max-width: 180px; }
 .title-small-button {
   min-height: 44px;
   padding: 10px 18px;
-  border: 1px solid #23d7ff;
+  border: 1px solid #23ff6c;
   border-radius: 10px;
-  background: #102c40;
-  color: #e0f6ff;
+  background: #104020;
+  color: #e0ffea;
   font: inherit;
   cursor: pointer;
 }
@@ -3097,4 +3097,4 @@ body.title-terminal-open #game-viewport canvas {
 .title-small-button:focus-visible { outline: 2px solid #ffce80; outline-offset: 3px; }
 
 .leaderboard-player { display: flex; align-items: center; gap: 8px; }
-.leaderboard-avatar { width: clamp(28px, 5vw, 40px); height: clamp(28px, 5vw, 40px); flex-shrink: 0; border-radius: 50%; object-fit: cover; display: grid; place-items: center; background: #163043; color: #8cdbec; }
+.leaderboard-avatar { width: clamp(28px, 5vw, 40px); height: clamp(28px, 5vw, 40px); flex-shrink: 0; border-radius: 50%; object-fit: cover; display: grid; place-items: center; background: #164325; color: #8cecac; }

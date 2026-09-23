@@ -696,8 +696,8 @@ class CenaJogo extends Phaser.Scene {
   // Gera uma cor fixa baseada no ID da carta
   obterCorPorId(id) {
     const cores = [
-      0x8e44ad, 0x2980b9, 0x27ae60, 0xd35400, 0xc0392b, 0x16a085, 0xf39c12,
-      0x34495e,
+      0x8e44ad, 0x29b959, 0x27ae60, 0xd35400, 0xc0392b, 0x16a044, 0xf39c12,
+      0x345e42,
     ];
     return cores[id % cores.length];
   }
@@ -775,7 +775,7 @@ class CenaJogo extends Phaser.Scene {
     y,
     largura,
     altura,
-    { cor = 0xc5d9ec, opacidade = 0.76, raio = 28 } = {},
+    { cor = 0xc5ecd2, opacidade = 0.76, raio = 28 } = {},
   ) {
     const r = Math.min(raio, altura / 2, largura / 2);
     const g = this.add.graphics();
@@ -783,11 +783,11 @@ class CenaJogo extends Phaser.Scene {
     const top = -altura / 2;
     g.fillStyle(0x020811, 0.18);
     g.fillRoundedRect(left, top + 7, largura, altura, r);
-    g.fillStyle(0x172332, opacidade);
+    g.fillStyle(0x173220, opacidade);
     g.fillRoundedRect(left, top, largura, altura, r);
     g.fillStyle(cor, 0.055);
     g.fillRoundedRect(left + 1, top + 1, largura - 2, altura - 2, r);
-    g.lineStyle(1.5, 0xe8f3ff, 0.27);
+    g.lineStyle(1.5, 0xe8fff0, 0.27);
     g.strokeRoundedRect(left, top, largura, altura, r);
     // Reflexo superior e borda inferior dão espessura ao vidro.
     g.lineStyle(2, 0xffffff, 0.35);
@@ -807,7 +807,7 @@ class CenaJogo extends Phaser.Scene {
     });
   }
 
-  criarPainelTatico(x, y, largura, altura, cor = 0xc5d9ec, alpha = 0.76) {
+  criarPainelTatico(x, y, largura, altura, cor = 0xc5ecd2, alpha = 0.76) {
     return this.criarSuperficieVidro(x, y, largura, altura, {
       cor,
       opacidade: alpha,
@@ -856,7 +856,7 @@ class CenaJogo extends Phaser.Scene {
   desenharAtmosferaTatica() {
     if (!this.atmosferaTatica) {
       const fundo = this.add.graphics().setDepth(-98);
-      fundo.fillStyle(0x07111f, 0.42);
+      fundo.fillStyle(0x071f0f, 0.42);
       fundo.fillRect(0, 0, LARGURA_LAYOUT, ALTURA_LAYOUT);
       this.atmosferaTatica = fundo;
     } else {
@@ -876,7 +876,7 @@ class CenaJogo extends Phaser.Scene {
     const halo = this.add.circle(-largura / 2 + 23, -19, 5, 0x9adfc4, 1);
     const label = this.criarTextoUI(-largura / 2 + 40, -20, "Sua vez", {
       fontSize: "24px",
-      color: "#d7e3ef",
+      color: "#d7efdf",
       fontStyle: "bold",
     }).setOrigin(0, 0.5);
     const tempo = this.criarTextoUI(
@@ -885,7 +885,7 @@ class CenaJogo extends Phaser.Scene {
       this.formatarTempoTurno(),
       {
         fontSize: "42px",
-        color: "#f3f8fc",
+        color: "#f3fcf6",
         fontStyle: "bold",
         fontFamily: "Arial, sans-serif",
       },
@@ -896,7 +896,7 @@ class CenaJogo extends Phaser.Scene {
       fontStyle: "bold",
     }).setOrigin(0, 0.5);
     const trilho = this.add
-      .rectangle(-largura / 2 + 30, 34, largura - 60, 7, 0x10202b, 1)
+      .rectangle(-largura / 2 + 30, 34, largura - 60, 7, 0x102b19, 1)
       .setOrigin(0, 0.5);
     const barra = this.add
       .rectangle(-largura / 2 + 30, 34, largura - 60, 7, 0x38f2a0, 1)
@@ -958,7 +958,7 @@ class CenaJogo extends Phaser.Scene {
             ? 0xffb3bf
             : estado === "ativo"
               ? 0x9adfc4
-              : 0xb5cce7;
+              : 0xb5e7c6;
     const corCss = `#${cor.toString(16).padStart(6, "0")}`;
     const rotulo = {
       ativo: critico ? "Tempo acabando" : "Sua vez",
@@ -1277,7 +1277,7 @@ class CenaJogo extends Phaser.Scene {
     }).setOrigin(0.5);
     const rotulo = this.criarTextoUI(0, 35, label, {
       fontSize: "23px",
-      color: "#c3d1e0",
+      color: "#c3e0cd",
     }).setOrigin(0.5);
     placa.add([numero, rotulo]);
   }
@@ -2277,7 +2277,7 @@ class CenaJogo extends Phaser.Scene {
     if (!this.fundoAnimadoAtivo()) {
       this.videoFundo?.destroy();
       this.videoFundo = null;
-      this.cameras.main.setBackgroundColor("#07111f");
+      this.cameras.main.setBackgroundColor("#071f0f");
       return null;
     }
     const ajustarCover = (video, larguraNativa, alturaNativa) => {
@@ -3103,7 +3103,7 @@ class CenaJogo extends Phaser.Scene {
     }).setOrigin(0.5);
 
     let fecharBg = this.add
-      .circle(0, 0, 48, 0xe1efff, 0.1)
+      .circle(0, 0, 48, 0xe1ffeb, 0.1)
       .setStrokeStyle(1.5, 0xffffff, 0.3);
     let fecharTexto = this.criarTextoUI(0, 0, "✕", {
       fontSize: "48px",
@@ -3468,7 +3468,7 @@ class CenaJogo extends Phaser.Scene {
           : `CARTA ${(carta.nivel || "personagem").toUpperCase()}`,
       {
         fontSize: "36px",
-        color: ehTerreno ? "#a3e635" : ehEfeito ? "#ffe066" : "#9be7ff",
+        color: ehTerreno ? "#a3e635" : ehEfeito ? "#ffe066" : "#9bffbc",
         fontStyle: "bold",
       },
     ).setOrigin(0.5);
@@ -3499,7 +3499,7 @@ class CenaJogo extends Phaser.Scene {
     const painelDescY = nomeTexto.y + nomeTexto.height + 28;
     const painelDescAltura = PAINEL_ALTURA / 2 - painelDescY - 34;
     const placaDescricao = this.add.graphics();
-    placaDescricao.fillStyle(0x09131f, 0.7);
+    placaDescricao.fillStyle(0x091f10, 0.7);
     placaDescricao.fillRoundedRect(
       -378,
       painelDescY,
@@ -3507,7 +3507,7 @@ class CenaJogo extends Phaser.Scene {
       painelDescAltura,
       26,
     );
-    placaDescricao.lineStyle(1.5, 0xb9d4ef, 0.18);
+    placaDescricao.lineStyle(1.5, 0xb9efcb, 0.18);
     placaDescricao.strokeRoundedRect(
       -378,
       painelDescY,
@@ -3526,7 +3526,7 @@ class CenaJogo extends Phaser.Scene {
     for (const parte of carta.partesDescricao()) {
       let t = this.criarTextoUI(0, yParte, parte.texto, {
         fontSize: "30px",
-        color: parte.tipo === "efeito" ? "#f4d59c" : "#cbd8e6",
+        color: parte.tipo === "efeito" ? "#f4d59c" : "#cbe6d4",
         fontStyle: parte.tipo === "efeito" ? "bold" : "normal",
         align: "left",
         wordWrap: { width: DESC_LARGURA },
@@ -3599,7 +3599,7 @@ class CenaJogo extends Phaser.Scene {
     }
 
     let fecharBg = this.add
-      .circle(0, 0, 48, 0xe1efff, 0.1)
+      .circle(0, 0, 48, 0xe1ffeb, 0.1)
       .setStrokeStyle(1.5, 0xffffff, 0.3);
     let fecharTexto = this.criarTextoUI(0, 0, "✕", {
       fontSize: "48px",
@@ -6375,7 +6375,7 @@ class CenaJogo extends Phaser.Scene {
       `Turno ${this.partida.turno} / ${this.partida.maxTurnos}`,
       {
         fontSize: centralizado ? "42px" : "31px",
-        color: "#f3f8fc",
+        color: "#f3fcf6",
         fontStyle: "bold",
         fontFamily: "Arial, sans-serif",
       },
@@ -6419,7 +6419,7 @@ class CenaJogo extends Phaser.Scene {
     }).setOrigin(0.5);
     const label = this.criarTextoUI(0, 31, "Poder", {
       fontSize: "22px",
-      color: "#c3d1e0",
+      color: "#c3e0cd",
     }).setOrigin(0.5);
     placa.add([numero, label]);
   }
@@ -6461,7 +6461,7 @@ class CenaJogo extends Phaser.Scene {
       this.faseAtual === "habilidades"
         ? "Concluir fase ›"
         : "Concluir jogada ›",
-      0x23d7ff,
+      0x23ff6c,
       () => this.aoClicarPassarTurno(),
     );
 
@@ -6490,7 +6490,7 @@ class CenaJogo extends Phaser.Scene {
     const definicoes = [
       {
         rotulo: "Histórico de cartas",
-        cor: 0x23d7ff,
+        cor: 0x23ff6c,
         aoClicar: () => this.mostrarHistorico(),
       },
       {
@@ -7069,7 +7069,7 @@ class CenaJogo extends Phaser.Scene {
         `Oponente comprou ${quantidade} carta${quantidade > 1 ? "s" : ""}`,
         {
           fontSize: "26px",
-          color: "#9be7ff",
+          color: "#9bffbc",
         },
       )
       .setOrigin(0.5)
@@ -7085,7 +7085,7 @@ class CenaJogo extends Phaser.Scene {
         this.multiplayer?.spectator ? "MODO ESPECTADOR" : texto,
         {
           fontSize: "38px",
-          color: "#9be7ff",
+          color: "#9bffbc",
           fontStyle: "bold",
           backgroundColor: "#000000cc",
           padding: { x: 32, y: 22 },
@@ -7536,7 +7536,7 @@ class CenaJogo extends Phaser.Scene {
       LARGURA_LAYOUT / 2,
       yVoltarMenu,
       "Voltar ao menu",
-      0xc5d9ec,
+      0xc5ecd2,
       voltar,
     ).setDepth(5100);
     this.criarTextoUI(
