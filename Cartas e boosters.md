@@ -166,7 +166,7 @@ Machine learning -> Escolha uma carta aliada. Ela recebe +3 PA. O Estagiário pe
 * Arte:
  <img alt="image" src="assets/cartas/Sugestão_algoritmica.png" />
 
-  #### Assets
+  #### Assets 
 
  Som: som-sugestao
 
@@ -183,11 +183,11 @@ Jogando em casa -> O ambiente de trabalho competitivo e supostamente confortáve
  <img alt="image" src="assets/cartas/Torre_MonteCorp.png" />
 
 
- #### Assets
+ #### Assets -> quando invoca
 
- Som:
+ Som: som-torre
 
- Efeito visual: -> 
+ 
 
 
 
@@ -197,17 +197,17 @@ Jogando em casa -> O ambiente de trabalho competitivo e supostamente confortáve
 * Descrição: Depois que a verdadeira Floripa sucumbiu ao aumento do nível do mar, os nostálgicos decidiram recriá-la no mundo virtual. Ironicamente, continua sendo o jeito mais acessível de morar na ilha. O trânsito, contudo, nem aqui foi resolvido.
 * Efeito:
 
-Rolê na Beira-Mar: A ida à Beira-Mar é um momento de descanso no meio desse mundo louco. Enquanto este terreno estiver em campo, toda carta aliada que tiver sofrido dano recupera 1 PA ao final de cada turno.
+Rolê na Beira-Mar: A ida à Beira-Mar é um momento de descanso no meio desse mundo louco. Enquanto este terreno estiver em campo, toda carta aliada que tiver sofrido dano recupera 2 PA ao final de cada turno.
 
 * Arte:
  <img alt="image" src="assets/cartas/Beiramar_Neofloripa.png" />
 
 
- #### Assets
+ #### Assets -> quando invoca
 
- Som:
+ Som: som-beira
 
- Efeito visual: -> 
+
 
 
 ### 1x carta de terreno 3 -> Nexus de Dados Global
@@ -219,11 +219,10 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 * Arte:
  <img alt="image" src="assets/cartas/NexusNeoFloripa.png" />
 
- #### Assets
+ #### Assets -> quando invoca
 
- Som:
+ Som: som-nexus
 
- Efeito visual: -> 
 
 
 ---
@@ -242,11 +241,13 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
 
 
- #### Assets
+ #### Assets -> quanto ativa habilidade
 
- Som: 
+ Som: som-rato
 
- Efeito visual:
+ Efeito visual: o rato brilha em vermelho e a carta que teve o PA roubado também. 
+
+ Em cima da carta que teve o PA roubado, vai aparecer, num estilo como se estivesse "sendo pichado" o "efeito-rato"
 
 ### 2x carta baixa 2 -> A Cabra
 
@@ -261,11 +262,13 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
  <img alt="image" src="assets/cartas/A_cabra.png" />
 
-  #### Assets
+  #### Assets -> quando ativa a habilidade
 
- Som: 
+ Som: som-cabra
 
- Efeito visual:
+ Efeito visual: a cabra e a carta trocada de lugar brilham em vermelho
+
+ em cima da carta que foi trocada de lugar com a cabra vai aparecer, num estilo como se estivesse "sendo pichado" o "efeito-cabra". A carta trocada de lugar brilha em vermelho
 
 
 ### 2x carta baixa 3 -> O Cão
@@ -279,11 +282,11 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
  <img alt="image" src="assets/cartas/O_cao.png" />
 
-  #### Assets
+  #### Assets -> quando a habilidade dele é ativada
 
- Som: 
+ Som: som-cao
 
- Efeito visual:
+ Efeito visual: a próxima carta que entrar brilha em vermelho e em cima dela vai aparecer, num estilo como se estivesse "sendo pichado" o "efeito-cão"
 
 
 ### 2x carta media 1 -> O Porco
@@ -297,11 +300,11 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
  <img alt="image" src="assets/cartas/O_porco.png" />
 
-  #### Assets
+  #### Assets -> quando ele vai sofrer dano que reduz ele a abaixo de 6 PPA
 
- Som: 
+ Som: som-porco
 
- Efeito visual:
+ Efeito visual: o porco brilha em vermelho e vai aparecer, num estilo como se estivesse "sendo pichado" o "efeito-porco" em cima do próprio porco
 
 
 
@@ -317,11 +320,11 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
   <img alt="image" src="assets/cartas/Cobra.png" />
 
-   #### Assets
+   #### Assets -> quando a carta envenenada sofrer o dano do veneno
 
- Som: 
+ Som: som-cobra
 
- Efeito visual:
+ Efeito visual: a carta alvejada pela cobra brilha em vermelho. A cada turno que ela sofrer dano, vai aparecer, num estilo como se estivesse "sendo pichado" o "efeito-cobra" na carta envenenada.
 
 
 
@@ -343,7 +346,7 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
  Som: 
 
- Efeito visual:
+ Efeito visual: pede pra IA fazer um efeito de corte de garra em cima da carta em vez do dano normal, no estilo de um corte de felino com 3 garras. Em cima das cartas alvo, junto, vai aparecer, num estilo como se estivesse "sendo pichado" o "efeito-tigre"
 
 
 
@@ -364,6 +367,8 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
  Efeito visual:
 
+ Em cima da carta que está sendo mantida como alvo fica o "efeito-aranha", mas ele surge sendo pichado, que nem dos outros efeitos. Porém, ele fica enquanto o efeito estiver ativo na carta
+
 
 ### 1x carta lendária -> O Boi
 
@@ -382,12 +387,14 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
  Efeito visual: efeito-boi
 
+ Vai aparecer, como se estiver sendo pichado, em cima da carta que foi alvo do efeito do boi, o "efeito-boi"
+
 
 ### 2x carta de efeito 1 -> O Trotar do Cavalo
 
 * Descrição: Há muito tempo, a humanidade admirava seus maiores atletas. Depois descobriu que podia construir robôs mais rápidos. Assim, os humanos desapareceram das pistas. Um deles foi O Cavalo. Tricampeão olímpico, hoje presta serviços à EchoSsystem realizando entregas, causando distrações e se arremessando contra ciborgues. Felizmente, a concussão cerebral deixou de ser um problema depois que metade do seu crânio foi substituída por titânio.
 
-* Efeito: O Cavalo atravessa uma coluna do campo inimigo, causando 3 PA de dano a todas as cartas presentes nela.
+* Efeito: O Cavalo atravessa uma coluna do campo inimigo, causando 4 PA de dano a todas as cartas presentes nela.
 
  
 * Visual: 
@@ -400,7 +407,7 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
  Som: 
 
- Efeito visual:
+ Efeito visual: a carta do cavalo aparece na tela, que nem a carta de efeito normal, e aparece, como se estivesse sendo pichado, em cima das cartas que sofreram o dano, o "efeito-cavalo". Essas mesmas cartas, recebem um "tremelique", elas tremem um pouco quando sofrem o dano.
 
 
 ### 2x carta de efeito 2 -> O Canto do Galo
@@ -416,7 +423,7 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
  Som: 
 
- Efeito visual:
+ Efeito visual: Aparece a carta do galo na tela, que nem outras cartas de efeito e, em cima de ambas as cartas que tiveram aumento de PA, aparece o "efeito-galo" como se estivesse sendo pichado. Ademais, as carta que aumentaram PA brilham em vermelho
 
 
   
@@ -424,7 +431,7 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
 * Descrição: O Macaco nunca foi muito fã da companhia de outras pessoas. Isolado desde a infância, passava os dias pregando peças em qualquer um que cruzasse seu caminho. Com o tempo, descobriu que armar emboscadas para figuras importantes pagava surpreendentemente bem. Na EchoSsystem, finalmente encontrou um grupo disposto a financiar suas travessuras e, mais importante, capaz de sobreviver a elas.
   
-* Efeito: O Macaco planta uma armadilha em um espaço de carta do campo adversário. A próxima carta invocada nesse espaço entra em campo com -2 PA.
+* Efeito: O Macaco planta uma armadilha em um espaço de carta do campo adversário. A próxima carta invocada nesse espaço entra em campo com -5 PA.
 
  
 * Visual:
@@ -432,11 +439,11 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
  <img alt="image" src="assets/cartas/O_macaco.png" />
 
-  #### Assets
+  #### Assets -> quando invocar a carta e na situação descrita abaixo
 
  Som: 
 
- Efeito visual:
+ Efeito visual: aparece, apenas para a pessoa que invocou a travessura do macaco, no espaço escolhido como alvo, o "efeito macaco", surgindo como se estivesse sendo pichado. Após uma carta ter sido invocada naquele espaço, ele se revela, causando o dano e a carta do macaco aparecendo na tela, indicando que o efeito foi ativado.
 
 
 
@@ -456,11 +463,11 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
 *  <img alt="image" src="assets/cartas/Toca_do_Coelho.png" />
 
- #### Assets
+ #### Assets -> quando invocar a carta
 
  Som: 
 
- Efeito visual:
+ Efeito visual: surge na tela, como se estivesse sendo pichado, o "efeito-coelho" e dps some, para indicar que a carta foi invocada
 
 
 
