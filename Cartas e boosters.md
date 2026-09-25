@@ -344,7 +344,7 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
   #### Assets
 
- Som: 
+ Som: som-tigre
 
  Efeito visual: pede pra IA fazer um efeito de corte de garra em cima da carta em vez do dano normal, no estilo de um corte de felino com 3 garras. Em cima das cartas alvo, junto, vai aparecer, num estilo como se estivesse "sendo pichado" o "efeito-tigre"
 
@@ -361,13 +361,13 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
    <img alt="image" src="assets/cartas/D_Aranha.png" />
 
-    #### Assets
+    #### Assets -> quando ativa o efeito
 
- Som: 
+ Som: som-aranha
 
- Efeito visual:
+ Efeito visual: aparece na tela toda, o código caindo (vídeo chamado "efeito-aranha", há duas versões, uma delas está em mp4 com fundo magenta pra remover no chroma key e outra em webm, usa a que achar melhor) assim que ativa o efeito
 
- Em cima da carta que está sendo mantida como alvo fica o "efeito-aranha", mas ele surge sendo pichado, que nem dos outros efeitos. Porém, ele fica enquanto o efeito estiver ativo na carta
+ Em cima da carta que está sendo mantida como alvo fica o "efeito-aranha", mas ele surge sendo pichado, que nem dos outros efeitos. Porém, ele fica enquanto o efeito estiver ativo na carta, até ser removido, a todo momento.
 
 
 ### 1x carta lendária -> O Boi
@@ -385,9 +385,9 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
  Som: som-boi
 
- Efeito visual: efeito-boi
+ Efeito visual: efeito-boi.mp4
 
- Vai aparecer, como se estiver sendo pichado, em cima da carta que foi alvo do efeito do boi, o "efeito-boi"
+ Vai aparecer, como se estiver sendo pichado, em cima da carta que foi alvo do efeito do boi, o "efeito-boi.png"
 
 
 ### 2x carta de efeito 1 -> O Trotar do Cavalo
@@ -405,7 +405,7 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
   #### Assets
 
- Som: 
+ Som: som-cavalo
 
  Efeito visual: a carta do cavalo aparece na tela, que nem a carta de efeito normal, e aparece, como se estivesse sendo pichado, em cima das cartas que sofreram o dano, o "efeito-cavalo". Essas mesmas cartas, recebem um "tremelique", elas tremem um pouco quando sofrem o dano.
 
@@ -421,7 +421,7 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
   #### Assets
 
- Som: 
+ Som: som-galo
 
  Efeito visual: Aparece a carta do galo na tela, que nem outras cartas de efeito e, em cima de ambas as cartas que tiveram aumento de PA, aparece o "efeito-galo" como se estivesse sendo pichado. Ademais, as carta que aumentaram PA brilham em vermelho
 
@@ -441,9 +441,9 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
   #### Assets -> quando invocar a carta e na situação descrita abaixo
 
- Som: 
+ Som: som-macaco
 
- Efeito visual: aparece, apenas para a pessoa que invocou a travessura do macaco, no espaço escolhido como alvo, o "efeito macaco", surgindo como se estivesse sendo pichado. Após uma carta ter sido invocada naquele espaço, ele se revela, causando o dano e a carta do macaco aparecendo na tela, indicando que o efeito foi ativado.
+ Efeito visual: aparece, apenas para a pessoa que invocou a travessura do macaco, no espaço escolhido como alvo, o "efeito macaco" perfeitamente no slot da carta, surgindo como se estivesse sendo pichado. Após uma carta ter sido invocada naquele espaço, ele se revela, causando o dano e a carta do macaco aparecendo na tela, indicando que o efeito foi ativado.
 
 
 
@@ -465,7 +465,7 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
  #### Assets -> quando invocar a carta
 
- Som: 
+ Som: som-coelho
 
  Efeito visual: surge na tela, como se estivesse sendo pichado, o "efeito-coelho" e dps some, para indicar que a carta foi invocada
 
