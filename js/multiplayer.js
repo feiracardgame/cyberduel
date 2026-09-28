@@ -10,6 +10,7 @@ class CyberduelMultiplayer {
     this.step = 0;
     this.round = 1;
     this.starter = 1;
+    this.presentation = false;
     this.spectator = false;
     this.initialized = false;
     this.deadline = null;
@@ -43,6 +44,8 @@ class CyberduelMultiplayer {
     });
     this.socket.on("connect", () => {
       this.status("Conectado ao servidor.");
+      if (this.presentation && this.room) return this.createPresentation(this.onPresentation);
+      if (this.waitingInvitation) return this.joinRoom(this.waitingInvitation.code, () => {});
       if (this.active && this.resumeToken && !this.spectator) this.resumeMatch((response) => {
         if (!response.ok) this.status(response.error);
       });
@@ -53,15 +56,18 @@ class CyberduelMultiplayer {
       const destino = serverUrl || location.origin;
       this.status(`Servidor multiplayer indisponível em ${destino}.`);
     });
-    this.socket.on("match-ready", ({ room, player, resumeToken, ranked, profiles, update, decks, usernames, nicknames, ...phase }) => {
+    this.socket.on("match-ready", ({ room, player, resumeToken, ranked, arena, profiles, update, decks, usernames, nicknames, ...phase }) => {
       this.applyPhase(phase);
       if (player) this.player = player;
       if (resumeToken) this.saveResumeToken(resumeToken);
       this.ranked = !!ranked;
+      this.arena = !!arena;
       this.profiles = profiles || {};
       this.needsIntroduction = true;
       this.initialized = false;
       this.spectator = false;
+      this.presentation = false;
+      this.waitingInvitation = null;
       this.room = room;
       this.active = true;
       this.localDeck = decks?.[this.player] || this.localDeck;
@@ -73,6 +79,7 @@ class CyberduelMultiplayer {
       if (update) this.receiveUpdate(update);
       if (this.onReady) this.onReady();
     });
+    this.socket.on("presentation-room", response => this.receivePresentation(response));
     this.socket.on("state-update", (update) => this.receiveUpdate(update));
     this.socket.on("turn-time", ({ activePlayer, remainingMs, running }) => {
       if (this.activePlayer !== activePlayer) return;
@@ -86,6 +93,13 @@ class CyberduelMultiplayer {
     this.socket.on("opponent-offline", () => this.status("Oponente desconectado. A partida permanece disponível para retorno."));
     this.socket.on("opponent-online", () => this.status("Oponente reconectado."));
     this.socket.on("opponent-left", () => {
+      this.waitingInvitation = null;
+      if (this.presentation) {
+        this.active = false;
+        this.room = null;
+        try { window.sessionStorage?.removeItem("cyberduel.presentationRoom"); } catch {}
+        this.onPresentation?.({ ok: false, error: "Sala encerrada. Crie uma nova apresentação." });
+      }
       this.status("O oponente saiu da sala.");
       if (this.scene) this.scene.oponenteSaiuMultiplayer();
     });
@@ -116,6 +130,35 @@ class CyberduelMultiplayer {
     });
   }
 
+  createPresentation(callback) {
+    this.presentation = true;
+    this.spectator = true;
+    this.onPresentation = callback;
+    let code = this.room;
+    try { code ||= window.sessionStorage?.getItem("cyberduel.presentationRoom"); } catch {}
+    let displayKey = this.displayKey;
+    try { displayKey ||= window.sessionStorage?.getItem("cyberduel.presentationKey"); } catch {}
+    this.connect().timeout(10000).emit("create-presentation", { code, displayKey, inviteBase: `${location.origin}/` }, (error, response) => {
+      if (error) return callback?.({ ok: false, error: "Servidor indisponível. Tente abrir a arena novamente." });
+      if (response.ok) this.receivePresentation(response);
+      else callback?.(response);
+    });
+  }
+
+  receivePresentation(response) {
+    if (!this.presentation) return;
+    this.player = null;
+    this.spectator = true;
+    this.room = response.room.code;
+    this.displayKey = response.displayKey;
+    try {
+      window.sessionStorage?.setItem("cyberduel.presentationRoom", this.room);
+      window.sessionStorage?.setItem("cyberduel.presentationKey", this.displayKey);
+    } catch {}
+    this.onPresentation?.(response);
+    if (response.update) this.enterExisting(response);
+  }
+
   createRoom(callback) {
     this.localDeck = window.cyberduelDeckBuilder.getDeckForMatch();
     this.connect().emit(
@@ -137,14 +180,18 @@ class CyberduelMultiplayer {
 
   joinRoom(code, callback) {
     this.localDeck = window.cyberduelDeckBuilder.getDeckForMatch();
+    const params = new URLSearchParams(location.search);
+    const invitation = params.get("room") === code ? { seat: params.get("seat"), ticket: params.get("ticket") } : {};
     this.connect().emit("join-room", {
       code,
+      ...invitation,
       deck: this.localDeck,
       accountToken: window.cyberduelAccount?.token || null,
     }, (response) => {
       if (!response.ok) return callback(response);
       this.room = response.room.code;
       this.player = response.player;
+      this.waitingInvitation = response.waiting ? { code } : null;
       this.saveResumeToken(response.resumeToken);
       callback(response);
     });
@@ -215,6 +262,7 @@ class CyberduelMultiplayer {
 
   enterExisting(response) {
     this.room = response.room.code; this.active = true; this.initialized = true;
+    this.arena = !!response.arena;
     this.ranked = !!response.ranked; this.profiles = response.profiles || {};
     this.needsIntroduction = false;
     this.localDeck = response.decks?.[this.player] || [];
@@ -230,7 +278,10 @@ class CyberduelMultiplayer {
   leaveRoom() {
     this.socket?.emit("leave-room");
     this.active = false; this.initialized = false; this.pendingUpdate = null;
-    this.spectator = false; this.lastLiveState = null; this.saveResumeToken(null);
+    if (!this.presentation) this.saveResumeToken(null);
+    this.presentation = false; this.waitingInvitation = null; this.displayKey = null; this.room = null;
+    try { window.sessionStorage?.removeItem("cyberduel.presentationRoom"); window.sessionStorage?.removeItem("cyberduel.presentationKey"); } catch {}
+    this.spectator = false; this.lastLiveState = null;
   }
 
   attachScene(scene) {

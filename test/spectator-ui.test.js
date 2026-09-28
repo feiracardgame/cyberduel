@@ -7,7 +7,7 @@ const Scene = vm.runInContext('CenaJogo',context);
 const images=[],containers=[];
 function object() { return { setDisplaySize(){return this;},setAngle(){return this;},setDepth(){return this;} }; }
 const scene=Object.assign(Object.create(Scene.prototype),{
-  multiplayer: { spectator:true },
+  multiplayer: { spectator:true, presentation:true },
   partida: {
     jogador: { mao: { cartas: [{nome:'Carta oculta'},{nome:'Carta oculta'}] } },
     inimigo: { mao: { cartas: [{nome:'Carta oculta'}] } },
@@ -20,9 +20,21 @@ const scene=Object.assign(Object.create(Scene.prototype),{
     text() { throw Error('Não desenhar nomes nem estatísticas de cartas ocultas.'); },
   },
 });
-scene.desenharMaoInimigo();scene.desenharMaoEmLeque();
-assert.deepEqual(images,['fundoCarta','fundoCarta','fundoCarta']);
-assert.equal(containers.filter(c=>c.maoOcultaLado==='jogador').length,2);
-assert.equal(containers.filter(c=>c.maoOcultaLado==='inimigo').length,1);
-assert.ok(containers.every(c=>!c.input&&!c.dadosCarta));
-console.log('Espectador: mãos dos dois jogadores usam o verso normal, sem dados ou interação.');
+scene.add.rectangle = () => { throw Error('Espectador não deve desenhar sombras das mãos.'); };
+scene.desenharMaoInimigo();scene.desenharMaoInimigo('jogador');scene.desenharMaoEmLeque();
+let concluidas = 0;
+scene.animarComprasInimigas(2, () => concluidas++);
+assert.equal(concluidas, 1, 'Pular a animação deve concluir a atualização remota.');
+assert.deepEqual(images, []);
+assert.deepEqual(containers, []);
+scene.multiplayer.presentation = false;
+scene.add.rectangle = object;
+scene.desenharMaoInimigo(); scene.desenharMaoEmLeque();
+assert.deepEqual(images, ['fundoCarta', 'fundoCarta', 'fundoCarta'], 'Espectador comum mantém os versos das duas mãos.');
+images.length = 0;
+scene.multiplayer.spectator = false;
+scene.partida.maoRevelada = () => false;
+scene.add.rectangle = object;
+scene.desenharMaoInimigo();
+assert.deepEqual(images, ['fundoCarta'], 'Jogadores continuam vendo a mão adversária normalmente.');
+console.log('Apresentação sem mãos ou compras; espectador comum e jogadores preservados.');

@@ -13,8 +13,13 @@ class CenaTitulo extends Phaser.Scene {
       this.account?.deck,
       this.account?.collection,
     );
+    if (window.CYBERDUEL_PRESENTATION) {
+      this.montarApresentacao();
+      return;
+    }
     this.montarInterfaceTitulo();
 
+    this.restaurandoConta = true;
     this.removerListenerConta = this.account?.onChange(({ user, deck, collection, faction }) => {
       window.cyberduelDeckBuilder.setAccountSession(user, deck, collection);
       if (!this.scene.isActive()) return;
@@ -26,12 +31,21 @@ class CenaTitulo extends Phaser.Scene {
           : "Sessão local ativa. Entre para sincronizar seu deck.",
         user ? "success" : "info",
       );
+      if (user && faction && new URLSearchParams(location.search).get("ticket"))
+        this.time.delayedCall(0, () => this.tentarConviteApresentacao());
       if (user && !faction)
         this.time.delayedCall(0, () => this.titleUI?.openFactionDialog());
     });
     this.account?.restore().then(() => {
+      this.restaurandoConta = false;
       const roomFromLink = new URLSearchParams(location.search).get("room");
-      if (roomFromLink && this.scene.isActive()) this.entrarNaSala(roomFromLink);
+      if (roomFromLink && this.scene.isActive()) {
+        if (new URLSearchParams(location.search).get("ticket")) {
+          this.tentarConviteApresentacao();
+          return;
+        }
+        this.entrarNaSala(roomFromLink);
+      }
       this.multiplayer.findActiveMatch((response) => {
         if (response.room && this.scene.isActive()) this.titleUI?.showResumeMatch(response.room,
           (done) => this.multiplayer.resumeMatch(done),
@@ -67,6 +81,69 @@ class CenaTitulo extends Phaser.Scene {
 
   }
 
+  montarApresentacao() {
+    const root = document.createElement("div");
+    root.className = "presentation-screen";
+    const heading = document.createElement("h1"); heading.textContent = "CYBERDUEL · ARENA";
+    const status = document.createElement("p"); status.textContent = "Abra a arena para receber os jogadores.";
+    const seats = document.createElement("div"); seats.className = "presentation-seats";
+    const start = document.createElement("button"); start.textContent = "ABRIR ARENA";
+    root.append(heading, status, seats, start); document.body.append(root);
+    const show = response => {
+      if (!this.scene.isActive()) return;
+      start.disabled = false;
+      if (!response.ok) { status.textContent = response.error; start.hidden = false; return; }
+      start.hidden = true;
+      status.textContent = response.update ? "Duelo iniciado" : "Cada jogador escaneia um QR code e entra com sua conta e seu deck.";
+      seats.replaceChildren();
+      for (const invite of response.invitations || []) {
+        const card = document.createElement("section");
+        const label = document.createElement("h2");
+        const connected = response.seats.find(seat => seat.player === invite.player)?.connected;
+        label.textContent = `JOGADOR ${invite.player} · ${connected ? "CONECTADO" : "AGUARDANDO"}`;
+        card.append(label);
+        if (connected) {
+          const name = document.createElement("p"); name.textContent = response.nicknames[invite.player]; card.append(name);
+        } else {
+          const image = document.createElement("img"); image.src = invite.qrCode; image.alt = `QR code do jogador ${invite.player}`;
+          const link = document.createElement("a"); link.href = invite.url; link.textContent = invite.url;
+          card.append(image, link);
+        }
+        seats.append(card);
+      }
+    };
+    this.multiplayer.onReady = () => { if (this.scene.isActive()) this.scene.start("CenaJogo"); };
+    this.multiplayer.onStatus = message => { status.textContent = message; };
+    start.onclick = () => {
+      start.disabled = true;
+      document.documentElement.requestFullscreen?.().catch(() => {});
+      this.multiplayer.createPresentation(show);
+    };
+    this.events.once("shutdown", () => { root.remove(); });
+    try {
+      if (window.sessionStorage?.getItem("cyberduel.presentationRoom")) this.multiplayer.createPresentation(show);
+    } catch {}
+  }
+
+  tentarConviteApresentacao() {
+    if (!this.scene.isActive() || this.restaurandoConta || this.entrandoPorConvite || this.multiplayer.room) return;
+    const code = new URLSearchParams(location.search).get("room");
+    if (!code) return;
+    if (!this.account?.faction || !window.cyberduelDeckBuilder.getSavedDeck()) {
+      this.atualizarStatus("Entre na conta, escolha sua facção e sele um deck para entrar na arena.", "warning");
+      return;
+    }
+    this.entrandoPorConvite = true;
+    this.multiplayer.findActiveMatch(response => {
+      this.entrandoPorConvite = false;
+      if (!this.scene.isActive()) return;
+      if (response.room === code) this.multiplayer.resumeMatch(result => {
+        if (!result.ok) this.atualizarStatus(result.error, "error");
+      });
+      else this.entrarNaSala(code);
+    });
+  }
+
   montarInterfaceTitulo() {
     this.titleUI = new CyberduelTitleUI({
       deckBuilder: window.cyberduelDeckBuilder,
@@ -92,7 +169,7 @@ class CenaTitulo extends Phaser.Scene {
   iniciarPartida(multiplayer) {
     if (multiplayer && this.multiplayer.initialized) {
       this.titleUI?.destroy(); this.titleUI = null;
-      this.scene.start(this.multiplayer.ranked ? "CenaJogo" : "CenaTransicao");
+      this.scene.start((this.multiplayer.ranked || this.multiplayer.arena) ? "CenaJogo" : "CenaTransicao");
       return;
     }
     if (!this.account?.user || !this.account?.faction) {
@@ -177,7 +254,9 @@ class CenaTitulo extends Phaser.Scene {
     }
     try {
       this.atualizarStatus(`Conectando à sala ${code}...`);
+      this.entrandoPorConvite = true;
       this.multiplayer.joinRoom(code, (response) => {
+        this.entrandoPorConvite = false;
         if (!response.ok) {
           this.atualizarStatus(
             response.error || "Não foi possível entrar na sala.",
@@ -186,7 +265,7 @@ class CenaTitulo extends Phaser.Scene {
           return;
         }
         this.atualizarStatus(
-          "Oponente encontrado. Preparando o duelo...",
+          response.waiting ? "Você está conectado. Aguardando o outro jogador..." : "Oponente encontrado. Preparando o duelo...",
           "success",
         );
       });

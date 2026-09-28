@@ -20,6 +20,7 @@ const path = require("path");
 const { runInNewContext } = require("node:vm");
 const { Server } = require("socket.io");
 const QRCode = require("qrcode");
+const { networkInterfaces } = require("node:os");
 const ranking = require("./ranking");
 const matchmaking = new Map();
 
@@ -912,6 +913,14 @@ function serveGame(request, response) {
     return;
   }
 
+  if (pathname === "/apresentacao") {
+    const html = readFileSync(path.join(PUBLIC_ROOT, "index.html"), "utf8")
+      .replace("<head>", `<head><base href="/"><script>window.CYBERDUEL_PRESENTATION=true;</script>`);
+    response.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "referrer-policy": "no-referrer", "x-frame-options": "DENY" });
+    response.end(html);
+    return;
+  }
+
   if (pathname === "/health") {
     response.writeHead(200, { "content-type": "application/json" });
     response.end(JSON.stringify({ ok: true, rooms: rooms.size }));
@@ -1079,11 +1088,33 @@ function spectatorState(snapshot) {
   return copy;
 }
 
+function presentationState(snapshot) {
+  const state = spectatorState(snapshot);
+  if (!state) return null;
+  for (const player of [state.jogador, state.inimigo]) {
+    player.hand = [];
+    player.deck = [];
+  }
+  return state;
+}
+
+function presentationInfo(room) {
+  return { ok: true, room: publicRoom(room), displayKey: room.displayKey, invitations: room.invitations,
+    nicknames: Object.fromEntries(room.nicknames),
+    seats: [1, 2].map(player => ({ player, connected: !!room.players.get(player) })),
+    ...(room.state ? { update: { state: presentationState(room.state), ...phaseInfo(room), initial: true } } : {}) };
+}
+
+function notifyPresentation(room) {
+  if (room.presentationHost) io.to(room.presentationHost).emit("presentation-room", presentationInfo(room));
+}
+
 function broadcastState(room, extra = {}, except = null) {
   settleRankedMatch(room);
   const update = { state: room.state, ...phaseInfo(room), ...extra };
   for (const id of room.players.values()) if (id && id !== except) io.to(id).emit("state-update", update);
   for (const id of room.spectators) io.to(id).emit("state-update", { ...update, state: spectatorState(room.state) });
+  if (room.presentationHost) io.to(room.presentationHost).emit("state-update", { ...update, state: presentationState(room.state) });
 }
 
 function phaseDuration(room) {
@@ -1129,11 +1160,24 @@ function removeFromRoom(socket, disconnect = false) {
   const code = socket.data.room;
   const room = rooms.get(code);
   if (!room) return;
-  if (!socket.data.player) {
+  if (room.presentationHost === socket.id) {
+    room.presentationHost = null;
+    if (!disconnect) {
+      clearTimeout(room.timer);
+      socket.to(code).emit("opponent-left");
+      rooms.delete(code);
+    }
+  } else if (!socket.data.player) {
     room.spectators.delete(socket.id);
   } else if (room.players.get(socket.data.player) === socket.id) {
     if (disconnect) {
-      room.players.set(socket.data.player, null);
+      if (room.presentation && !room.state) {
+        room.players.delete(socket.data.player);
+        room.decks.delete(socket.data.player);
+        room.usernames.delete(socket.data.player);
+        room.nicknames.delete(socket.data.player);
+      } else room.players.set(socket.data.player, null);
+      notifyPresentation(room);
       socket.to(code).emit("opponent-offline");
     } else {
       if (room.ranked && !room.state?.partidaEncerrada) surrenderRoom(room, socket.data.player);
@@ -1177,7 +1221,7 @@ function createRoomRecord(socket, deck, account) {
 
 function emitMatchReady(room) {
   for (const [player, id] of room.players) io.to(id).emit("match-ready", {
-    room: room.code, player, resumeToken: room.resumeTokens.get(player), ranked: !!room.ranked,
+    room: room.code, player, resumeToken: room.resumeTokens.get(player), ranked: !!room.ranked, arena: !!room.presentation,
     profiles: Object.fromEntries(room.profiles), ...phaseInfo(room),
     decks: Object.fromEntries(room.decks), usernames: Object.fromEntries(room.usernames),
     nicknames: Object.fromEntries(room.nicknames),
@@ -1257,6 +1301,48 @@ const roomCleanup = setInterval(() => {
 roomCleanup.unref();
 
 io.on("connection", (socket) => {
+  socket.on("create-presentation", async (payload = {}, ack = () => {}) => {
+    const previous = rooms.get(payload.code);
+    if (previous?.presentation) {
+      if (payload.displayKey !== previous.displayKey)
+        return ack({ ok: false, error: "Esta apresentação pertence a outra tela." });
+      if (previous.presentationHost && previous.presentationHost !== socket.id)
+        return ack({ ok: false, error: "A apresentação já está aberta em outra tela." });
+      socket.join(previous.code); socket.data.room = previous.code; socket.data.player = null;
+      previous.presentationHost = socket.id;
+      return ack(presentationInfo(previous));
+    }
+    if (rooms.has(socket.data.room)) return ack({ ok: false, error: "Encerre a sala atual antes de criar outra." });
+    let base = PUBLIC_URL || payload.inviteBase || socket.handshake.headers.origin;
+    if (!base || /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:|\/|$)/.test(base)) {
+      const address = Object.values(networkInterfaces()).flat().find(entry => entry.family === "IPv4" && !entry.internal)?.address;
+      if (address) base = `http://${address}:${PORT}/`;
+    }
+    const invite = buildInviteUrl(base, "000000");
+    if (!invite || ["localhost", "127.0.0.1", "[::1]"].includes(new URL(invite).hostname))
+      return ack({ ok: false, error: "Configure PUBLIC_URL com um endereço acessível pelos celulares." });
+    const room = createRoomRecord(socket, [], null);
+    room.presentation = true;
+    room.displayKey = randomBytes(32).toString("hex");
+    room.presentationHost = socket.id;
+    for (const key of ["players", "decks", "usernames", "nicknames", "profiles", "resumeTokens"]) room[key].clear();
+    socket.data.player = null;
+    room.seatTokens = new Map([1, 2].map(player => [player, randomBytes(32).toString("hex")]));
+    try {
+      room.invitations = await Promise.all([1, 2].map(async player => {
+        const url = new URL(buildInviteUrl(base, room.code));
+        url.searchParams.set("seat", String(player));
+        url.searchParams.set("ticket", room.seatTokens.get(player));
+        return { player, url: url.toString(), qrCode: await QRCode.toDataURL(url.toString(), { width: 360, margin: 2 }) };
+      }));
+      if (!socket.connected || !rooms.has(room.code)) { rooms.delete(room.code); return; }
+      ack(presentationInfo(room));
+    } catch {
+      removeFromRoom(socket);
+      ack({ ok: false, error: "Não foi possível gerar os QR codes." });
+    }
+  });
+
   socket.on("join-matchmaking", (payload = {}, ack = () => {}) => {
     const account = accountFromToken(payload.accountToken);
     if (!account) return ack({ ok: false, code: "AUTH_REQUIRED", error: "Sua sessão expirou. Entre novamente na conta para buscar uma partida." });
@@ -1324,6 +1410,37 @@ io.on("connection", (socket) => {
       .slice(0, 6);
     const room = rooms.get(code);
     if (!room) return ack({ ok: false, error: "Sala não encontrada." });
+    if (room.presentation) {
+      const player = Number(payload.seat);
+      if (![1, 2].includes(player) || payload.ticket !== room.seatTokens.get(player))
+        return ack({ ok: false, error: "Escaneie o QR code do seu lugar na tela de apresentação." });
+      if (room.state || room.players.has(player))
+        return ack({ ok: false, error: "Este lugar já está ocupado. Use o retorno à partida para reconectar." });
+      if (socket.data.room) return ack({ ok: false, error: "Saia da sala atual antes de entrar." });
+      const account = accountFromToken(payload.accountToken);
+      if (!account?.faction) return ack({ ok: false, error: "Entre na conta e escolha sua facção." });
+      if ([...room.usernames.values()].includes(account.username))
+        return ack({ ok: false, error: "Cada jogador precisa usar sua própria conta." });
+      const deck = sanitizeDeck(account.deck);
+      if (!require("./duel-runtime").validDeck(deck))
+        return ack({ ok: false, error: "Sele um deck válido antes de entrar." });
+      matchmaking.delete(socket.id);
+      room.players.set(player, socket.id); room.decks.set(player, deck);
+      room.usernames.set(player, account.username); room.nicknames.set(player, account.nickname || account.username);
+      room.profiles.set(player, ranking.playerProfile(account));
+      room.resumeTokens.set(player, randomBytes(32).toString("hex"));
+      socket.join(code); socket.data.room = code; socket.data.player = player;
+      ack({ ok: true, waiting: room.players.size < 2, room: publicRoom(room), player, resumeToken: room.resumeTokens.get(player) });
+      if (room.players.size === 2) {
+        room.starter = room.turn = randomInt(1, 3);
+        room.state = require("./duel-runtime").createMatch(room.decks.get(1), room.decks.get(2));
+        room.startsAt = Date.now() + 4000; room.phaseStartedAt = room.startsAt;
+        armPhaseClock(room, false);
+        emitMatchReady(room);
+      }
+      notifyPresentation(room);
+      return;
+    }
     if (room.players.size >= 2)
       return ack({ ok: false, error: "Esta sala já está cheia." });
 
@@ -1372,7 +1489,7 @@ io.on("connection", (socket) => {
     socket.join(room.code); socket.data.room = room.code; socket.data.player = player;
     room.players.set(player, socket.id);
     ack({ ok: true, room: publicRoom(room), player, resumeToken: room.resumeTokens.get(player),
-      decks: Object.fromEntries(room.decks), usernames: Object.fromEntries(room.usernames), nicknames: Object.fromEntries(room.nicknames), ranked: !!room.ranked, profiles: Object.fromEntries(room.profiles),
+      decks: Object.fromEntries(room.decks), usernames: Object.fromEntries(room.usernames), nicknames: Object.fromEntries(room.nicknames), ranked: !!room.ranked, arena: !!room.presentation, profiles: Object.fromEntries(room.profiles),
       update: { state: room.state, ...phaseInfo(room), initial: true } });
     socket.to(room.code).emit("opponent-online");
   });
@@ -1384,7 +1501,7 @@ io.on("connection", (socket) => {
     removeFromRoom(socket);
     socket.join(room.code); socket.data.room = room.code; socket.data.player = null;
     room.spectators.add(socket.id);
-    ack({ ok: true, room: publicRoom(room), usernames: Object.fromEntries(room.usernames), nicknames: Object.fromEntries(room.nicknames), ranked: !!room.ranked, profiles: Object.fromEntries(room.profiles),
+    ack({ ok: true, room: publicRoom(room), usernames: Object.fromEntries(room.usernames), nicknames: Object.fromEntries(room.nicknames), ranked: !!room.ranked, arena: !!room.presentation, profiles: Object.fromEntries(room.profiles),
       update: { state: spectatorState(room.state), ...phaseInfo(room), initial: true } });
   });
 

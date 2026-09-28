@@ -391,3 +391,14 @@ Em **RANKING → Ranking de duelistas**, a leaderboard exibe os 20 primeiros por
 As sessões duram sete dias e são persistidas em `DATA_DIR/sessions.json`, com hashes dos tokens. No Compose, esse arquivo fica no volume `cyberduel-data`, junto das contas. Manter o volume permite continuar autenticado após reiniciar ou reconstruir o backend; logout e expiração continuam invalidando o acesso. Essa persistência atende à instância única do backend usada pelo Compose atual.
 
 Para publicar a correção, atualize os arquivos no servidor e execute `docker compose up -d --build`. Recarregue a página. Sessões da versão anterior existiam somente na memória: será necessário entrar novamente uma vez após essa atualização. Filas e partidas em andamento continuam em memória.
+
+
+### Tela de apresentação para o público
+
+Abra **`https://SEU-SERVIDOR/apresentacao`** na tela extra e clique em **ABRIR ARENA**. Essa página usa o mesmo servidor do jogo, não aparece no menu e não exige senha: qualquer pessoa que conheça o endereço pode abri-la.
+
+A tela mostra um QR code exclusivo para cada lugar. Os jogadores escaneiam códigos diferentes, entram nas próprias contas e usam seus decks salvos. O duelo começa quando ambos estiverem conectados; cada celular mantém a interface normal. A apresentação recebe o campo e os efeitos, sem mãos ou decks, e não permite jogadas. O modo **Espectar sala** continua independente, com os versos das mãos.
+
+A página tenta entrar em tela cheia ao abrir a arena. **Esc** durante o duelo encerra a sala da apresentação e volta à preparação. Recarregar a página na mesma aba permite retomar a apresentação enquanto a sala existir. As salas ficam em memória; reiniciar o servidor encerra os duelos.
+
+Os convites usam `PUBLIC_URL` quando configurada; caso contrário, usam o endereço da página. Ao abrir localmente, o servidor tenta um IP da rede para os celulares. Em produção, configure `PUBLIC_URL` com a URL pública do jogo. A configuração Nginx incluída encaminha `/apresentacao` ao backend; publique backend, frontend e essa configuração juntos.

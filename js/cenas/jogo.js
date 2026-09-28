@@ -99,6 +99,10 @@ class CenaJogo extends Phaser.Scene {
     this.partidaRegistradaNaConta = !!dados.debug;
     configurarCameraLogica(this);
     const sessao = window.cyberduelMultiplayer;
+    if (sessao?.presentation) this.input.keyboard.on("keydown-ESC", () => {
+      sessao.leaveRoom();
+      this.scene.start("CenaTitulo");
+    });
     this.partida = sessao?.pendingUpdate?.state
       ? sessao.hydrateMatch(sessao.localSnapshot(sessao.pendingUpdate.state))
       : new Partida(dados.deckDebug);
@@ -547,6 +551,7 @@ class CenaJogo extends Phaser.Scene {
 
   podeConsultarCartas() {
     return (
+      !this.multiplayer?.presentation &&
       !this.modalAberto &&
       !this.animacaoRemotaEmCurso &&
       (!this.ehMeuTurno || !this.travado)
@@ -1075,7 +1080,7 @@ class CenaJogo extends Phaser.Scene {
     // Desenha o menu somente quando a interação está liberada.
     if (!this.travado) this.desenharRodaBotoes();
 
-    if (this.multiplayer?.spectator) {
+    if (this.multiplayer?.spectator && !this.multiplayer?.presentation) {
       this.add
         .text(LARGURA_LAYOUT / 2, ALTURA_LAYOUT - 65, "SAIR DA ESPECTAÇÃO", {
           fontSize: "28px",
@@ -1101,6 +1106,7 @@ class CenaJogo extends Phaser.Scene {
 
   // Mostra as costas das cartas na mão do inimigo, no topo da tela — só pra dar noção visual de quantas cartas ele tem (não revela quais são).
   desenharMaoInimigo(lado = "inimigo") {
+    if (this.multiplayer?.presentation) return;
     const cartasMao = this.partida[lado].mao.cartas;
     const total = cartasMao.length;
     if (total === 0) return;
@@ -1255,6 +1261,7 @@ class CenaJogo extends Phaser.Scene {
 
   // Indicador de quantas cartas restam em cada deck (o do jogador, perto da mão dele embaixo; o do inimigo, perto da mão dele em cima).
   desenharIndicadoresDeck() {
+    if (this.multiplayer?.presentation) return;
     this.criarIndicadorDeck(
       LARGURA_LAYOUT / 9,
       Y_MAO_JOGADOR,
@@ -2766,6 +2773,7 @@ class CenaJogo extends Phaser.Scene {
   }
 
   desenharMaoEmLeque() {
+    if (this.multiplayer?.presentation) return;
     if (this.multiplayer?.spectator) {
       this.desenharMaoInimigo("jogador");
       return;
@@ -6426,6 +6434,7 @@ class CenaJogo extends Phaser.Scene {
 
   // O botão fixo abre histórico, passagem de turno e desistência.
   desenharRodaBotoes() {
+    if (this.multiplayer?.presentation) return;
     const RAIO = 62;
     const X = LARGURA_LAYOUT - RAIO - 24;
     const Y = 90;
@@ -7014,7 +7023,7 @@ class CenaJogo extends Phaser.Scene {
   }
 
   animarComprasInimigas(quantidade, aoConcluir) {
-    if (!quantidade) {
+    if (this.multiplayer?.presentation || !quantidade) {
       aoConcluir();
       return;
     }
@@ -7077,6 +7086,7 @@ class CenaJogo extends Phaser.Scene {
   }
 
   mostrarEsperaMultiplayer(texto = "AGUARDANDO O OPONENTE...") {
+    if (this.multiplayer?.presentation) return;
     if (!this.multiplayerAtivo || this.partida.partidaEncerrada) return;
     this.add
       .text(

@@ -3098,3 +3098,12 @@ body.title-terminal-open #game-viewport canvas {
 
 .leaderboard-player { display: flex; align-items: center; gap: 8px; }
 .leaderboard-avatar { width: clamp(28px, 5vw, 40px); height: clamp(28px, 5vw, 40px); flex-shrink: 0; border-radius: 50%; object-fit: cover; display: grid; place-items: center; background: #164325; color: #8cecac; }
+
+/* Página de apresentação; não aparece no menu público. */
+.presentation-screen { position: fixed; inset: 0; z-index: 10000; overflow: auto; background: #030807; color: #e9fff3; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 24px; font-family: Arial, sans-serif; text-align: center; }
+.presentation-screen h1 { color: #79ffba; letter-spacing: .12em; }
+.presentation-seats { display: flex; flex-wrap: wrap; justify-content: center; gap: 32px; width: 100%; }
+.presentation-seats section { width: min(360px, 40vw); padding: 18px; border: 1px solid #357353; border-radius: 16px; background: #0b1912; }
+.presentation-seats img { width: 100%; max-width: 300px; border-radius: 10px; }
+.presentation-seats a { display: block; color: #a2d9bc; overflow-wrap: anywhere; font-size: 12px; margin-top: 12px; }
+.presentation-screen button { background: #79ffba; color: #03140b; padding: 18px 30px; border: 0; border-radius: 8px; font-weight: bold; cursor: pointer; }
