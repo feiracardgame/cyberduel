@@ -2578,6 +2578,9 @@ class CenaJogo extends Phaser.Scene {
             "#ff5555",
             Math.round(24 * escala),
           );
+    if (this.multiplayer?.presentation && this.partida.inimigo.campo.cartas.includes(carta)) {
+      poderTexto?.setAngle(180);
+    }
     let fundo = viradaParaBaixo
       ? this.add.image(0, 0, "fundoCarta").setDisplaySize(CW, CH)
       : carta.imagem

@@ -4,6 +4,12 @@ Novidades, correções e verificações realizadas no projeto. As entregas mais 
 
 ## 2026-09-28
 
+### Números das cartas orientados para cada jogador
+
+- Girado em 180 graus o número de poder das cartas do campo superior exclusivamente na apresentação; o campo inferior mantém a orientação normal.
+- Renovada a versão do script no HTML e publicados script e HTML no servidor, com backup e sem reiniciar partidas. Confirmados conteúdo atualizado e HTTP 200 no domínio público.
+- Sintaxe, testes de layout da apresentação e espectador e `git diff --check` aprovados. Aparência não inspecionada em navegador; alterações ainda precisam ser registradas no Git para persistir nos próximos deploys.
+
 ### Mesa vertical, espera e turno orientado para o jogador
 
 - Ajustada a preparação da apresentação à proporção original do jogo, com um QR code em cada extremidade: jogador 1 embaixo e jogador 2 em cima, girado 180 graus.
