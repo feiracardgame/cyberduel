@@ -2,6 +2,23 @@
 
 Novidades, correções e verificações realizadas no projeto. As entregas mais recentes aparecem primeiro.
 
+## 2026-09-28
+
+### Mesa vertical, espera e turno orientado para o jogador
+
+- Ajustada a preparação da apresentação à proporção original do jogo, com um QR code em cada extremidade: jogador 1 embaixo e jogador 2 em cima, girado 180 graus.
+- Adicionados placares nas duas extremidades, com nome, poder, turno e rodadas na perspectiva de cada jogador. Na apresentação, o relógio mostra “Vez de [apelido]” e a fase atual, posicionado e girado para quem está jogando; removidos os rótulos duplicados do campo nesse modo.
+- Criada uma tela de espera para o primeiro jogador conectado, com saída da sala e remoção automática ao iniciar o duelo.
+- Aprovados testes de orientação do HUD, fases e jogadores ativos, tela de espera, apresentação do cliente, espectador, título e retorno à partida, além de sintaxe e `git diff --check`.
+- Publicados HTML, CSS e scripts alterados no servidor, com cópia de segurança e sem reiniciar as partidas. Confirmados HTTP 200 e conteúdo atualizado na página e nos três arquivos públicos; aparência não inspecionada em navegador. Alterações locais e no checkout remoto ainda precisam entrar no histórico Git para persistirem nos próximos deploys.
+
+### Correção do 404 no endereço da apresentação
+
+- Confirmado no servidor público: `/apresentacao` já respondia 200, mas `/apresentação`, usado na captura, retornava 404.
+- Adicionados redirecionamentos das variantes com acentos e barra final para `/apresentacao` no Nginx e no backend.
+- Publicada a configuração Nginx por SSH, com cópia de segurança, validação `nginx -t` e recarga sem reiniciar o servidor de partidas. Atualizado também o arquivo Nginx no checkout remoto; as alterações ainda precisam entrar no histórico Git para preservar a correção nos próximos deploys.
+- Verificadas as quatro variantes no domínio público: todas chegam à página de apresentação com HTTP 200. Teste de apresentação com redirecionamentos aprovado. Ajuste equivalente no backend validado localmente, sem republicar esse serviço.
+
 ## 2026-09-23
 
 ### Som somente ao clicar no menu

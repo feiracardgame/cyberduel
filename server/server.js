@@ -913,6 +913,12 @@ function serveGame(request, response) {
     return;
   }
 
+  if (["/apresentação", "/apresentação/", "/apresentacao/"].includes(pathname)) {
+    response.writeHead(302, { location: "/apresentacao" });
+    response.end();
+    return;
+  }
+
   if (pathname === "/apresentacao") {
     const html = readFileSync(path.join(PUBLIC_ROOT, "index.html"), "utf8")
       .replace("<head>", `<head><base href="/"><script>window.CYBERDUEL_PRESENTATION=true;</script>`);

@@ -3099,11 +3099,21 @@ body.title-terminal-open #game-viewport canvas {
 .leaderboard-player { display: flex; align-items: center; gap: 8px; }
 .leaderboard-avatar { width: clamp(28px, 5vw, 40px); height: clamp(28px, 5vw, 40px); flex-shrink: 0; border-radius: 50%; object-fit: cover; display: grid; place-items: center; background: #164325; color: #8cecac; }
 
-/* Página de apresentação; não aparece no menu público. */
-.presentation-screen { position: fixed; inset: 0; z-index: 10000; overflow: auto; background: #030807; color: #e9fff3; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 24px; font-family: Arial, sans-serif; text-align: center; }
-.presentation-screen h1 { color: #79ffba; letter-spacing: .12em; }
-.presentation-seats { display: flex; flex-wrap: wrap; justify-content: center; gap: 32px; width: 100%; }
-.presentation-seats section { width: min(360px, 40vw); padding: 18px; border: 1px solid #357353; border-radius: 16px; background: #0b1912; }
-.presentation-seats img { width: 100%; max-width: 300px; border-radius: 10px; }
-.presentation-seats a { display: block; color: #a2d9bc; overflow-wrap: anywhere; font-size: 12px; margin-top: 12px; }
-.presentation-screen button { background: #79ffba; color: #03140b; padding: 18px 30px; border: 0; border-radius: 8px; font-weight: bold; cursor: pointer; }
+/* Mesa vertical: jogador 1 embaixo, jogador 2 na extremidade oposta. */
+.presentation-screen, .arena-waiting { position: fixed; z-index: 10000; left: calc(var(--viewport-left, 0px) + var(--viewport-width, 100vw) / 2); top: calc(var(--viewport-top, 0px) + var(--viewport-height, 100dvh) / 2); transform: translate(-50%, -50%); width: var(--game-display-width, 100vw); height: var(--game-display-height, 100dvh); box-sizing: border-box; container-type: inline-size; background: #030807; color: #e9fff3; font-family: Arial, sans-serif; text-align: center; overflow: hidden; }
+.presentation-center { position: absolute; left: 5%; right: 5%; top: 50%; transform: translateY(-50%); }
+.presentation-center h1 { color: #79ffba; letter-spacing: .08em; font-size: 5cqw; }
+.presentation-center p { font-size: 3cqw; }
+.presentation-seats { position: absolute; inset: 0; }
+.presentation-seats section { position: absolute; left: 8%; right: 8%; height: 38%; box-sizing: border-box; padding: 3cqw; border: 1px solid #357353; border-radius: 3cqw; background: #0b1912; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2cqw; }
+.presentation-seats section[data-player="1"] { bottom: 2%; }
+.presentation-seats section[data-player="2"] { top: 2%; transform: rotate(180deg); }
+.presentation-seats h2 { font-size: 3.6cqw; margin: 0; }
+.presentation-seats p { font-size: 4cqw; }
+.presentation-seats img { width: 47cqw; height: 47cqw; max-height: 72%; object-fit: contain; background: white; }
+.presentation-seats a { color: #a2d9bc; font-size: 2.4cqw; max-width: 100%; overflow-wrap: anywhere; }
+.presentation-screen button, .arena-waiting button { background: #79ffba; color: #03140b; padding: 3cqw 5cqw; border: 0; border-radius: 2cqw; font-size: 3.5cqw; font-weight: bold; cursor: pointer; }
+.arena-waiting { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 8%; gap: 3cqw; }
+.arena-waiting h1 { color: #79ffba; font-size: 7cqw; }
+.arena-waiting h2 { font-size: 6cqw; }
+.arena-waiting p { font-size: 4cqw; }

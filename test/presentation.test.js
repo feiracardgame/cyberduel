@@ -25,6 +25,11 @@ async function run() {
   });
   const page = await fetch(url + '/apresentacao', { headers: { 'X-Forwarded-For': '198.51.100.5' } });
   assert.equal(page.status, 200, 'Página funciona também atrás do servidor público.');
+  for (const route of ['/apresentação', '/apresentação/', '/apresentacao/']) {
+    const redirect = await fetch(url + route, { redirect: 'manual' });
+    assert.equal(redirect.status, 302);
+    assert.equal(redirect.headers.get('location'), '/apresentacao');
+  }
   assert.match(await page.text(), /window.CYBERDUEL_PRESENTATION=true/);
   assert.doesNotMatch(await (await fetch(url + '/')).text(), /window.CYBERDUEL_PRESENTATION=true/);
   const screen = await connect(), one = await connect(), two = await connect(), outsider = await connect();

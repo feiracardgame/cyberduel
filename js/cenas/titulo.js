@@ -65,6 +65,8 @@ class CenaTitulo extends Phaser.Scene {
       }
     };
     this.events.once("shutdown", () => {
+      this.telaEsperaArena?.remove();
+      this.telaEsperaArena = null;
       this.removerListenerConta?.();
       this.titleUI?.destroy();
       this.titleUI = null;
@@ -88,7 +90,9 @@ class CenaTitulo extends Phaser.Scene {
     const status = document.createElement("p"); status.textContent = "Abra a arena para receber os jogadores.";
     const seats = document.createElement("div"); seats.className = "presentation-seats";
     const start = document.createElement("button"); start.textContent = "ABRIR ARENA";
-    root.append(heading, status, seats, start); document.body.append(root);
+    const center = document.createElement("header"); center.className = "presentation-center";
+    center.append(heading, status, start);
+    root.append(seats, center); document.body.append(root);
     const show = response => {
       if (!this.scene.isActive()) return;
       start.disabled = false;
@@ -98,12 +102,13 @@ class CenaTitulo extends Phaser.Scene {
       seats.replaceChildren();
       for (const invite of response.invitations || []) {
         const card = document.createElement("section");
+        card.dataset.player = String(invite.player);
         const label = document.createElement("h2");
         const connected = response.seats.find(seat => seat.player === invite.player)?.connected;
         label.textContent = `JOGADOR ${invite.player} · ${connected ? "CONECTADO" : "AGUARDANDO"}`;
         card.append(label);
         if (connected) {
-          const name = document.createElement("p"); name.textContent = response.nicknames[invite.player]; card.append(name);
+          const name = document.createElement("p"); name.textContent = `${response.nicknames[invite.player]} · Aguardando o outro jogador…`; card.append(name);
         } else {
           const image = document.createElement("img"); image.src = invite.qrCode; image.alt = `QR code do jogador ${invite.player}`;
           const link = document.createElement("a"); link.href = invite.url; link.textContent = invite.url;
@@ -191,6 +196,8 @@ class CenaTitulo extends Phaser.Scene {
 
   iniciarPartidaMultiplayer() {
     if (!this.scene.isActive()) return;
+    this.telaEsperaArena?.remove();
+    this.telaEsperaArena = null;
     if (this.multiplayer.needsIntroduction) {
       this.multiplayer.needsIntroduction = false;
       this.titleUI.showVersus(this.multiplayer.profiles, this.multiplayer.player, () => {
@@ -236,6 +243,23 @@ class CenaTitulo extends Phaser.Scene {
     }
   }
 
+  mostrarEsperaArena(player) {
+    this.telaEsperaArena?.remove();
+    const root = document.createElement("section"); root.className = "arena-waiting";
+    root.setAttribute("role", "status"); root.setAttribute("aria-live", "polite");
+    const title = document.createElement("h1"); title.textContent = "CONECTADO";
+    const seat = document.createElement("p"); seat.textContent = `Você é o jogador ${player}`;
+    const message = document.createElement("h2"); message.textContent = "Aguardando o outro jogador…";
+    const note = document.createElement("p"); note.textContent = "O duelo começa automaticamente quando os dois estiverem conectados.";
+    const leave = document.createElement("button"); leave.textContent = "SAIR DA SALA";
+    leave.onclick = () => {
+      this.multiplayer.leaveRoom(); root.remove(); this.telaEsperaArena = null;
+      this.atualizarStatus("Você saiu da arena.");
+    };
+    root.append(title, seat, message, note, leave); document.body.append(root);
+    this.telaEsperaArena = root;
+  }
+
   entrarNaSala(initialCode) {
     if (!this.account?.user || !this.account?.faction) {
       this.atualizarStatus("Entre e escolha sua facção antes de entrar na sala.", "warning");
@@ -264,6 +288,7 @@ class CenaTitulo extends Phaser.Scene {
           );
           return;
         }
+        if (response.waiting) this.mostrarEsperaArena(response.player);
         this.atualizarStatus(
           response.waiting ? "Você está conectado. Aguardando o outro jogador..." : "Oponente encontrado. Preparando o duelo...",
           "success",

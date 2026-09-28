@@ -932,6 +932,17 @@ class CenaJogo extends Phaser.Scene {
   atualizarVisualTimerTurno(forcar = false) {
     if (!this.timerContainer?.active || !this.timerTexto?.active) return;
 
+    if (this.multiplayer?.presentation) {
+      const player = this.multiplayer.activePlayer;
+      const name = player === 1 ? this.multiplayer.localNickname : this.multiplayer.opponentNickname;
+      this.timerContainer.setPosition(LARGURA_LAYOUT / 2, player === 1 ? ALTURA_LAYOUT - 84 : 84);
+      this.timerContainer.setAngle(player === 2 ? 180 : 0);
+      this.timerLabelTexto.setText(this.faseAtual === "habilidades" ? "Habilidades" : "Colocar cartas");
+      this.timerEstadoTexto.setText(`Vez de ${String(name || `Jogador ${player}`).slice(0, 32)}`);
+      this.timerTexto.setText(this.formatarTempoTurno());
+      this.timerBarra.displayWidth = 370 * Phaser.Math.Clamp(this.multiplayer.remainingMs() / this.duracaoPermitidaPara(this.partida[player === 1 ? "jogador" : "inimigo"]), 0, 1);
+      return;
+    }
     const tempoExibido = this.tempoExibidoTimerTurno();
     const segundo = Math.max(0, Math.ceil(tempoExibido / 1000));
     const estado = this.estadoTimerTurno();
@@ -2410,7 +2421,7 @@ class CenaJogo extends Phaser.Scene {
           .slice(0, 32)
           .toLocaleUpperCase("pt-BR")
       : "INIMIGO";
-    this.criarTextoUI(
+    if (!this.multiplayer?.presentation) this.criarTextoUI(
       LARGURA_LAYOUT / 2,
       L.yInimigoTras - L.slotH / 2 - 26,
       nomeOponente,
@@ -2451,7 +2462,7 @@ class CenaJogo extends Phaser.Scene {
 
   desenharCampoJogador() {
     const L = this.layout;
-    this.criarTextoUI(
+    if (!this.multiplayer?.presentation) this.criarTextoUI(
       LARGURA_LAYOUT / 2,
       L.yJogadorTras + L.slotH / 2 + 26,
       String(
@@ -6364,6 +6375,20 @@ class CenaJogo extends Phaser.Scene {
 
   // Reposiciona turno e placar conforme a visibilidade da mão.
   desenharStatus() {
+    if (this.multiplayer?.presentation) {
+      for (const player of [1, 2]) {
+        const side = player === 1 ? "jogador" : "inimigo";
+        const name = player === 1 ? this.multiplayer.localNickname : this.multiplayer.opponentNickname;
+        const wins = player === 1 ? this.partida.rodadasJogador : this.partida.rodadasInimigo;
+        const otherWins = player === 1 ? this.partida.rodadasInimigo : this.partida.rodadasJogador;
+        const panel = this.criarPainelTatico(LARGURA_LAYOUT / 2, player === 1 ? ALTURA_LAYOUT - 220 : 220, 780, 160);
+        const label = this.criarTextoUI(0, -38, String(name || `Jogador ${player}`).slice(0, 32), { fontSize: "32px", color: "#e9fff3", fontStyle: "bold" }).setOrigin(0.5);
+        const score = this.criarTextoUI(0, 18, `Poder ${this.partida.calcularPoderTotal(this.partida[side])} · Rodadas ${wins} : ${otherWins}`, { fontSize: "28px", color: "#afe5ce" }).setOrigin(0.5);
+        const round = this.criarTextoUI(0, 58, `Turno ${this.partida.turno} / ${this.partida.maxTurnos}`, { fontSize: "22px", color: "#d7efdf" }).setOrigin(0.5);
+        panel.add([label, score, round]); panel.setAngle(player === 2 ? 180 : 0);
+      }
+      return;
+    }
     const centralizado = this.maoEscondida;
     const painelX = centralizado ? LARGURA_LAYOUT / 2 : 190;
     const painelY = centralizado
@@ -6403,6 +6428,7 @@ class CenaJogo extends Phaser.Scene {
 
   // Contadores estáveis deixam a comparação de poder legível sem alterar o tamanho do HUD a cada carta colocada.
   desenharIndicadoresPoder() {
+    if (this.multiplayer?.presentation) return;
     const L = this.layout;
     this.criarIndicadorPoder(
       90,
