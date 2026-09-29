@@ -94,6 +94,7 @@ class CenaPreload extends Phaser.Scene {
 
   preload() {
     configurarCameraLogica(this);
+    this.fontePronta = document.fonts?.load('24px "Rushblade"').catch(() => {}) || Promise.resolve();
     this.criarBarraDeCarregamento();
 
   }
@@ -114,6 +115,11 @@ class CenaPreload extends Phaser.Scene {
     this.load.audio("somHover", "assets/sons/jogo-cartawhoosh.wav");
     this.load.audio("somTiro", "assets/sons/jogo-dipsptiro.wav");
     this.load.audio("somTigreAtaque", "assets/sons/som-tigregarra.mp3");
+    for (const nome of ["rato", "cabra", "cao", "porco", "cobra", "tigre", "aranha", "boi", "cavalo", "galo", "macaco", "coelho"]) {
+      this.load.audio(`som${nome[0].toUpperCase()}${nome.slice(1)}`, `assets/sons/som-${nome}.mp3`);
+    }
+    this.load.video("videoEfeitoAranha", "assets/efeitos/efeito-aranha.webm");
+    this.load.video("videoEfeitoBoi", "assets/efeitos/efeito-boi-alpha.webm");
     this.load.audio("somAdvogado", "assets/sons/som-advogado.mp3");
     this.load.audio("somRaspClay", "assets/sons/som-raspclay.mp3");
     this.load.audio("somNeoAnalista", "assets/sons/som-neoanalista.mp3");
@@ -121,12 +127,21 @@ class CenaPreload extends Phaser.Scene {
     this.load.audio("somGRPH", "assets/sons/som-grph.mp3");
     this.load.audio("somCryptoAcionistas", "assets/sons/jogo-cyberacionistaefeito.wav");
     this.load.video("efeitoNeoAnalista", "assets/efeitos/efeito-neoanalista-alpha.webm?v=20260916-alpha");
+    for (const [key, file] of Object.entries({
+      somTorre: "som-torre.mp3", somBeira: "som-beira.mp3", somNexus: "som-nexus.mp3",
+      somJuggernaut: "som-juggernaut.mp3", somDiego: "som-diego.mp3", somHumba: "som-humba.mp3",
+      somProfessores: "som-professores.mp3", somExplosao: "jogo-explosao.mp3",
+      somAlvo: "jogo-targetacq.wav", somInteracao: "interacao.mp3",
+    })) this.load.audio(key, `assets/sons/${file}`);
+    for (const nome of ["humba", "diego", "professores"])
+      this.load.video(`videoEfeito${nome}`, `assets/efeitos/efeito-${nome}-alpha.webm`);
     // videos
-    this.load.video("videoTransicao", "assets/videos/transicaocerta.mp4");
+    this.load.video("videoTransicao", `assets/videos/${this.aberturaEscolhida || "carregamento_remanescentes.mp4"}`);
     this.load.video(
       "videoParte3",
       "assets/videos/background_cidade.mp4?v=20260923-cidade",
     );
+    this.load.video("videoDeserto", "assets/videos/background_deserto.mp4");
     // efeitos
     this.load.video(
       "efeitoRaspClayVertical",
@@ -148,7 +163,7 @@ class CenaPreload extends Phaser.Scene {
     this.videoCarregamento = video;
     this.videoFalhou = false;
     video.setVisible(false);
-    video.once("created", (_video, largura, altura) => {
+    video.on("created", (_video, largura, altura) => {
       if (!video.active || !largura || !altura) return;
       const escala = Math.max(LARGURA_LAYOUT / largura, ALTURA_LAYOUT / altura);
       video.setDisplaySize(largura * escala, altura * escala).setVisible(true);
@@ -157,18 +172,29 @@ class CenaPreload extends Phaser.Scene {
       this.videoFalhou = true;
       video.setVisible(false);
     });
-    video.loadURL("assets/videos/carregamento_echorasp.mp4?v=20260923", true);
-    video.setMute(true);
-    video.play(true);
+    const aberturas = ["carregamento_echorasp.mp4", "carregamento_remanescentes.mp4"];
+    const proximaAbertura = () => {
+      let anterior = this.aberturaEscolhida;
+      try { anterior ||= sessionStorage.getItem("cyberduel.ultimaAbertura"); } catch {}
+      const candidatas = aberturas.filter((nome) => nome !== anterior);
+      const abertura = candidatas[Math.floor(Math.random() * candidatas.length)];
+      try { sessionStorage.setItem("cyberduel.ultimaAbertura", abertura); } catch {}
+      this.aberturaEscolhida = abertura;
+      video.loadURL(`assets/videos/${abertura}`, true);
+      video.setMute(true);
+      video.play(false);
+    };
+    video.on("complete", proximaAbertura);
+    proximaAbertura();
     this.events.once("shutdown", () => video.stop());
 
     this.add
       .text(LARGURA_LAYOUT / 2, ALTURA_LAYOUT * 0.16, "CYBERDUEL", {
-        fontFamily: "Impact, Arial Narrow, sans-serif",
+        fontFamily: "Rushblade, Arial, sans-serif",
         fontSize: "140px",
         fontStyle: "bold italic",
         color: "#ffffff",
-        stroke: "#030509",
+        stroke: "#000000",
         strokeThickness: 10,
         shadow: { offsetX: 0, offsetY: 4, color: "#23ff6c", blur: 12, fill: true },
       })
@@ -250,7 +276,7 @@ class CenaPreload extends Phaser.Scene {
       this.load.once("complete", () => {
         // Mesmo com cache quente, deixa a abertura visível por pelo menos um segundo.
         this.time.delayedCall(Math.max(0, 1000 - (this.time.now - inicio)), () => {
-          this.scene.start(abrirDeck ? "CenaDeckBuilder" : "CenaTitulo");
+          this.fontePronta.then(() => this.scene.start(abrirDeck ? "CenaDeckBuilder" : "CenaTitulo"));
         });
       });
       this.carregarAssets();

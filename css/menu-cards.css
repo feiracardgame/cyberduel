@@ -84,19 +84,20 @@
   justify-content: center;
   gap: 1.8cqw;
   margin: 2.5cqw 0 1cqw;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: "Rushblade", Arial, sans-serif;
   font-size: calc(10.8cqw * var(--cyber-text-scale, 1));
   line-height: 1;
   font-style: normal;
   font-weight: 700;
-  letter-spacing: -0.065em;
+  letter-spacing: calc(-0.065em + 3px);
   text-shadow: 0 3px 20px #000;
 }
 .title-terminal--cards .title-logo__cyber,
 .title-terminal--cards .title-logo__duel {
   display: inline;
   color: #cff2db;
-  -webkit-text-stroke: 0;
+  -webkit-text-stroke: clamp(2px, 0.09em, 7px) #000;
+  paint-order: stroke fill;
   transform: none;
 }
 .title-terminal--cards .title-logo__duel {
@@ -236,7 +237,7 @@
   padding-bottom: 2.6cqw;
   position: relative;
   font:
-    700 calc(6.8cqw * var(--cyber-text-scale, 1)) Georgia,
+    700 calc(6.8cqw * var(--cyber-text-scale, 1)) "Rushblade", Arial,
     serif;
   line-height: 1.15;
   letter-spacing: 0.1em;
@@ -406,7 +407,7 @@
 }
 .card-menu-dialog__heading h2 {
   font:
-    calc(6cqw * var(--cyber-text-scale, 1)) Georgia,
+    calc(6cqw * var(--cyber-text-scale, 1)) "Rushblade", Arial,
     serif;
   color: #d6e7dc;
 }

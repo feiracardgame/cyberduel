@@ -48,3 +48,27 @@ for (const name of ['aranha', 'boi', 'cabra', 'cao', 'cavalo', 'cobra', 'coelho'
   assert.ok(fs.existsSync(game[key]), `Símbolo ausente: ${name}`);
 }
 console.log('Os 12 novos efeitos estão no catálogo de carregamento.');
+
+const preloadVideos = [], preloadSounds = [];
+const Preload = vm.runInContext('CenaPreload', context);
+Preload.prototype.carregarAssets.call({ load: {
+  image() {}, audio(key, url) { preloadSounds.push([key, url]); }, video(key, url) { preloadVideos.push([key, url]); },
+} });
+assert.ok(preloadVideos.some(([key, url]) => key === 'videoEfeitoBoi' && url === 'assets/efeitos/efeito-boi-alpha.webm'));
+assert.ok(fs.statSync('assets/efeitos/efeito-boi-alpha.webm').size > 0);
+console.log('Boi carrega a versão transparente do vídeo.');
+
+for (const [key, url] of [...preloadVideos, ...preloadSounds]) {
+  assert.ok(fs.statSync(url.split('?')[0]).size > 0, `Asset ausente: ${key} (${url})`);
+}
+vm.runInContext(fs.readFileSync('js/cenas/efeitos.js', 'utf8'), context);
+const profiles = vm.runInContext('APRESENTACAO_EFEITOS', context);
+for (const profile of Object.values(profiles)) {
+  for (const value of Object.values(profile)) {
+    if (typeof value === 'string' && value.startsWith('som'))
+      assert.ok(preloadSounds.some(([key]) => key === value), `Som não carregado: ${value}`);
+  }
+  if (profile.video) assert.ok(preloadVideos.some(([key]) => key === profile.video));
+}
+assert.ok(fs.statSync('assets/fontes/Rushblade.ttf').size > 0);
+console.log('Sons, vídeos de todos os perfis e fonte local disponíveis.');

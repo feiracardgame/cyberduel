@@ -2,6 +2,63 @@
 
 Novidades, correções e verificações realizadas no projeto. As entregas mais recentes aparecem primeiro.
 
+## 2026-09-29
+
+### Espaçamento do nome no menu principal
+
+- Aumentado em 3 px o espaçamento entre as letras de “CYBERDUEL” no menu principal, preservando a fonte e o contorno preto. Renovada a versão do CSS no HTML.
+- Validação: conferida a regra CSS e aprovado `git diff --check`.
+
+### Fundos alternados da batalha e contorno do menu
+
+- Adicionado o vídeo de deserto ao preload. A primeira batalha escolhe cidade ou deserto aleatoriamente; as seguintes alternam sem repetir o último fundo na mesma sessão. Redesenhar o campo ou desligar/reativar a animação preserva o cenário da partida.
+- Reforçado o contorno preto de “CYBERDUEL” no menu, com espessura proporcional e preenchimento preservado. Atualizadas as versões dos recursos no HTML.
+- Validação: Playwright abriu duas batalhas consecutivas e confirmou deserto/cidade, vídeos reproduzindo sem áudio e ausência de erros JavaScript. Confirmado contorno preto nos dois trechos do nome (5,88 px na viewport de teste). Testes de desempenho da cena e assets, além de `git diff --check`, aprovados.
+
+### Contorno preto no nome do jogo
+
+- Aplicado traçado preto proporcional ao tamanho das letras no logotipo, identificação dos menus, arsenal e título da arena. O preenchimento fica acima do traçado para preservar a legibilidade e as cores atuais.
+- Padronizado para preto puro o contorno já existente no nome da tela de carregamento. Renovadas as versões dos CSS e preload no HTML.
+- Validação: Playwright confirmou contorno preto nos dois trechos do logotipo (4,25 px na viewport de teste), sem erros JavaScript; captura inspecionada. Teste de carregamento e `git diff --check` aprovados.
+
+### Prioridades de interface, tempo, áudio, carregamento e fonte
+
+- Reescritas instruções de seleção com quantidade de alvos, etapa da escolha e valores reais das habilidades (incluindo +3/+2 PA do Galo). Centralizados os painéis com quebra de linha e escala limitada; separados os avisos de cancelamento e contadores. Incluída a seleção de absorção no mesmo tratamento.
+- Efeitos da fila visual agora pausam o relógio solo. No multiplayer, o servidor congela o restante, espera a conclusão nos dois clientes e recompõe o prazo; espectadores não podem liberar a pausa e existe limite de espera para evitar salas presas. Selecionar alvos continua consumindo tempo normalmente. Interface mostra “Efeitos • tempo pausado” e bloqueia novas ações durante a reprodução.
+- Integrados sons existentes dos terrenos Torre/Beira/Nexus, Juggernaut, Dieh’Go, HumbaBrain e Professores, além de aquisição de alvo, interação e remoção. Auditados os 40 arquivos de som com decodificação FFmpeg sem erros; teste verifica existência dos assets e correspondência entre os perfis e o preload. Preservadas as alternativas `compra_carta.mp3`, `som-tigreataque.mp3` e `swipe-menu.mp3`; o menu mantém som de clique. Validação automatizada não substitui avaliação auditiva humana de volume e mixagem.
+- As duas aberturas existentes são escolhidas aleatoriamente, evitando repetição consecutiva na mesma sessão, e alternam ao terminar. Corrigida a referência de transição para usar um vídeo existente em vez do arquivo ausente `transicaocerta.mp4`.
+- Extraída a Rushblade do ZIP já presente no projeto, carregada localmente e aplicada aos títulos/botões e textos de destaque. Mantidas fontes legíveis para instruções e números; removida a dependência da fonte remota anterior. Atualizadas as versões dos recursos no HTML.
+- Preservada a integração visual iniciada antes da repriorização: vídeos de HumbaBrain, Dieh’Go e Professores convertidos para WebM transparente, com os originais mantidos. A revisão geral dos efeitos visuais permanece para a próxima etapa, conforme solicitado.
+- Playwright/Chromium: confirmados limites dos painéis, congelamento e retomada do relógio solo e de dois clientes online, alternância das aberturas inclusive após recarga, carregamento da fonte e acionamento dos sons de terrenos, HumbaBrain, Dieh’Go e Professores; os três vídeos novos reproduziram sem erros JavaScript ou HTTP. Usados cenários controlados com o motor real e decks de teste, servidor local na porta 3108 e dados isolados; sem publicação. Capturas e scripts em `/tmp/cyberduel-browser`.
+- Validação: sintaxe aprovada e 32 dos 34 arquivos de teste aprovados. Permanecem as duas falhas preexistentes já documentadas (`card-modal-layer.test.js` e `effect-events.test.js`); os testes alterados de interface, assets, carregamento, sincronização e multiplayer passaram.
+
+### Validação da Echossystem no navegador e correções visuais
+
+- Instalados Playwright em `/tmp/cyberduel-browser` e Chromium no cache do usuário, sem adicionar dependências ao projeto. Executado servidor local na porta 3107 com dados isolados em `/tmp/cyberduel-browser/data`.
+- Exercitados os 12 efeitos no Chromium headless com cenários controlados usando o motor e as cenas reais. Capturadas as perspectivas do dono, adversário (por inversão do estado sincronizado) e espectador; confirmadas face/PA visíveis para o dono e cartas adversárias viradas para baixo. Cliques reais confirmaram acesso à ficha própria e bloqueio da ficha inimiga oculta.
+- Corrigido problema encontrado na captura: o emoji do coelho aparecia como caractere ausente. Substituído por um coelhinho desenhado com formas do Phaser, independente das fontes instaladas.
+- Corrigidos os vídeos do Boi e da Aranha para dispararem somente na habilidade. Elevados os cortes de garra e os textos de PA acima dos símbolos para preservar sua visibilidade.
+- Removido o fundo verde do vídeo original do Boi com FFmpeg (`colorkey=0x008000:0.18:0.08`), gerando `assets/efeitos/efeito-boi-alpha.webm` com canal alfa. Preservado o MP4 original; preload atualizado e transparência confirmada em captura do navegador.
+- Confirmados reprodução dos vídeos da Aranha/Boi, acionamento dos sons, símbolos nos alvos, marca persistente da Aranha e plantio privado/disparo público do Macaco. As execuções completas dos cenários e da conferência final não registraram erros JavaScript nem respostas HTTP de falha. Capturas e scripts de automação mantidos em `/tmp/cyberduel-browser`; não foi realizada uma partida multiplayer entre dois navegadores nem avaliação auditiva humana.
+- Aprovados os testes de animações (incluindo novo caso contra vídeos na invocação), eventos Echossystem, sincronização e assets (incluindo vídeo transparente), além de sintaxe dos scripts alterados e `git diff --check`. Renovadas as versões dos scripts no HTML. As duas falhas preexistentes da suíte registradas abaixo permanecem fora desta alteração; publicação não realizada.
+
+### Toca do Coelho por perspectiva e visuais da Echossystem
+
+- A Toca agora conserva face, PA e acesso à carta para seu dono, com borda rosa suave e um coelhinho; adversários e espectadores continuam vendo o verso das cartas ocultas. Atualizada a descrição em `Cartas e boosters.md` para registrar essa distinção.
+- Substituída a apresentação genérica dos símbolos da Echossystem por revelação progressiva com respingos de tinta sobre os alvos, brilhos vermelhos e sons próprios. Rato destaca origem/alvo, Cabra destaca a troca, Cão marca a carta penalizada, Cobra marca o dano periódico e Galo marca os aliados beneficiados.
+- Adicionados três cortes de garra nos alvos do Tigre, tremor nas cartas atingidas pelo Cavalo, vídeo transparente da Aranha em tela cheia e vídeo do Boi. A Aranha mantém seu símbolo sobre a carta enquanto o vínculo estiver ativo; a Toca exibe seu símbolo central ao entrar.
+- A armadilha do Macaco usa o símbolo no espaço escolhido somente para seu autor; ao disparar, um evento público mostra a carta do Macaco após a invocação atingida. A Casca Grossa emite indicação visual/sonora quando impede uma redução abaixo do piso, inclusive com perda parcial de PA. Acrescentados os dados necessários aos eventos sincronizados, sem alterar os valores de dano.
+- A resolução local deixa a animação de dano e remoção para a camada de eventos quando ela está disponível, evitando sobrepor o dano genérico aos efeitos específicos. Renovadas as versões dos scripts no HTML.
+- Validação: 32 arquivos de teste aprovados na execução individual da suíte de 34, incluindo os novos casos de perspectiva da Toca, pichação, vídeos, sons, tremor, marcadores, armadilhas e proteção parcial do Porco. Duas falhas preexistentes reproduzidas com fontes do HEAD: `card-modal-layer.test.js` (mock sem `scene.bringToTop`) e `effect-events.test.js` (descrição de “O Bom” divergente do documento). Sintaxe dos scripts alterados e `git diff --check` aprovados. Usado Node temporário fora do repositório; reprodução visual/sonora em navegador e publicação não realizadas.
+
+### Conferência das regras implementadas da Echossystem
+
+- Comparados os 12 efeitos do Booster 2 em `Cartas e boosters.md` com os dados de `js/cartas.js` e a resolução em `js/main.js`. Nenhuma regra de jogo foi alterada nesta revisão.
+- Confirmadas divergências numéricas: Cavalo causa 3 PA em vez dos 4 descritos; Macaco reduz 2 PA em vez de 5, com a redução também fixada diretamente em `Campo.adicionarCarta`.
+- Identificadas diferenças e condições não especificadas: Tigre alcança toda a frente inimiga quando está na frente e aceita apenas um alvo; Cabra não troca com terrenos; Macaco exige espaço vazio e não dispara em terrenos; Aranha perde o vínculo se deixar de superar o PA do alvo; Boi reaplica auras após restaurar o PA e respeita bloqueios de aumento/redução.
+- Conferidos por leitura os fluxos de roubo real de PA do Rato, penalidade na próxima invocação de personagem do Cão, piso de 6 PA do Porco, veneno acumulado por fonte da Cobra, bônus +3/+2 do Galo e ocultação da Toca. A Toca exclui terrenos e `Carta.buff` revela por tentativa de redução mesmo quando o piso do Porco impede a perda; a resolução de passivos não marca explicitamente a fonte como revelada.
+- Pendências: esclarecer alcance curto, exigência de dois alvos, duração do Override, interação do reset com auras e gatilhos de revelação antes de tratar essas interpretações como regras definitivas. Testes de sincronização, eventos, animações e interações não executados: tentativa interrompida por `node: command not found`. Aparência e comportamento em navegador não validados.
+
 ## 2026-09-28
 
 ### Números das cartas orientados para cada jogador

@@ -8,7 +8,8 @@ const CenaJogo = vm.runInContext('CenaJogo', context);
 function selection(effect = { total: 6 }) {
   const objects = [];
   function object(type, x, y, text) {
-    const o = { type, x, y, text, handlers: {}, active: true,
+    const o = { type, x, y, text, width: 800, height: 90, handlers: {}, active: true,
+      setScale(v) { this.scale = v; return this; },
       setDepth(v) { this.depth = v; return this; },
       setStrokeStyle() { return this; }, setOrigin() { return this; },
       setDisplaySize() { return this; }, setInteractive() { return this; },
@@ -105,3 +106,24 @@ console.log('Seleção cumulativa de caveiras e transições de fase validadas.'
   scene.update(5000);
   assert.equal(auras, 11, 'Retomar após uma pausa sem acumular atualizações.');
 }
+
+// Efeitos pausam o relógio solo; a escolha de alvos continua consumindo tempo.
+{
+  context.testNow = 10000;
+  vm.runInContext('Date.now = () => testNow', context);
+  let busy = true;
+  const scene = Object.assign(Object.create(CenaJogo.prototype), {
+    partida: { partidaEncerrada: false }, prazoFaseLocal: 14000, ultimoTickVisual: 10000,
+    ehMeuTurno: true, proximaAtualizacaoAuras: Infinity,
+    apresentarEventosEfeito() {}, efeitosVisuaisPendentes: () => busy,
+    atualizarVisualTimerTurno() {},
+  });
+  context.testNow = 11000; scene.update(0);
+  assert.equal(scene.tempoRestanteTurno, 4000);
+  context.testNow = 12000; scene.update(0);
+  assert.equal(scene.tempoRestanteTurno, 4000);
+  busy = false; context.testNow = 12016; scene.update(0);
+  context.testNow = 12516; scene.update(0);
+  assert.equal(scene.tempoRestanteTurno, 3500);
+}
+console.log('Timer solo preserva o tempo durante efeitos e retoma após a fila.');

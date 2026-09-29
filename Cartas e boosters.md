@@ -455,7 +455,7 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 * Descrição:  O Coelho é a principal fonte de renda da EchoSsystem. Ninguém sabe exatamente de onde vem seu dinheiro, porque, além de ter um talento incomum para fazer as coisas acontecerem, ele possui um talento ainda maior para garantir que ninguém descubra como elas aconteceram. Quem quiser respostas pode tentar visitar seu clube e descobrir até onde vai a Toca do Coelho...
 
 
-* Efeito: A Toca do Coelho -> Enquanto este terreno estiver em campo, todas as cartas aliadas permanecem viradas para baixo. Ao sofrerem dano ou ativarem seus efeitos, são reveladas.
+* Efeito: A Toca do Coelho -> Enquanto este terreno estiver em campo, todas as cartas aliadas permanecem viradas para baixo apenas para o inimigo. Para seu dono, a face e o PA continuam visíveis, com uma borda rosa suave e um coelhinho indicando a ocultação. Ao sofrerem dano ou ativarem seus efeitos, são reveladas.
 
 
  

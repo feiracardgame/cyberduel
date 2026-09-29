@@ -40,12 +40,16 @@ class Campo {
       delete carta.marcoPerdasOponente;
       carta.marcoPerdas = (this.dono?.cartasPerdidas || 0) + (this.dono?.efeitosUtilizados || 0);
       if (carta.tipo === "monstro" && this.dono?.penalidadesInvocacao?.length) {
-        carta.penalidadesRecebidas = this.dono.penalidadesInvocacao.map((penalidade) => ({ ...penalidade, indice: posicao, delta: carta.buff(-penalidade.valor) }));
+        carta.penalidadesRecebidas = this.dono.penalidadesInvocacao.map((penalidade) => {
+          const protecoesAntes = carta.ativacoesCascaGrossa || 0;
+          return { ...penalidade, indice: posicao, delta: carta.buff(-penalidade.valor), cascaGrossa: (carta.ativacoesCascaGrossa || 0) > protecoesAntes };
+        });
         this.dono.penalidadesInvocacao = [];
       }
       if (carta.tipo !== "terreno" && this.armadilhas.has(posicao)) {
         this.armadilhas.delete(posicao);
-        carta.buff(-2);
+        const protecoesAntes = carta.ativacoesCascaGrossa || 0;
+        carta.armadilhaRecebida = { indice: posicao, delta: carta.buff(-2), cascaGrossa: (carta.ativacoesCascaGrossa || 0) > protecoesAntes };
       }
     }
   }
@@ -234,6 +238,8 @@ class Partida {
     return ["jogador", "inimigo"].flatMap((lado) => this[lado].campo.cartas.flatMap((c, indice) => c ? [{
       lado, indice, id: c.id, nome: c.nome, imagem: c.imagem, poder: c.poder,
       oculto: !!c.ocultadaPelaToca && !c.revelada,
+      cascaGrossa: c.ativacoesCascaGrossa || 0,
+      capturada: !!c.capturadaPor,
       estado: JSON.stringify([c.usadaEsteTurno, c.protegidaPA, c.bonusBloqueado, c.envenenada,
         c.alvosAdvertidos, c.aliadoVinculadoId, c.efeitoDesabilitado, c.efeito, c.capturadaPorAranha?.id]),
     }] : []));
@@ -246,10 +252,13 @@ class Partida {
     const fonteReal = dono.campo.cartas.find((c) => c?.id === carta.id && c.nome === carta.nome) || carta;
     const alvos = antes.flatMap((anterior) => {
       const atual = depois.find((c) => c.lado === anterior.lado && c.id === anterior.id);
-      if (atual && atual.poder === anterior.poder && atual.estado === anterior.estado && atual.indice === anterior.indice) return [];
+      if (atual && atual.poder === anterior.poder && atual.estado === anterior.estado && atual.indice === anterior.indice && atual.cascaGrossa === anterior.cascaGrossa) return [];
       return [{ lado: anterior.lado, indice: atual?.indice ?? anterior.indice, id: anterior.id,
         nome: anterior.nome, imagem: anterior.imagem, oculto: anterior.oculto && (atual?.oculto ?? true),
         delta: (atual?.poder ?? 0) - anterior.poder, removida: !atual,
+        cascaGrossa: (atual?.cascaGrossa || 0) > anterior.cascaGrossa,
+        capturada: !!atual?.capturada,
+        bloqueado: !!atual && atual.poder === anterior.poder && atual.cascaGrossa > anterior.cascaGrossa,
         mudouEstado: !atual || atual.estado !== anterior.estado }];
     });
     this.sequenciaEfeito = (this.sequenciaEfeito || 0) + 1;
@@ -266,14 +275,21 @@ class Partida {
   // Registra uma jogada no histórico. "quem" é 'jogador' ou 'inimigo'.
   registrarHistorico(carta, quem) {
     this.historico.push({ turno: this.turno, quem, carta });
+    if (carta.tipo !== "efeito") this.registrarEventoEfeito(carta, this[quem], "invocacao");
     for (const penalidade of carta.penalidadesRecebidas || []) {
       this.registrarEventoEfeito(penalidade.fonte, this[quem === "jogador" ? "inimigo" : "jogador"], "passiva", [], {
         mensagem: "Faro — penalidade na próxima invocação",
-        alvos: [{ lado: quem, indice: penalidade.indice, id: carta.id, nome: carta.nome, delta: penalidade.delta }],
+        alvos: [{ lado: quem, indice: penalidade.indice, id: carta.id, nome: carta.nome, delta: penalidade.delta, cascaGrossa: penalidade.cascaGrossa }],
       });
     }
     delete carta.penalidadesRecebidas;
-    if (carta.tipo !== "efeito") this.registrarEventoEfeito(carta, this[quem], "invocacao");
+    if (carta.armadilhaRecebida) {
+      const fonte = { ...POOL_CARTAS_EFEITO.find((c) => c.efeito.tipo === TIPOS_EFEITO.ARMADILHA_ESPACO), id: "macaco-armadilha", tipo: "efeito" };
+      this.registrarEventoEfeito(fonte, this[quem === "jogador" ? "inimigo" : "jogador"], "armadilha", [], {
+        alvos: [{ lado: quem, id: carta.id, nome: carta.nome, ...carta.armadilhaRecebida }],
+      });
+      delete carta.armadilhaRecebida;
+    }
   }
 
   // Invoca sem aplicar o efeito até o jogador escolher o alvo.
@@ -1248,6 +1264,9 @@ class Partida {
     if (carta.efeito && !carta.habilidadeAtiva) {
       this.registrarEventoEfeito(carta, dono, carta.tipo === "efeito" ? "conjuracao" : "passiva", antes);
       const evento = this.eventosEfeito.at(-1);
+      if (carta.efeito.tipo === TIPOS_EFEITO.ARMADILHA_ESPACO && oponente.campo.armadilhas.has(Number(alvoEscolhido))) {
+        evento.alvos.push({ lado: oponente === this.jogador ? "jogador" : "inimigo", indice: Number(alvoEscolhido), armadilha: true });
+      }
       for (const afetada of afetadas) {
         const lado = this.jogador.campo.cartas.includes(afetada.carta) || this.jogador.descarte.includes(afetada.carta) ? "jogador" : "inimigo";
         const pos = antes.find((c) => c.lado === lado && c.id === afetada.carta.id);

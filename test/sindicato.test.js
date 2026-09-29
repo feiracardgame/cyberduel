@@ -259,7 +259,7 @@ vm.runInContext('globalThis.CenaTesteExtintor = CenaJogo', context);
   const cena = Object.create(context.CenaTesteExtintor.prototype);
   const retangulos = [];
   const objeto = () => ({
-    eventos: {},
+    eventos: {}, width: 800, height: 90, setScale() { return this; },
     setDepth() { return this; }, setInteractive() { return this; },
     setOrigin() { return this; }, setStrokeStyle() { return this; },
     on(evento, handler) { this.eventos[evento] = handler; return this; },

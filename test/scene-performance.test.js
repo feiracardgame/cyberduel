@@ -90,7 +90,8 @@ console.log('Cena: reutilização do campo, eventos incrementais, ociosidade e l
 
 // Desligar libera o vídeo; redesenhar não o recria até reativar.
 {
-  let enabled = 1, created = 0, destroyed = 0;
+  let enabled = 1, created = 0, destroyed = 0, ultimoFundo;
+  context.window.sessionStorage = { getItem: () => ultimoFundo, setItem: (key, value) => { ultimoFundo = value; } };
   context.window.cyberduelSettings = {
     get: () => enabled, set: (key, value) => { enabled = Number(value); },
   };
@@ -104,9 +105,16 @@ console.log('Cena: reutilização do campo, eventos incrementais, ociosidade e l
     } },
   });
   scene.desenharFundoJogo(); assert.equal(created, 1);
+  const primeiroFundo = scene.fundoBatalha;
+  assert.ok(["videoParte3", "videoDeserto"].includes(primeiroFundo));
   scene.definirFundoAnimado(false); assert.equal(destroyed, 1); assert.equal(scene.videoFundo, null);
   scene.desenharFundoJogo(); assert.equal(created, 1); assert.equal(destroyed, 1);
   scene.definirFundoAnimado(true); assert.equal(created, 2);
+  assert.equal(scene.fundoBatalha, primeiroFundo, 'Reativar preserva o fundo da batalha.');
+  scene.videoFundo = null; scene.fundoBatalha = null;
+  scene.desenharFundoJogo();
+  assert.notEqual(scene.fundoBatalha, primeiroFundo, 'A próxima batalha alterna o cenário.');
+  delete context.window.sessionStorage;
   delete context.window.cyberduelSettings;
 }
 

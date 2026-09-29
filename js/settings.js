@@ -77,7 +77,7 @@
     }
 
     phaserTextStyle(style = {}) {
-      const scaled = { ...style };
+      const scaled = { fontFamily: "Rushblade, Arial, sans-serif", ...style };
       const size = scaled.fontSize;
       if (typeof size === "number") scaled.fontSize = size * this.values.textScale;
       else if (typeof size === "string") {

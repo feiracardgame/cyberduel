@@ -176,6 +176,24 @@ async function run() {
   assert.equal(clock.running, true, "Menus não pausam o relógio do servidor.");
   assert.ok(clock.remainingMs <= 40_000);
 
+  // Somente eventos novos pausam; ambos os jogadores precisam terminar a apresentação.
+  state.eventosEfeito.push({ id: 2, lado: "jogador", momento: "habilidade", fonte: { id: 99, nome: "O Boi", indice: 5 }, alvos: [] });
+  const pausedUpdate = once(other, "state-update");
+  const pause = await emitAck(active, "live-state", { state, step: 0, round: 1 });
+  assert.equal(pause.effectsPaused, true);
+  assert.equal((await pausedUpdate).effectsPaused, true);
+  await new Promise(resolve => setTimeout(resolve, 180));
+  assert.equal((await emitAck(intruder, "effects-ready", { sequence: 2, step: 0, round: 1 })).ok, false);
+  assert.equal((await emitAck(active, "effects-ready", { sequence: 1, step: 0, round: 1 })).ok, false);
+  assert.equal((await emitAck(active, "finish-turn", { state, step: 0, round: 1 })).ok, false);
+  const firstReady = await emitAck(active, "effects-ready", { sequence: 2, step: 0, round: 1 });
+  assert.equal(firstReady.effectsPaused, true);
+  assert.equal(firstReady.effectsRemaining, pause.effectsRemaining);
+  const resumedClock = once(active, "phase-clock");
+  assert.equal((await emitAck(other, "effects-ready", { sequence: 2, step: 0, round: 1 })).effectsPaused, false);
+  const clockResumed = await resumedClock;
+  assert.ok(clockResumed.deadline >= pause.deadline + 170, "O tempo visual é devolvido ao prazo do servidor.");
+
   for (let step = 0; step < 4; step++) {
     assert.equal(update.step, step);
     assert.equal(update.phase, step < 2 ? "colocar" : "habilidades");
@@ -216,9 +234,11 @@ async function run() {
     id: 800 + i, nome: "NeoAnalista de Suporte Nível Alpha", tipo: "monstro", poder: 4, poderBase: 4,
     efeito: { tipo: "reduzir_tempo_oponente", valor: 15, minimo: 20 },
   };
+  const timedBroadcast = once(sockets[3 - update.activePlayer], "state-update");
   const timed = await emitAck(sockets[update.activePlayer], "live-state", { state, step: 0, round: 2 });
   assert.equal(timed.ok, true);
   assert.ok(timed.deadline - timed.serverNow <= 20_000);
+  await timedBroadcast;
   const expired = once(sockets[3 - update.activePlayer], "state-update");
   // Fecha o ator: o prazo continua correndo mesmo sem o cliente conectado.
   sockets[update.activePlayer].disconnect();

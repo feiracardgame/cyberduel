@@ -22,6 +22,7 @@ function object(text) {
 let destination, loads = 0;
 const timers = [];
 const scene = Object.assign(Object.create(Scene.prototype), {
+  fontePronta: { then(fn) { fn(); } },
   cameras: { main: { setBackgroundColor() {} } },
   add: { video: () => object(), rectangle: () => object(), text: (x,y,text) => object(text) },
   events: new EventEmitter(), load: new EventEmitter(),
@@ -37,7 +38,11 @@ const video = objects[0];
 assert.ok(fs.existsSync(video.url.split('?')[0]));
 assert.equal(video.noAudio, true);
 assert.equal(video.muted, true);
-assert.equal(video.loop, true);
+assert.equal(video.loop, false);
+const primeiraAbertura = video.url;
+video.emit("complete");
+assert.notEqual(video.url, primeiraAbertura, "Alterna a abertura sem repetir o vídeo anterior.");
+assert.ok(fs.existsSync(video.url));
 assert.equal(video.visible, false);
 scene.create();
 assert.equal(loads, 0, 'Assets aguardam o primeiro frame do vídeo.');

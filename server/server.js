@@ -1071,7 +1071,9 @@ function buildInviteUrl(base, code) {
 function phaseInfo(room) {
   return { activePlayer: room.turn, phase: room.step < 2 ? "colocar" : "habilidades",
     step: room.step, starter: room.starter, round: room.round,
-    deadline: room.deadline, serverNow: Date.now() };
+    deadline: room.deadline, serverNow: Date.now(),
+    effectsPaused: !!room.effects, effectsSequence: room.effects?.sequence || 0,
+    effectsRemaining: room.effects?.remaining ?? null };
 }
 
 function spectatorState(snapshot) {
@@ -1133,11 +1135,39 @@ function phaseDuration(room) {
 
 function armPhaseClock(room, reset = true) {
   clearTimeout(room.timer);
+  if (room.effects) return;
   if (reset) room.phaseStartedAt = Date.now();
   room.deadline = room.phaseStartedAt + phaseDuration(room);
   if (room.state?.partidaEncerrada) return;
   room.timer = setTimeout(() => advancePhase(room), Math.max(0, room.deadline - Date.now()));
   room.timer.unref();
+}
+
+// A pausa pertence ao lote de eventos aceito, nunca ao tempo informado pelo cliente.
+function pauseForEffects(room) {
+  const events = (room.state?.eventosEfeito || []).filter(e => Number.isSafeInteger(e.id) && e.id > (room.lastEffectsSequence || 0));
+  if (!events.length || room.state.partidaEncerrada) return;
+  const sequence = Math.max(...events.map(e => e.id));
+  room.lastEffectsSequence = sequence;
+  const previous = room.effects;
+  clearTimeout(previous?.timeout);
+  clearTimeout(room.timer);
+  room.effects = { sequence, startedAt: previous?.startedAt || Date.now(),
+    remaining: previous?.remaining ?? Math.max(0, room.deadline - Date.now()),
+    pending: new Set([...room.players].filter(([, id]) => id).map(([player]) => player)) };
+  // Um cliente fechado não pode prender a sala indefinidamente.
+  room.effects.timeout = setTimeout(() => resumeAfterEffects(room), Math.min(90000, events.length * 3500 + 5000));
+  room.effects.timeout.unref();
+}
+
+function resumeAfterEffects(room) {
+  if (!room.effects) return;
+  clearTimeout(room.effects.timeout);
+  room.phaseStartedAt += Date.now() - room.effects.startedAt;
+  room.effects = null;
+  if (!rooms.has(room.code) || room.state?.partidaEncerrada) return;
+  armPhaseClock(room, false);
+  io.to(room.code).emit("phase-clock", phaseInfo(room));
 }
 
 function advancePhase(room) {
@@ -1158,6 +1188,7 @@ function advancePhase(room) {
     owner.field.forEach((c) => { if (c) c.protegidaPA = false; });
   }
   armPhaseClock(room);
+  pauseForEffects(room);
   broadcastState(room, { result, phaseChanged: true });
 }
 
@@ -1183,6 +1214,8 @@ function removeFromRoom(socket, disconnect = false) {
         room.usernames.delete(socket.data.player);
         room.nicknames.delete(socket.data.player);
       } else room.players.set(socket.data.player, null);
+      room.effects?.pending.delete(socket.data.player);
+      if (room.effects && !room.effects.pending.size) resumeAfterEffects(room);
       notifyPresentation(room);
       socket.to(code).emit("opponent-offline");
     } else {
@@ -1519,6 +1552,7 @@ io.on("connection", (socket) => {
     if (!room || socket.data.player !== 1 || room.players.size !== 2 || room.state || !validState(payload.state))
       return ack({ ok: false });
     room.state = payload.state;
+    room.lastEffectsSequence = Math.max(0, ...(room.state.eventosEfeito || []).map(e => Number(e.id) || 0));
     armPhaseClock(room);
     broadcastState(room, { initial: true });
     ack({ ok: true, ...phaseInfo(room) });
@@ -1526,7 +1560,7 @@ io.on("connection", (socket) => {
 
   socket.on("finish-turn", (payload = {}, ack = () => {}) => {
     const room = rooms.get(socket.data.room);
-    if (!room?.state || room.state.partidaEncerrada || room.startsAt > Date.now() || room.turn !== socket.data.player)
+    if (!room?.state || room.state.partidaEncerrada || room.startsAt > Date.now() || room.effects || room.turn !== socket.data.player)
       return ack({ ok: false, error: "Não é a sua vez." });
     if (payload.step !== room.step || payload.round !== room.round)
       return ack({ ok: false, error: "Esta fase já terminou." });
@@ -1543,7 +1577,18 @@ io.on("connection", (socket) => {
       return ack({ ok: false, error: "A fase não permite esta atualização." });
     room.state = acceptClientState(room, payload.state);
     armPhaseClock(room, false);
+    pauseForEffects(room);
     broadcastState(room, { live: true }, socket.id);
+    ack({ ok: true, ...phaseInfo(room) });
+  });
+
+  socket.on("effects-ready", (payload = {}, ack = () => {}) => {
+    const room = rooms.get(socket.data.room), player = socket.data.player;
+    if (!room?.effects || !player || room.players.get(player) !== socket.id ||
+        payload.sequence !== room.effects.sequence || payload.step !== room.step || payload.round !== room.round)
+      return ack({ ok: false });
+    room.effects.pending.delete(player);
+    if (!room.effects.pending.size) resumeAfterEffects(room);
     ack({ ok: true, ...phaseInfo(room) });
   });
 
@@ -1551,7 +1596,7 @@ io.on("connection", (socket) => {
     const room = rooms.get(socket.data.room);
     if (!room?.state || room.turn !== socket.data.player) return;
     socket.to(room.code).emit("turn-time", { activePlayer: room.turn,
-      remainingMs: Math.max(0, room.deadline - Date.now()), running: true, ...phaseInfo(room) });
+      remainingMs: room.effects?.remaining ?? Math.max(0, room.deadline - Date.now()), running: !room.effects, ...phaseInfo(room) });
   });
 
   socket.on("debug-finish-match", (payload = {}, ack = () => {}) => {

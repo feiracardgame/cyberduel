@@ -8,19 +8,7 @@ const ALTURA_LAYOUT = Math.max(2160, (1080 * GH) / GW);
 
 const DURACAO_TURNO_MS = 40_000;
 
-// Carrega Cinzel para os detalhes das cartas lendárias.
-if (typeof document !== "undefined" && document.head) {
-  const linkFonteLendaria = document.createElement("link");
-  linkFonteLendaria.rel = "stylesheet";
-  linkFonteLendaria.href =
-    "https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&display=swap";
-  document.head.appendChild(linkFonteLendaria);
-  if (document.fonts && document.fonts.load) {
-    document.fonts.load('bold 40px "Cinzel"').catch(() => {});
-    document.fonts.load('900 40px "Cinzel"').catch(() => {});
-  }
-}
-const FONTE_LENDARIA = '"Cinzel", Georgia, serif';
+const FONTE_LENDARIA = '"Rushblade", Arial, sans-serif';
 
 const VIDEOS_INVOCACAO_POR_CARTA = Object.freeze({
   "RaspClay MonteCorp": "efeitoRaspClayVertical",
@@ -93,6 +81,7 @@ class CenaJogo extends Phaser.Scene {
       this.limparCamadaModalCarta();
     });
     this.videoFundo = null;
+    this.fundoBatalha = null;
     this.baseCampo = null;
     this.layoutBaseCampo = null;
     this.gestosMaoConfigurados = false;
@@ -485,8 +474,21 @@ class CenaJogo extends Phaser.Scene {
     );
   }
 
+  efeitosVisuaisPendentes() {
+    const efeitos = this.scene?.manager?.keys?.CenaEfeitos;
+    return !!(efeitos?.executando || efeitos?.fila?.length || this.animacaoRemotaEmCurso);
+  }
+
   update(time) {
     this.apresentarEventosEfeito();
+    const agoraVisual = Date.now();
+    const visual = this.efeitosVisuaisPendentes();
+    if (!this.multiplayerAtivo && this.prazoFaseLocal && (visual || this.visualAnterior))
+      this.prazoFaseLocal += Math.max(0, agoraVisual - (this.ultimoTickVisual || agoraVisual));
+    this.ultimoTickVisual = agoraVisual;
+    this.visualAnterior = visual;
+    if (!visual && this.multiplayerAtivo)
+      this.multiplayer.effectsReady?.(this.scene?.manager?.keys?.CenaEfeitos?.ultimoEvento || 0);
     if (this.turnoAposEfeitos && !this.efeitosOponentePendentes()) {
       const continuar = this.turnoAposEfeitos;
       this.turnoAposEfeitos = null;
@@ -505,7 +507,7 @@ class CenaJogo extends Phaser.Scene {
     if (this.ehMeuTurno) this.tempoRestanteTurno = restante;
     else this.tempoRestanteOponente = restante;
     this.atualizarVisualTimerTurno();
-    if (restante > 0 || this.timerTurnoExpirado || !this.ehMeuTurno) return;
+    if (visual || this.multiplayer?.effectsPaused || restante > 0 || this.timerTurnoExpirado || !this.ehMeuTurno) return;
     this.timerTurnoExpirado = true;
     this.time.delayedCall(0, () => {
       if (this.partida.partidaEncerrada) return;
@@ -532,7 +534,7 @@ class CenaJogo extends Phaser.Scene {
   podeJogarCartasAgora() {
     return (
       this.ehMeuTurno &&
-      !this.efeitosOponentePendentes() &&
+      !this.efeitosVisuaisPendentes() && !this.multiplayer?.effectsPaused &&
       this.faseAtual === "colocar" &&
       !this.timerTurnoExpirado &&
       !this.multiplayer?.spectator
@@ -542,7 +544,7 @@ class CenaJogo extends Phaser.Scene {
   podeUsarHabilidadesAgora() {
     return (
       this.ehMeuTurno &&
-      !this.efeitosOponentePendentes() &&
+      !this.efeitosVisuaisPendentes() && !this.multiplayer?.effectsPaused &&
       this.faseAtual === "habilidades" &&
       !this.timerTurnoExpirado &&
       !this.multiplayer?.spectator
@@ -567,6 +569,7 @@ class CenaJogo extends Phaser.Scene {
   }
 
   reiniciarTimerTurno() {
+    this.ultimoTickVisual = Date.now(); this.visualAnterior = false;
     this.duracaoTurnoAtual = this.duracaoPermitidaPara(this.partida?.jogador);
     if (!this.multiplayerAtivo)
       this.prazoFaseLocal = Date.now() + this.duracaoTurnoAtual;
@@ -580,6 +583,7 @@ class CenaJogo extends Phaser.Scene {
   }
 
   reiniciarTimerOponente() {
+    this.ultimoTickVisual = Date.now(); this.visualAnterior = false;
     this.duracaoTurnoOponenteAtual = this.duracaoPermitidaPara(
       this.partida?.inimigo,
     );
@@ -641,6 +645,7 @@ class CenaJogo extends Phaser.Scene {
   }
 
   estadoTimerTurno() {
+    if (this.efeitosVisuaisPendentes() || this.multiplayer?.effectsPaused) return "animacao";
     if (!this.ehMeuTurno) return "oponente";
     if (this.timerTurnoExpirado) return "esgotado";
     return "ativo";
@@ -979,6 +984,7 @@ class CenaJogo extends Phaser.Scene {
     const rotulo = {
       ativo: critico ? "Tempo acabando" : "Sua vez",
       pausado: "Em pausa",
+      animacao: "Efeitos • tempo pausado",
       oponente: segundo === 0 ? "Tempo esgotado" : "Vez do oponente",
       esgotado: "Tempo esgotado",
     }[estado];
@@ -1588,6 +1594,15 @@ class CenaJogo extends Phaser.Scene {
   // Anima a conjuração, aplica o efeito e depois redesenha o campo.
   conjurarCartaDeEfeitoJogador(gameObject, carta, alvoEscolhido = null) {
     if (!this.podeJogarCartasAgora()) return;
+    if (window.CenaEfeitos) {
+      const resultado = this.partida.jogarCartaEfeitoDoJogador(carta, alvoEscolhido);
+      if (!resultado.sucesso) return;
+      gameObject.destroy();
+      this.travado = false;
+      this.desenharInterface();
+      this.apresentarEventosEfeito();
+      return;
+    }
     this.travado = true;
     this.esconderRodaBotoes();
     this.tweens.killTweensOf(gameObject);
@@ -1742,6 +1757,8 @@ class CenaJogo extends Phaser.Scene {
 
   // Anima as mortes antes do redesenho e os bônus depois.
   processarCartasAfetadas(afetadas, redesenharFn) {
+    // A camada de eventos já anima os alvos e as remoções, inclusive as garras do Tigre.
+    if (window.CenaEfeitos) { redesenharFn(); return; }
     afetadas = [...(afetadas || [])];
     const campo = [
       ...this.partida.jogador.campo.cartas,
@@ -2310,11 +2327,18 @@ class CenaJogo extends Phaser.Scene {
         .setVisible(true);
     };
 
+    if (!this.fundoBatalha) {
+      let anterior;
+      try { anterior = window.sessionStorage?.getItem("cyberduel.ultimoFundoBatalha"); } catch {}
+      const candidatos = ["videoParte3", "videoDeserto"].filter(chave => chave !== anterior);
+      this.fundoBatalha = candidatos[Math.floor(Math.random() * candidatos.length)];
+      try { window.sessionStorage?.setItem("cyberduel.ultimoFundoBatalha", this.fundoBatalha); } catch {}
+    }
     if (!this.videoFundo) {
       this.videoFundo = this.add.video(
         LARGURA_LAYOUT / 2,
         ALTURA_LAYOUT / 2,
-        "videoParte3",
+        this.fundoBatalha,
       );
       this.videoFundo.setOrigin(0.5);
       this.videoFundo.setVisible(false);
@@ -2493,7 +2517,7 @@ class CenaJogo extends Phaser.Scene {
           yPos,
           carta,
           L,
-          carta.ocultadaPelaToca && !carta.revelada,
+          !!this.multiplayer?.spectator && carta.ocultadaPelaToca && !carta.revelada,
           !this.multiplayer?.spectator,
         );
       }
@@ -2628,23 +2652,30 @@ class CenaJogo extends Phaser.Scene {
       filhos.push(selo, iconeSelo);
     }
 
-    // Override da Aranha: deixa inequívoco que a carta continua no campo inimigo, mas agora pontua para a equipe que a capturou.
-    if (carta.capturadaPor && !viradaParaBaixo) {
-      const seloAranha = this.add
-        .circle(
-          Math.round(62 * escala),
-          Math.round(-68 * escala),
-          Math.round(24 * escala),
-          0x6d28d9,
-          0.96,
-        )
-        .setStrokeStyle(3, 0xffffff);
-      const iconeAranha = this.add
-        .text(Math.round(62 * escala), Math.round(-68 * escala), "🕷", {
-          fontSize: `${Math.round(25 * escala)}px`,
-        })
-        .setOrigin(0.5);
-      filhos.push(seloAranha, iconeAranha);
+    // O dono vê sua carta e um pequeno coelho; adversários continuam vendo o verso.
+    if (podeInteragirOculta && carta.ocultadaPelaToca && !carta.revelada) {
+      const halo = this.add.rectangle(0, 0, CW + 6, CH + 6, 0xffb8d8, 0.06)
+        .setStrokeStyle(3, 0xffb8d8, 0.7);
+      const coelho = this.add.container(CW / 2 - 25, -CH / 2 + 29, [
+        this.add.ellipse(-6, -12, 8, 23, 0xffedf5),
+        this.add.ellipse(6, -12, 8, 23, 0xffedf5),
+        this.add.ellipse(-6, -13, 3, 15, 0xf49dbd),
+        this.add.ellipse(6, -13, 3, 15, 0xf49dbd),
+        this.add.circle(0, 1, 13, 0xffedf5),
+        this.add.circle(-5, 0, 1.8, 0x49303b),
+        this.add.circle(5, 0, 1.8, 0x49303b),
+        this.add.circle(0, 5, 2, 0xf49dbd),
+      ]).setScale(escala);
+      coelho.indicadorToca = true;
+      filhos.push(halo, coelho);
+    }
+
+    // A marca acompanha o vínculo e some no próximo redesenho após sua remoção.
+    if (carta.capturadaPor && this.textures.exists("efeitoAranha")) {
+      const marca = this.add.image(0, 0, "efeitoAranha");
+      marca.setScale(Math.min(CW * 0.75 / marca.width, CH * 0.65 / marca.height));
+      marca.setAlpha(0.75);
+      filhos.push(marca);
     }
 
     if (carta.efeitoDesabilitado && !viradaParaBaixo) {
@@ -2762,23 +2793,9 @@ class CenaJogo extends Phaser.Scene {
   // Marcador persistente da Travessura do Macaco. Ele é redesenhado junto do campo e desaparece automaticamente quando a armadilha é consumida.
   criarIndicadorArmadilha(xPos, yPos, layout) {
     const L = layout || this.layout;
-    const anel = this.add
-      .rectangle(xPos, yPos, L.slotW - 8, L.slotH - 8, 0xff6b35, 0.08)
-      .setStrokeStyle(6, 0xff6b35, 0.95)
-      .setDepth(420);
-    const icone = this.add
-      .text(xPos, yPos, "⚠\nARMADILHA", {
-        fontSize: "24px",
-        color: "#ffb08a",
-        fontStyle: "bold",
-        align: "center",
-        stroke: "#000000",
-        strokeThickness: 5,
-      })
-      .setOrigin(0.5)
-      .setDepth(421);
-    anel.setAlpha(0.55);
-    icone.setAlpha(0.72);
+    const marca = this.add.image(xPos, yPos, "efeitoMacaco").setDepth(421);
+    marca.setScale(Math.min((L.slotW - 8) / marca.width, (L.slotH - 8) / marca.height));
+    marca.setAlpha(0.72);
   }
 
   // As compras partem do monte acima da mão.
@@ -3360,6 +3377,7 @@ class CenaJogo extends Phaser.Scene {
   // Ficha da carta com arte, PA e descrição.
 
   mostrarDetalheCarta(carta) {
+    if (this.cache?.audio.exists("somInteracao")) this.sound.play("somInteracao", { volume: window.cyberduelSettings?.effects(0.16) ?? 0.16 });
     if (this.modalAberto) return;
     // Lendárias usam uma ficha própria com arte ampliada.
     if (carta.lendaria) {
@@ -4505,43 +4523,43 @@ class CenaJogo extends Phaser.Scene {
       this.iniciarSelecaoDeQualquerCartaParaHabilidade(
         carta,
         alvos,
-        "Escolha uma carta (aliada ou inimiga)\npara redefinir o poder",
+        "Toque em 1 carta de qualquer lado.\nEla volta ao PA original.",
       );
     } else if (ehDestruirTerreno) {
       this.iniciarSelecaoDeAlvo(
         carta,
         alvos,
-        "Escolha um terreno inimigo para eliminar",
+        "Toque em 1 terreno inimigo destacado para removê-lo.",
       );
     } else if (carta.efeito.tipo === TIPOS_EFEITO.SILENCIAR_CARTA) {
       this.iniciarSelecaoDeAlvo(
         carta,
         alvos,
-        "Escolha uma carta para bloquear efeitos",
+        "Toque em 1 carta inimiga.\nOs efeitos dela serão bloqueados.",
       );
     } else if (ehOverride) {
       this.iniciarSelecaoDeAlvo(
         carta,
         alvos,
-        "Escolha um alvo com menos poder (fica no campo dele, ponto pra você)",
+        "Toque em 1 inimigo com menos PA que a Aranha.\nOs pontos dele passam para você.",
       );
     } else if (ehRoubarPoder) {
       this.iniciarSelecaoDeAlvo(
         carta,
         alvos,
-        "Escolha uma carta inimiga para roubar poder",
+        `Toque em 1 carta inimiga.\nRoube ${carta.efeito.valor} PA para esta carta.`,
       );
     } else if (ehReposicionar) {
       this.iniciarSelecaoDeAliadoParaHabilidade(
         carta,
         alvos,
-        "Escolha um espaço do seu campo para se mover",
+        "Toque em um espaço aliado.\nMova a Cabra ou troque com a carta ali.",
       );
     } else if (ehEnvenenar) {
       this.iniciarSelecaoDeAlvo(
         carta,
         alvos,
-        "Escolha uma carta inimiga para envenenar",
+        `Toque em 1 carta inimiga.\nAplique ${carta.efeito.valor} de veneno por turno.`,
       );
     } else {
       this.iniciarSelecaoDeAlvo(carta, alvos);
@@ -4571,7 +4589,7 @@ class CenaJogo extends Phaser.Scene {
       bloquear_bonus: "Escolha uma inimiga para bloquear seus bônus",
       advertir: "Escolha uma inimiga para advertir",
       curar: "Escolha uma aliada para recuperar até 4 PA",
-      opiniao: "Escolha a primeira carta: aliada +1 PA, inimiga −1 PA",
+      opiniao: "1 de 2 • Toque em uma carta.\nAliado: +2 PA. Inimigo: −2 PA.",
       reativar: "Escolha uma aliada para liberar sua habilidade novamente",
     };
     escolher(
@@ -4589,7 +4607,7 @@ class CenaJogo extends Phaser.Scene {
         } else if (acao === "opiniao") {
           escolher(
             alvos.filter((i) => i !== primeiro),
-            "Escolha a segunda carta: aliada +1 PA, inimiga −1 PA",
+            "2 de 2 • Toque em outra carta.\nAliado: +2 PA. Inimigo: −2 PA.",
             (segundo) => this.executarHabilidade(carta, primeiro, segundo),
           );
         } else this.executarHabilidade(carta, primeiro);
@@ -4628,11 +4646,7 @@ class CenaJogo extends Phaser.Scene {
       .setInteractive();
     objetos.push(overlay);
 
-    const instrucao = this.add
-      .text(
-        LARGURA_LAYOUT / 2,
-        125,
-        `Distribua até ${totalDistribuivel} pontos de dano`,
+    const instrucao = this.criarInstrucaoSelecao(`Distribua até ${totalDistribuivel} PA de dano.\n${carta.efeito.alvosUnicos ? "Toque em inimigos diferentes." : "Cada toque em um inimigo adiciona 1 de dano."}`,
         {
           fontSize: "38px",
           color: "#ffcc66",
@@ -4644,7 +4658,7 @@ class CenaJogo extends Phaser.Scene {
       .setOrigin(0.5)
       .setDepth(3900);
     const contador = this.add
-      .text(LARGURA_LAYOUT / 2, 180, `Restam: ${totalDistribuivel}`, {
+      .text(LARGURA_LAYOUT / 2, 265, `Restam: ${totalDistribuivel}`, {
         fontSize: "30px",
         color: "#ffffff",
         stroke: "#000000",
@@ -4732,10 +4746,22 @@ class CenaJogo extends Phaser.Scene {
     this.objetosSelecaoAlvo = objetos;
   }
 
+  criarInstrucaoSelecao(texto, estilo = {}) {
+    const instrucao = this.add.text(LARGURA_LAYOUT / 2, 165, texto, {
+      ...estilo, fontFamily: "Arial, sans-serif", fontSize: "32px", align: "center",
+      backgroundColor: "#071b16", padding: { x: 20, y: 14 },
+      wordWrap: { width: LARGURA_LAYOUT - 160, useAdvancedWrap: true },
+      lineSpacing: 6,
+    }).setOrigin(0.5).setDepth(3900);
+    instrucao.setScale(Math.min(1, (LARGURA_LAYOUT - 80) / instrucao.width, 120 / instrucao.height));
+    instrucao.instrucaoHabilidade = true;
+    if (this.cache?.audio.exists("somAlvo")) this.sound.play("somAlvo", { volume: window.cyberduelSettings?.effects(0.18) ?? 0.18 });
+    return instrucao;
+  }
+
   // Avisa sobre a falta de alvos sem gastar a habilidade.
   avisarSemAlvo() {
-    let texto = this.add
-      .text(LARGURA_LAYOUT / 2, 140, "Nenhum alvo em alcance", {
+    let texto = this.criarInstrucaoSelecao("Nenhum alvo em alcance", {
         fontSize: "36px",
         color: "#ff8888",
         fontStyle: "bold",
@@ -4763,7 +4789,7 @@ class CenaJogo extends Phaser.Scene {
   iniciarSelecaoDeAlvo(
     carta,
     alvos,
-    textoInstrucao = "Escolha um alvo para atacar",
+    textoInstrucao = `Toque em 1 inimigo destacado.\nEle perde ${carta.efeito.valor || 0} PA.`,
     aoEscolher = null,
     aoCancelar = null,
   ) {
@@ -4788,8 +4814,7 @@ class CenaJogo extends Phaser.Scene {
     });
     objetos.push(overlay);
 
-    let textoInstr = this.add
-      .text(LARGURA_LAYOUT / 2, 140, textoInstrucao, {
+    let textoInstr = this.criarInstrucaoSelecao(textoInstrucao, {
         fontSize: "40px",
         color: "#ffcc00",
         fontStyle: "bold",
@@ -4801,7 +4826,7 @@ class CenaJogo extends Phaser.Scene {
     objetos.push(textoInstr);
 
     let textoCancelar = this.add
-      .text(LARGURA_LAYOUT / 2, 195, "(toque fora para cancelar)", {
+      .text(LARGURA_LAYOUT / 2, 260, "Toque fora dos destaques para cancelar", {
         fontSize: "26px",
         color: "#dddddd",
       })
@@ -5127,11 +5152,7 @@ class CenaJogo extends Phaser.Scene {
     );
     objetos.push(overlay);
 
-    let textoInstr = this.add
-      .text(
-        LARGURA_LAYOUT / 2,
-        140,
-        "Escolha uma coluna inimiga para atropelar",
+    let textoInstr = this.criarInstrucaoSelecao(`Toque em 1 coluna inimiga.\nTodas as cartas nela perdem ${carta.efeito.valor} PA.`,
         {
           fontSize: "36px",
           color: "#ff9b6b",
@@ -5145,7 +5166,7 @@ class CenaJogo extends Phaser.Scene {
     objetos.push(textoInstr);
 
     let textoCancelar = this.add
-      .text(LARGURA_LAYOUT / 2, 195, "(toque fora para cancelar)", {
+      .text(LARGURA_LAYOUT / 2, 260, "Toque fora dos destaques para cancelar", {
         fontSize: "26px",
         color: "#dddddd",
       })
@@ -5252,8 +5273,7 @@ class CenaJogo extends Phaser.Scene {
     };
     overlay.on("pointerup", cancelar);
     objetos.push(
-      this.add
-        .text(LARGURA_LAYOUT / 2, 140, "Escolha um espaço inimigo para armar", {
+      this.criarInstrucaoSelecao(`Toque em 1 espaço vazio inimigo.\nA próxima carta ali perde ${carta.efeito.valor} PA.`, {
           fontSize: "36px",
           color: "#ff9b6b",
           fontStyle: "bold",
@@ -5340,11 +5360,7 @@ class CenaJogo extends Phaser.Scene {
     overlay.on("pointerup", cancelar);
     objetos.push(overlay);
     objetos.push(
-      this.add
-        .text(
-          LARGURA_LAYOUT / 2,
-          140,
-          "Escolha uma carta aliada sem vizinhos",
+      this.criarInstrucaoSelecao("Escolha uma carta aliada sem vizinhos",
           {
             fontSize: "36px",
             color: "#88ff99",
@@ -5424,13 +5440,9 @@ class CenaJogo extends Phaser.Scene {
     objetos.push(overlay);
 
     objetos.push(
-      this.add
-        .text(
-          LARGURA_LAYOUT / 2,
-          140,
-          etapa === 1
-            ? "Escolha quem recebe +2 PA (1/2)"
-            : "Escolha quem recebe +1 PA (2/2)",
+      this.criarInstrucaoSelecao(etapa === 1
+            ? `1 de 2 • Toque no aliado que recebe +${carta.efeito.valores[0]} PA.`
+            : `2 de 2 • Toque em outro aliado para receber +${carta.efeito.valores[1]} PA.`,
           {
             fontSize: "38px",
             color: "#88ff99",
@@ -5480,7 +5492,7 @@ class CenaJogo extends Phaser.Scene {
   iniciarSelecaoDeAliadoParaHabilidade(
     carta,
     alvos,
-    textoInstrucao = "Escolha uma aliada para fortalecer",
+    textoInstrucao = `Toque em 1 aliado destacado.\nEle recebe +${carta.efeito.valor || 0} PA.`,
   ) {
     const L = this.layout;
     const objetos = [];
@@ -5499,8 +5511,7 @@ class CenaJogo extends Phaser.Scene {
     overlay.on("pointerup", () => this.cancelarSelecaoDeAlvo());
     objetos.push(overlay);
 
-    let textoInstr = this.add
-      .text(LARGURA_LAYOUT / 2, 140, textoInstrucao, {
+    let textoInstr = this.criarInstrucaoSelecao(textoInstrucao, {
         fontSize: "40px",
         color: "#88ff99",
         fontStyle: "bold",
@@ -5512,7 +5523,7 @@ class CenaJogo extends Phaser.Scene {
     objetos.push(textoInstr);
 
     let textoCancelar = this.add
-      .text(LARGURA_LAYOUT / 2, 195, "(toque fora para cancelar)", {
+      .text(LARGURA_LAYOUT / 2, 260, "Toque fora dos destaques para cancelar", {
         fontSize: "26px",
         color: "#dddddd",
       })
@@ -5578,11 +5589,7 @@ class CenaJogo extends Phaser.Scene {
         : this.executarHabilidade(carta, [primeiroAlvo]),
     );
     objetos.push(overlay);
-    const instrucao = this.add
-      .text(
-        LARGURA_LAYOUT / 2,
-        140,
-        primeiroAlvo === null
+    const instrucao = this.criarInstrucaoSelecao(primeiroAlvo === null
           ? "Escolha a primeira aliada para reparar (1/2)"
           : "Escolha a segunda aliada (2/2)",
         {
@@ -5646,8 +5653,7 @@ class CenaJogo extends Phaser.Scene {
     overlay.on("pointerup", () => this.cancelarSelecaoDeAlvo());
     objetos.push(overlay);
 
-    let textoInstr = this.add
-      .text(LARGURA_LAYOUT / 2, 140, textoInstrucao, {
+    let textoInstr = this.criarInstrucaoSelecao(textoInstrucao, {
         fontSize: "40px",
         color: "#88ff99",
         fontStyle: "bold",
@@ -5659,7 +5665,7 @@ class CenaJogo extends Phaser.Scene {
     objetos.push(textoInstr);
 
     let textoCancelar = this.add
-      .text(LARGURA_LAYOUT / 2, 195, "(toque fora para cancelar)", {
+      .text(LARGURA_LAYOUT / 2, 260, "Toque fora dos destaques para cancelar", {
         fontSize: "26px",
         color: "#dddddd",
       })
@@ -5820,8 +5826,7 @@ class CenaJogo extends Phaser.Scene {
     overlay.on("pointerup", () => this.cancelarSelecaoDeAlvo());
     objetos.push(overlay);
 
-    let textoInstr = this.add
-      .text(LARGURA_LAYOUT / 2, 140, "Escolha quem perde poder (1/2)", {
+    let textoInstr = this.criarInstrucaoSelecao(`1 de 2 • Toque no aliado que perde ${carta.efeito.perda || 2} PA.`, {
         fontSize: "40px",
         color: "#ff8888",
         fontStyle: "bold",
@@ -5833,7 +5838,7 @@ class CenaJogo extends Phaser.Scene {
     objetos.push(textoInstr);
 
     let textoCancelar = this.add
-      .text(LARGURA_LAYOUT / 2, 195, "(toque fora para cancelar)", {
+      .text(LARGURA_LAYOUT / 2, 260, "Toque fora dos destaques para cancelar", {
         fontSize: "26px",
         color: "#dddddd",
       })
@@ -5904,8 +5909,7 @@ class CenaJogo extends Phaser.Scene {
     overlay.on("pointerup", () => this.cancelarSelecaoDeAlvo());
     objetos.push(overlay);
 
-    let textoInstr = this.add
-      .text(LARGURA_LAYOUT / 2, 140, "Escolha quem ganha poder (2/2)", {
+    let textoInstr = this.criarInstrucaoSelecao(`2 de 2 • Toque em outro aliado para ganhar ${carta.efeito.ganho || 4} PA.`, {
         fontSize: "40px",
         color: "#88ff99",
         fontStyle: "bold",
@@ -5917,7 +5921,7 @@ class CenaJogo extends Phaser.Scene {
     objetos.push(textoInstr);
 
     let textoCancelar = this.add
-      .text(LARGURA_LAYOUT / 2, 195, "(toque fora para cancelar)", {
+      .text(LARGURA_LAYOUT / 2, 260, "Toque fora dos destaques para cancelar", {
         fontSize: "26px",
         color: "#dddddd",
       })
@@ -5979,8 +5983,7 @@ class CenaJogo extends Phaser.Scene {
     overlay.on("pointerup", () => this.cancelarSelecaoDeAlvo());
     objetos.push(overlay);
 
-    let textoInstr = this.add
-      .text(LARGURA_LAYOUT / 2, 140, "Escolha o primeiro alvo (1/2)", {
+    let textoInstr = this.criarInstrucaoSelecao(`1 de 2 • Toque no primeiro inimigo.\nCada alvo perde ${carta.efeito.valor} PA.`, {
         fontSize: "40px",
         color: "#ffcc00",
         fontStyle: "bold",
@@ -5992,7 +5995,7 @@ class CenaJogo extends Phaser.Scene {
     objetos.push(textoInstr);
 
     let textoCancelar = this.add
-      .text(LARGURA_LAYOUT / 2, 195, "(toque fora para cancelar)", {
+      .text(LARGURA_LAYOUT / 2, 260, "Toque fora dos destaques para cancelar", {
         fontSize: "26px",
         color: "#dddddd",
       })
@@ -6063,8 +6066,7 @@ class CenaJogo extends Phaser.Scene {
     overlay.on("pointerup", () => this.executarHabilidade(carta, alvo1));
     objetos.push(overlay);
 
-    let textoInstr = this.add
-      .text(LARGURA_LAYOUT / 2, 140, "Escolha o segundo alvo (2/2)", {
+    let textoInstr = this.criarInstrucaoSelecao(`2 de 2 • Toque em outro inimigo.\nEle também perde ${carta.efeito.valor} PA.`, {
         fontSize: "40px",
         color: "#ffcc00",
         fontStyle: "bold",
@@ -6076,7 +6078,7 @@ class CenaJogo extends Phaser.Scene {
     objetos.push(textoInstr);
 
     let textoCancelar = this.add
-      .text(LARGURA_LAYOUT / 2, 195, "(toque fora para atacar só o primeiro)", {
+      .text(LARGURA_LAYOUT / 2, 260, "Toque fora para atingir apenas o primeiro alvo", {
         fontSize: "26px",
         color: "#dddddd",
       })
@@ -6159,13 +6161,9 @@ class CenaJogo extends Phaser.Scene {
     });
     objetos.push(overlay);
 
-    let textoInstr = this.add
-      .text(
-        LARGURA_LAYOUT / 2,
-        140,
-        carta.efeito.tipo === TIPOS_EFEITO.VINCULO_ALIADO
+    let textoInstr = this.criarInstrucaoSelecao(carta.efeito.tipo === TIPOS_EFEITO.VINCULO_ALIADO
           ? "Escolha a aliada que sustenta a Troca de Favores"
-          : "Escolha uma aliada para fortalecer",
+          : `Toque em 1 aliado destacado.\nEle recebe +${carta.efeito.valor || 0} PA.`,
         {
           fontSize: "40px",
           color: "#88ff99",
@@ -6271,11 +6269,8 @@ class CenaJogo extends Phaser.Scene {
       .setInteractive();
     objetos.push(overlay);
 
-    let textoInstr = this.add
-      .text(
-        LARGURA_LAYOUT / 2,
-        130,
-        `Escolha até ${maxAlvos} aliadas de nível baixo/médio para absorver`,
+    let textoInstr = this.criarInstrucaoSelecao(
+        `Toque em até ${maxAlvos} aliados de nível baixo ou médio.\nConfirme para absorver as cartas escolhidas.`,
         {
           fontSize: "34px",
           color: "#ffcc00",
@@ -6291,7 +6286,7 @@ class CenaJogo extends Phaser.Scene {
     objetos.push(textoInstr);
 
     let textoContador = this.add
-      .text(LARGURA_LAYOUT / 2, 210, `0/${maxAlvos} escolhidas`, {
+      .text(LARGURA_LAYOUT / 2, 260, `0/${maxAlvos} escolhidas`, {
         fontSize: "28px",
         color: "#dddddd",
       })

@@ -1026,6 +1026,7 @@ class Carta {
       this.efeito.tipo === TIPOS_EFEITO.CASCA_GROSSA
     ) {
       const antes = this.poder;
+      if (antes + valor < 6) this.ativacoesCascaGrossa = (this.ativacoesCascaGrossa || 0) + 1;
       this.poder = Math.max(Math.min(6, antes), antes + valor);
       return this.poder - antes;
     }

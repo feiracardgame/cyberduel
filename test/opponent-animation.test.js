@@ -8,13 +8,19 @@ const context = vm.createContext({ window: {}, Phaser: { Scene: class {} },
 vm.runInContext(fs.readFileSync('js/cenas/efeitos.js', 'utf8'), context);
 const Scene = context.window.CenaEfeitos;
 function fixture(spectator = false) {
-  const tasks = [], objects = [], tweens = [], impacts = [];
+  const tasks = [], objects = [], tweens = [], impacts = [], sounds = [];
   let time = 0;
   const schedule = (delay, fn) => tasks.push({ at: time + delay, fn });
   const object = (type, x, y, value) => {
     const o = { type, x, y, value, active: true, visible: true, width: 512, height: 768,
+      setPosition(x,y) { this.x=x; this.y=y; return this; },
+      setMute() { return this; }, once(event, fn) { (this.handlers ||= {})[event]=fn; return this; },
+      play() { this.handlers?.created?.(); return this; },
       setDisplaySize(w,h) { this.width=w; this.height=h; return this; },
+      setCrop(...crop) { this.crop=crop; return this; },
       setStrokeStyle() { return this; }, setOrigin() { return this; },
+      setAlpha(v) { this.alpha=v; return this; }, setSize() { return this; },
+      setInteractive() { return this; }, on() { return this; },
       setVisible(v) { this.visible=v; return this; }, setDepth() { return this; },
       setScale(v) { this.scaleX=this.scaleY=v; return this; }, setAngle(v) { this.angle=v; return this; },
       add(children) { this.value.push(...children); return this; },
@@ -30,20 +36,22 @@ function fixture(spectator = false) {
       x: [110,325,540,755,970], yInimigo: [560,842], yJogador: [1436,1154] },
       partida: { inimigo: { campo: { cartas: [source] } }, jogador: { campo: { cartas: [] } } },
       children: { list: [fieldObject] } },
-    add: Object.fromEntries(['image','rectangle','text','circle','container'].map(type=>[type,(...args)=>object(type,...args)])),
+    add: Object.fromEntries(['image','rectangle','text','circle','ellipse','container','video'].map(type=>[type,(...args)=>object(type,...args)])),
+    sound: { play: key => sounds.push(key) },
     textures: { exists:()=>true }, cache: { audio: { exists:()=>false }, video: { exists:()=>false } },
     time: { delayedCall: schedule },
     tweens: { add(config) {
       tweens.push(config);
       schedule((config.delay||0)+config.duration*(config.yoyo?2:1),()=>{
-        for(const k of ['x','y','alpha','scaleX','scaleY']) if(config[k]!==undefined) config.targets[k]=config[k];
+        for(const k of ['x','y','alpha','scaleX','scaleY','progresso']) if(config[k]!==undefined) config.targets[k]=config[k];
+        config.onUpdate?.();
         config.onComplete?.();
       });
     } },
   });
   const original = s.animarFonte;
   s.animarFonte = (event, source, keep, callback) => original.call(s,event,source,keep,()=>{impacts.push(event.id);callback();});
-  return { s, source, fieldObject, objects, tweens, impacts,
+  return { s, source, fieldObject, objects, tweens, impacts, sounds,
     step() { tasks.sort((a,b)=>a.at-b.at); const next=tasks.shift(); if(!next)return false; time=next.at; next.fn(); s.update(); return true; },
     flush() { let n=0; while(this.step()) assert.ok(++n<200); },
     event(id, momento, extra={}) { return {id,lado:'inimigo',momento,fonte:{...source},alvos:[],...extra}; },
@@ -120,7 +128,7 @@ for (const separado of [false, true]) {
   assert.ok(!f.objects.some(o=>o.value==='arte'||o.value==='Teste'));
   f.flush();
   const local=fixture(); local.s.receber([local.event(1,'conjuracao',{lado:'jogador'})]);
-  assert.equal(local.objects.filter(o=>o.type==='container').length,0);
+  assert.equal(local.objects.filter(o=>o.eventoApresentado === 1).length,1);
   local.flush();
   const spectator=fixture(true); spectator.s.receber([spectator.event(1,'conjuracao',{lado:'jogador'})]);
   assert.equal(spectator.tweens[0].targets.y,1900);
@@ -137,15 +145,15 @@ console.log('Animações do oponente: voo, conjuração, habilidade, fila, redes
 for (const [name, texture, moment] of [
   ['A Aranha', 'efeitoAranha', 'habilidade'], ['O Boi', 'efeitoBoi', 'habilidade'],
   ['A Cabra', 'efeitoCabra', 'habilidade'], ['O Cão', 'efeitoCao', 'passiva'],
-  ['O Trotar do Cavalo', 'efeitoCavalo', 'conjuracao'], ['A Cobra', 'efeitoCobra', 'habilidade'],
+  ['O Trotar do Cavalo', 'efeitoCavalo', 'conjuracao'],
   ['A Cobra', 'efeitoCobra', 'veneno'], ['A Toca do Coelho', 'efeitoCoelho', 'invocacao'],
-  ['O Canto do Galo', 'efeitoGalo', 'conjuracao'], ['A Travessura do Macaco', 'efeitoMacaco', 'conjuracao'],
-  ['O Porco', 'efeitoPorco', 'passiva'], ['O Rato', 'efeitoRato', 'habilidade'],
+  ['O Canto do Galo', 'efeitoGalo', 'conjuracao'], ['A Travessura do Macaco', 'efeitoMacaco', 'armadilha'],
+  ['O Porco', 'efeitoPorco', 'protecao'], ['O Rato', 'efeitoRato', 'habilidade'],
   ['O Tigre', 'efeitoTigre', 'habilidade'],
 ]) {
   for (const side of ['jogador', 'inimigo']) {
     const f = fixture();
-    f.s.receber([f.event(1, moment, { lado: side, fonte: { ...f.source, nome: name } })]);
+    f.s.receber([f.event(1, moment, { lado: side, fonte: { ...f.source, nome: name }, alvos: [{ lado: side === 'jogador' ? 'inimigo' : 'jogador', indice: 5, id: 2, delta: -1, capturada: true }] })]);
     f.flush();
     const symbols = f.objects.filter(o => o.type === 'image' && o.value === texture);
     assert.equal(symbols.length, 1, `${name}: um símbolo por evento, ${side}`);
@@ -164,7 +172,7 @@ for (const [name, texture, moment] of [
   inactive.flush();
   assert.ok(!inactive.objects.some(o => o.value === 'efeitoAranha'), 'Habilidade ativa não dispara na invocação.');
   const learned = fixture();
-  learned.s.receber([learned.event(1, 'habilidade', { fonte: { ...learned.source, habilidadeAprendidaDe: 'O Tigre' } })]);
+  learned.s.receber([learned.event(1, 'habilidade', { fonte: { ...learned.source, habilidadeAprendidaDe: 'O Tigre' }, alvos: [{ lado: 'jogador', indice: 5, id: 2, delta: -3 }] })]);
   learned.flush();
   assert.equal(learned.objects.filter(o => o.value === 'efeitoTigre').length, 1);
 }
@@ -218,3 +226,105 @@ for (const multiplayerAtivo of [false, true]) {
   assert.equal(starts, 1, 'Não inicia a mesma vez duas vezes.');
 }
 console.log('Turno aguarda todos os efeitos remotos no solo e multiplayer; comandos bloqueados e atualização mais recente preservada.');
+
+// Sigilo do espaço da armadilha e símbolos nos alvos, nunca na origem do roubo.
+for (const side of ['jogador', 'inimigo']) {
+  const f = fixture();
+  f.s.receber([f.event(1, 'conjuracao', { lado: side,
+    fonte: { ...f.source, nome: 'A Travessura do Macaco', efeito: { tipo: 'armadilha' } },
+    alvos: [{ lado: side === 'jogador' ? 'inimigo' : 'jogador', indice: 7, armadilha: true }] })]);
+  f.flush();
+  assert.equal(f.objects.filter(o => o.value === 'efeitoMacaco').length, side === 'jogador' ? 1 : 0);
+}
+{
+  const f = fixture();
+  f.s.receber([f.event(1, 'habilidade', { fonte: { ...f.source, nome: 'O Rato' },
+    alvos: [{ lado: 'inimigo', indice: 0, id: 1, delta: 1 }, { lado: 'jogador', indice: 7, id: 2, delta: -1 }] })]);
+  f.flush();
+  const marks = f.objects.filter(o => o.value === 'efeitoRato');
+  assert.equal(marks.length, 1);
+  assert.equal(marks[0].x, 540); assert.equal(marks[0].y, 1154);
+  assert.deepEqual(marks[0].crop, [0, 0, 512, 768], 'Pichação revela toda a arte.');
+}
+for (const name of ['O Cão', 'O Porco', 'A Cobra']) {
+  const f = fixture();
+  f.s.receber([f.event(1, name === 'A Cobra' ? 'habilidade' : 'passiva', { fonte: { ...f.source, nome: name } })]);
+  f.flush();
+  assert.ok(!f.objects.some(o => /^efeito/.test(o.value)), 'Não disparar símbolo antes do gatilho real.');
+}
+{
+  const f = fixture();
+  f.s.receber([f.event(1, 'habilidade', { fonte: { ...f.source, nome: 'O Rato' },
+    alvos: [{ lado: 'jogador', indice: 5, id: 2, delta: 0, cascaGrossa: true }] })]);
+  f.flush();
+  assert.ok(f.objects.some(o => o.value === 'efeitoPorco'));
+}
+// Dono vê a face; adversário e espectador veem o verso. Revelação elimina a ocultação.
+for (const spectator of [false, true]) for (const revelada of [false, true]) {
+  const f = fixture(spectator), calls = [];
+  const card = { id: 9, ocultadaPelaToca: true, revelada };
+  const cards = Array(10).fill(null); cards[0] = card;
+  const game = Object.assign(Object.create(Game.prototype), {
+    multiplayer: { spectator, presentation: true }, layout: f.s.jogo.layout,
+    partida: { jogador: { campo: { cartas: cards } }, inimigo: { campo: { cartas: cards, armadilhas: new Set() } } },
+    add: f.s.add, criarCartaDeCampo(...args) { calls.push(args); },
+  });
+  game.desenharCampoJogador(); game.desenharCampoInimigo();
+  assert.equal(calls[0][4], spectator && !revelada);
+  assert.equal(calls[1][4], !revelada);
+}
+console.log('Echossystem: pichação no alvo, gatilhos, Casca Grossa, armadilha privada e Toca por perspectiva validados.');
+
+for (const [name, video, sound] of [['A Aranha', 'videoEfeitoAranha', 'somAranha'], ['O Boi', 'videoEfeitoBoi', 'somBoi']]) {
+  const f = fixture(); f.s.cache.video.exists = () => true; f.s.cache.audio.exists = () => true;
+  f.s.receber([f.event(1, 'habilidade', { fonte: { ...f.source, nome: name },
+    alvos: [{ lado: 'jogador', id: 2, indice: 5, capturada: true }] })]);
+  f.flush();
+  const clip = f.objects.find(o => o.type === 'video' && o.value === video);
+  assert.ok(clip); assert.equal(clip.active, false);
+  assert.equal(clip.x, 540); assert.equal(clip.y, 1110);
+  assert.ok(f.sounds.includes(sound));
+}
+{
+  const f = fixture(); f.s.cache.audio.exists = () => true;
+  const target = f.fieldObject; target.dadosCartaCampo.id = 8;
+  f.s.receber([f.event(1, 'conjuracao', { lado: 'jogador', fonte: { ...f.source, nome: 'O Trotar do Cavalo' },
+    alvos: [{ lado: 'inimigo', id: 8, indice: 0, delta: -3 }] })]);
+  f.flush();
+  assert.ok(f.tweens.some(t => t.targets === target && t.repeat === 3 && t.yoyo));
+  assert.equal(target.x, 110); assert.ok(f.sounds.includes('somCavalo'));
+}
+console.log('Vídeos da Aranha/Boi, sons próprios, tremor do Cavalo e limpeza validados.');
+
+// Face, selo de PA e coelhinho convivem no mesmo container; a marca da Aranha acompanha o vínculo.
+for (const captured of [false, true]) {
+  const f = fixture(), own = { id: 9, imagem: 'arte', poder: 5, tipo: 'monstro', ocultadaPelaToca: true, revelada: false,
+    capturadaPor: captured ? {} : null };
+  const game = Object.assign(Object.create(Game.prototype), {
+    add: f.s.add, textures: f.s.textures, tweens: f.s.tweens, multiplayer: {},
+    partida: { jogador: { campo: { cartas: [own] } }, inimigo: { campo: { cartas: [] } } },
+    renderizandoInterface: true, interfaceJaDesenhada: true, chavesCampoNovasRender: new Set(),
+    obterCorPorId: () => 0, chaveCartaMultiplayer: c => c.id,
+    criarSeloEstat: () => [f.s.add.circle(0,0,5), f.s.add.text(0,0,'5')],
+  });
+  game.criarCartaDeCampo(100, 100, own, f.s.jogo.layout, false, true);
+  assert.ok(f.objects.some(o => o.value === 'arte'));
+  assert.ok(f.objects.some(o => o.value === '5'));
+  assert.ok(f.objects.some(o => o.indicadorToca && o.type === 'container' && o.value.length === 8));
+  assert.equal(f.objects.filter(o => o.value === 'efeitoAranha').length, captured ? 1 : 0);
+}
+{
+  const f = fixture();
+  Game.prototype.criarIndicadorArmadilha.call({ add: f.s.add }, 100, 200, f.s.jogo.layout);
+  assert.ok(f.objects.some(o => o.value === 'efeitoMacaco' && o.x === 100 && o.y === 200));
+}
+console.log('Marcadores persistentes, face e PA do dono e coelhinho validados.');
+
+// Os vídeos de habilidades não devem disparar ao invocar a Aranha ou o Boi.
+for (const nome of ['A Aranha', 'O Boi']) {
+  const f = fixture(); f.s.cache.video.exists = () => true;
+  f.s.receber([f.event(1, 'invocacao', { fonte: { ...f.source, nome } })]);
+  f.flush();
+  assert.ok(!f.objects.some(o => o.type === 'video'), `${nome}: vídeo somente na habilidade.`);
+}
+console.log('Vídeos de habilidade não disparam na invocação.');

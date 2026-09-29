@@ -15,6 +15,9 @@ class CyberduelMultiplayer {
     this.initialized = false;
     this.deadline = null;
     this.clockOffset = 0;
+    this.effectsPaused = false;
+    this.effectsSequence = 0;
+    this.effectsAck = null;
     try { this.resumeToken = window.sessionStorage?.getItem("cyberduel.resume") || null; } catch {}
     this.scene = null;
     this.pendingUpdate = null;
@@ -80,6 +83,7 @@ class CyberduelMultiplayer {
       if (this.onReady) this.onReady();
     });
     this.socket.on("presentation-room", response => this.receivePresentation(response));
+    this.socket.on("phase-clock", (update) => this.applyPhase(update));
     this.socket.on("state-update", (update) => this.receiveUpdate(update));
     this.socket.on("turn-time", ({ activePlayer, remainingMs, running }) => {
       if (this.activePlayer !== activePlayer) return;
@@ -213,9 +217,23 @@ class CyberduelMultiplayer {
     this.starter = update.starter ?? this.starter;
     if (update.serverNow) this.clockOffset = update.serverNow - Date.now();
     if (update.deadline) this.deadline = update.deadline;
+    if (Object.hasOwn(update, "effectsPaused")) {
+      this.effectsPaused = update.effectsPaused;
+      this.effectsSequence = update.effectsSequence || 0;
+      this.effectsRemaining = update.effectsRemaining;
+      if (!this.effectsPaused) this.effectsAck = null;
+    }
   }
 
-  remainingMs() { return Math.max(0, (this.deadline || 0) - Date.now() - this.clockOffset); }
+  remainingMs() { if (this.effectsPaused) return Math.max(0, this.effectsRemaining || 0); return Math.max(0, (this.deadline || 0) - Date.now() - this.clockOffset); }
+
+  effectsReady(sequence) {
+    if (!this.effectsPaused || this.spectator || !this.socket || sequence < this.effectsSequence) return;
+    const key = `${this.round}:${this.step}:${this.effectsSequence}`;
+    if (this.effectsAck === key) return;
+    this.effectsAck = key;
+    this.socket.emit("effects-ready", { sequence: this.effectsSequence, step: this.step, round: this.round });
+  }
 
   findActiveMatch(callback) {
     this.connect().emit("find-active-match", {
@@ -282,6 +300,7 @@ class CyberduelMultiplayer {
     this.presentation = false; this.waitingInvitation = null; this.displayKey = null; this.room = null;
     try { window.sessionStorage?.removeItem("cyberduel.presentationRoom"); window.sessionStorage?.removeItem("cyberduel.presentationKey"); } catch {}
     this.spectator = false; this.lastLiveState = null;
+    this.effectsPaused = false; this.effectsAck = null;
   }
 
   attachScene(scene) {

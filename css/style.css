@@ -1,3 +1,9 @@
+@font-face {
+  font-family: "Rushblade";
+  src: url("../assets/fontes/Rushblade.ttf") format("truetype");
+  font-display: swap;
+}
+
 html,
 body {
   margin: 0;
@@ -234,8 +240,7 @@ body.deck-forge-open #game-viewport canvas {
 }
 
 .forge-title__accent {
-  color: transparent;
-  -webkit-text-stroke: 1.5px var(--forge-accent);
+  color: var(--forge-accent);
   filter: drop-shadow(0 0 12px rgba(35, 255, 108, 0.3));
 }
 
@@ -2322,8 +2327,7 @@ body.title-terminal-open #game-viewport canvas {
 }
 
 .title-logo__duel {
-  color: transparent;
-  -webkit-text-stroke: 1.5px var(--forge-accent);
+  color: var(--forge-accent);
 }
 
 .title-manifesto {
@@ -3117,3 +3121,20 @@ body.title-terminal-open #game-viewport canvas {
 .arena-waiting h1 { color: #79ffba; font-size: 7cqw; }
 .arena-waiting h2 { font-size: 6cqw; }
 .arena-waiting p { font-size: 4cqw; }
+
+/* Identidade do jogo; textos longos e campos de entrada preservam a leitura. */
+.title-terminal h1, .title-terminal h2, .title-terminal button,
+.title-modal h2, .title-modal h3, .title-modal button,
+.booster-pack-name, .arena-waiting h1, .presentation-screen h1 {
+  font-family: "Rushblade", Arial, sans-serif;
+  font-weight: normal;
+}
+
+/* Contorno do nome do jogo em menus, arsenal e apresentação. */
+.title-logo span,
+.card-menu-dialog__eyebrow,
+.forge-overline,
+.presentation-screen h1 {
+  -webkit-text-stroke: clamp(1px, 0.065em, 6px) #000;
+  paint-order: stroke fill;
+}
