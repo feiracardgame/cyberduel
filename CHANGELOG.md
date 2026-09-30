@@ -2,6 +2,22 @@
 
 Novidades, correções e verificações realizadas no projeto. As entregas mais recentes aparecem primeiro.
 
+## 2026-09-30
+
+### Tiro azul do Agente da DIPSP
+
+- Alterada para azul (`#3388ff`) a cor dos projéteis de plasma do Agente da DIPSP, incluindo sua habilidade quando aprendida por outra carta. O Juggernaut mantém seu plasma verde.
+- Renovada a versão do script de efeitos no HTML para atualizar o cache.
+- Validação: sintaxe de `efeitos.js`, testes de animações do oponente e `git diff --check` aprovados. Aparência em navegador não validada.
+
+### Correção do bloqueio ao passar turno
+
+- Impedido o envio de passagem de turno enquanto há animações locais/remotas ou o servidor aguarda a conclusão dos efeitos nos clientes.
+- Uma passagem recusada no multiplayer agora restaura a vez, os controles e o timer com o prazo do servidor, permitindo tentar novamente. Respostas de outra fase ou cena não desbloqueiam a partida atual.
+- Atualizadas as versões dos scripts no HTML para renovar o cache.
+- Validação: teste de regressão de passagem de turno, animações do oponente, sincronização de estado e fluxo multiplayer aprovados; sintaxe de 23 arquivos e `git diff --check` aprovados. Utilizado Node 22.16.0 temporário em `/tmp`, pois Node não estava no PATH.
+- Limitações: a suíte geral parou em `card-modal-layer.test.js` por ausência de `scene.bringToTop` no mock; reproduzido o mesmo erro com `jogo.js` original do HEAD. Interação em navegador não validada.
+
 ## 2026-09-29
 
 ### Espaçamento do nome no menu principal

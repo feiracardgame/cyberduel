@@ -322,13 +322,24 @@ class CyberduelMultiplayer {
   }
 
   finishTurn(partida, result) {
+    const scene = this.scene;
     const payload = {
       state: this.canonicalSnapshot(partida),
       step: this.step, round: this.round,
     };
     this.socket.emit("finish-turn", payload, (response) => {
-      if (!response.ok) this.status(response.error || "A jogada foi recusada.");
-      else this.applyPhase(response);
+      if (!response.ok) {
+        this.status(response.error || "A jogada foi recusada.");
+        // Uma recusa não encerra a fase; permita tentar novamente na mesma vez.
+        if (scene && this.scene === scene && this.step === payload.step &&
+            this.round === payload.round && this.activePlayer === this.player &&
+            !partida.partidaEncerrada) {
+          scene.ehMeuTurno = true;
+          scene.travado = false;
+          scene.timerTurnoExpirado = false;
+          scene.reiniciarTimerTurno();
+        }
+      } else this.applyPhase(response);
     });
   }
 

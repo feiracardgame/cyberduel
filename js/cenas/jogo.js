@@ -6658,7 +6658,8 @@ class CenaJogo extends Phaser.Scene {
   // Bloqueia comandos e resolve o encerramento do turno.
   aoClicarPassarTurno() {
     if (
-      this.efeitosOponentePendentes() ||
+      this.efeitosVisuaisPendentes() ||
+      this.multiplayer?.effectsPaused ||
       this.travado ||
       !this.ehMeuTurno ||
       this.partida.partidaEncerrada ||

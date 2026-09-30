@@ -11,7 +11,7 @@ const APRESENTACAO_EFEITOS = Object.freeze({
   "NeoAnalista de Suporte Nível Alpha": { invocacao: "somNeoAnalista", video: "efeitoNeoAnalista" },
   "CryptoAcionistas": { inicio_turno: "somCryptoAcionistas" },
   "Advogado Corporativo": { habilidade: "somAdvogado", visual: "juridico" },
-  "Agente da DIPSP": { habilidade: "somTiro", visual: "plasma" },
+  "Agente da DIPSP": { habilidade: "somTiro", visual: "plasma", cor: 0x3388ff },
   'UCC "Juggernaut"': { habilidade: "somJuggernaut", visual: "plasma" },
   "O Tigre": { habilidade: "somTigre", imagem: "efeitoTigre", momentos: ["habilidade"], visual: "garras" },
   "RaspClay MonteCorp": { invocacao: "somRaspClay", video: "efeitoRaspClayVertical" },
@@ -277,7 +277,7 @@ class CenaEfeitos extends Phaser.Scene {
         }).setOrigin(0.5).setDepth(12));
         if (evento.momento === "habilidade" && perfil.visual === "plasma" && alvo.lado !== evento.lado) {
           for (let i = 0; i < 5; i++) {
-            const orb = guardar(this.add.circle(origem.x, origem.y, 6 + i, 0x43ff82, 0.85));
+            const orb = guardar(this.add.circle(origem.x, origem.y, 6 + i, perfil.cor ?? 0x43ff82, 0.85));
             this.tweens.add({ targets: orb, x: destino.x + (i - 2) * 13, y: destino.y,
               duration: 220 + i * 60, onComplete: () => {
                 orb.setRadius(24); this.tweens.add({ targets: orb, alpha: 0, scale: 2, duration: 220 });
