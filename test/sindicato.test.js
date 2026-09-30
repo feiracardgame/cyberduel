@@ -130,6 +130,12 @@ const ativar = (p, c, a, b) => p.ativarHabilidade(c, p.jogador, p.inimigo, a, b)
   assert.deepEqual(p.jogador.mao.cartas, [cartas[3], cartas[2], cartas[0]]);
   assert.equal(p.jogador.cartasPerdidas, 0);
 }
+{
+  const p = mesa(); const sugestao = carta('Sugestão Algorítmica');
+  p.fase = 'habilidades'; p.turno = 1; p.historico = []; p.jogador.mao.cartas = [sugestao];
+  p.jogador.deck.cartas = [carta('O Boi')];
+  assert.equal(p.jogarCartaEfeitoDoJogador(sugestao, null).sucesso, true);
+}
 assert.equal(carta('Dragão das Comunicações Móveis').poder, 14);
 assert.equal(carta('CyberPolíticos').nivel, 'alta');
 assert.equal(carta('Professores de Duelo').lendaria, true);

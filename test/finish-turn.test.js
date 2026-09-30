@@ -84,7 +84,7 @@ const finish = tween => {
   Object.assign(tween.targets, { y: tween.y, alpha: tween.alpha });
   tween.onComplete();
 };
-const hand = { dadosCarta: {}, y: 1900, alpha: 1, visible: true,
+const hand = { dadosCarta: {}, posOriginal: { y: 1900 }, y: 1900, alpha: 1, visible: true,
   setAlpha(value) { this.alpha = value; return this; },
   setVisible(value) { this.visible = value; return this; } };
 game.children = { list: [hand] }; game.input = { enabled: true };
@@ -116,6 +116,24 @@ assert.equal(hand.y, 1900);
 assert.equal(hand.alpha, 1);
 assert.equal(hand.visible, true);
 assert.equal(transitions.length, 4, 'Não reinicia o retorno a cada frame.');
+
+// A mão fica visível durante efeitos do adversário e durante a Sugestão Algorítmica.
+effects.executando = true;
+effects.eventoAtual = { lado: 'inimigo', fonte: { nome: 'Outro efeito' } };
+game.ehMeuTurno = false;
+game.atualizarInteracaoDuranteEfeitos();
+assert.equal(hand.visible, true);
+effects.eventoAtual = { lado: 'jogador', fonte: { nome: 'Sugestão Algorítmica' } };
+game.ehMeuTurno = true;
+game.atualizarInteracaoDuranteEfeitos();
+assert.equal(hand.visible, true);
+effects.eventoAtual = { lado: 'jogador', momento: 'invocacao', fonte: { nome: 'Uma carta' } };
+game.atualizarInteracaoDuranteEfeitos();
+assert.equal(hand.visible, true);
+assert.equal(game.input.enabled, true, 'A interface continua interativa durante a invocação.');
+assert.equal(game.efeitosBloqueiamInteracao(), false);
+effects.executando = false;
+effects.eventoAtual = null;
 
 // O ACK carrega a fase completa se a notificação não tiver chegado.
 client.step = 0; client.round = 3; client.activePlayer = 1;

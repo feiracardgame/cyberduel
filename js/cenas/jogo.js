@@ -380,6 +380,7 @@ class CenaJogo extends Phaser.Scene {
     this.input.on("dragstart", (pointer, gameObject) => {
       if (
         !this.podeJogarCartasAgora() ||
+        (this.faseAtual === "habilidades" && gameObject.dadosCarta?.tipo !== "efeito") ||
         this.travado ||
         gameObject.animandoCompra ||
         !gameObject.dadosCarta
@@ -407,6 +408,7 @@ class CenaJogo extends Phaser.Scene {
     this.input.on("drag", (pointer, gameObject, dragX, dragY) => {
       if (
         !this.podeJogarCartasAgora() ||
+        (this.faseAtual === "habilidades" && gameObject.dadosCarta?.tipo !== "efeito") ||
         this.travado ||
         !gameObject.dadosCarta
       )
@@ -418,6 +420,7 @@ class CenaJogo extends Phaser.Scene {
     this.input.on("dragend", (pointer, gameObject) => {
       if (
         !this.podeJogarCartasAgora() ||
+        (this.faseAtual === "habilidades" && gameObject.dadosCarta?.tipo !== "efeito") ||
         this.travado ||
         !gameObject.dadosCarta
       )
@@ -481,16 +484,37 @@ class CenaJogo extends Phaser.Scene {
     return !!(efeitos?.executando || efeitos?.fila?.length || this.animacaoRemotaEmCurso);
   }
 
+  efeitoInvocacaoEmCurso() {
+    const efeitos = this.scene?.manager?.keys?.CenaEfeitos;
+    return [efeitos?.eventoAtual, ...(efeitos?.fila || [])]
+      .filter(Boolean)
+      .some((evento) => evento.momento === "invocacao");
+  }
+
+  efeitosBloqueiamInteracao() {
+    return (this.efeitosVisuaisPendentes() || !!this.multiplayer?.effectsPaused) && !this.efeitoInvocacaoEmCurso();
+  }
+
+  maoDeveSumirDuranteEfeitos(objeto) {
+    if (!objeto.posOriginal || !this.ehMeuTurno) return false;
+    const efeitos = this.scene?.manager?.keys?.CenaEfeitos;
+    const eventos = [efeitos?.eventoAtual, ...(efeitos?.fila || [])].filter(Boolean);
+    return !eventos.some((evento) =>
+      evento.momento === "invocacao" || evento.fonte?.nome === "Sugestão Algorítmica",
+    );
+  }
+
   atualizarInteracaoDuranteEfeitos() {
-    const bloqueado = this.efeitosVisuaisPendentes() || !!this.multiplayer?.effectsPaused;
+    const bloqueado = this.efeitosBloqueiamInteracao();
     let transicao = false;
     for (const objeto of this.children?.list || []) {
       if (!objeto.dadosCarta && objeto !== this.rodaBotoesContainer) continue;
       // Deixa a compra terminar antes de recolher a carta, sem cortar seu voo.
       if (objeto.animandoCompra) continue;
       const deslocamento = objeto.dadosCarta ? 80 : 28;
+      const ocultar = bloqueado && (!objeto.dadosCarta || this.maoDeveSumirDuranteEfeitos(objeto));
       if (!objeto.estadoAntesDosEfeitos &&
-          (bloqueado || (this.interfaceOcultaPorEfeitos && objeto.ocultoPorEfeitos === undefined))) {
+          (ocultar || (this.interfaceOcultaPorEfeitos && !objeto.dadosCarta && objeto.ocultoPorEfeitos === undefined))) {
         objeto.estadoAntesDosEfeitos = { y: objeto.y, alpha: objeto.alpha, visible: objeto.visible };
         this.tweens.killTweensOf(objeto);
         // Um redesenho durante a pausa deve preservar a interface já recolhida.
@@ -502,19 +526,19 @@ class CenaJogo extends Phaser.Scene {
       }
       const anterior = objeto.estadoAntesDosEfeitos;
       if (!anterior) continue;
-      if (bloqueado !== !!objeto.ocultoPorEfeitos) {
+      if (ocultar !== !!objeto.ocultoPorEfeitos) {
         objeto.tweenOcultacaoEfeitos?.stop();
-        objeto.ocultoPorEfeitos = bloqueado;
+        objeto.ocultoPorEfeitos = ocultar;
         objeto.setVisible(anterior.visible);
         objeto.tweenOcultacaoEfeitos = this.tweens.add({
           targets: objeto,
-          y: anterior.y + (bloqueado ? deslocamento : 0),
-          alpha: bloqueado ? 0 : anterior.alpha,
-          duration: bloqueado ? 220 : 300,
-          ease: bloqueado ? "Cubic.In" : "Cubic.Out",
+          y: anterior.y + (ocultar ? deslocamento : 0),
+          alpha: ocultar ? 0 : anterior.alpha,
+          duration: ocultar ? 220 : 300,
+          ease: ocultar ? "Cubic.In" : "Cubic.Out",
           onComplete: () => {
             objeto.tweenOcultacaoEfeitos = null;
-            if (bloqueado) objeto.setVisible(false);
+            if (ocultar) objeto.setVisible(false);
             else objeto.estadoAntesDosEfeitos = null;
           },
         });
@@ -582,7 +606,7 @@ class CenaJogo extends Phaser.Scene {
     return (
       this.ehMeuTurno &&
       !this.efeitosVisuaisPendentes() && !this.multiplayer?.effectsPaused &&
-      this.faseAtual === "colocar" &&
+      ["colocar", "habilidades"].includes(this.faseAtual) &&
       !this.timerTurnoExpirado &&
       !this.multiplayer?.spectator
     );
@@ -600,7 +624,7 @@ class CenaJogo extends Phaser.Scene {
 
   podeConsultarCartas() {
     return (
-      !this.efeitosVisuaisPendentes() && !this.multiplayer?.effectsPaused &&
+      !this.efeitosBloqueiamInteracao() &&
       !this.multiplayer?.presentation &&
       !this.modalAberto &&
       !this.animacaoRemotaEmCurso &&
@@ -1367,6 +1391,10 @@ class CenaJogo extends Phaser.Scene {
       return;
     }
     const carta = gameObject.dadosCarta;
+    if (this.faseAtual === "habilidades" && carta?.tipo !== "efeito") {
+      this.animarRetornoAoLeque(gameObject, false);
+      return;
+    }
 
     // Confirma nos dados que a carta ainda pertence à mão.
     if (!carta || !this.partida.jogador.mao.cartas.includes(carta)) {
@@ -3088,6 +3116,7 @@ class CenaJogo extends Phaser.Scene {
       this.travado ||
       this.modalAberto ||
       !this.podeJogarCartasAgora() ||
+      (this.faseAtual === "habilidades" && container.dadosCarta?.tipo !== "efeito") ||
       pointer.getDistance() > this.input.dragDistanceThreshold
     )
       return false;

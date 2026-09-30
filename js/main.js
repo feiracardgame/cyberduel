@@ -1242,7 +1242,7 @@ class Partida {
 
   // Consome a carta de efeito e aplica a conjuração sem ocupar o campo.
   jogarCartaEfeitoDoJogador(carta, alvoEscolhido = null) {
-    if (this.fase && this.fase !== "colocar") return { sucesso: false, afetadas: [] };
+    if (this.fase && !["colocar", "habilidades"].includes(this.fase)) return { sucesso: false, afetadas: [] };
     const sucesso = this.jogador.jogarCartaEfeito(carta);
     const afetadas = sucesso
       ? this.aplicarEfeitoInvocacao(

@@ -4,6 +4,21 @@ Novidades, correções e verificações realizadas no projeto. As entregas mais 
 
 ## 2026-09-30
 
+### Efeitos em ambas as fases do jogador
+
+- Cartas de efeito agora podem ser arrastadas e usadas tanto na fase de colocar cartas quanto na fase de habilidades; personagens continuam restritos à fase de invocação.
+- Corrigido o travamento ao usar Sugestão Algorítmica na fase de habilidades: a validação central aceitava o arraste, mas recusava a aplicação e deixava a seleção aberta.
+- Renovadas as versões dos scripts no HTML.
+- Validação: testes de regras e seleção aprovados; Playwright/Chromium usou Sugestão Algorítmica duas vezes em fases consecutivas, aguardando cada animação, sem erro JavaScript, seleção residual ou `travado` ativo. `git diff --check` e sintaxe aprovados.
+
+### Visibilidade da mão durante efeitos
+
+- A mão do jogador agora só é recolhida durante efeitos quando é o turno local; efeitos do adversário mantêm a mão visível.
+- A mão permanece visível durante o evento da “Sugestão Algorítmica”.
+- Efeitos de invocação também mantêm a mão visível.
+- Durante a invocação, a mão e a consulta às cartas continuam interativas; novas jogadas e passagem de turno seguem aguardando o fim da fila.
+- Validação: teste de passagem de turno ampliado para cobrir turno adversário, Sugestão Algorítmica, transições da mão, sintaxe e `git diff --check`; aparência em navegador não validada.
+
 ### Whoosh em toda troca de carta do menu
 
 - Estendido o whoosh à navegação pelas cartas laterais e à troca de categoria, além do arraste já coberto. O clique permanece na carta central e nas ações, sem tocar junto do whoosh ao navegar.
