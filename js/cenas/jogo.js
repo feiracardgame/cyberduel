@@ -1010,6 +1010,8 @@ class CenaJogo extends Phaser.Scene {
   }
 
   desenharInterface() {
+    // Atualizações após a desistência não podem apagar o resultado já exibido.
+    if (this.telaFinalExibida) return;
     this.limparCamadaModalCarta();
     this.partida.atualizarOverrides();
     const chavesCampoAtuais = new Set(

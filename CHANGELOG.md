@@ -4,6 +4,12 @@ Novidades, correções e verificações realizadas no projeto. As entregas mais 
 
 ## 2026-09-30
 
+### Tela de derrota após desistência
+
+- Preservada a tela final quando chegam atualizações do servidor ou callbacks que tentam redesenhar o campo. A confirmação remota da desistência não apaga mais o aviso “VOCÊ PERDEU” já exibido localmente.
+- Renovada a versão do script de jogo no HTML para atualizar o cache.
+- Validação: novo teste de regressão verifica a derrota nas perspectivas dos jogadores 1 e 2, confirmação remota, redesenho tardio e ausência de duplicação do retorno automático. Testes de animações, sincronização e desempenho da cena aprovados, assim como sintaxe de `jogo.js` e `git diff --check`. Aparência em navegador não validada.
+
 ### Tiro azul do Agente da DIPSP
 
 - Alterada para azul (`#3388ff`) a cor dos projéteis de plasma do Agente da DIPSP, incluindo sua habilidade quando aprendida por outra carta. O Juggernaut mantém seu plasma verde.
