@@ -210,6 +210,8 @@ class CyberduelMultiplayer {
   }
 
   applyPhase(update) {
+    if (this.initialized && !update.initial && update.round != null && (update.round < this.round ||
+        (update.round === this.round && update.step < this.step))) return;
     this.activePlayer = update.activePlayer ?? this.activePlayer;
     this.phase = update.phase || this.phase;
     this.step = update.step ?? this.step;
@@ -232,7 +234,11 @@ class CyberduelMultiplayer {
     const key = `${this.round}:${this.step}:${this.effectsSequence}`;
     if (this.effectsAck === key) return;
     this.effectsAck = key;
-    this.socket.emit("effects-ready", { sequence: this.effectsSequence, step: this.step, round: this.round });
+    this.socket.timeout(5000).emit("effects-ready", { sequence: this.effectsSequence, step: this.step, round: this.round }, (error, response) => {
+      if (this.effectsAck !== key) return;
+      if (error || !response?.ok) this.effectsAck = null;
+      else this.applyPhase(response);
+    });
   }
 
   findActiveMatch(callback) {
@@ -327,19 +333,22 @@ class CyberduelMultiplayer {
       state: this.canonicalSnapshot(partida),
       step: this.step, round: this.round,
     };
-    this.socket.emit("finish-turn", payload, (response) => {
-      if (!response.ok) {
-        this.status(response.error || "A jogada foi recusada.");
+    this.socket.timeout(5000).emit("finish-turn", payload, (error, response) => {
+      if (error || !response?.ok) {
+        this.status(response?.error || "Não foi possível confirmar a jogada. Tente novamente.");
         // Uma recusa não encerra a fase; permita tentar novamente na mesma vez.
         if (scene && this.scene === scene && this.step === payload.step &&
             this.round === payload.round && this.activePlayer === this.player &&
             !partida.partidaEncerrada) {
           scene.ehMeuTurno = true;
+          scene.finalizandoJogada = false;
           scene.travado = false;
           scene.timerTurnoExpirado = false;
           scene.reiniciarTimerTurno();
         }
-      } else this.applyPhase(response);
+      } else if (response.update && scene === this.scene && scene?.finalizandoJogada &&
+          this.step === payload.step && this.round === payload.round) this.receiveUpdate(response.update);
+      else this.applyPhase(response);
     });
   }
 

@@ -510,11 +510,20 @@ class CyberduelTitleUI {
     this.menuClickAudio.play().catch(() => {});
   }
 
+  playMenuSwipe() {
+    const volume = this.settings?.effects(0.5) ?? 0.5;
+    if (!volume || typeof Audio === "undefined") return;
+    this.menuSwipeAudio ||= new Audio("assets/sons/swipe-menu.mp3");
+    this.menuSwipeAudio.volume = volume;
+    this.menuSwipeAudio.currentTime = 0;
+    this.menuSwipeAudio.play().catch(() => {});
+  }
+
   selectCategory(index) {
     if (this.cardMenuState.mode !== "categories" || this.cardMenuTransitioning)
       return;
     if (this.cardMenuState.categoryIndex === index) return;
-    this.playMenuClick();
+    this.playMenuSwipe();
     this.cardMenuState.categoryIndex = index;
     this.menuCategory = this.menuCategories[index].id;
     this.renderCardMenu();
@@ -533,15 +542,16 @@ class CyberduelTitleUI {
       state.optionIndex = next;
     }
     this.renderCardMenu();
+    this.playMenuSwipe();
     return true;
   }
 
   handleCardClick(card) {
     if (this.cardMenuDragged || this.cardMenuTransitioning) return;
-    this.playMenuClick();
     const position = card.dataset.position;
     if (position === "left") return this.navigateCardMenu(-1);
     if (position === "right") return this.navigateCardMenu(1);
+    this.playMenuClick();
     const state = this.cardMenuState;
     const idx = Number(card.dataset.itemIndex);
     if (state.mode === "categories")
@@ -703,6 +713,7 @@ class CyberduelTitleUI {
     ];
     this.cardMenuEls.ghosts = { left: byOffset.get(-2), right: byOffset.get(2) };
     this.updateCaption();
+    this.playMenuSwipe();
     return true;
   }
 
@@ -2445,6 +2456,8 @@ class CyberduelTitleUI {
   destroy() {
     this.menuClickAudio?.pause();
     this.menuClickAudio = null;
+    this.menuSwipeAudio?.pause();
+    this.menuSwipeAudio = null;
     clearInterval(this.matrixTimer);
     this.matrixTimer = null;
     clearTimeout(this.versusTimer);

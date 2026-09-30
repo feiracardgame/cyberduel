@@ -127,7 +127,9 @@ class CyberduelDeckBuilderUI {
       this.element("span", "forge-save-state__dot"),
       this.element("span", "forge-save-state__text", "Sincronizado"),
     );
-    header.append(back, identity, this.saveState);
+    const actions = this.element("div", "forge-header-actions");
+    actions.append(this.saveState, this.button("forge-order", "Decks salvos", () => this.openSavedBuilds()));
+    header.append(back, identity, actions);
     return header;
   }
 
@@ -243,14 +245,36 @@ class CyberduelDeckBuilderUI {
     );
   }
 
+  captureScroll() {
+    return [this.root, ...this.root.querySelectorAll("*")]
+      .filter(element => element.scrollTop || element.scrollLeft)
+      .map(element => ({ element, top: element.scrollTop, left: element.scrollLeft,
+        className: element.className, cardKey: element.closest("[data-card-key]")?.dataset.cardKey }));
+  }
+
+  restoreScroll(positions) {
+    for (const saved of positions || []) {
+      const element = saved.element.isConnected ? saved.element :
+        Array.from(this.root.querySelectorAll("*")).find(el => el.className === saved.className &&
+          el.closest("[data-card-key]")?.dataset.cardKey === saved.cardKey);
+      if (element) { element.scrollTop = saved.top; element.scrollLeft = saved.left; }
+    }
+  }
+
   render() {
+    const scroll = this.captureScroll();
     if (!this.hasRendered || this.mobileView === "collection")
       this.renderCollection();
     if (!this.hasRendered || this.mobileView === "deck") this.renderDeckPanel();
     this.renderSaveState();
     this.renderMobileChrome();
     this.hasRendered = true;
+    this.restoreScroll(scroll);
     window.cyberduelSettings?.queueDomTextUpdate(this.root);
+    const root = this.root;
+    requestAnimationFrame(() => {
+      if (this.root === root) this.restoreScroll(scroll);
+    });
   }
 
   mobileSummary(status = this.builder.status(this.deck)) {
@@ -640,23 +664,9 @@ class CyberduelDeckBuilderUI {
     const previousQuantity = this.builder.quantity(this.deck, card);
     const next = this.builder.changeQuantity(this.deck, card, delta);
     if (this.builder.quantity(next, card) === previousQuantity) return;
-    const scroll = Array.from(this.root.querySelectorAll("*"))
-      .filter((element) => element.scrollTop || element.scrollLeft)
-      .map((element) => ({ element, top: element.scrollTop, left: element.scrollLeft,
-        cardKey: element.closest("[data-card-key]")?.dataset.cardKey,
-        className: element.className }));
-    const top = this.root.scrollTop;
     this.deck = next;
     this.markDirty();
     this.render();
-    scroll.forEach((saved) => {
-      const element = saved.element.isConnected ? saved.element :
-        Array.from(this.root.querySelectorAll("[data-card-key]"))
-          .find((card) => card.dataset.cardKey === saved.cardKey)
-          ?.querySelector(`[class="${saved.className}"]`);
-      if (element) { element.scrollTop = saved.top; element.scrollLeft = saved.left; }
-    });
-    this.root.scrollTop = top;
     if (typeof navigator !== "undefined") navigator.vibrate?.(10);
     if (this.modal?.dataset.kind === "detail") this.openDetail(card, true);
   }
@@ -697,6 +707,60 @@ class CyberduelDeckBuilderUI {
       this.renderSaveState();
       this.toast(error.message || "Falha ao salvar o deck na conta.", "error");
     }
+  }
+
+  openSavedBuilds() {
+    if (this.modal) return;
+    const overlay = this.createModal("builds");
+    const dialog = this.element("section", "forge-confirm forge-builds");
+    dialog.setAttribute("role", "dialog");
+    dialog.setAttribute("aria-modal", "true");
+    dialog.setAttribute("aria-label", "Decks salvos");
+    const close = this.button("forge-confirm__cancel", "Fechar", () => this.closeModal());
+    const name = this.element("input", "forge-search__input");
+    name.placeholder = "Nome da build";
+    name.maxLength = 60;
+    name.setAttribute("aria-label", "Nome da build");
+    const list = this.element("div", "forge-build-list");
+    const refresh = () => {
+      list.replaceChildren();
+      const builds = this.builder.getSavedBuilds();
+      if (!builds.length) list.append(this.element("p", "", "Nenhuma build salva ainda."));
+      for (const build of builds) {
+        const row = this.element("div", "forge-build-row");
+        row.append(this.element("strong", "", `${build.name} · ${this.builder.total(build.deck)}/20`));
+        row.append(this.button("forge-confirm__accept", "Carregar", () => {
+          const load = () => {
+            this.deck = this.builder.normalize(build.deck);
+            this.markDirty(); this.render();
+            this.toast("Build carregada. Sele o deck para usá-lo nas partidas.");
+          };
+          this.closeModal(true);
+          if (this.dirty) this.openConfirm({ eyebrow: "DECKS SALVOS", title: "Substituir o deck em edição?",
+            message: "Salve sua build atual antes de carregar outra, se quiser preservá-la.", confirmLabel: "Carregar", onConfirm: load });
+          else load();
+        }));
+        row.append(this.button("forge-confirm__cancel", "Excluir", () => {
+          this.closeModal(true);
+          this.openConfirm({ eyebrow: "DECKS SALVOS", title: `Excluir ${build.name}?`,
+            message: "O deck ativo não será alterado.", confirmLabel: "Excluir", danger: true,
+            onConfirm: () => {
+              try { this.builder.deleteBuild(build.name); this.openSavedBuilds(); }
+              catch { this.toast("Não foi possível excluir a build.", "error"); }
+            } });
+        }));
+        list.append(row);
+      }
+    };
+    dialog.append(close, this.element("h2", "", "Decks salvos"),
+      this.element("p", "", "Builds guardadas neste navegador, separadas por conta. Você também pode salvar decks incompletos."), name,
+      this.button("forge-confirm__accept", "Salvar build atual", () => {
+        try { this.builder.saveBuild(name.value, this.deck); name.value = ""; refresh(); }
+        catch (error) { this.toast(error.message || "Não foi possível salvar a build.", "error"); }
+      }), list);
+    refresh(); overlay.append(dialog);
+    requestAnimationFrame(() => overlay.classList.add("is-visible"));
+    close.focus({ preventScroll: true });
   }
 
   confirmClear() {
@@ -843,10 +907,11 @@ class CyberduelDeckBuilderUI {
     dialog.append(actions);
     overlay.append(dialog);
     requestAnimationFrame(() => overlay.classList.add("is-visible"));
-    cancel.focus();
+    cancel.focus({ preventScroll: true });
   }
 
   createModal(kind) {
+    this.scrollBeforeModal = this.captureScroll();
     const overlay = this.element("div", "forge-modal");
     overlay.dataset.kind = kind;
     overlay.addEventListener("mousedown", (event) => {
@@ -861,6 +926,7 @@ class CyberduelDeckBuilderUI {
     if (!this.modal) return;
     const modal = this.modal;
     this.modal = null;
+    this.restoreScroll(this.scrollBeforeModal);
     modal.classList.remove("is-visible");
     if (immediate) modal.remove();
     else setTimeout(() => modal.remove(), 180);

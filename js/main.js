@@ -40,7 +40,7 @@ class Campo {
       delete carta.marcoPerdasOponente;
       carta.marcoPerdas = (this.dono?.cartasPerdidas || 0) + (this.dono?.efeitosUtilizados || 0);
       if (carta.tipo === "monstro" && this.dono?.penalidadesInvocacao?.length) {
-        carta.penalidadesRecebidas = this.dono.penalidadesInvocacao.map((penalidade) => {
+        carta.penalidadesRecebidas = this.dono.penalidadesInvocacao.slice(-1).map((penalidade) => {
           const protecoesAntes = carta.ativacoesCascaGrossa || 0;
           return { ...penalidade, indice: posicao, delta: carta.buff(-penalidade.valor), cascaGrossa: (carta.ativacoesCascaGrossa || 0) > protecoesAntes };
         });
@@ -121,6 +121,7 @@ class Jogador {
 
   // Cartas de efeito nunca ocupam o campo: são consumidas na hora, aplicam sua passiva e vão descartadas.
   jogarCartaEfeito(carta) {
+    if (carta?.tipo !== "efeito" || !this.mao.cartas.includes(carta)) return false;
     const indice = this.mao.cartas.indexOf(carta);
     if (indice !== -1) {
       this.mao.cartas.splice(indice, 1);
@@ -133,7 +134,7 @@ class Jogador {
   registrarDescarte(carta, contarPerda = true) {
     if (!carta || this.descarte.includes(carta)) return;
     this.descarte.push(carta);
-    if (contarPerda) this.cartasPerdidas += 1;
+    if (contarPerda && (carta.tipo === "monstro" || carta.tipo === "terreno")) this.cartasPerdidas += 1;
   }
 
   criarDeckConfigurado(configuracao) {
@@ -1293,8 +1294,7 @@ class Partida {
 
     switch (tipo) {
       case TIPOS_EFEITO.PENALIZAR_PROXIMA_INVOCACAO:
-        oponente.penalidadesInvocacao ||= [];
-        oponente.penalidadesInvocacao.push({ valor, fonte: { id: carta.id, nome: carta.nome, imagem: carta.imagem, tipo: carta.tipo, efeito: carta.efeito } });
+        oponente.penalidadesInvocacao = [{ valor, fonte: { id: carta.id, nome: carta.nome, imagem: carta.imagem, tipo: carta.tipo, efeito: carta.efeito } }];
         break;
       case TIPOS_EFEITO.VINCULO_ALIADO: {
         const validos = this.alvosParaVinculoAliado(carta, dono);

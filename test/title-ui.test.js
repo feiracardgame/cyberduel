@@ -102,9 +102,10 @@ console.log('Matrix no menu: colunas, velocidades, acessibilidade e ausência na
 
 {
   let plays = 0, pauses = 0, volume = 0.3;
+  const sounds = [];
   context.Audio = class {
-    constructor(src) { assert.equal(src, 'assets/sons/clique-menu.mp3'); }
-    play() { plays++; return Promise.resolve(); }
+    constructor(src) { this.src = src; assert.ok(['assets/sons/clique-menu.mp3', 'assets/sons/swipe-menu.mp3'].includes(src)); }
+    play() { plays++; sounds.push(this.src); return Promise.resolve(); }
     pause() { pauses++; }
   };
   const menu = Object.create(CyberduelTitleUI.prototype);
@@ -114,25 +115,29 @@ console.log('Matrix no menu: colunas, velocidades, acessibilidade e ausência na
   menu.renderCardMenu = () => {};
   menu.selectCategory(0); assert.equal(plays, 0);
   menu.selectCategory(1); assert.equal(plays, 1);
-  assert.equal(menu.menuClickAudio.volume, 0.3);
-  menu.navigateCardMenu(1); assert.equal(plays, 1);
-  menu.handleCardClick({ dataset: { position: "right" } }); assert.equal(plays, 2);
-  volume = 0;
+  assert.equal(menu.menuSwipeAudio.volume, 0.3);
   menu.navigateCardMenu(1); assert.equal(plays, 2);
+  menu.handleCardClick({ dataset: { position: "right" } }); assert.equal(plays, 3);
+  assert.ok(sounds.every(src => src === 'assets/sons/swipe-menu.mp3'));
+  volume = 0;
+  menu.navigateCardMenu(1); assert.equal(plays, 3);
   menu.cardMenuState = { mode: 'options', optionIndex: 0, items: [{}, {}] };
   volume = 0.3;
-  assert.equal(menu.commitRingDrag(-1), false); assert.equal(plays, 2);
+  assert.equal(menu.commitRingDrag(-1), false); assert.equal(plays, 3);
+  assert.equal(menu.navigateCardMenu(-1), false); assert.equal(plays, 3);
   menu.cardMenuRing = [];
   menu.cardMenuEls = {};
   menu.updateCaption = () => {};
-  menu.commitRingDrag(1); assert.equal(plays, 2);
+  menu.commitRingDrag(1); assert.equal(plays, 4);
+  assert.equal(menu.menuSwipeAudio.volume, 0.3);
   menu.triggerOptionAction = () => {};
   menu.handleCardClick({ dataset: { position: "center", itemIndex: "1" } });
-  assert.equal(plays, 3);
-  menu.handleCardMenuAction(); assert.equal(plays, 4);
+  assert.equal(plays, 5);
+  assert.equal(sounds.at(-1), 'assets/sons/clique-menu.mp3');
+  menu.handleCardMenuAction(); assert.equal(plays, 6);
   menu.cardMenuDragged = true;
-  menu.handleCardClick({ dataset: { position: "right" } }); assert.equal(plays, 4);
-  menu.destroy(); assert.equal(pauses, 1);
+  menu.handleCardClick({ dataset: { position: "right" } }); assert.equal(plays, 6);
+  menu.destroy(); assert.equal(pauses, 2);
   assert.ok(fs.existsSync('assets/sons/clique-menu.mp3'));
 }
-console.log('Som do menu: clique nas cartas e ação, arraste silencioso, volume e limpeza validados.');
+console.log('Som do menu: clique nas cartas e ação, woosh ao arrastar, volume e limpeza validados.');

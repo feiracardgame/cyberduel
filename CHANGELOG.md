@@ -4,6 +4,25 @@ Novidades, correções e verificações realizadas no projeto. As entregas mais 
 
 ## 2026-09-30
 
+### Whoosh em toda troca de carta do menu
+
+- Estendido o whoosh à navegação pelas cartas laterais e à troca de categoria, além do arraste já coberto. O clique permanece na carta central e nas ações, sem tocar junto do whoosh ao navegar.
+- Navegação bloqueada nos limites e áudio desativado não produzem som. Renovada a versão do script do menu no HTML.
+- Validação: testes do menu verificaram o arquivo de áudio disparado, navegação, arraste, limites, volume e limpeza; sintaxe e `git diff --check` aprovados. Sem nova avaliação auditiva ou execução de Playwright nesta alteração.
+
+### Turnos, efeitos, áudio e builds salvas
+
+- Finalizar jogada mantém a vez local até a confirmação do servidor e exibe “Confirmando jogada…”. Evitado o redesenho desnecessário que enviava outro estado antes de finalizar; recusas e respostas ausentes após 5 segundos liberam nova tentativa. O ACK inclui o estado confirmado como recuperação, sem reaplicar transições já recebidas; respostas antigas não retrocedem a fase.
+- A confirmação de fim dos efeitos agora usa ACK e permite nova tentativa após falha. Durante animações e espera pelos efeitos remotos, a mão e os controles ficam ocultos e a entrada do campo fica bloqueada, com indicação de pausa no relógio.
+- O Cão mantém somente uma penalidade pendente, inclusive ao consumir estados antigos com várias marcas. O texto da carta informa que o efeito não acumula.
+- Restringido o consumo de cartas de efeito a cartas desse tipo realmente presentes na mão; perdas contabilizadas são de personagens e terrenos. Validados os gatilhos do bônus do Povo da Areia nos dois lados: morte de personagem, uso de carta de efeito e remoção de terreno; invocação, habilidade sem morte, compra, descarte da mão e recálculo não acionam seu bônus. Texto explicativo atualizado.
+- Atualizações multiplayer filtram compras já presentes na mão; a simulação solo não reapresenta compras locais ao executar a IA.
+- Aumentado o volume-base dos efeitos das cinco lendárias de 0,3 para 0,75, respeitando os controles gerais de áudio. Títulos e descrição da ficha lendária usam Arial. Restaurado o som `swipe-menu.mp3` ao concluir o arraste do carrossel.
+- Deck Forge preserva a rolagem ao consultar cartas e adicionar/remover cópias, incluindo após ajustes de fonte; modal móvel fixado à janela. Adicionado menu “Decks salvos” com builds nomeadas, carregamento, exclusão com confirmação e suporte a rascunhos. As builds ficam neste navegador, separadas por conta; o deck ativo continua sendo definido ao selar o deck.
+- Renovadas as versões dos recursos alterados no HTML. A voz do CyberVendedor foi retirada do escopo a pedido do usuário.
+- Validação: 34 dos 36 arquivos de testes funcionais aprovados. As falhas de `card-modal-layer.test.js` (mock antigo da cena) e `effect-events.test.js` (descrição de O Bom divergente do documento) foram reproduzidas com os arquivos originais do HEAD. Sintaxe dos 23 arquivos JavaScript e `git diff --check` aprovados.
+- Chromium/Playwright: desktop 1440×1000 e celular 390×844 mantiveram a rolagem em 800 px após abrir/fechar ficha e remover/adicionar carta; duas builds salvas e carregamento confirmado. Dois clientes concluíram 12 mudanças de fase e três rodadas, com seis animações de compras novas por cliente, sem repetição nas fases intermediárias. Outra partida confirmou mão oculta, input bloqueado e relógio em pausa durante efeito, seguida de quatro mudanças de fase. Nenhum erro JavaScript nesses fluxos.
+
 ### Tela de derrota após desistência
 
 - Preservada a tela final quando chegam atualizações do servidor ou callbacks que tentam redesenhar o campo. A confirmação remota da desistência não apaga mais o aviso “VOCÊ PERDEU” já exibido localmente.

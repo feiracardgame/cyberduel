@@ -286,3 +286,21 @@ assert.match(css, /\.forge-filters\s*\{[^}]*scroll-snap-type:\s*x proximity/s);
 assert.match(deckBuilderUiSource, /ARRASTE PARA VER MAIS/);
 
 console.log("Deck Forge, regras, filtros e limites validados.");
+
+// Builds incompletas podem ser salvas sem substituir o deck ativo; isolamento por conta.
+builder.setAccountSession(null, null);
+const activeBefore = JSON.stringify(builder.getSavedDeck());
+builder.saveBuild('Rascunho', [starter[0]]);
+builder.saveBuild('Completo', starter);
+assert.equal(builder.getSavedBuilds().length, 2);
+assert.equal(JSON.stringify(builder.getSavedDeck()), activeBefore);
+assert.throws(() => builder.saveBuild('rascunho', starter), /existe/);
+assert.throws(() => builder.saveBuild(' ', starter), /nome/);
+builder.setAccountSession('outra-conta', null);
+assert.equal(builder.getSavedBuilds().length, 0);
+builder.saveBuild('Meu deck', starter);
+builder.setAccountSession(null, null);
+assert.equal(builder.getSavedBuilds().length, 2);
+builder.deleteBuild('Rascunho');
+assert.equal(builder.getSavedBuilds().length, 1);
+console.log('Builds: múltiplos decks, rascunhos, exclusão, nomes únicos e isolamento por conta validados.');

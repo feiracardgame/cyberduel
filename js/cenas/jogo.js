@@ -8,7 +8,7 @@ const ALTURA_LAYOUT = Math.max(2160, (1080 * GH) / GW);
 
 const DURACAO_TURNO_MS = 40_000;
 
-const FONTE_LENDARIA = '"Rushblade", Arial, sans-serif';
+const FONTE_LENDARIA = 'Arial, sans-serif';
 
 const VIDEOS_INVOCACAO_POR_CARTA = Object.freeze({
   "RaspClay MonteCorp": "efeitoRaspClayVertical",
@@ -157,6 +157,8 @@ class CenaJogo extends Phaser.Scene {
     // Bloqueia comandos durante animações e modais.
     this.travado = false;
     this.turnoAposEfeitos = null;
+    this.finalizandoJogada = false;
+    this.interfaceOcultaPorEfeitos = false;
 
     // Estado dos relógios de cada jogador.
     this.tempoRestanteTurno = DURACAO_TURNO_MS;
@@ -479,8 +481,53 @@ class CenaJogo extends Phaser.Scene {
     return !!(efeitos?.executando || efeitos?.fila?.length || this.animacaoRemotaEmCurso);
   }
 
+  atualizarInteracaoDuranteEfeitos() {
+    const bloqueado = this.efeitosVisuaisPendentes() || !!this.multiplayer?.effectsPaused;
+    let transicao = false;
+    for (const objeto of this.children?.list || []) {
+      if (!objeto.dadosCarta && objeto !== this.rodaBotoesContainer) continue;
+      // Deixa a compra terminar antes de recolher a carta, sem cortar seu voo.
+      if (objeto.animandoCompra) continue;
+      const deslocamento = objeto.dadosCarta ? 80 : 28;
+      if (!objeto.estadoAntesDosEfeitos &&
+          (bloqueado || (this.interfaceOcultaPorEfeitos && objeto.ocultoPorEfeitos === undefined))) {
+        objeto.estadoAntesDosEfeitos = { y: objeto.y, alpha: objeto.alpha, visible: objeto.visible };
+        this.tweens.killTweensOf(objeto);
+        // Um redesenho durante a pausa deve preservar a interface já recolhida.
+        if (this.interfaceOcultaPorEfeitos) {
+          objeto.y += deslocamento;
+          objeto.setAlpha(0).setVisible(false);
+          objeto.ocultoPorEfeitos = true;
+        }
+      }
+      const anterior = objeto.estadoAntesDosEfeitos;
+      if (!anterior) continue;
+      if (bloqueado !== !!objeto.ocultoPorEfeitos) {
+        objeto.tweenOcultacaoEfeitos?.stop();
+        objeto.ocultoPorEfeitos = bloqueado;
+        objeto.setVisible(anterior.visible);
+        objeto.tweenOcultacaoEfeitos = this.tweens.add({
+          targets: objeto,
+          y: anterior.y + (bloqueado ? deslocamento : 0),
+          alpha: bloqueado ? 0 : anterior.alpha,
+          duration: bloqueado ? 220 : 300,
+          ease: bloqueado ? "Cubic.In" : "Cubic.Out",
+          onComplete: () => {
+            objeto.tweenOcultacaoEfeitos = null;
+            if (bloqueado) objeto.setVisible(false);
+            else objeto.estadoAntesDosEfeitos = null;
+          },
+        });
+      }
+      transicao ||= !!objeto.tweenOcultacaoEfeitos;
+    }
+    this.interfaceOcultaPorEfeitos = bloqueado || transicao;
+    if (this.input) this.input.enabled = !bloqueado && !transicao;
+  }
+
   update(time) {
     this.apresentarEventosEfeito();
+    this.atualizarInteracaoDuranteEfeitos();
     const agoraVisual = Date.now();
     const visual = this.efeitosVisuaisPendentes();
     if (!this.multiplayerAtivo && this.prazoFaseLocal && (visual || this.visualAnterior))
@@ -553,6 +600,7 @@ class CenaJogo extends Phaser.Scene {
 
   podeConsultarCartas() {
     return (
+      !this.efeitosVisuaisPendentes() && !this.multiplayer?.effectsPaused &&
       !this.multiplayer?.presentation &&
       !this.modalAberto &&
       !this.animacaoRemotaEmCurso &&
@@ -646,6 +694,7 @@ class CenaJogo extends Phaser.Scene {
 
   estadoTimerTurno() {
     if (this.efeitosVisuaisPendentes() || this.multiplayer?.effectsPaused) return "animacao";
+    if (this.finalizandoJogada) return "enviando";
     if (!this.ehMeuTurno) return "oponente";
     if (this.timerTurnoExpirado) return "esgotado";
     return "ativo";
@@ -985,6 +1034,7 @@ class CenaJogo extends Phaser.Scene {
       ativo: critico ? "Tempo acabando" : "Sua vez",
       pausado: "Em pausa",
       animacao: "Efeitos • tempo pausado",
+      enviando: "Confirmando jogada…",
       oponente: segundo === 0 ? "Tempo esgotado" : "Vez do oponente",
       esgotado: "Tempo esgotado",
     }[estado];
@@ -1119,6 +1169,7 @@ class CenaJogo extends Phaser.Scene {
     this.chavesCampoRenderAnterior = chavesCampoAtuais;
     this.interfaceJaDesenhada = true;
     this.renderizandoInterface = false;
+    this.atualizarInteracaoDuranteEfeitos();
     if (this.multiplayerAtivo && !this.aplicandoEstadoRemoto)
       this.multiplayer.sendLiveState(this.partida);
   }
@@ -4000,6 +4051,7 @@ class CenaJogo extends Phaser.Scene {
     for (const parte of carta.partesDescricao()) {
       let t = this.add
         .text(0, yParte, parte.texto, {
+          fontFamily: "Arial, sans-serif",
           fontSize: "30px",
           color: parte.tipo === "efeito" ? "#ffd966" : "#f2f2f2",
           fontStyle: parte.tipo === "efeito" ? "bold" : "normal",
@@ -6668,11 +6720,15 @@ class CenaJogo extends Phaser.Scene {
       this.multiplayer?.spectator
     )
       return;
-    this.encerrarSelecoesDaFase();
-    this.pausarTimerAteProximoTurno();
+    if (this.modalAberto || this.objetosSelecaoAlvo) this.encerrarSelecoesDaFase();
     this.travado = true;
-    if (this.multiplayerAtivo) this.multiplayer.finishTurn(this.partida);
-    else this.avancarFaseSolo();
+    if (this.multiplayerAtivo) {
+      this.finalizandoJogada = true;
+      this.multiplayer.finishTurn(this.partida);
+    } else {
+      this.pausarTimerAteProximoTurno();
+      this.avancarFaseSolo();
+    }
   }
 
   avancarFaseSolo() {
@@ -6719,6 +6775,7 @@ class CenaJogo extends Phaser.Scene {
     const nova = this.multiplayer.hydrateMatch(
       this.multiplayer.serializeMatch(anterior),
     );
+    nova.jogador.cartasRecemCompradas = [];
     nova.fase = this.faseAtual;
     nova.turnoIA(this.faseAtual);
     this.apresentarEventosEfeito(nova.eventosEfeito);
@@ -6759,6 +6816,11 @@ class CenaJogo extends Phaser.Scene {
 
     const partidaAnterior = this.partida;
     const novaPartida = this.multiplayer.hydrateMatch(snapshot);
+    if (!update.initial && partidaAnterior) {
+      const naMao = new Set(partidaAnterior.jogador.mao.cartas.map(c => this.chaveCartaMultiplayer(c)));
+      novaPartida.jogador.cartasRecemCompradas = novaPartida.jogador.cartasRecemCompradas
+        .filter(c => !naMao.has(this.chaveCartaMultiplayer(c)));
+    }
     const eventos = update.initial
       ? null
       : this.detectarEventosVisuaisMultiplayer(partidaAnterior, novaPartida);
@@ -6806,6 +6868,7 @@ class CenaJogo extends Phaser.Scene {
   }
 
   finalizarRecebimentoMultiplayer(resultado, update, interfaceDesenhada) {
+    if (update.initial || update.phaseChanged || resultado?.fimDeJogo) this.finalizandoJogada = false;
     // Uma atualização mais nova substitui a liberação pendente da anterior.
     this.turnoAposEfeitos = null;
     if (this.efeitosOponentePendentes()) {
@@ -6828,7 +6891,7 @@ class CenaJogo extends Phaser.Scene {
       this.iniciarNovoTurnoDoJogador();
     else if (!podeJogar && eraMeuTurno) this.reiniciarTimerOponente();
     else if (!podeJogar) this.atualizarVisualTimerTurno(true);
-    this.travado = !podeJogar || !!resultado?.resultadoRodada;
+    this.travado = !podeJogar || !!resultado?.resultadoRodada || !!this.finalizandoJogada;
     // Redesenha após receber a vez para atualizar controles e auras.
     if (!interfaceDesenhada || update.phaseChanged || podeJogar !== eraMeuTurno)
       this.desenharInterface();

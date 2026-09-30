@@ -1,7 +1,7 @@
 // A cena independente preserva os efeitos durante o redesenho do campo.
 const APRESENTACAO_EFEITOS = Object.freeze({
-  "HumbaBrain": { invocacao: "somHumba", video: "videoEfeitohumba" },
-  "Professores de Duelo": { habilidade: "somProfessores", video: "videoEfeitoprofessores", momentos: ["habilidade"] },
+  "HumbaBrain": { invocacao: "somHumba", video: "videoEfeitohumba", volume: 0.75 },
+  "Professores de Duelo": { habilidade: "somProfessores", video: "videoEfeitoprofessores", momentos: ["habilidade"], volume: 0.75 },
   "Torre MonteCorp": { invocacao: "somTorre" },
   "Beira-mar norte de NeoFloripa": { invocacao: "somBeira" },
   "Nexus de Dados Global": { invocacao: "somNexus" },
@@ -14,10 +14,10 @@ const APRESENTACAO_EFEITOS = Object.freeze({
   "Agente da DIPSP": { habilidade: "somTiro", visual: "plasma", cor: 0x3388ff },
   'UCC "Juggernaut"': { habilidade: "somJuggernaut", visual: "plasma" },
   "O Tigre": { habilidade: "somTigre", imagem: "efeitoTigre", momentos: ["habilidade"], visual: "garras" },
-  "RaspClay MonteCorp": { invocacao: "somRaspClay", video: "efeitoRaspClayVertical" },
-  "Dieh'Go, o Xerife": { habilidade: "somDiego", visual: "caveiras", video: "videoEfeitodiego", momentos: ["habilidade"] },
+  "RaspClay MonteCorp": { invocacao: "somRaspClay", video: "efeitoRaspClayVertical", volume: 0.75 },
+  "Dieh'Go, o Xerife": { habilidade: "somDiego", visual: "caveiras", video: "videoEfeitodiego", momentos: ["habilidade"], volume: 0.75 },
   "A Aranha": { habilidade: "somAranha", imagem: "efeitoAranha", momentos: ["habilidade"], video: "videoEfeitoAranha" },
-  "O Boi": { habilidade: "somBoi", imagem: "efeitoBoi", momentos: ["habilidade"], video: "videoEfeitoBoi" },
+  "O Boi": { habilidade: "somBoi", imagem: "efeitoBoi", momentos: ["habilidade"], video: "videoEfeitoBoi", volume: 0.75 },
   "A Cabra": { habilidade: "somCabra", imagem: "efeitoCabra", momentos: ["habilidade"] },
   "O Cão": { passiva: "somCao", imagem: "efeitoCao", momentos: ["passiva"] },
   "O Trotar do Cavalo": { conjuracao: "somCavalo", imagem: "efeitoCavalo", momentos: ["conjuracao"] },
@@ -298,7 +298,8 @@ class CenaEfeitos extends Phaser.Scene {
         }
       }
       const som = perfil[evento.momento] || (evento.momento === "invocacao" ? "somJogarCarta" : alvos.some(a => a.removida) ? "somExplosao" : "somBuff");
-      if ((!echo || (ativo && (alvos.length || perfil.imagem === "efeitoCoelho" || ["efeitoAranha", "efeitoBoi", "efeitoCabra"].includes(perfil.imagem)))) && this.cache.audio.exists(som)) this.sound.play(som, { volume: window.cyberduelSettings?.effects(0.3) ?? 0.3 });
+      const volume = perfil.volume ?? 0.3;
+      if ((!echo || (ativo && (alvos.length || perfil.imagem === "efeitoCoelho" || ["efeitoAranha", "efeitoBoi", "efeitoCabra"].includes(perfil.imagem)))) && this.cache.audio.exists(som)) this.sound.play(som, { volume: window.cyberduelSettings?.effects(volume) ?? volume });
       let duracao = 1000;
       if ((perfil.momentos ? ativo : evento.momento === "invocacao") && perfil.video && this.cache.video.exists(perfil.video)) {
         duracao = 1700;

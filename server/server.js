@@ -1190,6 +1190,7 @@ function advancePhase(room) {
   armPhaseClock(room);
   pauseForEffects(room);
   broadcastState(room, { result, phaseChanged: true });
+  return result;
 }
 
 function removeFromRoom(socket, disconnect = false) {
@@ -1566,8 +1567,8 @@ io.on("connection", (socket) => {
       return ack({ ok: false, error: "Esta fase já terminou." });
     if (!validState(payload.state)) return ack({ ok: false, error: "Estado inválido." });
     room.state = acceptClientState(room, payload.state);
-    advancePhase(room);
-    ack({ ok: true, ...phaseInfo(room) });
+    const result = advancePhase(room);
+    ack({ ok: true, ...phaseInfo(room), update: { state: room.state, ...phaseInfo(room), result, phaseChanged: true } });
   });
 
   socket.on("live-state", (payload = {}, ack = () => {}) => {

@@ -203,6 +203,8 @@ async function run() {
     const finished = await emitAck(actor, "finish-turn", { state, step, round: 1 });
     assert.equal(finished.ok, true);
     update = await listener;
+    assert.equal(finished.update.step, update.step, "ACK inclui a fase confirmada para recuperação.");
+    assert.equal(finished.update.round, update.round);
     state = update.state;
     const stale = await emitAck(actor, "finish-turn", { state, step, round: 1 });
     assert.equal(stale.ok, false);

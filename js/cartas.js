@@ -99,7 +99,7 @@ function descreverEfeito(efeito) {
     case TIPOS_EFEITO.RENOVAR_MAO: return efeito.texto;
     case TIPOS_EFEITO.BUFF_ADJACENTES: return `Benefício do tutorial -> Cartas aliadas adjacentes ganham +${efeito.valor} PA enquanto esta carta estiver em campo.`;
     case TIPOS_EFEITO.BONUS_POR_TERRENOS: return `Demanda operacional -> Recebe +${efeito.valor} PA por terreno presente em qualquer um dos campos.`;
-    case TIPOS_EFEITO.PENALIZAR_PROXIMA_INVOCACAO: return `Faro -> Ao ser invocado, a próxima carta de personagem invocada pelo adversário perde ${efeito.valor} PA.`;
+    case TIPOS_EFEITO.PENALIZAR_PROXIMA_INVOCACAO: return `Faro -> Ao ser invocado, a próxima carta de personagem invocada pelo adversário perde ${efeito.valor} PA. Não acumula.`;
     case TIPOS_EFEITO.SINDICATO:
     case TIPOS_EFEITO.VINCULO_ALIADO:
       return efeito.texto;
@@ -134,7 +134,7 @@ function descreverEfeito(efeito) {
     case TIPOS_EFEITO.REMOVER_TERRENO:
       return "Ao ser conjurada: escolha um terreno inimigo e remova-o do campo.";
     case TIPOS_EFEITO.BONUS_POR_PERDIDAS:
-      return `Recebe +${efeito.valor} PA por carta de efeito usada, personagem destruído ou terreno removido em qualquer lado desde sua invocação.`;
+      return `Recebe +${efeito.valor} PA por carta de efeito usada, personagem destruído ou terreno removido em qualquer lado desde sua invocação. Invocar personagens e ativar habilidades não acionam este bônus.`;
     case TIPOS_EFEITO.BONUS_TRIO_ADJACENTE:
       return `Enquanto estiver adjacente a ${efeito.nomes.join(" e ")}: ganha +${efeito.valor} PA e concede +${efeito.bonusVizinhos || 0} PA aos dois vizinhos.`;
     case TIPOS_EFEITO.BUFF_ATE_DOIS_ALIADOS:

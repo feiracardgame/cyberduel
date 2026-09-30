@@ -43,3 +43,59 @@ const match = () => { return Object.assign(Object.create(Partida.prototype), { j
   assert.equal(target.delta, -1); assert.equal(target.cascaGrossa, true);
 }
 console.log('Armadilha, ordem de revelação e proteção parcial do Porco validadas no motor e na perspectiva remota.');
+
+// Faro não acumula, mas pode voltar a penalizar após consumir a marca anterior.
+{
+  const p = match();
+  for (let i = 0; i < 3; i++) p.aplicarEfeitoInvocacao(card('O Cão'), p.jogador, p.inimigo);
+  assert.equal(p.inimigo.penalidadesInvocacao.length, 1);
+  const target = card('Agente da DIPSP'), original = target.poder;
+  const penalty = p.inimigo.penalidadesInvocacao[0].valor;
+  p.inimigo.campo.adicionarCarta(target, 5);
+  assert.equal(target.poder, original - penalty);
+  assert.equal(p.inimigo.penalidadesInvocacao.length, 0);
+  const second = card('Agente da DIPSP');
+  p.inimigo.campo.adicionarCarta(second, 6);
+  assert.equal(second.poder, original);
+  p.aplicarEfeitoInvocacao(card('O Cão'), p.jogador, p.inimigo);
+  assert.equal(p.inimigo.penalidadesInvocacao.length, 1);
+}
+// Povo da Areia só cresce por perdas do campo ou cartas de efeito consumidas.
+for (const side of ['jogador', 'inimigo']) {
+  let p = match();
+  const sand = card('Povo da Areia');
+  p.jogador.campo.adicionarCarta(sand, 0);
+  const refresh = () => { p.resolverEfeitosContinuos(p.jogador); p.resolverEfeitosContinuos(p.inimigo); };
+  refresh();
+  const ally = card('Agente da DIPSP'); p[side].mao.cartas.push(ally);
+  p[side].jogarCarta(ally, 5); refresh();
+  assert.equal(sand.poder, 4, 'Invocar personagem não conta.');
+  assert.equal(p[side].jogarCartaEfeito(ally), false, 'Personagem não é carta de efeito.');
+  refresh(); assert.equal(sand.poder, 4);
+  const other = side === 'jogador' ? 'inimigo' : 'jogador';
+  const target = card('Agente da DIPSP'); target.poder = 30;
+  p[other].campo.adicionarCarta(target, 5);
+  assert.equal(p.ativarHabilidade(ally, p[side], p[other], 5).sucesso, true);
+  refresh(); assert.equal(sand.bonusEfeitoContinuo, 0, 'Habilidade sem morte não aciona o bônus.');
+  const invalidEffect = card('O Cão'); p[side].mao.cartas.push(invalidEffect);
+  assert.equal(p[side].jogarCartaEfeito(invalidEffect), false);
+  assert.ok(p[side].mao.cartas.includes(invalidEffect));
+  const drawn = card('O Tigre'); p[side].deck.cartas.push(drawn); p[side].comprarCarta();
+  p[side].registrarDescarte(drawn, false); refresh();
+  assert.equal(sand.poder, 4, 'Comprar/descartar da mão não conta.');
+  const ground = card('Saloon'); p[side].campo.adicionarCarta(ground, 1); refresh();
+  assert.equal(sand.bonusEfeitoContinuo, 0, 'Invocar terreno não conta.');
+  p[side].campo.removerCarta(1); refresh();
+  assert.equal(sand.bonusEfeitoContinuo, 1, 'Remover terreno conta uma vez.');
+  ally.poder = 0; p[side].campo.removerMortas(); refresh();
+  assert.equal(sand.bonusEfeitoContinuo, 2, 'Morte conta uma vez.');
+  const effect = new Carta(id++, 0, 'efeito', { nome: 'Teste' });
+  p[side].mao.cartas.push(effect); assert.equal(p[side].jogarCartaEfeito(effect), true); refresh();
+  assert.equal(sand.bonusEfeitoContinuo, 3, 'Conjurar efeito conta uma vez.');
+  assert.equal(p[side].jogarCartaEfeito(effect), false);
+  for (let i = 0; i < 4; i++) refresh();
+  assert.equal(sand.bonusEfeitoContinuo, 3, 'Recálculo não acumula bônus.');
+  p = codec.hydrateMatch(codec.serializeMatch(p)); refresh();
+  assert.equal(p.jogador.campo.cartas[0].bonusEfeitoContinuo, 3, 'Sincronização preserva o bônus.');
+}
+console.log('Faro sem acúmulo e gatilhos do Povo da Areia nos dois lados validados.');

@@ -248,6 +248,32 @@ class CyberduelDeckBuilder {
     return true;
   }
 
+  savedBuildsKey() {
+    return `cyberduel.builds.v1:${this.account || "visitante"}`;
+  }
+
+  getSavedBuilds() {
+    try {
+      const builds = JSON.parse(localStorage.getItem(this.savedBuildsKey())) || [];
+      return Array.isArray(builds) ? builds.filter(build => typeof build?.name === "string" && Array.isArray(build.deck)) : [];
+    } catch { return []; }
+  }
+
+  saveBuild(name, deck) {
+    name = String(name || "").trim().slice(0, 60);
+    const normalized = this.normalize(deck);
+    if (!name || !normalized?.length) throw Error("Informe um nome e adicione cartas à build.");
+    const builds = this.getSavedBuilds();
+    if (builds.some(build => build.name.toLocaleLowerCase("pt-BR") === name.toLocaleLowerCase("pt-BR")))
+      throw Error("Já existe uma build com esse nome. Escolha outro nome.");
+    builds.push({ name, deck: normalized });
+    localStorage.setItem(this.savedBuildsKey(), JSON.stringify(builds));
+  }
+
+  deleteBuild(name) {
+    localStorage.setItem(this.savedBuildsKey(), JSON.stringify(this.getSavedBuilds().filter(build => build.name !== name)));
+  }
+
   setAccountSession(user, deck, collection = null) {
     this.account = user || null;
     this.accountDeck = this.account ? this.normalize(deck) : null;

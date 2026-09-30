@@ -1850,7 +1850,7 @@ body.deck-forge-open #game-viewport canvas {
   }
 
   .forge-modal {
-    position: absolute;
+    position: fixed;
     align-items: end;
     padding: 0;
   }
@@ -3138,3 +3138,12 @@ body.title-terminal-open #game-viewport canvas {
   -webkit-text-stroke: clamp(1px, 0.065em, 6px) #000;
   paint-order: stroke fill;
 }
+
+/* O navegador não reposiciona a coleção quando suas cartas são atualizadas. */
+.deck-forge { overflow-anchor: none; }
+
+.forge-header-actions { display: grid; gap: 12px; justify-items: end; }
+.forge-builds { max-height: 85dvh; overflow-y: auto; }
+.forge-build-list { display: grid; gap: 14px; margin-top: 20px; }
+.forge-build-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.forge-build-row strong { flex: 1 1 100%; overflow-wrap: anywhere; }
