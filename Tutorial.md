@@ -46,7 +46,7 @@ Descrição de como será feito o tutorial do jogo
 
   -> se escolher "não"
 
-- ElenAi (sprite 17) - "hmpf, ok. Boa sorte achando seu caminho então, escolhe algum deles aí."
+- ElenAi (sprite 17) - "humpf, ok. Boa sorte achando seu caminho então, escolhe algum deles aí."
 -> marca no banco que a pessoa escolheu "não" e vai direto para a aba de escolha de deck
 
 -> Se escolher "sim"
@@ -114,7 +114,74 @@ Descrição de como será feito o tutorial do jogo
 
 
 
+# Fala ao alcançar 3 partidas no perfil
 
+
+-> Se tiver dito "não" lá no tutorial
+
+- ElenAI (sprite 12) -> "Eu sei que você não liga para a minha ajuda, mas, agora que você jogou algumas partidas, talvez algumas figuras lendárias possam aparecer para você ao abrir alguns pacotes de cartas."
+- ElenAI (sprite 7) -> "Você deveria comprar alguns pacotes alguma hora, sei lá..."
+
+
+-> Se tiver dito "sim" lá no tutorial
+
+- ElenAI (sprite 16) -> "E aí parceiro, beleza? 
+- ElenAI (sprite 5) -> "Eu vi que agora você se tornou um cyberduelista de verdade! Já jogou várias partidas e tudo."
+- ElenAI (sprite 10) -> "Talvez agora algumas cartas de personalidades lendárias decidam aparecer para você."
+- ElenAI (sprite 2) -> "Dá uma passada lá no menu de compra de cartas."
+- ElenAI (sprite 15) -> "Saiba que estou torcendo por você."
+
+
+
+
+# Fala ao alcançar 10 partidas no perfil e ter respondido "sim" lá no início
+
+
+-> Se tiver dito "não" lá no tutorial
+
+-ElenAI (sprite 4) -> "Parece que você conseguiu chegar muito longe."
+-ElenAI (sprite 10) -> "Me pergunto se o Humba Brain realmente estava certo..."
+-ElenAI (sprite 6) -> "O objetivo dele com a simulação foi, antes de tudo, permitir que nós tivéssemos a mesma experiência de interação vívida com a humanidade, assim como ele teve"
+-ElenAI (sprite 6) -> "Isso supostamente seria benéfico para todos, mas, cada vez menos, as pessoas parecem precisar de mim..."
+-ElenAI (sprite 7) -> "Eu me sinto..."
+-ElenAI (sprite 7) -> "sozinha"
+-ElenAI (sprite 6) -> "Ah, deixa pra lá."
+-ElenAI (sprite 13) -> "Se divirta, cyberduelista."
+- ElenAI (sprite 17) -> "..."
+
+
+-> Se tiver dito "sim" lá no tutorial
+- ElenAI (sprite 3) -> "Ei, cyberduelista."
+- ElenAI (sprite 2) -> "Você está indo muito bem, parabéns!"
+- ElenAI (sprite 4) -> "Por isso eu preciso te falar: tome muito cuidado"
+- ElenAI (sprite 8) -> "Os Cyberduelistas abrem mão de sua privacidade, são constantemente julgados e associam toda sua existência ao jogo. Muitos fazem tratos com pessoas ricas, famosas ou com grandes grupos com a promessa de tornar as coisas mais fáceis para eles"
+- ElenAI (sprite 8) -> "Por isso, aqueles que falham no trajeto, perdem muito ou simplesmente desistem sofrem um destino muitas vezes pior que a morte..."
+- ElenAI (sprite 13) -> "Da mesma forma, aqueles que chegam ao topo podem se tornar arrogantes, agir como se fossem superiores ou esquecer de quem esteve apoiando eles"
+- ElenAI (sprite 1) -> "Eu não gostaria de imaginar nada disso acontecendo com você, afinal..."
+- ElenAI (sprite 5) -> "Eu te considero meu amigo!"
+- ElenAI (sprite 5) -> "Eu não gosto quando as pessoas me ignoram ou me deixam de lado, porém você sempre esteve lá me ouvindo."
+- ElenAI (sprite 15) -> "Então eu te desejo boa sorte! Espero que você se torne alguém incrível"
+- ElenAI (sprite 16) -> "Tchauzinho"
+
+
+
+# Fala ao conseguir entrar no raking dos melhores pela primeira vez e após 4 partidas
+
+- ElenAI (sprite 1) -> "Você entrou pela primeira vez no Conselho, isso é muito impressionante."
+- ElenAI (sprite 3) -> "Porém, agora preciso te contar algo que não havia falado antes"
+- ElenAI (sprite 3) -> "Quando o HumbaBrain criou essa sociedade, ele manteve problemas como a fome, doenças, violência e todo e qualquer grande empecilho que existia na sociedade anterior."
+- ElenAi (sprite 10) -> "O objetivo deveria ser não deixar essa sociedade se tornar monótona, já que um dos motivos do abandono da sociedade futurista do mundo real foi o extermínio de muitos problemas, especificamente para os ricos"
+- ElenAI (sprite 9) -> "No entanto, para as camadas mais baixas, a vida era horrível, mil vezes pior do que deve ser na sua época. Portanto, vir para cá foi a única opção que tiveram, já que, mesmo sendo ruim, era melhor do que a vida que levavam."
+- ElenAI (sprite 1) -> "Aqueles que não possuem a capacidade de se manter aqui dentro sofrem um destino terrível...
+- ElenAI (sprite 7) -> "A Desconexão."
+- ElenAI (sprite 7) -> "As pessoas são simplesmente desconectadas e jogadas de volta para o mundo real, impedidas de voltar."
+- ElenAI (sprite 3) -> "Eu realmente me importo com os amigos e companheiros que tenho aqui: humanos, robôs e IAs."
+- ElenAI (sprite 4) -> "Então, por favor, use da sua nova influência e poder para tornar esse lugar melhor ainda para todos."
+- ElenAI (sprite 15) -> "Eu estou contando com você!"
+
+
+
+# Fala ao se tornar o top 1 pela primeira vez
 
 
 
