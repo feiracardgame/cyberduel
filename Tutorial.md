@@ -15,7 +15,7 @@ Descrição de como será feito o tutorial do jogo
 
 -> A fala inicial deve aparecer apenas na primeira vez que a pessoa acessa o jogo
 
-*Fundo da tela inicial do menu escurecida, com o sprite aparecendo no canto direito*
+*Fundo da tela inicial do menu escurecida, sem as cartas, com o sprite aparecendo no canto direito*
 
 - ???? (sem sprite): "Huh, quem está aí?"
 - ???? (sprite 2): "Ah, perdão, eu não esperava novos visitantes. Eu sempre acreditei que todos já tinham se mudado para cá."
@@ -90,6 +90,9 @@ Descrição de como será feito o tutorial do jogo
 -> Vai para a Aba de escolha de deck
 
 # Escolha de deck
+
+*Fundo da tela inicial do menu escurecida, sem as cartas, com o sprite aparecendo no canto direito*
+
 
 -> Se a pessoa escolher "não", la atrás, pula todo esse diálogo e vai direto pra escolha
 
