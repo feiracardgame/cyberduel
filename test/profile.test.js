@@ -6,6 +6,7 @@ const { spawn } = require('node:child_process');
 const { once } = require('node:events');
 const vm = require('node:vm');
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cyberduel-profile-'));
+const [first, second] = require('./account-fixture')(dir, ['PerfilUnico', 'PerfilOutro']);
 const port = 31992;
 let server;
 async function start() {
@@ -28,10 +29,10 @@ const avatar = 'assets/fotosdeperfil/juggernaut_icon.png';
 (async () => {
   await start();
   assert.equal((await api('account/profile', { nickname: 'Teste', avatar: '' }, 'PUT')).status, 401);
-  const credentials = { username: 'PerfilUnico', password: 'senha-perfil-123' };
-  const registered = await api('auth/register', credentials);
-  token = registered.body.token;
-  assert.equal(registered.body.nickname, credentials.username);
+  token = first.token;
+  const registered = await api('auth/session', undefined, 'GET');
+  assert.equal(registered.status, 200);
+  assert.equal(registered.body.nickname, first.username);
   assert.equal(registered.body.avatar, '');
   assert.deepEqual(registered.body.profilePhotos, fs.readdirSync('assets/fotosdeperfil')
     .filter(name => name.endsWith('_icon.png')).map(name => `assets/fotosdeperfil/${name}`).sort());
@@ -57,14 +58,13 @@ const avatar = 'assets/fotosdeperfil/juggernaut_icon.png';
     { nickname: 'Teste', avatar: 'x'.repeat(48001) },
   ]) assert.equal((await api('account/profile', body, 'PUT')).status, 400);
   const firstToken = token;
-  token = (await api('auth/register', { username: 'PerfilOutro', password: credentials.password })).body.token;
+  token = second.token;
   assert.equal((await api('account/profile', { nickname: 'Six Seven', avatar: '' }, 'PUT')).status, 200, 'Apelidos podem repetir');
   assert.equal((await api('account/faction', { faction: 'echossystem' })).body.avatar, 'assets/fotosdeperfil/boi_icon.png');
   token = firstToken;
   assert.equal((await api('auth/session', undefined, 'GET')).body.avatar, avatar);
   await stop(); await start();
-  const login = await api('auth/login', credentials);
-  token = login.body.token;
+  const login = await api('auth/session', undefined, 'GET');
   assert.equal(login.body.nickname, 'Six Seven');
   assert.equal(login.body.avatar, avatar);
   assert.equal((await api('account/profile', { nickname: 'Six Seven', avatar: '' }, 'PUT')).body.avatar, '');
@@ -78,10 +78,12 @@ const avatar = 'assets/fotosdeperfil/juggernaut_icon.png';
   for (const account of Object.values(store.accounts)) { delete account.nickname; account.avatar = 'data:image/jpeg;base64,/9j/2Q=='; }
   fs.writeFileSync(file, JSON.stringify(store));
   await start();
-  const legacy = await api('auth/login', credentials);
-  assert.equal(legacy.body.nickname, credentials.username);
+  const legacy = await api('auth/session', undefined, 'GET');
+  assert.equal(legacy.body.nickname, '');
+  assert.equal(legacy.body.needsRegistration, true);
   assert.equal(legacy.body.avatar, 'assets/fotosdeperfil/raspclay_icon.png');
-  assert.equal((await api('auth/login', { username: 'PerfilOutro', password: credentials.password })).body.avatar, 'assets/fotosdeperfil/boi_icon.png');
+  token = second.token;
+  assert.equal((await api('auth/session', undefined, 'GET')).body.avatar, 'assets/fotosdeperfil/boi_icon.png');
   const context = vm.createContext({ window: {}, localStorage: { getItem: () => null, removeItem() {} } });
   vm.runInContext(fs.readFileSync('js/account.js', 'utf8'), context);
   const account = context.window.cyberduelAccount;

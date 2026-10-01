@@ -12,13 +12,11 @@ const {
   createHash,
   randomBytes,
   randomInt,
-  scrypt: scryptCallback,
-  timingSafeEqual,
 } = require("crypto");
-const { promisify } = require("util");
 const path = require("path");
 const { runInNewContext } = require("node:vm");
 const { Server } = require("socket.io");
+const { OAuth2Client } = require("google-auth-library");
 const QRCode = require("qrcode");
 const { networkInterfaces } = require("node:os");
 const ranking = require("./ranking");
@@ -39,12 +37,15 @@ const DATA_DIR = path.resolve(
 );
 const ACCOUNTS_FILE = path.join(DATA_DIR, "accounts.json");
 const SESSIONS_FILE = path.join(DATA_DIR, "sessions.json");
-const scrypt = promisify(scryptCallback);
 const rooms = new Map();
 const sessions = new Map();
 const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
 const BOOSTER_PRICE = 100;
 const INITIAL_CURRENCY = 500;
+const GOOGLE_CLIENT_ID = String(process.env.GOOGLE_CLIENT_ID || "").trim();
+const googleAuth = new OAuth2Client({ clientId: GOOGLE_CLIENT_ID, transporterOptions: { timeout: 10000 } });
+// ponytail: tentativas em memória; armazenamento compartilhado se houver múltiplas instâncias.
+const googleLogins = new Map();
 
 function environmentInteger(name, fallback, minimum = 0, maximum = 100000) {
   const parsed = Number.parseInt(process.env[name], 10);
@@ -136,7 +137,7 @@ function ensureAccountDefaults(account) {
   if (!account.collection || typeof account.collection !== "object")
     account.collection = {};
   if (!Array.isArray(account.boosters)) account.boosters = [];
-  if (typeof account.nickname !== "string" || !account.nickname.trim()) account.nickname = account.username;
+  if (typeof account.nickname !== "string" || !account.nickname.trim()) account.nickname = account.googleSub ? "" : account.username;
   if (!PROFILE_PHOTOS.includes(account.avatar)) account.avatar = FACTION_PHOTOS[account.faction] || "";
   return account;
 }
@@ -160,7 +161,7 @@ try {
   for (const [key, session] of Object.entries(loaded.sessions || {})) {
     if (/^[a-f0-9]{64}$/.test(key) && session &&
         Number.isFinite(session.expiresAt) && session.expiresAt > Date.now() &&
-        Object.hasOwn(accountStore.accounts, session.accountKey)) {
+        accountStore.accounts[session.accountKey]?.googleSub) {
       sessions.set(key, session);
     }
   }
@@ -241,17 +242,14 @@ function normalizeUsername(value) {
     .toLocaleLowerCase("pt-BR");
 }
 
-function validCredentials(username, password) {
-  return (
-    /^[a-zA-Z0-9_.-]{3,24}$/.test(username) &&
-    typeof password === "string" &&
-    password.length >= 6 &&
-    password.length <= 128
-  );
+function validUsername(value) {
+  return typeof value === "string" && /^[a-zA-Z0-9_.-]{3,24}$/.test(value);
 }
 
-async function passwordHash(password, salt) {
-  return (await scrypt(password, salt, 64)).toString("hex");
+function accountByUsername(username) {
+  const key = normalizeUsername(username);
+  // ponytail: busca linear; índice por username se o volume de contas exigir.
+  return Object.values(accountStore.accounts).find(account => normalizeUsername(account.username) === key);
 }
 
 function createSession(accountKey) {
@@ -285,7 +283,26 @@ function accountFromToken(token) {
     sessions.delete(sessionKey(token));
     return null;
   }
-  return accountStore.accounts[session.accountKey] || null;
+  const account = accountStore.accounts[session.accountKey];
+  return account && !needsRegistration(account) ? account : null;
+}
+
+function needsRegistration(account) {
+  return Boolean(account.googleSub && (!validUsername(account.username) || !account.nickname?.trim()));
+}
+
+function allowedFrontend(origin, host) {
+  try {
+    const frontend = new URL(origin);
+    const backend = new URL(`http://${host}`);
+    const loopback = new Set(["localhost", "127.0.0.1", "[::1]"]);
+    return /^https?:$/.test(frontend.protocol) && (
+      frontend.hostname === backend.hostname ||
+      (loopback.has(frontend.hostname) && loopback.has(backend.hostname))
+    );
+  } catch {
+    return false;
+  }
 }
 
 function publicAccount(account) {
@@ -293,6 +310,9 @@ function publicAccount(account) {
   return {
     username: account.username,
     nickname: account.nickname,
+    authProvider: account.googleSub ? "google" : "password",
+    needsRegistration: needsRegistration(account),
+    needsUsername: Boolean(account.googleSub && !validUsername(account.username)),
     avatar: account.avatar,
     profilePhotos: PROFILE_PHOTOS,
     rating: account.rating, rank: ranking.playerProfile(account).rank,
@@ -347,7 +367,7 @@ function resolveCardByName(nomeDaCarta) {
 function darCarta(conta, nomeDaCarta, quantidade = 1) {
   const account =
     typeof conta === "string"
-      ? accountStore.accounts[normalizeUsername(conta)]
+      ? accountByUsername(conta)
       : conta;
   if (!account || typeof account !== "object") {
     throw new Error("ACCOUNT_NOT_FOUND");
@@ -457,6 +477,64 @@ function rollBooster(faction, gamesPlayed) {
 }
 
 async function handleApi(request, response, pathname) {
+  if (["/api/auth/login", "/api/auth/register"].includes(pathname))
+    return sendJson(response, 410, { ok: false, error: "O acesso por senha foi desativado. Entre com Google." });
+
+  if (pathname.startsWith("/api/auth/google")) {
+    if (!GOOGLE_CLIENT_ID)
+      return sendJson(response, 503, { ok: false, error: "Login com Google ainda não configurado no servidor." });
+    if (!allowedFrontend(request.headers.origin, request.headers.host))
+      return sendJson(response, 403, { ok: false, error: "Origem de login não autorizada." });
+  }
+
+  if (request.method === "POST" && pathname === "/api/auth/google/start") {
+    for (const [id, login] of googleLogins) {
+      if (login.expiresAt <= Date.now()) googleLogins.delete(id);
+    }
+    if (googleLogins.size >= 1000)
+      return sendJson(response, 429, { ok: false, error: "Muitas tentativas de login. Tente novamente em alguns minutos." });
+    const loginId = randomBytes(32).toString("hex");
+    const nonce = randomBytes(32).toString("hex");
+    googleLogins.set(sessionKey(loginId), { nonce, expiresAt: Date.now() + 10 * 60 * 1000 });
+    return sendJson(response, 200, { ok: true, clientId: GOOGLE_CLIENT_ID, loginId, nonce });
+  }
+
+  if (request.method === "POST" && pathname === "/api/auth/google") {
+    const body = await readJson(request);
+    const key = sessionKey(body.loginId || "");
+    const login = googleLogins.get(key);
+    googleLogins.delete(key);
+    if (!login || login.expiresAt <= Date.now() || typeof body.credential !== "string")
+      return sendJson(response, 401, { ok: false, error: "Login expirado. Tente entrar com Google novamente." });
+    let identity;
+    try {
+      const ticket = await googleAuth.verifyIdToken({ idToken: body.credential, audience: GOOGLE_CLIENT_ID });
+      identity = ticket.getPayload();
+      if (typeof identity?.sub !== "string" || !identity.sub || identity.nonce !== login.nonce) throw new Error("Invalid Google identity");
+    } catch {
+      return sendJson(response, 401, { ok: false, error: "Não foi possível validar sua conta Google. Tente novamente." });
+    }
+    // O sub identifica a conta; nome e email do Google não vinculam contas antigas.
+    let entry = Object.entries(accountStore.accounts).find(([, account]) => account.googleSub === identity.sub);
+    if (!entry) {
+      const accountKey = `google_${randomBytes(16).toString("hex")}`;
+      const account = ensureAccountDefaults({
+        username: accountKey, googleSub: identity.sub, nickname: "", deck: null,
+        createdAt: new Date().toISOString(),
+      });
+      accountStore.accounts[accountKey] = account;
+      saveAccounts();
+      entry = [accountKey, account];
+    }
+    return sendJson(response, 200, { ok: true, token: createSession(entry[0]), ...publicAccount(entry[1]) });
+  }
+
+  const pending = authenticatedSession(request);
+  if (pending && needsRegistration(pending.account) && ![
+    "/api/auth/session", "/api/auth/logout", "/api/account/profile",
+  ].includes(pathname))
+    return sendJson(response, 403, { ok: false, error: "Escolha seu username e apelido antes de continuar." });
+
   if (request.method === "GET" && pathname === "/api/leaderboard") {
     const entries = Object.values(accountStore.accounts).filter(account => account.rankedGames > 0)
       .sort((a, b) => b.rating - a.rating || b.rankedWins - a.rankedWins || a.username.localeCompare(b.username))
@@ -472,73 +550,6 @@ async function handleApi(request, response, pathname) {
         price: BOOSTER_PRICE,
         ...BOOSTER_CONFIG,
       },
-    });
-  }
-
-  if (request.method === "POST" && pathname === "/api/auth/register") {
-    const body = await readJson(request);
-    const username = String(body.username || "").trim();
-    const password = body.password;
-    if (!validCredentials(username, password)) {
-      return sendJson(response, 400, {
-        ok: false,
-        error: "Usuário: 3–24 letras/números. Senha: mínimo de 6 caracteres.",
-      });
-    }
-    const key = normalizeUsername(username);
-    if (accountStore.accounts[key])
-      return sendJson(response, 409, {
-        ok: false,
-        error: "Esse usuário já existe.",
-      });
-    const salt = randomBytes(16).toString("hex");
-    accountStore.accounts[key] = {
-      username,
-      salt,
-      passwordHash: await passwordHash(password, salt),
-      deck: null,
-      faction: null,
-      currency: INITIAL_CURRENCY,
-      gamesPlayed: 0,
-      collection: {},
-      createdAt: new Date().toISOString(),
-    };
-    saveAccounts();
-    const token = createSession(key);
-    return sendJson(response, 201, {
-      ok: true,
-      token,
-      ...publicAccount(accountStore.accounts[key]),
-    });
-  }
-
-  if (request.method === "POST" && pathname === "/api/auth/login") {
-    const body = await readJson(request);
-    const key = normalizeUsername(body.username);
-    const account = accountStore.accounts[key];
-    if (!account || typeof body.password !== "string")
-      return sendJson(response, 401, {
-        ok: false,
-        error: "Usuário ou senha inválidos.",
-      });
-    const candidate = Buffer.from(
-      await passwordHash(body.password, account.salt),
-      "hex",
-    );
-    const expected = Buffer.from(account.passwordHash, "hex");
-    if (
-      candidate.length !== expected.length ||
-      !timingSafeEqual(candidate, expected)
-    )
-      return sendJson(response, 401, {
-        ok: false,
-        error: "Usuário ou senha inválidos.",
-      });
-    const token = createSession(key);
-    return sendJson(response, 200, {
-      ok: true,
-      token,
-      ...publicAccount(account),
     });
   }
 
@@ -565,12 +576,20 @@ async function handleApi(request, response, pathname) {
     const session = authenticatedSession(request);
     if (!session) return sendJson(response, 401, { ok: false, error: "Entre na conta para editar seu perfil." });
     const body = await readJson(request);
+    const needsUsername = !validUsername(session.account.username);
+    const username = needsUsername && typeof body.username === "string" ? body.username.trim() : session.account.username;
+    if (!validUsername(username))
+      return sendJson(response, 400, { ok: false, error: "Use um username de 3 a 24 caracteres: letras, números, ponto, hífen ou sublinhado." });
     const nickname = typeof body.nickname === "string" ? body.nickname.trim() : "";
     if (!nickname || Array.from(nickname).length > 32 || /[\u0000-\u001f\u007f]/.test(nickname))
       return sendJson(response, 400, { ok: false, error: "Use um apelido de 1 a 32 caracteres." });
-    const avatar = body.avatar;
+    const avatar = body.avatar === undefined ? session.account.avatar : body.avatar;
     if (avatar !== "" && !PROFILE_PHOTOS.includes(avatar))
       return sendJson(response, 400, { ok: false, error: "Escolha uma das fotos de perfil disponíveis." });
+    const owner = accountByUsername(username);
+    if (owner && owner !== session.account)
+      return sendJson(response, 409, { ok: false, error: "Esse username já está em uso. Escolha outro." });
+    session.account.username = username;
     session.account.nickname = nickname;
     session.account.avatar = avatar || FACTION_PHOTOS[session.account.faction] || "";
     session.account.updatedAt = new Date().toISOString();
@@ -729,7 +748,7 @@ async function handleApi(request, response, pathname) {
     const amount = body.amount;
     if (!Number.isSafeInteger(amount) || amount < 1 || amount > 1000000)
       return sendJson(response, 400, { ok: false, error: "Informe um valor inteiro entre 1 e 1.000.000." });
-    const account = accountStore.accounts[normalizeUsername(String(body.username || "").trim())];
+    const account = accountByUsername(body.username);
     if (!account) return sendJson(response, 404, { ok: false, error: "Conta não encontrada." });
     ensureAccountDefaults(account);
     if (!Number.isSafeInteger(account.currency + amount))
@@ -752,8 +771,7 @@ async function handleApi(request, response, pathname) {
 
     const body = await readJson(request);
     const username = String(body.username || "").trim();
-    const key = normalizeUsername(username);
-    const account = accountStore.accounts[key];
+    const account = accountByUsername(username);
     if (!account)
       return sendJson(response, 404, {
         ok: false,
@@ -822,7 +840,7 @@ async function handleApi(request, response, pathname) {
 
     try {
       const grantedCard = darCarta(conta, nomeDaCarta, quantidade);
-      const account = accountStore.accounts[normalizeUsername(conta)];
+      const account = accountByUsername(conta);
       return sendJson(response, 200, {
         ok: true,
         granted: [
@@ -867,7 +885,7 @@ async function handleApi(request, response, pathname) {
         ok: false,
         error: "Informe conta ou username.",
       });
-    const account = accountStore.accounts[normalizeUsername(conta)];
+    const account = accountByUsername(conta);
     if (!account)
       return sendJson(response, 404, {
         ok: false,
@@ -938,20 +956,11 @@ function serveGame(request, response) {
     const origin = request.headers.origin;
     if (origin) {
       response.setHeader("Vary", "Origin");
-      try {
+      if (allowedFrontend(origin, request.headers.host)) {
         const frontend = new URL(origin);
-        const backend = new URL(`http://${request.headers.host}`);
-        const loopback = new Set(["localhost", "127.0.0.1", "[::1]"]);
-        if (/^https?:$/.test(frontend.protocol) && (
-          frontend.hostname === backend.hostname ||
-          (loopback.has(frontend.hostname) && loopback.has(backend.hostname))
-        )) {
-          response.setHeader("Access-Control-Allow-Origin", frontend.origin);
-          response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS");
-          response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Admin-Token");
-        }
-      } catch {
-        // Origens inválidas não recebem autorização CORS.
+        response.setHeader("Access-Control-Allow-Origin", frontend.origin);
+        response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS");
+        response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Admin-Token");
       }
     }
     if (request.method === "OPTIONS") {
@@ -1273,7 +1282,7 @@ function settleRankedMatch(room) {
   if (!room.ranked || room.rankSettled || !room.state?.partidaEncerrada || !room.result?.fimDeJogo) return;
   const winner = room.result.resultadoCombate?.resultado;
   if (!["jogador", "inimigo", "empate"].includes(winner)) return;
-  const accounts = [1, 2].map(player => accountStore.accounts[normalizeUsername(room.usernames.get(player))]);
+  const accounts = [1, 2].map(player => accountByUsername(room.usernames.get(player)));
   if (accounts.some(account => !account)) return;
   accounts.forEach(ensureAccountDefaults);
   ranking.applyResult(...accounts, winner);

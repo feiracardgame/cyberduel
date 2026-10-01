@@ -7,6 +7,7 @@ const { spawn } = require('node:child_process');
 const { once } = require('node:events');
 async function serverProof(debug) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'legendary-debug-'));
+  const [{ token }] = require('./account-fixture')(dir, ['TesteLenda']);
   const port = 31989;
   const server = spawn(process.execPath, ['server/server.js'], { env: { ...process.env, PORT: String(port), DATA_DIR: dir, CYBERDUEL_DEBUG: debug ? '1' : '0', BOOSTER_WEIGHT_LENDARIA: '0' }, stdio: ['ignore', 'pipe', 'inherit'] });
   try {
@@ -14,12 +15,10 @@ async function serverProof(debug) {
       const timer = setTimeout(() => reject(new Error('Timeout')), 5000);
       server.stdout.on('data', data => { if (String(data).includes('ouvindo')) { clearTimeout(timer); resolve(); } });
     });
-    let token;
     const post = async (route, body) => {
       const res = await fetch(`http://127.0.0.1:${port}/api/${route}`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify(body) });
       return { status: res.status, body: await res.json() };
     };
-    token = (await post('auth/register', { username: 'TesteLenda', password: 'teste-lenda-123' })).body.token;
     await post('account/faction', { faction: 'raspcorp' });
     const pack = await post('boosters/open', { faction: 'raspcorp', debugLegendary: true });
     assert.equal(pack.status, debug ? 200 : 403);

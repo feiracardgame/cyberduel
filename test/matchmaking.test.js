@@ -20,6 +20,7 @@ const c = stats(), d = stats(); applyResult(c, d, 'empate');
 assert.equal(c.rating, 1000); assert.equal(c.rankedGames, 1); assert.equal(c.rankedLosses, 0);
 
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cyberduel-ranked-'));
+const fixtures = require('./account-fixture')(dataDir, ['RankOne', 'RankTwo']);
 const url = 'http://127.0.0.1:31993';
 let server;
 const sockets = [];
@@ -45,8 +46,8 @@ async function run() {
   const one = await connect(), two = await connect(), duplicate = await connect();
   assert.equal((await ack(one, 'join-matchmaking')).ok, false);
   const users = [];
-  for (const username of ['RankOne', 'RankTwo']) {
-    const account = await api('auth/register', null, { username, password: 'senha-ranking-123' });
+  for (const fixture of fixtures) {
+    const account = { ...await api('auth/session', fixture.token, null, 'GET'), token: fixture.token };
     assert.equal(account.rating, 1000);
     assert.equal((await ack(one, 'join-matchmaking', { accountToken: account.token })).ok, false);
     await api('account/faction', account.token, { faction: 'echossystem' });

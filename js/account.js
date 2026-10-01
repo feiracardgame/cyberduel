@@ -4,6 +4,9 @@ class CyberduelAccount {
     this.token = localStorage.getItem(this.storageKey) || null;
     this.user = null;
     this.nickname = "";
+    this.authProvider = null;
+    this.needsRegistration = false;
+    this.needsUsername = false;
     this.avatar = "";
     this.profilePhotos = [];
     this.deck = null;
@@ -34,6 +37,9 @@ class CyberduelAccount {
     return {
       user: this.user,
       nickname: this.nickname,
+      authProvider: this.authProvider,
+      needsRegistration: this.needsRegistration,
+      needsUsername: this.needsUsername,
       avatar: this.avatar,
       deck: this.deck,
       faction: this.faction,
@@ -71,7 +77,10 @@ class CyberduelAccount {
       localStorage.setItem(this.storageKey, this.token);
     }
     this.user = payload.username || null;
-    this.nickname = payload.nickname || this.user || "";
+    this.authProvider = payload.authProvider || "google";
+    this.needsRegistration = payload.needsRegistration === true;
+    this.needsUsername = payload.needsUsername === true;
+    this.nickname = payload.nickname || (this.needsRegistration ? "" : this.user) || "";
     this.avatar = payload.avatar || "";
     this.profilePhotos = payload.profilePhotos || [];
     this.deck = Array.isArray(payload.deck) ? payload.deck : null;
@@ -98,21 +107,69 @@ class CyberduelAccount {
     }
   }
 
-  async login(username, password) {
-    const payload = await this.request("/api/auth/login", {
-      method: "POST",
-      body: { username, password },
-      auth: false,
+  async googleLogin(credential, loginId) {
+    const payload = await this.request("/api/auth/google", {
+      method: "POST", body: { credential, loginId }, auth: false,
     });
     return this.applyAuth(payload);
   }
 
-  async register(username, password) {
-    const payload = await this.request("/api/auth/register", {
-      method: "POST",
-      body: { username, password },
-      auth: false,
+  async mountGoogleButton(container, onError) {
+    try {
+      const login = await this.request("/api/auth/google/start", { method: "POST", auth: false });
+      if (!window.google?.accounts?.id) {
+        if (!this.googleScript) this.googleScript = new Promise((resolve, reject) => {
+          const script = document.createElement("script");
+          const timer = setTimeout(() => {
+            script.remove();
+            reject(new Error("O Google não respondeu. Verifique sua conexão e tente novamente."));
+          }, 15000);
+          script.src = "https://accounts.google.com/gsi/client?hl=pt-BR";
+          script.async = true;
+          script.onload = () => { clearTimeout(timer); resolve(); };
+          script.onerror = () => {
+            clearTimeout(timer);
+            script.remove();
+            reject(new Error("Não foi possível carregar o login com Google."));
+          };
+          document.head.append(script);
+        }).catch(error => { this.googleScript = null; throw error; });
+        await this.googleScript;
+      }
+      if (!container.isConnected) return;
+      const google = window.google.accounts.id;
+      google.initialize({
+        client_id: login.clientId, nonce: login.nonce, auto_select: false,
+        callback: async ({ credential }) => {
+          if (!container.isConnected) return;
+          container.replaceChildren();
+          container.textContent = "Entrando…";
+          try {
+            await this.googleLogin(credential, login.loginId);
+          } catch (error) {
+            if (!container.isConnected) return;
+            onError(error);
+            await this.mountGoogleButton(container, onError);
+          }
+        },
+      });
+      container.replaceChildren();
+      google.renderButton(container, { type: "standard", theme: "outline", size: "large", text: "signin_with", locale: "pt-BR" });
+    } catch (error) {
+      if (!container.isConnected) return;
+      container.replaceChildren();
+      onError(error);
+    }
+  }
+
+  async completeRegistration(username, nickname) {
+    const payload = await this.request("/api/account/profile", {
+      method: "PUT", body: { username, nickname },
     });
+    const builds = localStorage.getItem(`cyberduel.builds.v1:${this.user}`);
+    const buildsKey = `cyberduel.builds.v1:${payload.username}`;
+    if (builds && this.user !== payload.username && !localStorage.getItem(buildsKey))
+      localStorage.setItem(buildsKey, builds);
     return this.applyAuth(payload);
   }
 
@@ -262,6 +319,9 @@ class CyberduelAccount {
     this.token = null;
     this.user = null;
     this.nickname = "";
+    this.authProvider = null;
+    this.needsRegistration = false;
+    this.needsUsername = false;
     this.avatar = "";
     this.profilePhotos = [];
     this.deck = null;

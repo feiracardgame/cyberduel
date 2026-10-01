@@ -9,6 +9,7 @@ const { io } = require("socket.io-client");
 const port = 31987;
 const url = `http://127.0.0.1:${port}`;
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "cyberduel-multiplayer-test-"));
+const fixtures = require("./account-fixture")(dataDir, ["Gabriel", "Dante"]);
 const server = spawn(process.execPath, ["server/server.js"], {
   cwd: process.cwd(),
   env: { ...process.env, PORT: String(port), DATA_DIR: dataDir, CYBERDUEL_DEBUG: "1" },
@@ -56,17 +57,7 @@ async function run() {
   assert.equal(page.status, 200);
   assert.match(page.body, /<!doctype html>/i);
 
-  const register = async (username) => {
-    const response = await fetch(`${url}/api/auth/register`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password: "senha-forte" }),
-    });
-    assert.equal(response.status, 201);
-    return (await response.json()).token;
-  };
-  const token1 = await register("Gabriel");
-  const token2 = await register("Dante");
+  const [token1, token2] = fixtures.map(account => account.token);
 
   for (const token of [token1, token2]) {
     const profile = await fetch(`${url}/api/account/profile`, {

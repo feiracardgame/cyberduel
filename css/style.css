@@ -2272,6 +2272,8 @@ body.title-terminal-open #game-viewport canvas {
   width: min(440px, calc(100vw - 32px));
 }
 
+.title-google-login { display: flex; justify-content: center; margin: 18px 0; }
+
 .title-auth-input {
   width: 100%;
   box-sizing: border-box;

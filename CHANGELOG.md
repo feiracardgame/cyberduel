@@ -2,6 +2,76 @@
 
 Novidades, correções e verificações realizadas no projeto. As entregas mais recentes aparecem primeiro.
 
+## 2026-10-01
+
+### Username único e apelido separado no cadastro Google
+
+- O primeiro acesso agora pede username único de 3 a 24 caracteres (letras, números, ponto, hífen ou sublinhado) e apelido/display name de 1 a 32 caracteres. O servidor rejeita usernames já ocupados com HTTP 409, sem distinguir maiúsculas de minúsculas; apelidos podem repetir e continuam sendo exibidos no jogo e no ranking.
+- Username é escolhido uma vez e aparece como `@username` no perfil; o apelido continua editável. O cadastro obrigatório bloqueia o jogo até preencher ambos e mantém a mensagem de conflito e os campos para nova tentativa, sem permitir pular com Escape.
+- Contas Google com identificador automático passam a escolher o username, preservando apelido, coleção, deck, saldo, rating, facção e sessões. Mantida a chave interna da conta; consultas administrativas e resultados de partidas usam a busca pelo username escolhido. Builds locais são copiadas para a nova identificação quando não existe um histórico nesse destino, mantendo o histórico anterior.
+- Atualizados README, versões dos scripts no HTML e testes. As contas de teste usam chaves internas diferentes de seus usernames para verificar consultas administrativas, matchmaking e persistência.
+- Validações: sintaxe de 63 arquivos JavaScript e `git diff --check` aprovados; 36 dos 38 testes funcionais aprovados, com as mesmas duas falhas preexistentes em `card-modal-layer.test.js` e `effect-events.test.js`. O teste Google cobre formato, campos obrigatórios, colisão sem distinguir maiúsculas, cadastros concorrentes, apelidos repetidos, username imutável, conclusão de cadastro existente, persistência e builds locais.
+- Chromium/Playwright em desktop (1440 × 1000) e celular (390 × 844), com Google simulado e JWT assinado: dois campos, erro de username ocupado, apelido repetido, perfil com `@username`, limites da tela, Escape, restauração, segundo login sem recadastro e facção separada aprovados, sem erros JavaScript. Nenhum dado local real alterado, backend existente não reiniciado e login externo real não executado neste pedido.
+
+### Exclusão manual de contas antigas no servidor
+
+- Adicionado `server/delete-password-accounts.js`: usa `DATA_DIR` ou `server/data`, remove contas sem `googleSub` e sessões órfãs, mantendo os dados das contas Google. Valida os arquivos antes de alterar os dados e grava por arquivo temporário; repetir o comando sem contas antigas não regrava os arquivos.
+- Documentados no README os comandos para Docker Compose e Node, com backend parado e cópia prévia dos arquivos de dados. O script está incluído na imagem pelo `COPY server` existente; a exclusão ocorre somente quando o comando é executado.
+- Teste em diretório temporário aprovado: exclusão de conta/sessão de senha, preservação de coleção, deck, saldo, rating e sessão Google, repetição e recusa de JSON inválido sem alterar as contas.
+- Nenhuma conta local ou de produção foi apagada. O backend local em execução não foi reiniciado; a imagem Docker e o login Google real não foram validados neste pedido.
+
+### Acesso às contas somente pelo Google
+
+- Removidos formulário, estilos e métodos do cliente para login/cadastro por senha, além do código de derivação e verificação de senhas no servidor. As rotas antigas retornam HTTP 410 com orientação para entrar pelo Google, inclusive quando o provedor não está configurado.
+- Sessões persistidas de contas sem vínculo Google deixam de ser restauradas, bloqueando seu uso pela API e pelo matchmaking. Os dados dessas contas permanecem até a exclusão manual.
+- Atualizados os textos do perfil, retirado o fluxo de facção exclusivo de contas por senha, renovadas as versões dos recursos no HTML e adaptados os testes de contas, perfil, boosters, ranking, multiplayer e apresentação para preparar contas Google em diretórios temporários.
+- Validações: sintaxe de 63 arquivos JavaScript e `git diff --check` aprovados. Teste Google aprovado com assinatura real de JWT, bloqueio das rotas antigas e sessões legadas, persistência Google e interface sem opção por senha mesmo em caso de erro do provedor. Dos 38 testes funcionais, 36 aprovados; continuam as duas falhas preexistentes em `card-modal-layer.test.js` (mock sem `scene.bringToTop`) e `effect-events.test.js` (descrição de O Bom divergente), cujos arquivos envolvidos não foram alterados neste pedido.
+
+### Diagnóstico de origem não autorizada no login Google
+
+- Identificado na captura enviada o erro `400: origin_mismatch`, com o jogo aberto em `http://127.0.0.1:5500`. Consultada a documentação oficial: a origem do navegador precisa estar cadastrada nas origens JavaScript autorizadas do cliente OAuth utilizado.
+- Conferido que o backend aceita origens locais `localhost` e `127.0.0.1`; essa permissão local não substitui o cadastro da origem no Google Cloud. Orientado cadastrar o endereço exato do Live Server ou acessar `localhost` com a porta já autorizada.
+- Nenhuma configuração do Google Cloud alterada e nenhum login real validado neste pedido; a resolução depende de salvar a origem no cliente correto e repetir o acesso.
+
+### Publicação do exemplo de ambiente
+
+- Conferido o conteúdo atual de `.env.example`: contém parâmetros do jogo e um Client ID OAuth do Google, sem Client Secret, senha ou token. O Client ID é usado no navegador pela integração Google Identity Services.
+- Adicionado `.env` ao `.gitignore`, que ainda não protegia esse arquivo. Preservados o exemplo de ambiente e os valores locais do usuário.
+- Rechecadas as variáveis do exemplo após nova consulta: continuam restritas a parâmetros do jogo e `GOOGLE_CLIENT_ID`. Confirmados `.env` ignorado pelo Git e ausência desse arquivo entre os arquivos rastreados.
+- Nenhum `.env` existente neste momento; nenhum segredo rotacionado e nenhuma alteração publicada no repositório remoto.
+
+### Uso do exemplo de ambiente para ativar o login Google
+
+- Conferidos `.env.example`, a ausência de `.env` e os comandos documentados para carregar o ambiente no servidor Node.
+- Esclarecido que `.env.example` serve de modelo: a configuração local deve ficar em `.env`, com o Client ID real em `GOOGLE_CLIENT_ID`, e ser carregada com `node --env-file=.env server/server.js`.
+- Nenhum arquivo `.env` criado, credencial preenchida ou login real executado neste pedido.
+
+### Orientação para configurar OAuth no Google Cloud
+
+- Conferidos o exemplo de ambiente, o login por callback do Google Identity Services, a validação no backend e o repasse de `GOOGLE_CLIENT_ID` pelo Docker Compose. Confirmada a ausência de `.env` local.
+- Consultada a documentação oficial do Google para orientar a tela de consentimento, público externo, usuários de teste, cliente Web e origens JavaScript autorizadas. O fluxo atual dispensa Client Secret e URI de redirecionamento.
+- Nenhuma credencial criada e nenhum login real executado neste pedido; a ativação depende da configuração no Google Cloud, do preenchimento de `GOOGLE_CLIENT_ID` em `.env` e do reinício do servidor.
+
+### Orientação para testar o login Google localmente
+
+- Conferidos os comandos de inicialização e a configuração `GOOGLE_CLIENT_ID` no README e no exemplo de ambiente. Confirmados Node.js 26.10.0 disponível e ausência de `.env` local.
+- Orientado o teste em `http://localhost:3000`, com Client ID OAuth Web, origem autorizada e carregamento explícito de `.env`; o primeiro acesso pede nickname e os seguintes recuperam o perfil.
+- Nenhuma credencial criada ou configurada e nenhum novo login real executado neste pedido; a configuração no Google Cloud continua necessária.
+
+### Login Google e nickname no primeiro acesso
+
+- Implementado login com Google via Google Identity Services e validação do ID token no backend pela biblioteca oficial `google-auth-library`. Verificados assinatura, destinatário, emissor, expiração e nonce; tentativas expiram em dez minutos e são de uso único, com limite de tentativas pendentes e restrição de origem.
+- Novas contas Google pedem somente nickname de 1 a 32 caracteres, sem senha, foto ou facção no cadastro. A escolha é obrigatória e é retomada ao recarregar; salvar o nickname libera o menu. Facção e deck inicial são escolhidos separadamente ao abrir opções do jogo.
+- Acessos seguintes recuperam nickname, coleção e sessão persistida. Contas Google são identificadas pelo `sub`, sem armazenar nome, email ou tokens do provedor e sem vincular contas antigas automaticamente. Mantido o login por senha das contas anteriores, com cadastro por senha removido da tela.
+- Adicionados `GOOGLE_CLIENT_ID` ao exemplo de ambiente e ao Docker Compose, instruções no README e versões dos recursos no HTML para invalidar o cache. Perfil e menu mostram nickname e identificação da conta Google em vez do identificador interno.
+
+### Validações e limitações
+
+- Aprovado o novo teste executável `test/google-auth.test.js`, usando JWTs realmente assinados e a validação oficial, substituindo somente a obtenção dos certificados. Cobertos tokens forjados, assinatura incorreta, destinatário/emissor incorretos, nonce divergente, expiração, reuso, configuração ausente, origem recusada, nickname inválido, contas distintas, persistência após reinício, logout e interface com um único campo.
+- Sintaxe dos 23 arquivos JavaScript e `git diff --check` aprovados. Executados os 37 testes funcionais: 35 aprovados e duas falhas preexistentes, em `card-modal-layer.test.js` (mock sem `scene.bringToTop`) e `effect-events.test.js` (descrição de O Bom divergente). Confirmado que os arquivos envolvidos nessas falhas não foram alterados por este pedido.
+- Chromium/Playwright em 1440 × 1000 e 390 × 844: fluxo Google simulado com JWT assinado, primeiro acesso somente com nickname, bloqueio de Escape, limites da tela, restauração após recarga, segundo login sem repetir o cadastro e facção separada aprovados, sem erros JavaScript.
+- Login externo com uma conta Google real e Docker não executados. Para ativar, falta configurar um Client ID OAuth Web e cadastrar as origens do frontend no Google Cloud. Tentativas em andamento ficam em memória e precisam ser repetidas se o servidor reiniciar; contas e sessões concluídas são persistidas.
+
 ## 2026-09-30
 
 ### Efeitos em ambas as fases do jogador

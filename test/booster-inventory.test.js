@@ -5,6 +5,7 @@ const path = require('node:path');
 const { spawn } = require('node:child_process');
 const { once } = require('node:events');
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'booster-inventory-'));
+const [owner, other] = require('./account-fixture')(dir, ['Inventario', 'OutroInventario']);
 const port = 31990;
 let server;
 async function start() {
@@ -26,8 +27,7 @@ async function api(route, body) {
 }
 (async () => {
   await start();
-  const credentials = { username: 'Inventario', password: 'teste-inventario-123' };
-  token = (await api('auth/register', credentials)).body.token;
+  token = owner.token;
   const initial = (await api('account/faction', { faction: 'raspcorp' })).body;
   assert.deepEqual(initial.boosters, []);
   const purchase = { faction: 'raspcorp', purchaseId: 'purchase-inventory-0001' };
@@ -42,13 +42,12 @@ async function api(route, body) {
   }
   await stop();
   await start();
-  const restored = await api('auth/login', credentials);
-  token = restored.body.token;
+  const restored = await api('auth/session');
   assert.equal(restored.body.boosters.length, 1);
   assert.deepEqual(restored.body.collection, initial.collection);
   // Outro usuário não pode consumir o pacote.
   const ownerToken = token;
-  token = (await api('auth/register', { username: 'OutroInventario', password: 'teste-inventario-123' })).body.token;
+  token = other.token;
   await api('account/faction', { faction: 'raspcorp' });
   assert.equal((await api('boosters/open', { packId: purchase.purchaseId })).status, 404);
   token = ownerToken;
@@ -74,7 +73,7 @@ async function api(route, body) {
   for (const account of Object.values(stored.accounts)) delete account.boosters;
   fs.writeFileSync(file, JSON.stringify(stored));
   await start();
-  const migrated = await api('auth/login', credentials);
+  const migrated = await api('auth/session');
   assert.deepEqual(migrated.body.boosters, []);
   assert.equal(migrated.body.currency, normal.body.currency);
   assert.deepEqual(migrated.body.collection, normal.body.collection);

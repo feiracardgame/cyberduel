@@ -20,21 +20,22 @@ class CenaTitulo extends Phaser.Scene {
     this.montarInterfaceTitulo();
 
     this.restaurandoConta = true;
-    this.removerListenerConta = this.account?.onChange(({ user, deck, collection, faction }) => {
+    this.removerListenerConta = this.account?.onChange(({ user, nickname, needsRegistration, deck, collection, faction }) => {
       window.cyberduelDeckBuilder.setAccountSession(user, deck, collection);
       if (!this.scene.isActive()) return;
       this.titleUI?.destroy();
       this.montarInterfaceTitulo();
       this.atualizarStatus(
         user
-          ? `Conta ${user} conectada. Deck sincronizado com o servidor.`
+          ? `Conta ${nickname || "Google"} conectada. Deck sincronizado com o servidor.`
           : "Sessão local ativa. Entre para sincronizar seu deck.",
         user ? "success" : "info",
       );
-      if (user && faction && new URLSearchParams(location.search).get("ticket"))
+      if (user && !needsRegistration && faction && new URLSearchParams(location.search).get("ticket"))
         this.time.delayedCall(0, () => this.tentarConviteApresentacao());
-      if (user && !faction)
-        this.time.delayedCall(0, () => this.titleUI?.openFactionDialog());
+      if (needsRegistration)
+        this.time.delayedCall(0, () => this.titleUI?.openRegistrationDialog());
+
     });
     this.account?.restore().then(() => {
       this.restaurandoConta = false;
@@ -134,7 +135,7 @@ class CenaTitulo extends Phaser.Scene {
     if (!this.scene.isActive() || this.restaurandoConta || this.entrandoPorConvite || this.multiplayer.room) return;
     const code = new URLSearchParams(location.search).get("room");
     if (!code) return;
-    if (!this.account?.faction || !window.cyberduelDeckBuilder.getSavedDeck()) {
+    if (this.account?.needsRegistration || !this.account?.faction || !window.cyberduelDeckBuilder.getSavedDeck()) {
       this.atualizarStatus("Entre na conta, escolha sua facção e sele um deck para entrar na arena.", "warning");
       return;
     }
@@ -177,7 +178,7 @@ class CenaTitulo extends Phaser.Scene {
       this.scene.start((this.multiplayer.ranked || this.multiplayer.arena) ? "CenaJogo" : "CenaTransicao");
       return;
     }
-    if (!this.account?.user || !this.account?.faction) {
+    if (!this.account?.user || this.account.needsRegistration || !this.account?.faction) {
       this.atualizarStatus("Entre e escolha sua facção antes de jogar.", "warning");
       return;
     }
@@ -207,7 +208,7 @@ class CenaTitulo extends Phaser.Scene {
   }
 
   criarSala() {
-    if (!this.account?.user || !this.account?.faction) {
+    if (!this.account?.user || this.account.needsRegistration || !this.account?.faction) {
       this.atualizarStatus("Entre e escolha sua facção antes de criar uma sala.", "warning");
       return;
     }
@@ -261,7 +262,7 @@ class CenaTitulo extends Phaser.Scene {
   }
 
   entrarNaSala(initialCode) {
-    if (!this.account?.user || !this.account?.faction) {
+    if (!this.account?.user || this.account.needsRegistration || !this.account?.faction) {
       this.atualizarStatus("Entre e escolha sua facção antes de entrar na sala.", "warning");
       return;
     }

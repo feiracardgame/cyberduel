@@ -3,6 +3,8 @@
 
 ## Testar localmente (sem Docker)
 
+Requer Node.js 22 ou superior.
+
 1. Na pasta do projeto, execute `npm ci` e depois `npm start` (com `.env`: `node --env-file=.env server/server.js`).
 2. Deixe esse terminal aberto e acesse **http://127.0.0.1:3000/**. O backend já serve o jogo completo, sem recarga automática por alterações nos arquivos.
 3. Para os atalhos de teste, inicie com `npm run dev` (com `.env`: `node --env-file=.env scripts/dev-server.js`) e use o mesmo endereço na porta 3000.
@@ -18,6 +20,31 @@ O Live Server serve os arquivos; contas, coleção e salas precisam do backend N
 Para outra porta do Live Server ou outro backend, informe o destino na URL, por exemplo: `http://127.0.0.1:5502/index.html?server=http://127.0.0.1:3000`. O parâmetro `server` vale para contas e multiplayer. Para usar o backend Docker com Live Server, informe a URL publicada pelo Docker nesse parâmetro. `window.CYBERDUEL_SERVER_URL`, quando definida antes dos clientes, tem prioridade.
 
 Ao testar pelo celular na mesma rede, abra o Live Server pelo IP do computador: o backend também usará esse IP na porta 3000. Os dados locais ficam separados do volume do Docker.
+
+## Login com Google
+
+1. No [Google Cloud](https://console.cloud.google.com/apis/credentials), configure a tela de consentimento e crie um **ID do cliente OAuth 2.0**, do tipo **Aplicativo da Web**.
+2. Em **Origens JavaScript autorizadas**, cadastre os endereços exatos onde o jogo abre: por exemplo, `http://localhost:3000`, `http://localhost:5500` para Live Server e `https://cyberduel.feira-de-jogos.dev.br` em produção. Use a mesma origem cadastrada ao acessar o jogo; para teste local, prefira `localhost`. Produção exige HTTPS.
+3. Copie `.env.example` para `.env` e preencha `GOOGLE_CLIENT_ID` com o Client ID recebido. Inicie com `node --env-file=.env server/server.js` ou `node --env-file=.env scripts/dev-server.js`. No Docker Compose, a variável já é repassada ao servidor; recrie os containers após configurá-la.
+4. Abra **IDENTIFICAR // ENTRAR** e use o botão oficial do Google. No primeiro acesso, escolha um **username único** (3–24 caracteres: letras, números, ponto, hífen ou sublinhado) e um **apelido / display name** (1–32 caracteres), que aparece no jogo e pode repetir. O username não diferencia maiúsculas de minúsculas e não muda após o cadastro; o apelido pode ser editado no perfil. Contas Google que ainda usam um identificador automático precisam escolher o username, mantendo o apelido e o progresso existentes. Nos acessos seguintes, o perfil salvo é recuperado. A escolha da facção e do deck inicial ocorre ao abrir os modos de jogo, separada do login.
+
+Esta integração usa [Google Identity Services](https://developers.google.com/identity/gsi/web/guides/display-button), com popup e validação do ID token no backend pela biblioteca oficial do Google. Não precisa de Client Secret nem de URI de redirecionamento. A tentativa expira em dez minutos e é de uso único; apenas o identificador `sub` do Google fica vinculado à conta, sem armazenar tokens do provedor ou vincular automaticamente contas antigas por nome/email.
+
+O acesso às contas é exclusivo pelo Google. Login e cadastro por senha foram desativados, incluindo as sessões antigas de contas sem vínculo Google. Os dados dessas contas são preservados até uma exclusão manual, sem vinculação automática ao Google. Sem `GOOGLE_CLIENT_ID`, o login fica indisponível. Se a aplicação Google estiver em modo de teste, adicione os jogadores como usuários de teste na tela de consentimento.
+
+### Excluir contas antigas de senha no servidor
+
+Com a versão atualizada publicada, pare o backend antes da exclusão para impedir que ele grave novamente os dados antigos. Faça uma cópia de `accounts.json` e `sessions.json` do diretório de dados antes de executar o comando.
+
+No Docker Compose, execute na pasta do projeto:
+
+```bash
+docker compose stop server
+docker compose run --rm --no-deps server node server/delete-password-accounts.js
+docker compose up -d server
+```
+
+Sem Docker, pare o processo Node e execute `node --env-file=.env server/delete-password-accounts.js` (ou sem `--env-file=.env` se não usar esse arquivo). Depois, inicie o backend novamente. O script usa `DATA_DIR`, ou `server/data` por padrão, e mostra quantas contas e sessões removeu. Contas sem `googleSub` e suas sessões são excluídas; contas Google, coleção, deck e progresso são mantidos. A exclusão acontece somente ao executar esse comando.
 
 ## Atalhos de teste no console do navegador
 

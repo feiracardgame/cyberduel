@@ -9,6 +9,7 @@ const url = `http://127.0.0.1:${port}`;
 const dataDir = fs.mkdtempSync(
   path.join(os.tmpdir(), "cyberduel-account-test-"),
 );
+const [first, second] = require("./account-fixture")(dataDir, ["Gabriel", "Comprador"]);
 const server = spawn(process.execPath, ["server/server.js"], {
   cwd: process.cwd(),
   env: {
@@ -52,7 +53,7 @@ async function run() {
   });
 
   const origin = "http://localhost:5500";
-  const preflight = await fetch(`${url}/api/auth/register`, {
+  const preflight = await fetch(`${url}/api/auth/google/start`, {
     method: "OPTIONS",
     headers: { Origin: origin, "Access-Control-Request-Method": "POST",
       "Access-Control-Request-Headers": "content-type,authorization" },
@@ -73,31 +74,13 @@ async function run() {
   assert.equal(configuration.payload.booster.levelWeights.alta, 37);
   assert.equal(configuration.payload.booster.utilityTypeWeights.efeito, 8);
 
-  const created = await api("/api/auth/register", {
-    method: "POST",
-    body: { username: "Gabriel", password: "aura-maxima" },
-  });
-  assert.equal(created.status, 201);
-  assert.match(created.payload.token, /^[a-f0-9]{64}$/);
+  const created = await api("/api/auth/session", { token: first.token });
+  created.payload.token = first.token;
+  assert.equal(created.status, 200);
+  assert.equal(created.payload.authProvider, "google");
   assert.equal(created.payload.username, "Gabriel");
   assert.equal(created.payload.faction, null);
   assert.equal(created.payload.currency, 500);
-
-  const duplicate = await api("/api/auth/register", {
-    method: "POST",
-    body: { username: "gabriel", password: "outra-senha" },
-  });
-  assert.equal(
-    duplicate.status,
-    409,
-    "Nomes de usuário não diferenciam maiúsculas.",
-  );
-
-  const invalidLogin = await api("/api/auth/login", {
-    method: "POST",
-    body: { username: "Gabriel", password: "senha-errada" },
-  });
-  assert.equal(invalidLogin.status, 401);
 
   const faction = await api("/api/account/faction", {
     method: "POST",
@@ -156,7 +139,7 @@ async function run() {
   assert.equal(money.payload.account.currency, 650);
   assert.deepEqual(money.payload.account.collection, booster.payload.collection);
   assert.equal((await api("/api/auth/session", { token: created.payload.token })).payload.currency, 650);
-  assert.equal(JSON.parse(fs.readFileSync(path.join(dataDir, "accounts.json"))).accounts.gabriel.currency, 650);
+  assert.equal(JSON.parse(fs.readFileSync(path.join(dataDir, "accounts.json"))).accounts[first.accountKey].currency, 650);
 
   const grantByUsername = await api("/api/admin/accounts/grant-cards", {
     method: "POST",
@@ -245,9 +228,8 @@ async function run() {
     assert.deepEqual(new Set(grantFaction.payload.granted.map(c => `${c.tipo}:${c.nome}`)), expected);
   }
 
-  const buyer = await api("/api/auth/register", {
-    method: "POST", body: { username: "Comprador", password: "senha-de-teste" },
-  });
+  const buyer = await api("/api/auth/session", { token: second.token });
+  buyer.payload.token = second.token;
   const buyerFaction = await api("/api/account/faction", {
     method: "POST", token: buyer.payload.token, body: { faction: "raspcorp" },
   });
@@ -292,13 +274,9 @@ async function run() {
     path.join(dataDir, "accounts.json"),
     "utf8",
   );
-  assert.doesNotMatch(
-    persisted,
-    /aura-maxima/,
-    "Senha nunca deve ser salva em texto puro.",
-  );
-  assert.match(persisted, /passwordHash/);
-  console.log("Contas, senha derivada e deck persistente validados.");
+  assert.doesNotMatch(persisted, /passwordHash|salt/);
+  assert.match(persisted, /googleSub/);
+  console.log("Contas Google, coleção e deck persistente validados.");
 }
 
 run()

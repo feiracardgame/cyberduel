@@ -7,6 +7,7 @@ const { io } = require('socket.io-client');
 const url = 'http://127.0.0.1:31997';
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cyberduel-presentation-'));
 const sockets = [];
+const fixtures = require('./account-fixture')(dataDir, ['ArenaOne', 'ArenaTwo']);
 const server = spawn(process.execPath, ['server/server.js'], { env: { ...process.env, PORT: '31997', DATA_DIR: dataDir, PUBLIC_URL: 'https://duelo.example/' }, stdio: ['ignore', 'pipe', 'inherit'] });
 const event = (socket, name) => new Promise((resolve, reject) => {
   const timer = setTimeout(() => reject(Error(`Evento ausente: ${name}`)), 6000);
@@ -45,8 +46,7 @@ async function run() {
   assert.equal((await ack(outsider, 'create-presentation', { code: room.room.code })).ok, false);
   assert.equal((await ack(one, 'join-room', { code: room.room.code })).ok, false);
   const accounts = [];
-  for (const username of ['ArenaOne', 'ArenaTwo']) {
-    const account = await api('auth/register', null, { username, password: 'senha-arena-123' });
+  for (const account of fixtures) {
     await api('account/faction', account.token, { faction: 'echossystem' });
     accounts.push(account);
   }

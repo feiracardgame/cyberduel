@@ -92,7 +92,7 @@
       "rankedLosses": 0,
       "boosters": [],
       "nickname": "aura",
-      "avatar": ""
+      "avatar": "assets/fotosdeperfil/raspclay_icon.png"
     },
     "auradev": {
       "username": "auradev",
@@ -184,8 +184,62 @@
       "rankedLosses": 0,
       "boosters": [],
       "nickname": "auradev",
-      "avatar": "",
+      "avatar": "assets/fotosdeperfil/raspclay_icon.png",
       "updatedAt": "2026-09-19T15:54:25.640Z"
+    },
+    "google_306764e9fa84e175cf55b9fc86aab69e": {
+      "username": "google_306764e9fa84e175cf55b9fc86aab69e",
+      "googleSub": "100545966604853214717",
+      "nickname": "FODASE GAMES",
+      "deck": null,
+      "createdAt": "2026-10-01T21:10:44.725Z",
+      "faction": null,
+      "currency": 500,
+      "gamesPlayed": 0,
+      "rating": 1000,
+      "rankedGames": 0,
+      "rankedWins": 0,
+      "rankedLosses": 0,
+      "collection": {},
+      "boosters": [],
+      "avatar": "assets/fotosdeperfil/raspclay_icon.png",
+      "updatedAt": "2026-10-01T21:22:20.835Z"
+    },
+    "google_5ddf5a6489b7da0bcac9b6a9257ced52": {
+      "username": "dante",
+      "googleSub": "107485100631132287936",
+      "nickname": "FODASE GAMES",
+      "deck": null,
+      "createdAt": "2026-10-01T21:22:49.663Z",
+      "faction": null,
+      "currency": 500,
+      "gamesPlayed": 0,
+      "rating": 1000,
+      "rankedGames": 0,
+      "rankedWins": 0,
+      "rankedLosses": 0,
+      "collection": {},
+      "boosters": [],
+      "avatar": "",
+      "updatedAt": "2026-10-01T21:34:56.469Z"
+    },
+    "google_9df1142de6c3b93023b1186f9458788d": {
+      "username": "bozo",
+      "googleSub": "114170465170591902960",
+      "nickname": "FODASE GAMES",
+      "deck": null,
+      "createdAt": "2026-10-01T21:35:09.520Z",
+      "faction": null,
+      "currency": 500,
+      "gamesPlayed": 0,
+      "rating": 1000,
+      "rankedGames": 0,
+      "rankedWins": 0,
+      "rankedLosses": 0,
+      "collection": {},
+      "boosters": [],
+      "avatar": "",
+      "updatedAt": "2026-10-01T21:35:27.740Z"
     }
   }
 }
