@@ -254,6 +254,8 @@ class CenaJogo extends Phaser.Scene {
     };
 
     window.puxarCarta = (busca) => {
+      requireAdminAccount();
+      this.partidaRegistradaNaConta = true;
       const termo = (busca || "").toString().toLowerCase();
       const deck = this.partida.jogador.deck.cartas;
       const indice = deck.findIndex((c) =>
@@ -313,6 +315,8 @@ class CenaJogo extends Phaser.Scene {
 
     // Debug: coloca uma carta inimiga sem validar turno nem aplicar invocação.
     window.invocarCartaInimigo = (busca, posicao) => {
+      requireAdminAccount();
+      this.partidaRegistradaNaConta = true;
       if (posicao === undefined || posicao === null) {
         console.warn(
           'invocarCartaInimigo: informe a posição (0-9). Ex: invocarCartaInimigo("juggernaut", 6)',
@@ -430,6 +434,9 @@ class CenaJogo extends Phaser.Scene {
 
     this.multiplayer = window.cyberduelMultiplayer;
     this.multiplayerAtivo = !!this.multiplayer?.active;
+    this.soloMatchStart = !this.multiplayerAtivo && !dados.debug && window.cyberduelAccount?.user
+      ? window.cyberduelAccount.startSoloMatch().then(matchId => ({ matchId }), error => ({ error }))
+      : null;
     if (this.multiplayerAtivo) {
       this.faseAtual = this.multiplayer.phase;
       this.partida.fase = this.faseAtual;
@@ -7668,7 +7675,7 @@ class CenaJogo extends Phaser.Scene {
       0xc5ecd2,
       voltar,
     ).setDepth(5100);
-    this.criarTextoUI(
+    const returnText = this.criarTextoUI(
       LARGURA_LAYOUT / 2,
       yVoltarMenu + 100,
       "Retorno automático em 10 segundos",
@@ -7680,9 +7687,43 @@ class CenaJogo extends Phaser.Scene {
       .setOrigin(0.5)
       .setDepth(5100);
     this.retornoMenuTimer = this.time.delayedCall(10000, voltar);
-    if (!this.multiplayer?.spectator && !this.partidaRegistradaNaConta) {
-      this.partidaRegistradaNaConta = true;
-      window.cyberduelAccount?.recordMatch().catch(() => {});
+    if (this.multiplayerAtivo && !this.multiplayer?.spectator)
+      window.cyberduelAccount?.restore().catch(() => {});
+    if (this.soloMatchStart && !this.partidaRegistradaNaConta) {
+      const rewardText = this.criarTextoUI(LARGURA_LAYOUT / 2, yVoltarMenu - 85,
+        "Registrando recompensa…", { fontSize: "28px", color: "#afe5ce", align: "center" })
+        .setOrigin(0.5).setDepth(5100);
+      let saving = false;
+      const saveReward = async () => {
+        if (saving || this.partidaRegistradaNaConta) return;
+        saving = true;
+        try {
+          let started = await this.soloMatchStart;
+          if (started.error) {
+            // A partida ainda não foi registrada; permite tentar novamente sem perder o resultado.
+            this.soloMatchStart = window.cyberduelAccount.startSoloMatch()
+              .then(matchId => ({ matchId }), error => ({ error }));
+            started = await this.soloMatchStart;
+            if (started.error) throw started.error;
+          }
+          const reward = await window.cyberduelAccount.recordMatch(started.matchId, resultadoCombate.resultado);
+          this.partidaRegistradaNaConta = true;
+          if (rewardText.active) {
+            rewardText.setText(`+${reward.toLocaleString("pt-BR")} tijolinhos`);
+            returnText.setText("Retorno automático em 10 segundos");
+            this.retornoMenuTimer?.remove();
+            this.retornoMenuTimer = this.time.delayedCall(10000, voltar);
+          }
+        } catch (error) {
+          if (rewardText.active) {
+            rewardText.setText("Falha ao registrar. Clique para tentar novamente.");
+            this.retornoMenuTimer?.remove();
+            returnText.setText("Retorno automático pausado para tentar novamente");
+          }
+        } finally { saving = false; }
+      };
+      rewardText.setInteractive({ useHandCursor: true }).on("pointerdown", saveReward);
+      saveReward();
     }
 
     const vitoria = resultadoCombate.resultado === "jogador";

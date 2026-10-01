@@ -1125,8 +1125,7 @@ class CyberduelTitleUI {
       this.closeModal(true);
       this.openAdminGrantDialog();
     });
-    adminButton.disabled = !this.account?.user;
-    actions.append(adminButton);
+    if (this.account?.isAdmin) actions.append(adminButton);
     actions.append(
       this.button("title-dialog__cancel", "RESTAURAR", () => {
         this.settings.reset();
@@ -1153,7 +1152,7 @@ class CyberduelTitleUI {
   }
 
   openAdminGrantDialog(focusCurrency = false) {
-    if (this.modal || !this.account?.user) return;
+    if (this.modal || !this.account?.isAdmin) return;
     const overlay = this.createModal("admin-grant");
     const dialog = this.element("section", "title-dialog title-admin-dialog");
     dialog.setAttribute("role", "dialog");
@@ -1171,13 +1170,6 @@ class CyberduelTitleUI {
     username.value = this.account.user || "";
     username.maxLength = 24;
     username.setAttribute("aria-label", "Username da conta");
-
-    const adminToken = this.element("input", "title-auth-input");
-    adminToken.type = "password";
-    adminToken.placeholder = "ADMIN TOKEN (OPCIONAL)";
-    adminToken.value = String(window.CYBERDUEL_ADMIN_TOKEN || "");
-    adminToken.maxLength = 256;
-    adminToken.setAttribute("aria-label", "Token administrativo");
 
     const deckSection = this.element("section", "title-admin-section");
     deckSection.append(
@@ -1286,9 +1278,7 @@ class CyberduelTitleUI {
         toggleBusy(true);
         this.modalRequired = true;
         try {
-          const payload = await this.account.grantCurrency(target, amount, {
-            adminToken: adminToken.value,
-          });
+          const payload = await this.account.grantCurrency(target, amount);
           result.textContent = `+${payload.added.toLocaleString("pt-BR")} tijolinhos para ${payload.account.username}. Saldo: ${payload.account.currency.toLocaleString("pt-BR")}.`;
         } catch (exception) {
           error.textContent =
@@ -1312,7 +1302,6 @@ class CyberduelTitleUI {
     const toggleBusy = (busy) => {
       [
         username,
-        adminToken,
         faction,
         cardType,
         cardName,
@@ -1343,7 +1332,6 @@ class CyberduelTitleUI {
         const payload = await this.account.grantCardsByUsername(target, [], {
           fullDeck: true,
           faction: faction.value,
-          adminToken: adminToken.value,
         });
         const total = (payload.granted || []).reduce(
           (sum, entry) => sum + (Number(entry.quantidade) || 0),
@@ -1378,9 +1366,6 @@ class CyberduelTitleUI {
         await this.account.grantCardsByUsername(
           target,
           [{ tipo: cardType.value, nome: name, quantidade: amount }],
-          {
-            adminToken: adminToken.value,
-          },
         );
         result.textContent = `Carta concedida para ${target}: ${cardType.value} / ${name} x${amount}.`;
       } catch (exception) {
@@ -1399,7 +1384,6 @@ class CyberduelTitleUI {
       try {
         const payload = await this.account.grantCardsByUsername(target, [], {
           allAvailable: true,
-          adminToken: adminToken.value,
         });
         result.textContent = `Coleção completa concedida para ${target}: ${payload.granted.length} cartas.`;
       } catch (exception) {
@@ -1417,9 +1401,7 @@ class CyberduelTitleUI {
       if (!target) return;
       toggleBusy(true);
       try {
-        await this.account.resetCollection(target, {
-          adminToken: adminToken.value,
-        });
+        await this.account.resetCollection(target);
         result.textContent = `Coleção resetada para ${target}.`;
       } catch (exception) {
         error.textContent = exception.message || "Falha ao resetar coleção.";
@@ -1438,7 +1420,6 @@ class CyberduelTitleUI {
 
     form.append(
       username,
-      adminToken,
       currencySection,
       deckSection,
       cardSection,
@@ -2108,7 +2089,8 @@ class CyberduelTitleUI {
       this.closeModal(true);
       this.openAdminGrantDialog(true);
     });
-    wallet.append(balance, admin);
+    wallet.append(balance);
+    if (this.account?.isAdmin) wallet.append(admin);
     wallet.hidden = opening;
     const tabs = this.element("div", "booster-factions");
     tabs.hidden = opening;

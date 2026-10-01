@@ -4,6 +4,22 @@ Novidades, correções e verificações realizadas no projeto. As entregas mais 
 
 ## 2026-10-01
 
+### Administradores por conta e recompensa das partidas solo
+
+- O servidor identifica administradores pelos usernames únicos de contas Google já cadastradas, configurados em `ADMIN_USERNAMES` (separados por vírgula, sem distinguir maiúsculas). Lista vazia bloqueia todos; remover um username e reiniciar revoga o acesso mesmo com a sessão anterior. Removido o acesso pelo token compartilhado e corrigido o acesso administrativo aberto quando esse token não existia.
+- Todas as rotas `/api/admin/` exigem sessão autenticada de admin. Botões de admin das configurações e do mercado ficam ocultos para usuários comuns; o painel deixa de pedir token. Atalhos de teste e concessão de lendária exigem admin; ações de teste online e lendárias continuam exigindo modo de desenvolvimento.
+- Partidas solo normais registradas por contas autenticadas concedem 1.000 tijolinhos por vitória, 200 por derrota e zero por empate. O servidor define os valores, verifica o dono do ID, rejeita resultados conflitantes e impede crédito/contagem duplicados em chamadas concorrentes ou após reiniciar. A tela final mostra o crédito confirmado; em falha de comunicação, permite repetir e pausa o retorno automático. Partidas com atalhos de teste não recebem bônus.
+- Partidas online continuam sem esse bônus; sua contagem passa a ocorrer uma vez no servidor, usando as contas autenticadas dos jogadores e preservando o cálculo de ranking. Atualizados `.env.example`, repasse no Docker Compose, README e versões dos scripts no HTML.
+- Limitação: o motor solo ainda executa no navegador e o servidor recebe o resultado do cliente; não há validação completa do combate contra manipulação. São mantidos os últimos 100 registros solo por conta; IDs removidos são recusados.
+- Validações: sintaxe JavaScript e `git diff --check` aprovados; 37 dos 39 testes funcionais aprovados. Permanecem as duas falhas já registradas em `card-modal-layer.test.js` (mock sem `scene.bringToTop`) e `effect-events.test.js` (descrição de O Bom divergente). Testes cobrem permissões de todas as rotas administrativas, configuração vazia, revogação, valores fixos, dono da partida, repetição, concorrência, persistência, resultado inválido/conflitante, limite de saldo, atalhos e contagem online sem bônus.
+- Chromium/Playwright em desktop (1440 × 1000) e celular (390 × 844): painel visível apenas ao admin, ausência de campo de token, concessão usando sessão, usuário comum bloqueado pela API e pelos atalhos, tela solo com créditos de 1.000/200 e nova tentativa após HTTP 503 simulado aprovados, sem erros JavaScript. Atalho de final não concedeu recompensa. Testes usaram contas e dados temporários; `.env` real, contas locais e backend existente preservados. Nenhum container reconstruído ou servidor remoto atualizado neste pedido.
+
+### Uso do arquivo de ambiente no servidor Docker
+
+- Conferido que `docker-compose.yml` repassa `GOOGLE_CLIENT_ID`, `PUBLIC_URL` e os parâmetros de boosters pelo bloco `environment`; o backend Docker recebe essas variáveis sem precisar copiar `.env` para a imagem.
+- Consultada a documentação oficial do Docker Compose e orientado manter `.env` no servidor, junto de `docker-compose.yml`, preenchendo os valores e recriando o serviço com `docker compose --env-file .env up -d --force-recreate server`. A cópia do modelo deve preservar um `.env` já existente.
+- Nenhum arquivo de ambiente modificado, container recriado ou servidor remoto acessado neste pedido.
+
 ### Username único e apelido separado no cadastro Google
 
 - O primeiro acesso agora pede username único de 3 a 24 caracteres (letras, números, ponto, hífen ou sublinhado) e apelido/display name de 1 a 32 caracteres. O servidor rejeita usernames já ocupados com HTTP 409, sem distinguir maiúsculas de minúsculas; apelidos podem repetir e continuam sendo exibidos no jogo e no ranking.

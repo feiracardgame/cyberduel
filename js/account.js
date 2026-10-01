@@ -5,6 +5,7 @@ class CyberduelAccount {
     this.user = null;
     this.nickname = "";
     this.authProvider = null;
+    this.isAdmin = false;
     this.needsRegistration = false;
     this.needsUsername = false;
     this.avatar = "";
@@ -38,6 +39,7 @@ class CyberduelAccount {
       user: this.user,
       nickname: this.nickname,
       authProvider: this.authProvider,
+      isAdmin: this.isAdmin,
       needsRegistration: this.needsRegistration,
       needsUsername: this.needsUsername,
       avatar: this.avatar,
@@ -78,6 +80,7 @@ class CyberduelAccount {
     }
     this.user = payload.username || null;
     this.authProvider = payload.authProvider || "google";
+    this.isAdmin = payload.isAdmin === true;
     this.needsRegistration = payload.needsRegistration === true;
     this.needsUsername = payload.needsUsername === true;
     this.nickname = payload.nickname || (this.needsRegistration ? "" : this.user) || "";
@@ -226,11 +229,9 @@ class CyberduelAccount {
     return payload.cards || [];
   }
 
-  async grantCurrency(username, amount, options = {}) {
-    const adminToken = String(options.adminToken || window.CYBERDUEL_ADMIN_TOKEN || "").trim();
+  async grantCurrency(username, amount) {
     const payload = await this.request("/api/admin/accounts/grant-currency", {
-      method: "POST", body: { username, amount }, auth: false,
-      headers: adminToken ? { "x-admin-token": adminToken } : {},
+      method: "POST", body: { username, amount },
     });
     if (payload.account?.username?.toLocaleLowerCase("pt-BR") === this.user?.toLocaleLowerCase("pt-BR"))
       this.applyAuth(payload.account, false);
@@ -238,9 +239,6 @@ class CyberduelAccount {
   }
 
   async grantCardsByUsername(username, cards, options = {}) {
-    const adminToken = String(
-      options.adminToken || window.CYBERDUEL_ADMIN_TOKEN || "",
-    ).trim();
     const payload = await this.request("/api/admin/accounts/grant-cards", {
       method: "POST",
       body: {
@@ -250,8 +248,6 @@ class CyberduelAccount {
         allAvailable: options.allAvailable === true,
         faction: options.faction || null,
       },
-      auth: false,
-      headers: adminToken ? { "x-admin-token": adminToken } : {},
     });
     if (
       payload.account &&
@@ -269,9 +265,6 @@ class CyberduelAccount {
   }
 
   async darCarta(conta, nomeDaCarta, options = {}) {
-    const adminToken = String(
-      options.adminToken || window.CYBERDUEL_ADMIN_TOKEN || "",
-    ).trim();
     const payload = await this.request("/api/admin/accounts/give-card", {
       method: "POST",
       body: {
@@ -279,31 +272,33 @@ class CyberduelAccount {
         nomeDaCarta,
         quantidade: Math.max(1, Math.min(20, Number(options.quantidade) || 1)),
       },
-      auth: false,
-      headers: adminToken ? { "x-admin-token": adminToken } : {},
     });
     return payload;
   }
 
-  async resetCollection(conta, options = {}) {
-    const adminToken = String(
-      options.adminToken || window.CYBERDUEL_ADMIN_TOKEN || "",
-    ).trim();
+  async resetCollection(conta) {
     const payload = await this.request("/api/admin/accounts/reset-collection", {
       method: "POST",
       body: { conta, username: conta },
-      auth: false,
-      headers: adminToken ? { "x-admin-token": adminToken } : {},
     });
     return payload;
   }
 
-  async recordMatch() {
+  async startSoloMatch() {
+    if (!this.user) return null;
+    const payload = await this.request("/api/account/match-start", {
+      method: "POST", body: { mode: "solo" },
+    });
+    return payload.matchId;
+  }
+
+  async recordMatch(matchId, result) {
     if (!this.user) return;
     const payload = await this.request("/api/account/match-complete", {
-      method: "POST",
+      method: "POST", body: { matchId, result },
     });
-    this.applyAuth(payload, false);
+    this.applyAuth(payload);
+    return payload.reward;
   }
 
   async logout() {
@@ -320,6 +315,7 @@ class CyberduelAccount {
     this.user = null;
     this.nickname = "";
     this.authProvider = null;
+    this.isAdmin = false;
     this.needsRegistration = false;
     this.needsUsername = false;
     this.avatar = "";

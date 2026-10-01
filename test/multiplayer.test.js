@@ -12,7 +12,7 @@ const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "cyberduel-multiplayer-tes
 const fixtures = require("./account-fixture")(dataDir, ["Gabriel", "Dante"]);
 const server = spawn(process.execPath, ["server/server.js"], {
   cwd: process.cwd(),
-  env: { ...process.env, PORT: String(port), DATA_DIR: dataDir, CYBERDUEL_DEBUG: "1" },
+  env: { ...process.env, PORT: String(port), DATA_DIR: dataDir, CYBERDUEL_DEBUG: "1", ADMIN_USERNAMES: "Gabriel,Dante" },
   stdio: ["ignore", "pipe", "inherit"],
 });
 
@@ -241,17 +241,17 @@ async function run() {
   // O atalho é sincronizado, respeita a perspectiva e não pode ser usado por espectadores.
   assert.equal((await emitAck(intruder, "debug-finish-match", { resultado: "vitoria" })).ok, false);
   const finisher = sockets[timedUpdate.activePlayer];
-  assert.equal((await emitAck(finisher, "debug-finish-match", { resultado: "invalido" })).ok, false);
+  assert.equal((await emitAck(finisher, "debug-finish-match", { accountToken: token1, resultado: "invalido" })).ok, false);
   const finalPlayer = once(finisher, "state-update");
   const finalSpectator = once(intruder, "state-update");
-  assert.equal((await emitAck(finisher, "debug-finish-match", { resultado: "vitoria" })).ok, true);
+  assert.equal((await emitAck(finisher, "debug-finish-match", { accountToken: token1, resultado: "vitoria" })).ok, true);
   const [finished, observed] = await Promise.all([finalPlayer, finalSpectator]);
   assert.equal(finished.debugFinal, true);
   assert.equal(finished.state.partidaEncerrada, true);
   assert.equal(finished.deadline, null);
   assert.equal(finished.result.resultadoCombate.resultado, timedUpdate.activePlayer === 1 ? "jogador" : "inimigo");
   assert.equal(observed.result.resultadoCombate.resultado, finished.result.resultadoCombate.resultado);
-  assert.equal((await emitAck(finisher, "debug-finish-match", { resultado: "derrota" })).ok, false);
+  assert.equal((await emitAck(finisher, "debug-finish-match", { accountToken: token1, resultado: "derrota" })).ok, false);
   // Recusar após desconectar encerra a partida no servidor e invalida qualquer retorno.
   const returning = await connect();
   const opponent = await connect();

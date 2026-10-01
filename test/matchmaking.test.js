@@ -110,6 +110,11 @@ async function run() {
   assert.equal(update.state.partidaEncerrada, true);
   board = (await api('leaderboard', null, null, 'GET')).entries;
   assert.ok(board.every(row => row.games === 2));
+  for (const user of users) {
+    const account = await api('auth/session', user.token, null, 'GET');
+    assert.equal(account.gamesPlayed, 2, 'Servidor contabiliza online uma vez por partida.');
+    assert.equal(account.currency, 500, 'Online não paga o bônus do bot.');
+  }
   sockets.forEach(socket => socket.disconnect());
   await new Promise(resolve => { server.once('exit', resolve); server.kill(); });
   await start();

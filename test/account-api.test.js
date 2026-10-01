@@ -16,14 +16,14 @@ const server = spawn(process.execPath, ["server/server.js"], {
     ...process.env,
     PORT: String(port),
     DATA_DIR: dataDir,
-    ADMIN_API_TOKEN: "test-admin-token",
+    ADMIN_USERNAMES: " gAbRiEl ,",
     BOOSTER_WEIGHT_ALTA: "37",
     BOOSTER_WEIGHT_EFEITO: "8",
   },
   stdio: ["ignore", "pipe", "inherit"],
 });
 
-async function api(route, { method = "GET", token, body, adminToken = "test-admin-token" } = {}) {
+async function api(route, { method = "GET", token = route.startsWith("/api/admin/") ? first.token : undefined, body, adminToken } = {}) {
   const response = await fetch(`${url}${route}`, {
     method,
     headers: {
@@ -78,6 +78,12 @@ async function run() {
   created.payload.token = first.token;
   assert.equal(created.status, 200);
   assert.equal(created.payload.authProvider, "google");
+  assert.equal(created.payload.isAdmin, true);
+  assert.equal((await api("/api/auth/session", { token: second.token })).payload.isAdmin, false);
+  for (const route of ["grant-currency", "grant-cards", "give-card", "reset-collection"]) {
+    assert.equal((await api(`/api/admin/accounts/${route}`, { method: "POST", token: second.token, body: { isAdmin: true } })).status, 403);
+    assert.equal((await api(`/api/admin/accounts/${route}`, { method: "POST", token: null, body: {} })).status, 401);
+  }
   assert.equal(created.payload.username, "Gabriel");
   assert.equal(created.payload.faction, null);
   assert.equal(created.payload.currency, 500);
@@ -114,11 +120,11 @@ async function run() {
   const beforeCount = Object.values(faction.payload.collection).reduce((a, b) => a + b, 0);
   assert.equal(Object.values(booster.payload.collection).reduce((a, b) => a + b, 0), beforeCount + 5);
   const deniedMoney = await api("/api/admin/accounts/grant-currency", {
-    method: "POST", adminToken: "wrong", body: { username: "Gabriel", amount: 250 },
+    method: "POST", token: second.token, adminToken: "test-admin-token", body: { username: "Gabriel", amount: 250 },
   });
-  assert.equal(deniedMoney.status, 401);
+  assert.equal(deniedMoney.status, 403);
   const noTokenMoney = await api("/api/admin/accounts/grant-currency", {
-    method: "POST", adminToken: "", body: { username: "Gabriel", amount: 250 },
+    method: "POST", token: null, adminToken: "test-admin-token", body: { username: "Gabriel", amount: 250 },
   });
   assert.equal(noTokenMoney.status, 401);
   for (const amount of [0, -1, 1.5, "500", 1000001, null]) {

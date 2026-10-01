@@ -120,7 +120,8 @@ const BOOSTER_CARDS = Object.freeze(Object.fromEntries(
     ALL_AVAILABLE_CARDS.filter((c) => c.booster === faction).map((c) => [c.tipo, c.nome, c.nivel, 1])]),
 ));
 
-const ADMIN_API_TOKEN = String(process.env.ADMIN_API_TOKEN || "").trim();
+const ADMIN_USERNAMES = new Set(String(process.env.ADMIN_USERNAMES || "")
+  .split(",").map(name => name.trim().toLocaleLowerCase("pt-BR")).filter(Boolean));
 
 function cardKey(tipo, nome) {
   return `${tipo}:${nome}`;
@@ -311,6 +312,7 @@ function publicAccount(account) {
     username: account.username,
     nickname: account.nickname,
     authProvider: account.googleSub ? "google" : "password",
+    isAdmin: isAdminAccount(account),
     needsRegistration: needsRegistration(account),
     needsUsername: Boolean(account.googleSub && !validUsername(account.username)),
     avatar: account.avatar,
@@ -410,9 +412,9 @@ function sanitizeGrantedCards(cards) {
     .filter((entry) => entry.tipo && entry.nome && entry.quantidade > 0);
 }
 
-function hasAdminAccess(request) {
-  if (!ADMIN_API_TOKEN) return true;
-  return String(request.headers["x-admin-token"] || "") === ADMIN_API_TOKEN;
+function isAdminAccount(account) {
+  return Boolean(account?.googleSub && !needsRegistration(account) &&
+    ADMIN_USERNAMES.has(account.username.toLocaleLowerCase("pt-BR")));
 }
 
 function rollBooster(faction, gamesPlayed) {
@@ -534,6 +536,12 @@ async function handleApi(request, response, pathname) {
     "/api/auth/session", "/api/auth/logout", "/api/account/profile",
   ].includes(pathname))
     return sendJson(response, 403, { ok: false, error: "Escolha seu username e apelido antes de continuar." });
+
+  if (pathname.startsWith("/api/admin/")) {
+    if (!pending) return sendJson(response, 401, { ok: false, error: "Entre na sua conta primeiro." });
+    if (!isAdminAccount(pending.account))
+      return sendJson(response, 403, { ok: false, error: "Esta conta não é administradora." });
+  }
 
   if (request.method === "GET" && pathname === "/api/leaderboard") {
     const entries = Object.values(accountStore.accounts).filter(account => account.rankedGames > 0)
@@ -682,8 +690,8 @@ async function handleApi(request, response, pathname) {
       if (!pack) return sendJson(response, 404, { ok: false, error: "Pacote não encontrado no seu inventário." });
       if (!pack.openedAt) {
         if (body.debugLegendary === true) {
-          if (process.env.CYBERDUEL_DEBUG !== "1")
-            return sendJson(response, 403, { ok: false, error: "garantelendaria() exige o servidor em modo de teste. Use npm run dev." });
+          if (process.env.CYBERDUEL_DEBUG !== "1" || !isAdminAccount(session.account))
+            return sendJson(response, 403, { ok: false, error: "garantelendaria() exige uma conta admin e o servidor em modo de teste (npm run dev)." });
           const pool = BOOSTER_CARDS[pack.faction].filter((card) => card[2] === "lendaria");
           if (!pool.length)
             return sendJson(response, 400, { ok: false, error: "Esta facção não possui lendárias. Escolha outro pacote." });
@@ -716,8 +724,8 @@ async function handleApi(request, response, pathname) {
       });
     let guaranteedLegendary = null;
     if (body.debugLegendary === true) {
-      if (process.env.CYBERDUEL_DEBUG !== "1")
-        return sendJson(response, 403, { ok: false, error: "garantelendaria() exige o servidor em modo de teste. Use npm run dev." });
+      if (process.env.CYBERDUEL_DEBUG !== "1" || !isAdminAccount(session.account))
+        return sendJson(response, 403, { ok: false, error: "garantelendaria() exige uma conta admin e o servidor em modo de teste (npm run dev)." });
       const pool = BOOSTER_CARDS[faction].filter((card) => card[2] === "lendaria");
       if (!pool.length)
         return sendJson(response, 400, { ok: false, error: "Esta facção não possui lendárias. Escolha outro pacote." });
@@ -742,8 +750,6 @@ async function handleApi(request, response, pathname) {
   }
 
   if (request.method === "POST" && pathname === "/api/admin/accounts/grant-currency") {
-    if (!hasAdminAccess(request))
-      return sendJson(response, 401, { ok: false, error: "Acesso administrativo negado." });
     const body = await readJson(request);
     const amount = body.amount;
     if (!Number.isSafeInteger(amount) || amount < 1 || amount > 1000000)
@@ -763,11 +769,6 @@ async function handleApi(request, response, pathname) {
     request.method === "POST" &&
     pathname === "/api/admin/accounts/grant-cards"
   ) {
-    if (!hasAdminAccess(request))
-      return sendJson(response, 401, {
-        ok: false,
-        error: "Acesso administrativo negado.",
-      });
 
     const body = await readJson(request);
     const username = String(body.username || "").trim();
@@ -816,11 +817,6 @@ async function handleApi(request, response, pathname) {
     request.method === "POST" &&
     pathname === "/api/admin/accounts/give-card"
   ) {
-    if (!hasAdminAccess(request))
-      return sendJson(response, 401, {
-        ok: false,
-        error: "Acesso administrativo negado.",
-      });
 
     const body = await readJson(request);
 
@@ -872,11 +868,6 @@ async function handleApi(request, response, pathname) {
     request.method === "POST" &&
     pathname === "/api/admin/accounts/reset-collection"
   ) {
-    if (!hasAdminAccess(request))
-      return sendJson(response, 401, {
-        ok: false,
-        error: "Acesso administrativo negado.",
-      });
 
     const body = await readJson(request);
     const conta = String(body.conta || body.username || "").trim();
@@ -902,18 +893,38 @@ async function handleApi(request, response, pathname) {
     });
   }
 
-  if (request.method === "POST" && pathname === "/api/account/match-complete") {
+  if (request.method === "POST" && ["/api/account/match-start", "/api/account/match-complete"].includes(pathname)) {
     const session = authenticatedSession(request);
-    if (!session)
-      return sendJson(response, 401, { ok: false, error: "Sessão expirada." });
-    ensureAccountDefaults(session.account);
-    session.account.gamesPlayed += 1;
-    session.account.updatedAt = new Date().toISOString();
-    saveAccounts();
-    return sendJson(response, 200, {
-      ok: true,
-      ...publicAccount(session.account),
-    });
+    if (!session) return sendJson(response, 401, { ok: false, error: "Sessão expirada." });
+    const account = ensureAccountDefaults(session.account);
+    const body = await readJson(request);
+    if (pathname.endsWith("match-start")) {
+      if (body.mode !== "solo") return sendJson(response, 400, { ok: false, error: "Modo de partida inválido." });
+      const match = { id: randomBytes(16).toString("hex") };
+      // ponytail: últimos 100 solos por conta; IDs removidos são recusados, nunca pagos novamente.
+      account.soloMatches = [...(account.soloMatches || []).slice(-99), match];
+      saveAccounts();
+      return sendJson(response, 200, { ok: true, matchId: match.id });
+    }
+    if (!["jogador", "inimigo", "empate"].includes(body.result))
+      return sendJson(response, 400, { ok: false, error: "Resultado inválido." });
+    const match = account.soloMatches?.find(entry => entry.id === body.matchId);
+    if (!match) return sendJson(response, 404, { ok: false, error: "Partida solo não encontrada nesta conta." });
+    if (match.result && match.result !== body.result)
+      return sendJson(response, 409, { ok: false, error: "Esta partida já tem outro resultado." });
+    if (!match.result) {
+      // ponytail: o motor solo ainda roda no navegador; validar o combate exige levá-lo ao servidor.
+      const reward = body.result === "jogador" ? 1000 : body.result === "inimigo" ? 200 : 0;
+      if (!Number.isSafeInteger(account.currency + reward))
+        return sendJson(response, 400, { ok: false, error: "O saldo atingiu o limite permitido." });
+      match.result = body.result;
+      match.reward = reward;
+      account.currency += reward;
+      account.gamesPlayed += 1;
+      account.updatedAt = new Date().toISOString();
+      saveAccounts();
+    }
+    return sendJson(response, 200, { ok: true, reward: match.reward, ...publicAccount(account) });
   }
 
   return sendJson(response, 404, { ok: false, error: "Rota não encontrada." });
@@ -960,7 +971,7 @@ function serveGame(request, response) {
         const frontend = new URL(origin);
         response.setHeader("Access-Control-Allow-Origin", frontend.origin);
         response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS");
-        response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Admin-Token");
+        response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
       }
     }
     if (request.method === "OPTIONS") {
@@ -1127,7 +1138,7 @@ function notifyPresentation(room) {
 }
 
 function broadcastState(room, extra = {}, except = null) {
-  settleRankedMatch(room);
+  settleMatch(room);
   const update = { state: room.state, ...phaseInfo(room), ...extra };
   for (const id of room.players.values()) if (id && id !== except) io.to(id).emit("state-update", update);
   for (const id of room.spectators) io.to(id).emit("state-update", { ...update, state: spectatorState(room.state) });
@@ -1223,6 +1234,7 @@ function removeFromRoom(socket, disconnect = false) {
         room.decks.delete(socket.data.player);
         room.usernames.delete(socket.data.player);
         room.nicknames.delete(socket.data.player);
+        room.accounts.delete(socket.data.player);
       } else room.players.set(socket.data.player, null);
       room.effects?.pending.delete(socket.data.player);
       if (room.effects && !room.effects.pending.size) resumeAfterEffects(room);
@@ -1259,6 +1271,7 @@ function createRoomRecord(socket, deck, account) {
     usernames: new Map([[1, account?.username || "Duelista 1"]]),
     nicknames: new Map([[1, account?.nickname || "Duelista 1"]]),
     profiles: new Map([[1, ranking.playerProfile(account)]]),
+    accounts: new Map(account ? [[1, account]] : []),
     turn: 1, starter: 1, step: 0, round: 1, state: null,
     spectators: new Set(), resumeTokens: new Map([[1, randomBytes(32).toString("hex")]]),
     createdAt: Date.now(), deadline: null,
@@ -1278,16 +1291,19 @@ function emitMatchReady(room) {
   });
 }
 
-function settleRankedMatch(room) {
-  if (!room.ranked || room.rankSettled || !room.state?.partidaEncerrada || !room.result?.fimDeJogo) return;
+function settleMatch(room) {
+  if (room.matchSettled || !room.state?.partidaEncerrada || !room.result?.fimDeJogo) return;
   const winner = room.result.resultadoCombate?.resultado;
   if (!["jogador", "inimigo", "empate"].includes(winner)) return;
-  const accounts = [1, 2].map(player => accountByUsername(room.usernames.get(player)));
-  if (accounts.some(account => !account)) return;
-  accounts.forEach(ensureAccountDefaults);
-  ranking.applyResult(...accounts, winner);
+  const accounts = [1, 2].map(player => room.accounts.get(player));
+  if (room.ranked && accounts.every(Boolean)) ranking.applyResult(...accounts, winner);
+  if (!room.debugFinal) [...new Set(accounts.filter(Boolean))].forEach(account => {
+    ensureAccountDefaults(account);
+    account.gamesPlayed += 1;
+    account.updatedAt = new Date().toISOString();
+  });
   saveAccounts();
-  room.rankSettled = true;
+  room.matchSettled = true;
 }
 
 function surrenderRoom(room, player) {
@@ -1328,6 +1344,7 @@ function matchQueuedPlayers() {
     room.players.set(2, opponent.socket.id); room.decks.set(2, opponent.deck);
     room.usernames.set(2, second.username); room.nicknames.set(2, second.nickname);
     room.profiles.set(2, ranking.playerProfile(second));
+    room.accounts.set(2, second);
     room.resumeTokens.set(2, randomBytes(32).toString("hex"));
     opponent.socket.join(room.code); opponent.socket.data.room = room.code; opponent.socket.data.player = 2;
     room.starter = room.turn = randomInt(1, 3);
@@ -1477,6 +1494,7 @@ io.on("connection", (socket) => {
       room.players.set(player, socket.id); room.decks.set(player, deck);
       room.usernames.set(player, account.username); room.nicknames.set(player, account.nickname || account.username);
       room.profiles.set(player, ranking.playerProfile(account));
+      room.accounts.set(player, account);
       room.resumeTokens.set(player, randomBytes(32).toString("hex"));
       socket.join(code); socket.data.room = code; socket.data.player = player;
       ack({ ok: true, waiting: room.players.size < 2, room: publicRoom(room), player, resumeToken: room.resumeTokens.get(player) });
@@ -1504,7 +1522,9 @@ io.on("connection", (socket) => {
       accountFromToken(payload.accountToken)?.username || "Duelista 2",
     );
     room.nicknames.set(2, accountFromToken(payload.accountToken)?.nickname || "Duelista 2");
-    room.profiles.set(2, ranking.playerProfile(accountFromToken(payload.accountToken)));
+    const account = accountFromToken(payload.accountToken);
+    room.profiles.set(2, ranking.playerProfile(account));
+    if (account) room.accounts.set(2, account);
     socket.join(code);
     socket.data.room = code;
     socket.data.player = 2;
@@ -1613,6 +1633,8 @@ io.on("connection", (socket) => {
     if (rooms.get(socket.data.room)?.ranked) return ack({ ok: false, error: "Atalhos indisponíveis em partidas ranqueadas." });
     if (process.env.CYBERDUEL_DEBUG !== "1")
       return ack({ ok: false, error: "Atalho online desativado. Inicie o servidor com npm run dev." });
+    if (!isAdminAccount(accountFromToken(payload.accountToken)))
+      return ack({ ok: false, error: "Esta conta não é administradora." });
     const room = rooms.get(socket.data.room);
     const player = socket.data.player;
     if (!room?.state || !player || room.players.get(player) !== socket.id)
@@ -1628,6 +1650,7 @@ io.on("connection", (socket) => {
     room.deadline = null;
     room.state = resolved.state;
     room.result = resolved.result;
+    room.debugFinal = true;
     broadcastState(room, { result: room.result, debugFinal: true });
     ack({ ok: true });
   });

@@ -14,9 +14,13 @@ const scene = {
   mostrarFinalParaTeste(result) { this.result = result; },
 };
 const manager = { isActive: key => key === 'CenaJogo', getScene: () => scene };
-const context = vm.createContext({ window: {}, game: { scene: manager } });
+const context = vm.createContext({ window: { cyberduelAccount: { user: "Admin", isAdmin: true, token: "token" } }, game: { scene: manager } });
 vm.runInContext(fs.readFileSync('js/debug.js', 'utf8'), context);
 (async () => {
+  context.window.cyberduelAccount.isAdmin = false;
+  await assert.rejects(context.window.irParaFinal('vitória'), /administradora/);
+  assert.throws(() => context.window.irParaX1(), /administradora/);
+  context.window.cyberduelAccount.isAdmin = true;
   await context.window.irParaFinal('vitória');
   assert.equal(scene.result.resultado, 'jogador');
   await context.window.irParaFinal('derrota');

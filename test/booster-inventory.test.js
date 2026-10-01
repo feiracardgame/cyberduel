@@ -9,7 +9,7 @@ const [owner, other] = require('./account-fixture')(dir, ['Inventario', 'OutroIn
 const port = 31990;
 let server;
 async function start() {
-  server = spawn(process.execPath, ['server/server.js'], { env: { ...process.env, PORT: String(port), DATA_DIR: dir, CYBERDUEL_DEBUG: '1', BOOSTER_WEIGHT_LENDARIA: '0' }, stdio: ['ignore', 'pipe', 'inherit'] });
+  server = spawn(process.execPath, ['server/server.js'], { env: { ...process.env, PORT: String(port), DATA_DIR: dir, CYBERDUEL_DEBUG: '1', ADMIN_USERNAMES: 'Inventario', BOOSTER_WEIGHT_LENDARIA: '0' }, stdio: ['ignore', 'pipe', 'inherit'] });
   await new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error('Servidor não iniciou')), 5000);
     server.stdout.on('data', data => { if (String(data).includes('ouvindo')) { clearTimeout(timer); resolve(); } });

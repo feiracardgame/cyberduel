@@ -5,11 +5,11 @@ const path = require('node:path');
 const vm = require('node:vm');
 const { spawn } = require('node:child_process');
 const { once } = require('node:events');
-async function serverProof(debug) {
+async function serverProof(debug, admin = true) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'legendary-debug-'));
   const [{ token }] = require('./account-fixture')(dir, ['TesteLenda']);
   const port = 31989;
-  const server = spawn(process.execPath, ['server/server.js'], { env: { ...process.env, PORT: String(port), DATA_DIR: dir, CYBERDUEL_DEBUG: debug ? '1' : '0', BOOSTER_WEIGHT_LENDARIA: '0' }, stdio: ['ignore', 'pipe', 'inherit'] });
+  const server = spawn(process.execPath, ['server/server.js'], { env: { ...process.env, PORT: String(port), DATA_DIR: dir, CYBERDUEL_DEBUG: debug ? '1' : '0', ADMIN_USERNAMES: admin ? 'TesteLenda' : '', BOOSTER_WEIGHT_LENDARIA: '0' }, stdio: ['ignore', 'pipe', 'inherit'] });
   try {
     await new Promise((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error('Timeout')), 5000);
@@ -21,8 +21,8 @@ async function serverProof(debug) {
     };
     await post('account/faction', { faction: 'raspcorp' });
     const pack = await post('boosters/open', { faction: 'raspcorp', debugLegendary: true });
-    assert.equal(pack.status, debug ? 200 : 403);
-    if (debug) {
+    assert.equal(pack.status, debug && admin ? 200 : 403);
+    if (debug && admin) {
       assert.equal(pack.body.cards.length, 5);
       assert.ok(pack.body.cards.some(c => c.nivel === 'lendaria'));
       assert.equal(pack.body.currency, 400);
@@ -31,16 +31,16 @@ async function serverProof(debug) {
     const normal = await post('boosters/open', { faction: 'raspcorp' });
     assert.equal(normal.status, 200);
     assert.ok(normal.body.cards.every(c => c.nivel !== 'lendaria'));
-    assert.equal(normal.body.currency, debug ? 300 : 400);
+    assert.equal(normal.body.currency, debug && admin ? 300 : 400);
     const purchase = await post('boosters/buy', { faction: 'raspcorp', purchaseId: 'debug-existing-pack-0001' });
     const packId = purchase.body.boosters[0].id;
     const stored = await post('boosters/open', { packId, debugLegendary: true });
-    assert.equal(stored.status, debug ? 200 : 403);
+    assert.equal(stored.status, debug && admin ? 200 : 403);
     const replay = await post('boosters/open', { packId });
     assert.equal(replay.status, 200);
-    assert.equal(replay.body.currency, debug ? 200 : 300);
-    assert.equal(replay.body.cards.some(c => c.nivel === 'lendaria'), debug);
-    if (debug) assert.deepEqual(replay.body.cards, stored.body.cards);
+    assert.equal(replay.body.currency, debug && admin ? 200 : 300);
+    assert.equal(replay.body.cards.some(c => c.nivel === 'lendaria'), debug && admin);
+    if (debug && admin) assert.deepEqual(replay.body.cards, stored.body.cards);
 
   } finally {
     const exited = once(server, 'exit'); server.kill(); await exited;
@@ -53,6 +53,8 @@ async function serverProof(debug) {
   const account = context.window.cyberduelAccount;
   assert.throws(() => context.window.garantelendaria(), /Entre/);
   account.user = 'Teste';
+  assert.throws(() => context.window.garantelendaria(), /administradora/);
+  account.isAdmin = true;
   context.window.garantelendaria();
   account.request = async (route, options) => {
     assert.equal(route, '/api/boosters/buy');
@@ -75,5 +77,6 @@ async function serverProof(debug) {
   await account.openBooster('pacote-guardado');
   await serverProof(false);
   await serverProof(true);
+  await serverProof(true, false);
   console.log('Garantia lendária: login, falha, uso único, servidor protegido, cinco cartas, cobrança e sorteio normal validados.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

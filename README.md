@@ -384,6 +384,24 @@ Copie `.env.example` para `.env` na raiz do projeto, ao lado de `package.json`, 
 
 Após alterar os valores, reinicie o backend com o mesmo comando ou reaplique o Compose. `BOOSTER_LEGENDARY_MIN_GAMES` controla o mínimo de partidas para sortear lendárias. `CYBERDUEL_PORT` no exemplo não é usado pelo Compose atual; as portas públicas estão fixadas em 80 e 443.
 
+### Contas administradoras
+
+Depois de criar sua conta Google e escolher o username, coloque os usernames existentes dos administradores no `.env` do servidor:
+
+```env
+ADMIN_USERNAMES=seu_username,outro_admin
+```
+
+Use o **username único**, não o apelido/display name; maiúsculas e minúsculas são equivalentes. Vazio desativa todos os acessos administrativos. Para aplicar no Docker após atualizar o código, execute `docker compose --env-file .env up -d --build server nginx`. Para remover um admin, retire seu username e recrie o serviço. No Node, reinicie com `node --env-file=.env server/server.js`.
+
+O botão **ADMIN** nas configurações e no mercado aparece apenas para essas contas. A API exige a sessão Google do administrador; `ADMIN_API_TOKEN` e `window.CYBERDUEL_ADMIN_TOKEN` deixam de liberar acesso. Os atalhos de teste também exigem admin; garantia de lendária e final online continuam exigindo `npm run dev`.
+
+### Recompensas solo contra o bot
+
+Cada partida solo normal de uma conta autenticada concede **1.000 tijolinhos por vitória** e **200 por derrota**; empate concede zero. A tela final mostra o crédito confirmado e permite tentar novamente se houver falha de comunicação. Partidas de teste/atalhos de admin e partidas online não concedem esse bônus.
+
+O servidor fixa o valor, vincula o ID da partida à conta e impede pagamento duplicado, inclusive após reiniciar. Mantém os últimos 100 registros solo por conta; IDs antigos são recusados. O combate solo ainda acontece no navegador, portanto o resultado informado pelo cliente não tem validação contra manipulação do jogo.
+
 ### Comprar e abrir boosters
 
 No mercado, **COMPRAR PACOTE** desconta o saldo e guarda um booster fechado no inventário. Acesse **VER INVENTÁRIO** ou **Suas cartas → Abrir boosters**. Cada facção mostra a quantidade de pacotes disponíveis.
@@ -394,7 +412,7 @@ Pacotes e conteúdo são persistidos na conta; repetir uma requisição de abert
 
 ### Garantir uma lendária para testar a abertura
 
-Inicie o backend com `npm run dev` (com `.env`: `node --env-file=.env scripts/dev-server.js`). Entre na conta e execute `garantelendaria()` no console do navegador. Abra um pacote do inventário: a próxima abertura bem-sucedida terá uma lendária da facção escolhida, mesmo sem atingir o mínimo de partidas. Funciona em pacotes já comprados; comprar outro pacote não consome a garantia. O pacote continua com cinco cartas e abrir não cobra novamente. Para repetir, execute o comando novamente. Facções sem lendárias ou servidores fora do modo de teste recusam a abertura de teste, preservando o pacote fechado.
+Inicie o backend com `npm run dev` (com `.env`: `node --env-file=.env scripts/dev-server.js`). Entre em uma conta administradora e execute `garantelendaria()` no console do navegador. Abra um pacote do inventário: a próxima abertura bem-sucedida terá uma lendária da facção escolhida, mesmo sem atingir o mínimo de partidas. Funciona em pacotes já comprados; comprar outro pacote não consome a garantia. O pacote continua com cinco cartas e abrir não cobra novamente. Para repetir, execute o comando novamente. Facções sem lendárias ou servidores fora do modo de teste recusam a abertura de teste, preservando o pacote fechado.
 
 ## Perfil
 
