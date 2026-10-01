@@ -101,7 +101,7 @@ Descrição de como será feito o tutorial do jogo
 
 -> Momento da escolha:
 
-- ElenAI (sprite 15) -> "Faça sua escolha!"
+- ElenAI (sprite 11) -> "Qual você escolhe?"
 
 -> Abre prompt pra escolher entre ambos
 
