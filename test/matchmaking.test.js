@@ -86,6 +86,8 @@ async function run() {
   assert.equal(board.length, 2); assert.equal(board[0].rating, 1016); assert.equal(board[0].wins, 1);
   assert.equal(board[1].rating, 984); assert.equal(board[1].losses, 1);
   assert.equal(board[0].username, undefined); assert.equal(board[0].passwordHash, undefined);
+  assert.equal((await api('auth/session', first.token, null, 'GET')).currency, 900);
+  assert.equal((await api('auth/session', second.token, null, 'GET')).currency, 2500);
   one.emit('surrender'); two.emit('surrender');
   assert.equal((await ack(one, 'decline-match', { room: matchOne.room, accountToken: first.token })).ok, false);
   assert.deepEqual((await api('leaderboard', null, null, 'GET')).entries, board, 'Resultado contabilizado uma única vez.');
@@ -113,12 +115,16 @@ async function run() {
   for (const user of users) {
     const account = await api('auth/session', user.token, null, 'GET');
     assert.equal(account.gamesPlayed, 2, 'Servidor contabiliza online uma vez por partida.');
-    assert.equal(account.currency, 500, 'Online não paga o bônus do bot.');
+    assert.equal(account.currency, 500 + 2000 * account.rankedWins + 400 * account.rankedLosses, 'Online paga o dobro sem repetir o crédito.');
   }
   sockets.forEach(socket => socket.disconnect());
   await new Promise(resolve => { server.once('exit', resolve); server.kill(); });
   await start();
   assert.deepEqual((await api('leaderboard', null, null, 'GET')).entries, board, 'Leaderboard persiste após reinício.');
+  for (const user of users) {
+    const account = await api('auth/session', user.token, null, 'GET');
+    assert.equal(account.currency, 500 + 2000 * account.rankedWins + 400 * account.rankedLosses, 'Recompensas persistem após reiniciar.');
+  }
   assert.equal((await api('auth/session', first.token, null, 'GET')).username, first.username,
     'Sessão continua válida após reiniciar o backend.');
   const restored = await connect();

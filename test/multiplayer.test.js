@@ -252,6 +252,12 @@ async function run() {
   assert.equal(finished.result.resultadoCombate.resultado, timedUpdate.activePlayer === 1 ? "jogador" : "inimigo");
   assert.equal(observed.result.resultadoCombate.resultado, finished.result.resultadoCombate.resultado);
   assert.equal((await emitAck(finisher, "debug-finish-match", { accountToken: token1, resultado: "derrota" })).ok, false);
+  const balance = async token => {
+    const response = await fetch(`${url}/api/auth/session`, { headers: { Authorization: `Bearer ${token}` } });
+    return (await response.json()).currency;
+  };
+  assert.equal(await balance(token1), 500, "Final de debug não paga recompensa.");
+  assert.equal(await balance(token2), 500);
   // Recusar após desconectar encerra a partida no servidor e invalida qualquer retorno.
   const returning = await connect();
   const opponent = await connect();
@@ -275,6 +281,23 @@ async function run() {
     assert.equal((await emitAck(menu, "resume-match", credentials)).ok, false);
   }
   assert.equal((await emitAck(opponent, "live-state", { state, step: 0, round: 1 })).ok, false);
+  assert.equal(await balance(token1), 900, "Derrota por sala paga 400.");
+  assert.equal(await balance(token2), 2500, "Vitória por sala paga 2.000.");
+  const normal = await emitAck(menu, "create-room", { accountToken: token2 });
+  await emitAck(opponent, "join-room", { code: normal.room.code, accountToken: token1 });
+  await emitAck(menu, "initial-state", { state });
+  await emitAck(intruder, "spectate-room", { code: normal.room.code });
+  intruder.emit("surrender");
+  await emitAck(intruder, "find-active-match", {});
+  assert.equal(await balance(token1), 900, "Espectador não pode encerrar nem pagar uma partida.");
+  const normalFinal = once(opponent, "state-update");
+  menu.emit("surrender");
+  assert.equal((await normalFinal).result.resultadoCombate.resultado, "inimigo");
+  menu.emit("surrender"); opponent.emit("surrender");
+  await emitAck(menu, "live-state", { state, step: 0, round: 1 });
+  await emitAck(opponent, "live-state", { state, step: 0, round: 1 });
+  assert.equal(await balance(token1), 2900, "Vitória paga uma única vez.");
+  assert.equal(await balance(token2), 2900, "Derrota paga uma única vez.");
   menu.disconnect(); opponent.disconnect();
   for (const socket of [player1, player2, intruder, reconnected]) socket.disconnect();
   console.log("Fluxo multiplayer validado.");

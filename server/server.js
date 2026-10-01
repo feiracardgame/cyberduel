@@ -1299,6 +1299,10 @@ function settleMatch(room) {
   if (room.ranked && accounts.every(Boolean)) ranking.applyResult(...accounts, winner);
   if (!room.debugFinal) [...new Set(accounts.filter(Boolean))].forEach(account => {
     ensureAccountDefaults(account);
+    const player = accounts.indexOf(account) + 1;
+    const winnerPlayer = winner === "jogador" ? 1 : winner === "inimigo" ? 2 : 0;
+    const reward = !winnerPlayer || accounts[0] === accounts[1] ? 0 : player === winnerPlayer ? 2000 : 400;
+    account.currency = Math.min(Number.MAX_SAFE_INTEGER, account.currency + reward);
     account.gamesPlayed += 1;
     account.updatedAt = new Date().toISOString();
   });
@@ -1658,9 +1662,9 @@ io.on("connection", (socket) => {
   socket.on("surrender", () => {
     const room = rooms.get(socket.data.room);
     if (!room || !socket.data.player) return;
-    if (room.ranked) { surrenderRoom(room, socket.data.player); return; }
-    if (room.state) room.state.partidaEncerrada = true;
-    clearTimeout(room.timer);
+    if (!room.state || room.state.partidaEncerrada) return;
+    surrenderRoom(room, socket.data.player);
+    if (room.ranked) return;
     socket.to(room.code).emit("opponent-surrendered", { player: socket.data.player });
   });
 

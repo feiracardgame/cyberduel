@@ -4,6 +4,13 @@ Novidades, correções e verificações realizadas no projeto. As entregas mais 
 
 ## 2026-10-01
 
+### Recompensas dobradas no matchmaking e em salas
+
+- Matchmaking e partidas por sala agora creditam 2.000 tijolinhos à conta vencedora e 400 à perdedora, com zero por empate. O crédito ocorre no encerramento pelo servidor, junto da contagem da partida, uma única vez; os saldos são persistidos. Mantidas as recompensas solo de 1.000/200.
+- Desistência em salas passa pelo mesmo encerramento do servidor, registrando vitória, derrota e recompensas. Mantido o aviso de desistência ao adversário; chamadas repetidas não pagam novamente. Espectadores, finais de teste e partidas com a mesma conta nos dois lugares não recebem bônus. O saldo respeita o limite de inteiro seguro.
+- Atualizado README. Validações aprovadas: sintaxe dos três arquivos JavaScript alterados, `git diff --check` e seis testes funcionais (`matchmaking`, `multiplayer`, `presentation`, `resume-match`, `solo-rewards` e `surrender-screen`). Verificados valores para ambos os jogadores, desistência em sala, pagamento único, persistência do matchmaking, espectador sem poder de encerramento e ausência de recompensa em finais de debug.
+- Testes executados com contas e dados temporários. Nenhum `.env`, conta local ou container de produção alterado; publicação no servidor continua pendente.
+
 ### Administradores por conta e recompensa das partidas solo
 
 - O servidor identifica administradores pelos usernames únicos de contas Google já cadastradas, configurados em `ADMIN_USERNAMES` (separados por vírgula, sem distinguir maiúsculas). Lista vazia bloqueia todos; remover um username e reiniciar revoga o acesso mesmo com a sessão anterior. Removido o acesso pelo token compartilhado e corrigido o acesso administrativo aberto quando esse token não existia.

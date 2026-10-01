@@ -398,9 +398,13 @@ O botão **ADMIN** nas configurações e no mercado aparece apenas para essas co
 
 ### Recompensas solo contra o bot
 
-Cada partida solo normal de uma conta autenticada concede **1.000 tijolinhos por vitória** e **200 por derrota**; empate concede zero. A tela final mostra o crédito confirmado e permite tentar novamente se houver falha de comunicação. Partidas de teste/atalhos de admin e partidas online não concedem esse bônus.
+Cada partida solo normal de uma conta autenticada concede **1.000 tijolinhos por vitória** e **200 por derrota**; empate concede zero. A tela final mostra o crédito confirmado e permite tentar novamente se houver falha de comunicação. Partidas de teste/atalhos de admin não concedem esse bônus.
 
 O servidor fixa o valor, vincula o ID da partida à conta e impede pagamento duplicado, inclusive após reiniciar. Mantém os últimos 100 registros solo por conta; IDs antigos são recusados. O combate solo ainda acontece no navegador, portanto o resultado informado pelo cliente não tem validação contra manipulação do jogo.
+
+### Recompensas online
+
+Matchmaking e partidas por sala pagam **2.000 tijolinhos por vitória** e **400 por derrota** às contas autenticadas; empate paga zero. O servidor credita uma vez ao encerrar o duelo, inclusive por desistência, e persiste os saldos. Espectadores e finais por atalhos de teste não recebem recompensa. Usar a mesma conta nos dois lugares não concede bônus. O saldo respeita o limite de inteiro seguro.
 
 ### Comprar e abrir boosters
 
