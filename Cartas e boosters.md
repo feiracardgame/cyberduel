@@ -490,11 +490,13 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
 <img alt="image" src="assets/cartas/ia_de_treinamento.png" />
 
- #### Assets
+ #### Assets -> quando é invocado
 
- Som: 
+ Som: interacao.mp3 (mesmo som de quando escolhe opção da IA, é pra referenciar isso)
 
- Efeito visual:
+ Efeito visual: O sprite 14 da IA aparece no canto da tela
+
+ 
 
 
 
@@ -511,11 +513,11 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
 <img alt="image" src="assets/cartas/hal_9001.png" />
 
- #### Assets
+ #### Assets -> aparece quando usa a habilidade ele
 
- Som: 
+ Som: som-hal
 
- Efeito visual:
+ Efeito visual: efeito-hal aparece em cima da carta selecionada como alvo e fica até ser desabilitado ou ser trocado de alvo
 
 
 
@@ -525,7 +527,7 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
  
 * PA: 5
-* Efeito: Assistente Pessoal -> Ao invocar H.A.R.V.I.S em campo, você compra 1 carta aleatória do deck.
+* Efeito: Assistente Pessoal -> Enquanto H.A.R.V.I.S estiver em campo, você ganha mais 10 segundos de tempo em cada turno. Este efeito pode acumular para um máximo de 1 minuto.
 * Visual:
 
 <img alt="image" src="assets/cartas/harvis.png" />
@@ -533,9 +535,9 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
 
 
- #### Assets
+ #### Assets -> quando invoca ele em campo
 
- Som: 
+ Som: som-harvis
 
  Efeito visual:
 
@@ -553,9 +555,9 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
  #### Assets
 
- Som: 
+ Som: som-replicantes
 
- Efeito visual:
+ Efeito visual: todos os terrenos em campo ganham contornos verdes ao redor deles
 
 
 
@@ -570,11 +572,11 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 <img alt="image" src="assets/cartas/juggernaut.png" />
 
 
- #### Assets
+ #### Assets -> quando ativa a habilidade
 
- Som: 
+ Som: som-juggernaut
 
- Efeito visual:
+ Efeito visual: efeito-juggernaut aparece em cima da carta, semelhante ao efeito do advogado-corporativo
 
 ### 1x carta alta 3 -> Dragão das Comunicações Móveis
 
@@ -583,6 +585,7 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
  
 * PA: 14
 * Efeito: Adormecido -> Esta carta não possui efeitos enquanto estiver adormecida.
+* EFeito Secreto (aparece na carta apenas quando ativado): Memórias do passado -> Esta carta, caso tenha um Boi aliado em campo, pode ser selecionada como alvo de seu efeito. Caso isso ocorra, o Dragão desperta ao lembrar de suas origens. O Dragão passa a ganhar +3 PA por rodada.
 
  
 * Visual:
@@ -591,11 +594,11 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
 
 
- #### Assets
+ #### Assets -> apenas quando o efeito secreto é ativado
 
- Som: 
+ Som: som-dragao
 
- Efeito visual:
+ Efeito visual: aparece na tela, em full art, a imagem da carta do dragao (dragao.png) enquanto ele ruge
 
 
 
@@ -631,11 +634,11 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
 
 
- #### Assets
+ #### Assets -> apenas quando ativa o efeito
 
- Som: 
+ Som: som-deepclaude
 
- Efeito visual:
+ 
 
 
 
@@ -651,11 +654,10 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
 
 
- #### Assets
+ #### Assets -> quando invoca a carta em campo
 
- Som: 
+ Som: som-bug
 
- Efeito visual:
 
 
 ### 1x carta de efeito 1 -> Você Parece Sozinho
@@ -669,11 +671,11 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
 <img alt="image" src="assets/cartas/Voce_parece_sozinho.png" />
 
- #### Assets
+ #### Assets -> quando invoca ela em campoo
 
- Som: 
+ Som: som-lonely
 
- Efeito visual:
+ Efeito visual: aparece a carta na tela, igual qualquer carta de efeito
 
 
 ## Booster 4 Os Remanescentes -> cor-guia: tons leves de amarelo
