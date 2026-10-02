@@ -86,6 +86,7 @@ Descrição de como será feito o tutorial do jogo
 
 - ElenAI (sprite 16) -> "Estou impressionada, você é profissional já!"
 - ElenAI (sprite 2) -> "Siga jogando, aprendendo e vencedendo, assim você ganhará pontos no ranking oficial do jogo e, estando alto o suficiente, poderá se tornar um membro do Conselho"
+- ElenAI (sprite 2) -> "Lembre-se de sempre fazer as melhores jogadas, porém seja rápido, já que a audiência não gosta de ficar esperando pela sua jogada."
 
 -> Vai para a Aba de escolha de deck
 
@@ -134,8 +135,9 @@ Descrição de como será feito o tutorial do jogo
 
 
 
-# Fala ao alcançar 10 partidas no perfil e ter respondido "sim" lá no início
+# Fala ao alcançar 10 partidas no perfil 
 
+-> Se esse momento triggar junto de outro, ele deve sempre ser feito sequencialmente logo após ele.
 
 -> Se tiver dito "não" lá no tutorial
 
@@ -165,7 +167,7 @@ Descrição de como será feito o tutorial do jogo
 
 
 
-# Fala ao conseguir entrar no raking dos melhores pela primeira vez e após 4 partidas
+# Fala ao conseguir entrar no raking dos melhores pela primeira vez e após 4 partidas no perfil
 
 - ElenAI (sprite 1) -> "Você entrou pela primeira vez no Conselho, isso é muito impressionante."
 - ElenAI (sprite 3) -> "Porém, agora preciso te contar algo que não havia falado antes"
@@ -180,8 +182,6 @@ Descrição de como será feito o tutorial do jogo
 - ElenAI (sprite 15) -> "Eu estou contando com você!"
 
 
-
-# Fala ao se tornar o top 1 pela primeira vez
 
 
 
