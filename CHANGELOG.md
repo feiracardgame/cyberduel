@@ -4,6 +4,38 @@ Novidades, correções e verificações realizadas no projeto. As entregas mais 
 
 ## 2026-10-05
 
+### Despertar do Dragão reservado para implementação futura
+
+- Removido o gatilho que despertava o Dragão das Comunicações Móveis pela habilidade do Boi e concedia +3 PA por rodada. O Boi mantém apenas seu efeito normal; não emite evento nem som de despertar. O áudio permanece carregado e associado ao evento futuro, sem gatilho ativo no motor.
+- Teste `humbanet.test.js` aprovado: Dragão aliado e adversário permanecem adormecidos após o Boi, sem evento de despertar nem ganho por rodada, inclusive após serialização/troca de perspectiva e no motor online. Sintaxe de `js/main.js` e `git diff --check` aprovados. Atualizada a versão do script para renovar o cache; preservados os demais sons implementados.
+
+### Sons das cartas e despertar do Dragão
+
+- Implementadas as nove associações de áudio disponíveis: habilidade do CyberVendedor, invocação da IA de treinamento, habilidade do HAL 9001, invocação do H.A.R.V.I.S, ganho de PA dos Replicantes por terrenos, despertar do Dragão das Comunicações Móveis, habilidade do DeepClaude ChatGemini, invocação do Bug na Matrix e conjuração de Você Parece Sozinho. Para Replicantes, cujo gatilho não está especificado no documento, adotado o ganho positivo de PA pelo efeito contínuo; perda do bônus não reproduz a voz.
+- Compra agora usa `compra_carta.mp3`. Habilidade do Tigre reproduz investida e garras, mantendo a voz existente; garras tocam uma vez por efeito, mesmo com vários alvos. Mantidos volume configurável, proteção da identidade de cartas ocultas e controle de eventos para evitar repetição. A fila aguarda a duração dos áudios, e o prazo de recuperação do servidor foi ajustado para as vozes mais longas.
+- Implementado o despertar secreto do Dragão quando a habilidade do Boi reseta seu PA no próprio campo: voz apenas no primeiro despertar e ganho de +3 PA no início de cada rodada. Estado preservado na serialização, troca de perspectiva e motor online; desabilitação pelo HAL suspende o ganho até a restauração do efeito.
+- Aprovados testes de Humbanet/Dragão, animações e áudio de jogadores/espectadores, assets, encerramento de turno com mão visível, Echossystem, novas cartas, avisos de batalha e multiplayer; sintaxe dos arquivos alterados e `git diff --check` aprovados. Playwright confirmou eventos reais do motor, reprodução WebAudio completa dos nove sons e das variações do Tigre, novo som de compra e volume configurado, sem erros JavaScript ou HTTP locais. Relatório e captura em `/tmp/cyberduel-playwright/`; não houve avaliação auditiva humana nem deploy.
+- Pendente o som de Sugestão Algorítmica: o arquivo `som-sugestao` ainda não está disponível.
+
+### Conferência dos sons prontos e ainda não associados às cartas
+
+- Comparado `Cartas e boosters.md` com `assets/sons/`, o preload e os gatilhos da cena de efeitos. Identificadas nove associações pendentes com arquivo disponível: CyberVendedor, IA de treinamento, HAL 9001, H.A.R.V.I.S, Replicantes, Dragão das Comunicações Móveis, DeepClaude ChatGemini, Bug na Matrix e Você Parece Sozinho. O CyberVendedor usa som genérico; `interacao.mp3` já é carregado/usado na interface, mas não na invocação da IA; os outros oito arquivos específicos não estão no preload.
+- O documento não especifica o momento de reprodução dos Replicantes. `som-sugestao` é citado para Sugestão Algorítmica, mas o arquivo não está disponível. Encontrados ainda `compra_carta.mp3` e `som-tigreataque.mp3` sem referências no JavaScript; `som-tigregarra.mp3` é carregado e ligado ao atributo legado `somAtaque`, sem consumidor de reprodução no fluxo atual de efeitos.
+- `ffprobe` confirmou streams de áudio e durações válidas nos nove arquivos pendentes e nesses três extras. Conferência de código/assets; não houve reprodução ouvida por uma pessoa nem implementação de novos sons neste pedido. Preservadas as alterações locais existentes.
+
+### Novo montador de deck e controle dos avisos de batalha
+
+- Aplicadas as skills `redesign-existing-projects` e `matrix` ao montador existente: tela ampla no desktop com coleção e deck lado a lado, artes verticais, fonte Rushblade no título, tipografia monoespaçada, superfícies escuras e destaque verde. Simplificados os textos, o contador de composição e a ação “Salvar deck”; mantidos busca, filtros, facções, ficha, limites de coleção, sugestão, aleatório e builds salvas.
+- No celular, preservadas as abas de cartas/deck e ajustados cabeçalho, resumo e controles. Retirada a regra compartilhada que forçava o montador à largura vertical do canvas; mantido o ajuste ao viewport visível. Coleção e deck são atualizados juntos após edição, evitando painel desatualizado ao mudar a largura da tela.
+- Configurações agora oferecem “Pular avisos de início e de turno”, desativado por padrão, persistido no aparelho e desativado novamente ao restaurar os padrões. No solo elimina textos, vozes e espera de abertura/fase; no online o jogador ativo pode antecipar o relógio pelo servidor, preservando sua duração e sincronizando a sala. Servidor recusa espectadores, adversário, fases antigas e pedidos antes da abertura; repetir skip não renova o prazo. Vitória e derrota continuam com seus avisos.
+- Removido o recolhimento automático da mão durante avisos e efeitos, preservando os bloqueios de interação necessários. Uma nova invocação, conjuração ou habilidade remove o título da fase antes da apresentação da jogada e impede seu retorno em redesenhos daquela fase.
+- Aprovados testes de configurações/persistência, avisos solo/online, mão, animações, montador, menu, assets, apresentação/espectador e fluxo multiplayer com autorização e sincronização do skip; sintaxe dos arquivos alterados e `git diff --check` aprovados. Playwright verificou busca vazia, edição, sugestão, salvamento, builds e ficha em desktop/celular, skip solo e online com passagem de turno, mão visível durante o aviso e remoção do título após inserir uma carta pelo motor do jogo. Conferidos cabeçalhos em 390 e 320 pixels sem sobreposição/overflow; capturas revisadas, sem erros JavaScript ou HTTP locais nas execuções finais. Artefatos em `/tmp/cyberduel-playwright/`; nenhum deploy realizado.
+
+### Roteiro de testes manuais das entregas do dia
+
+- Conferidas as alterações de hoje e preparado roteiro para login local, avisos e áudios da batalha, início dos timers, resultados e orientação das cartas/PA na apresentação.
+- A conferência manual pelo usuário continua pendente; os testes automatizados e no Playwright estão registrados nas respectivas entregas abaixo.
+
 ### Acesso local sem conta Google
 
 - `npm run dev` agora oferece “ENTRAR LOCALMENTE” na tela de login: basta um nome de teste de 3 a 18 caracteres. A conta recebe username com prefixo `local_`, mantém progresso ao repetir o nome e usa os fluxos existentes de facção, deck, coleção e salas. Contas locais têm acesso ao admin e aos atalhos de desenvolvimento.

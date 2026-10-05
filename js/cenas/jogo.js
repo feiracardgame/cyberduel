@@ -82,6 +82,7 @@ class CenaJogo extends Phaser.Scene {
     this.tipoAvisoBatalha = null;
     this.avisosBatalhaTocados = new Set();
     this.avisoSequencia = 0;
+    this.avisoBatalhaDispensado = null;
     this.events.once("shutdown", () => this.avisoBatalhaSom?.destroy());
     this.camadaModalCarta = null;
     this.events.once("shutdown", () => {
@@ -483,11 +484,12 @@ class CenaJogo extends Phaser.Scene {
   configurarAvisoLocal(duracaoTurno) {
     const avisos = window.cyberduelBattleAnnouncements;
     const announcementAt = Date.now();
-    const introUntil = announcementAt + (this.avisoInicialPendente ? avisos.inicio.duracao : 0);
+    const skip = window.cyberduelSettings?.get("skipBattleAnnouncements") === 1;
+    const introUntil = announcementAt + (this.avisoInicialPendente && !skip ? avisos.inicio.duracao : 0);
     this.avisoInicialPendente = false;
     this.avisoSequencia++;
     this.avisoLocal = { announcementAt, introUntil,
-      phaseStartsAt: introUntil + (this.ehMeuTurno ? avisos[this.faseAtual].duracao : 0) };
+      phaseStartsAt: introUntil + (this.ehMeuTurno && !skip ? avisos[this.faseAtual].duracao : 0) };
     this.prazoFaseLocal = this.avisoLocal.phaseStartsAt + duracaoTurno;
   }
 
@@ -497,15 +499,22 @@ class CenaJogo extends Phaser.Scene {
   }
 
   atualizarAvisoBatalha() {
+    const skip = window.cyberduelSettings?.get("skipBattleAnnouncements") === 1;
+    if (skip && this.multiplayerAtivo) this.multiplayer.skipAnnouncement();
     const relogio = this.multiplayerAtivo ? this.multiplayer : this.avisoLocal;
     const agora = Date.now() + (this.multiplayerAtivo ? this.multiplayer.clockOffset : 0);
     let tipo = null;
-    if (!this.partida?.partidaEncerrada && !this.efeitosVisuaisPendentes() && !this.multiplayer?.effectsPaused &&
+    const fase = this.multiplayerAtivo ? `${this.multiplayer.round}:${this.multiplayer.step}` : this.avisoSequencia;
+    if (!skip && this.avisoBatalhaDispensado !== fase && !this.partida?.partidaEncerrada && !this.efeitosVisuaisPendentes() && !this.multiplayer?.effectsPaused &&
         relogio && agora >= relogio.announcementAt && agora < relogio.phaseStartsAt) {
       if (agora < relogio.introUntil) tipo = "inicio";
       else if (this.ehMeuTurno && !this.multiplayer?.spectator) tipo = this.faseAtual;
     }
     const aviso = window.cyberduelBattleAnnouncements?.[tipo];
+    if (!aviso) {
+      this.avisoBatalhaSom?.destroy();
+      this.avisoBatalhaSom = null;
+    }
     if (this.tipoAvisoBatalha !== tipo || (aviso && !this.avisoBatalhaTexto?.active)) {
       this.avisoBatalhaTexto?.destroy();
       this.avisoBatalhaTexto = aviso ? this.add.text(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, aviso.texto, {
@@ -527,8 +536,15 @@ class CenaJogo extends Phaser.Scene {
   apresentarEventosEfeito(eventos = this.partida?.eventosEfeito) {
     if (this.finalDebug) return;
     const efeitos = this.scene?.manager?.keys?.CenaEfeitos;
-    if (eventos?.length && efeitos && eventos.at(-1).id > efeitos.ultimoEvento)
+    if (eventos?.length && efeitos && eventos.at(-1).id > efeitos.ultimoEvento) {
+      if (eventos.some(evento => evento.id > efeitos.ultimoEvento &&
+          ["invocacao", "conjuracao", "habilidade"].includes(evento.momento))) {
+        this.avisoBatalhaTexto?.destroy();
+        this.avisoBatalhaTexto = null;
+        this.avisoBatalhaDispensado = this.multiplayerAtivo ? `${this.multiplayer.round}:${this.multiplayer.step}` : this.avisoSequencia;
+      }
       efeitos.receber(eventos);
+    }
   }
 
   efeitosOponentePendentes() {
@@ -555,15 +571,6 @@ class CenaJogo extends Phaser.Scene {
     return (this.efeitosVisuaisPendentes() || !!this.multiplayer?.effectsPaused) && !this.efeitoInvocacaoEmCurso();
   }
 
-  maoDeveSumirDuranteEfeitos(objeto) {
-    if (!objeto.posOriginal || !this.ehMeuTurno) return false;
-    const efeitos = this.scene?.manager?.keys?.CenaEfeitos;
-    const eventos = [efeitos?.eventoAtual, ...(efeitos?.fila || [])].filter(Boolean);
-    return !eventos.some((evento) =>
-      evento.momento === "invocacao" || evento.fonte?.nome === "Sugestão Algorítmica",
-    );
-  }
-
   atualizarInteracaoDuranteEfeitos() {
     const bloqueado = this.efeitosBloqueiamInteracao() || this.avisoBatalhaPendente();
     let transicao = false;
@@ -572,7 +579,7 @@ class CenaJogo extends Phaser.Scene {
       // Deixa a compra terminar antes de recolher a carta, sem cortar seu voo.
       if (objeto.animandoCompra) continue;
       const deslocamento = objeto.dadosCarta ? 80 : 28;
-      const ocultar = bloqueado && (!objeto.dadosCarta || this.maoDeveSumirDuranteEfeitos(objeto));
+      const ocultar = bloqueado && !objeto.dadosCarta;
       if (!objeto.estadoAntesDosEfeitos &&
           (ocultar || (this.interfaceOcultaPorEfeitos && !objeto.dadosCarta && objeto.ocultoPorEfeitos === undefined))) {
         objeto.estadoAntesDosEfeitos = { y: objeto.y, alpha: objeto.alpha, visible: objeto.visible };

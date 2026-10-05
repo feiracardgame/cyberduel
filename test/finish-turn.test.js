@@ -70,7 +70,7 @@ ready(null, { ok: true, round: 2, step: 1, effectsPaused: false });
 assert.equal(client.effectsPaused, false);
 console.log('Timeout, recuperação e confirmação dos efeitos validados.');
 
-// A mão e os controles somem durante o efeito; a cena recebe input novamente ao terminar.
+// Os controles somem durante o efeito; a mão continua visível.
 const transitions = [];
 game.tweens = {
   killTweensOf() {},
@@ -87,20 +87,25 @@ const finish = tween => {
 const hand = { dadosCarta: {}, posOriginal: { y: 1900 }, y: 1900, alpha: 1, visible: true,
   setAlpha(value) { this.alpha = value; return this; },
   setVisible(value) { this.visible = value; return this; } };
-game.children = { list: [hand] }; game.input = { enabled: true };
+const controls = { ...hand, y: 1850 }; delete controls.dadosCarta;
+game.rodaBotoesContainer = controls;
+game.children = { list: [hand, controls] }; game.input = { enabled: true };
 effects.executando = true;
 game.atualizarInteracaoDuranteEfeitos();
 assert.equal(game.input.enabled, false);
-assert.equal(hand.visible, true, 'A carta permanece visível durante a saída.');
-assert.equal(transitions[0].y, 1980);
+assert.equal(hand.visible, true, 'A mão permanece visível durante o efeito.');
+assert.equal(transitions[0].targets, controls);
+assert.equal(transitions[0].y, 1878);
 assert.equal(transitions[0].alpha, 0);
 assert.equal(game.podeConsultarCartas(), false);
 finish(transitions[0]);
-assert.equal(hand.visible, false);
+assert.equal(controls.visible, false);
+assert.equal(hand.visible, true);
 effects.executando = false;
 game.atualizarInteracaoDuranteEfeitos();
 assert.equal(hand.visible, true);
-assert.equal(hand.alpha, 0, 'O retorno começa transparente.');
+assert.equal(controls.alpha, 0, 'O retorno dos controles começa transparente.');
+assert.equal(hand.alpha, 1);
 assert.equal(game.input.enabled, false, 'Só libera input após o retorno.');
 // Outro efeito interrompe o retorno sem perder a posição original.
 effects.executando = true;
@@ -116,6 +121,7 @@ assert.equal(hand.y, 1900);
 assert.equal(hand.alpha, 1);
 assert.equal(hand.visible, true);
 assert.equal(transitions.length, 4, 'Não reinicia o retorno a cada frame.');
+game.children.list = [hand]; game.rodaBotoesContainer = null;
 
 // A mão fica visível durante efeitos do adversário e durante a Sugestão Algorítmica.
 effects.executando = true;

@@ -5,7 +5,15 @@ const APRESENTACAO_EFEITOS = Object.freeze({
   "Torre MonteCorp": { invocacao: "somTorre" },
   "Beira-mar norte de NeoFloripa": { invocacao: "somBeira" },
   "Nexus de Dados Global": { invocacao: "somNexus" },
-  "CyberVendedor da RaspCorp": { passiva: "somBuff" },
+  "CyberVendedor da RaspCorp": { habilidade: "somCyberVendedor" },
+  "IA de treinamento": { invocacao: "somInteracao" },
+  "HAL 9001": { habilidade: "somHal" },
+  "H.A.R.V.I.S": { invocacao: "somHarvis" },
+  "Replicantes": { continuo: "somReplicantes" },
+  "Dragão das Comunicações Móveis": { despertar: "somDragao" },
+  "DeepClaude ChatGemini": { habilidade: "somDeepClaude" },
+  "Bug na Matrix": { invocacao: "somBug" },
+  "Você Parece Sozinho": { conjuracao: "somLonely" },
   "Estagiário de Machine Learning": { habilidade: "somEstagiario" },
   "Gestor de Recursos Predominantemente Humanos": { habilidade: "somGRPH" },
   "NeoAnalista de Suporte Nível Alpha": { invocacao: "somNeoAnalista", video: "efeitoNeoAnalista" },
@@ -223,6 +231,8 @@ class CenaEfeitos extends Phaser.Scene {
       };
       const ativo = perfil.momentos?.includes(evento.momento);
       let alvos = (evento.alvos || []).filter((alvo) => alvo.lado !== evento.lado || alvo.id !== fonte.id || perfil.imagem === "efeitoBoi" || (alvo.delta && perfil.imagem !== "efeitoRato"));
+      if (ativo && perfil.visual === "garras" && alvos.length && this.cache.audio.exists("somTigreAtaque"))
+        this.sound.play("somTigreAtaque", { volume: window.cyberduelSettings?.effects(0.3) ?? 0.3 });
       // Só o autor vê onde a armadilha foi plantada; o disparo é público.
       if (remoto && fonte.efeito?.tipo === TIPOS_EFEITO.ARMADILHA_ESPACO && evento.momento === "conjuracao") alvos = [];
       if (fonte.indice >= 0 && (!echo || (ativo && ["efeitoRato", "efeitoCabra"].includes(perfil.imagem)))) pulsar(origem);
@@ -304,10 +314,13 @@ class CenaEfeitos extends Phaser.Scene {
       }
       const som = perfil[evento.momento] || (evento.momento === "invocacao" ? "somJogarCarta" : alvos.some(a => a.removida) ? "somExplosao" : "somBuff");
       const volume = perfil.volume ?? 0.3;
-      if ((!echo || (ativo && (alvos.length || perfil.imagem === "efeitoCoelho" || ["efeitoAranha", "efeitoBoi", "efeitoCabra"].includes(perfil.imagem)))) && this.cache.audio.exists(som)) this.sound.play(som, { volume: window.cyberduelSettings?.effects(volume) ?? volume });
-      let duracao = 1000;
+      const tocaSom = (!echo || (ativo && (alvos.length || perfil.imagem === "efeitoCoelho" || ["efeitoAranha", "efeitoBoi", "efeitoCabra"].includes(perfil.imagem)))) &&
+        (som !== "somReplicantes" || alvos.some(alvo => alvo.delta > 0)) && this.cache.audio.exists(som);
+      if (tocaSom) this.sound.play(som, { volume: window.cyberduelSettings?.effects(volume) ?? volume });
+      const duracaoInvestida = ativo && perfil.visual === "garras" ? (this.cache.audio.get?.("somTigreInvestida")?.duration || 0) * 1000 : 0;
+      let duracao = Math.max(1000, duracaoInvestida, tocaSom ? (this.cache.audio.get?.(som)?.duration || 0) * 1000 : 0);
       if ((perfil.momentos ? ativo : evento.momento === "invocacao") && perfil.video && this.cache.video.exists(perfil.video)) {
-        duracao = 1700;
+        duracao = Math.max(duracao, 1700);
         const video = guardar(this.add.video(origem.x, origem.y, perfil.video).setDepth(-1).setVisible(false));
         video.once("created", () => {
           const grande = ["efeitoRaspClayVertical", "videoEfeitoAranha", "videoEfeitoBoi", "videoEfeitohumba", "videoEfeitodiego", "videoEfeitoprofessores"].includes(perfil.video);
@@ -329,6 +342,8 @@ class CenaEfeitos extends Phaser.Scene {
         this.proximo();
       });
     };
+    if (evento.momento === "habilidade" && perfil.visual === "garras" && this.cache.audio.exists("somTigreInvestida"))
+      this.sound.play("somTigreInvestida", { volume: window.cyberduelSettings?.effects(0.3) ?? 0.3 });
     this.animarFonte(evento, fonte, guardar, aplicar);
   }
 

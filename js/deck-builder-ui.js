@@ -12,7 +12,6 @@ class CyberduelDeckBuilderUI {
     this.mobileView = "collection";
     this.dirty = false;
     this.modal = null;
-    this.hasRendered = false;
     this.imageSourceCache = new Map();
     this.handleKeydown = (event) => this.onKeydown(event);
   }
@@ -35,6 +34,7 @@ class CyberduelDeckBuilderUI {
   mount() {
     document.body.classList.add("deck-forge-open");
     this.root = this.element("main", "deck-forge");
+    this.root.dataset.responsiveText = "";
     this.root.setAttribute("aria-label", "Montador de deck Cyberduel");
 
     const atmosphere = this.element("div", "forge-atmosphere");
@@ -110,16 +110,16 @@ class CyberduelDeckBuilderUI {
     const identity = this.element("div", "forge-identity");
     const title = this.element("h1", "forge-title");
     title.append(
-      this.element("span", "forge-title__main", "DECK"),
-      this.element("span", "forge-title__accent", "FORGE"),
+      this.element("span", "forge-title__main", "MONTAR"),
+      this.element("span", "forge-title__accent", "DECK"),
     );
     identity.append(
-      this.element("span", "forge-overline", "CYBERDUEL // ARSENAL"),
+      this.element("span", "forge-overline", "CYBERDUEL / COLEÇÃO"),
       title,
       this.element(
         "p",
         "forge-subtitle",
-        "Construa sua estratégia. Domine a audiência.",
+        "20 cartas. Sua próxima estratégia começa aqui.",
       ),
     );
     this.saveState = this.element("div", "forge-save-state");
@@ -263,12 +263,10 @@ class CyberduelDeckBuilderUI {
 
   render() {
     const scroll = this.captureScroll();
-    if (!this.hasRendered || this.mobileView === "collection")
-      this.renderCollection();
-    if (!this.hasRendered || this.mobileView === "deck") this.renderDeckPanel();
+    this.renderCollection();
+    this.renderDeckPanel();
     this.renderSaveState();
     this.renderMobileChrome();
-    this.hasRendered = true;
     this.restoreScroll(scroll);
     window.cyberduelSettings?.queueDomTextUpdate(this.root);
     const root = this.root;
@@ -373,7 +371,7 @@ class CyberduelDeckBuilderUI {
   renderCollection() {
     if (!this.collectionGrid) return;
     const cards = this.visibleCards();
-    this.resultCount.textContent = `${cards.length} ${cards.length === 1 ? "registro" : "registros"}`;
+    this.resultCount.textContent = `${cards.length} ${cards.length === 1 ? "carta" : "cartas"}`;
     this.orderButton.textContent = this.orderLabel(this.order);
     this.orderButton.classList.toggle(
       "is-descending",
@@ -390,7 +388,7 @@ class CyberduelDeckBuilderUI {
       const empty = this.element("div", "forge-empty-search");
       empty.append(
         this.element("span", "forge-empty-search__icon", "⌁"),
-        this.element("strong", "", "Nenhum sinal encontrado"),
+        this.element("strong", "", "Nenhuma carta encontrada"),
         this.element("p", "", "Tente outro termo ou remova os filtros."),
       );
       this.collectionGrid.append(empty);
@@ -468,7 +466,7 @@ class CyberduelDeckBuilderUI {
     body.append(
       this.element("span", "forge-card__type", this.typeLabel(card.tipo)),
       this.element("h3", "forge-card__name", card.nome),
-      this.element("span", "forge-card__owned", `ACERVO ×${owned}`),
+      this.element("span", "forge-card__owned", `${owned} na coleção`),
       this.element("p", "forge-card__description", card.descricao),
     );
     const controls = this.element("div", "forge-card__controls");
@@ -502,7 +500,7 @@ class CyberduelDeckBuilderUI {
     const summary = this.element("div", "forge-deck-summary");
     const titleBlock = this.element("div");
     titleBlock.append(
-      this.element("span", "forge-kicker", "LOADOUT ATIVO"),
+      this.element("span", "forge-kicker", "COMPOSIÇÃO / 20 CARTAS"),
       this.element("h2", "forge-section-title", "Seu deck"),
     );
     const deckActions = this.element("div", "forge-deck-actions");
@@ -516,7 +514,7 @@ class CyberduelDeckBuilderUI {
         this.toast("Novo deck aleatório gerado. Boa sorte, duelista.");
       },
     );
-    const autoBuild = this.button("forge-text-button", "AUTO-BUILD", () => {
+    const autoBuild = this.button("forge-text-button", "SUGERIR", () => {
       this.deck = this.builder.getStarterDeck();
       this.markDirty();
       this.render();
@@ -567,7 +565,7 @@ class CyberduelDeckBuilderUI {
     telemetry.append(ring, requirements);
     const deckListHeader = this.element("div", "forge-deck-list-header");
     deckListHeader.append(
-      this.element("span", "", "MANIFESTO DO DECK"),
+      this.element("span", "", "CARTAS SELECIONADAS"),
       this.button("forge-clear", "LIMPAR", () => this.confirmClear()),
     );
     const deckList = this.element("div", "forge-deck-list");
@@ -579,7 +577,7 @@ class CyberduelDeckBuilderUI {
         this.element(
           "p",
           "",
-          "Adicione cartas da coleção ou use o Auto-build.",
+          "Adicione cartas da coleção ou toque em Sugerir.",
         ),
       );
       deckList.append(empty);
@@ -599,7 +597,7 @@ class CyberduelDeckBuilderUI {
     );
     const save = this.button(
       `forge-save${status.valid ? " is-ready" : ""}`,
-      status.valid ? "SELAR DECK" : `FALTAM ${status.slotsRemaining} CARTAS`,
+      status.valid ? "SALVAR DECK" : status.slotsRemaining ? `FALTAM ${status.slotsRemaining} CARTAS` : "AJUSTE A COMPOSIÇÃO",
       () => this.save(),
     );
     save.disabled = !status.valid;
@@ -697,7 +695,7 @@ class CyberduelDeckBuilderUI {
       this.toast(
         this.builder.account
           ? `Deck salvo na conta ${this.builder.account}.`
-          : "Deck selado. O duelo já pode começar.",
+          : "Deck salvo. O duelo já pode começar.",
         "success",
       );
       this.root.classList.add("forge-saved-flash");
@@ -733,7 +731,7 @@ class CyberduelDeckBuilderUI {
           const load = () => {
             this.deck = this.builder.normalize(build.deck);
             this.markDirty(); this.render();
-            this.toast("Build carregada. Sele o deck para usá-lo nas partidas.");
+            this.toast("Build carregada. Salve o deck para usá-lo nas partidas.");
           };
           this.closeModal(true);
           if (this.dirty) this.openConfirm({ eyebrow: "DECKS SALVOS", title: "Substituir o deck em edição?",
@@ -769,7 +767,7 @@ class CyberduelDeckBuilderUI {
       eyebrow: "RESET DE ARSENAL",
       title: "Limpar o deck inteiro?",
       message:
-        "As cartas serão removidas do editor. O deck salvo continua intacto até você selar outro.",
+        "As cartas serão removidas do editor. O deck salvo continua intacto até você salvar outro.",
       confirmLabel: "LIMPAR DECK",
       danger: true,
       onConfirm: () => {

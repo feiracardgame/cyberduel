@@ -1217,7 +1217,8 @@ function pauseForEffects(room) {
     remaining: previous?.remaining ?? Math.min(phaseDuration(room), Math.max(0, room.deadline - Date.now())),
     pending: new Set([...room.players].filter(([, id]) => id).map(([player]) => player)) };
   // Um cliente fechado não pode prender a sala indefinidamente.
-  room.effects.timeout = setTimeout(() => resumeAfterEffects(room), Math.min(90000, events.length * 3500 + 5000));
+  // Os novos áudios chegam a 5,2 s; reserva também o voo da carta e a conclusão visual.
+  room.effects.timeout = setTimeout(() => resumeAfterEffects(room), Math.min(90000, events.length * 6500 + 5000));
   room.effects.timeout.unref();
 }
 
@@ -1632,6 +1633,22 @@ io.on("connection", (socket) => {
     room.lastEffectsSequence = Math.max(0, ...(room.state.eventosEfeito || []).map(e => Number(e.id) || 0));
     armPhaseClock(room, true, true);
     broadcastState(room, { initial: true });
+    ack({ ok: true, ...phaseInfo(room) });
+  });
+
+  socket.on("skip-battle-announcement", (payload = {}, ack = () => {}) => {
+    const room = rooms.get(socket.data.room), player = socket.data.player;
+    const now = Date.now();
+    if (!room?.state || room.state.partidaEncerrada || room.effects ||
+        !player || room.players.get(player) !== socket.id || room.turn !== player ||
+        payload.step !== room.step || payload.round !== room.round || now < room.announcementAt)
+      return ack({ ok: false });
+    if (room.phaseStartedAt > now) {
+      room.introUntil = Math.min(room.introUntil, now);
+      room.phaseStartedAt = now;
+      armPhaseClock(room, false);
+      io.to(room.code).emit("phase-clock", phaseInfo(room));
+    }
     ack({ ok: true, ...phaseInfo(room) });
   });
 

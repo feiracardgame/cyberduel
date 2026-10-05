@@ -77,3 +77,54 @@ clockContext.room.step = 2;
 vm.runInContext('armPhaseClock(room)', clockContext);
 assert.equal(clockContext.room.phaseStartedAt, now + 2400);
 console.log('Avisos: abertura, fases, fonte, áudio único, privacidade e relógios solo/online aprovados.');
+
+context.window.cyberduelSettings = { get: () => 1 };
+game.multiplayerAtivo = false;
+game.ehMeuTurno = true;
+game.avisoInicialPendente = true;
+game.configurarAvisoLocal(40000);
+assert.equal(game.avisoLocal.phaseStartsAt, now);
+assert.equal(game.prazoFaseLocal, now + 40000);
+const beforeSkip = sounds.length;
+game.atualizarAvisoBatalha();
+assert.equal(game.avisoBatalhaTexto, null);
+assert.equal(sounds.length, beforeSkip);
+assert.equal(game.podeUsarHabilidadesAgora(), true);
+
+// Mão continua visível tanto no aviso como nos efeitos; comandos continuam bloqueados.
+for (const effects of [false, true]) {
+  const hand = { dadosCarta: {}, posOriginal: {}, y: 10, alpha: 1, visible: true };
+  const scene = Object.assign(Object.create(Game.prototype), {
+    children: { list: [hand] }, input: { enabled: true },
+    efeitosBloqueiamInteracao: () => effects, avisoBatalhaPendente: () => !effects,
+  });
+  scene.atualizarInteracaoDuranteEfeitos();
+  assert.equal(hand.visible, true);
+  assert.equal(hand.alpha, 1);
+  assert.equal(hand.estadoAntesDosEfeitos, undefined);
+  assert.equal(scene.input.enabled, false);
+}
+// Nova carta remove o título antes de iniciar a animação.
+game.scene = { manager: { keys: { CenaEfeitos: { ultimoEvento: 0, receber() {
+  assert.equal(game.avisoBatalhaTexto, null);
+} } } } };
+const title = object(); game.avisoBatalhaTexto = title;
+game.apresentarEventosEfeito([{ id: 1, momento: 'invocacao' }]);
+assert.equal(title.active, false);
+context.window.cyberduelSettings.get = () => 0;
+game.avisoLocal.phaseStartsAt = now + 3300;
+game.avisoLocal.introUntil = now;
+game.atualizarAvisoBatalha();
+assert.equal(game.avisoBatalhaTexto, null, 'Redesenhar não faz o título voltar depois da jogada.');
+
+client.socket = { emit(event, payload, callback) {
+  assert.equal(event, 'skip-battle-announcement');
+  assert.equal(payload.step, client.step);
+  callback({ ok: true, phaseStartsAt: now, deadline: now + 40000 });
+} };
+client.activePlayer = client.player = 1; client.spectator = false;
+client.announcementAt = now; client.phaseStartsAt = now + 3300;
+client.skipAnnouncement();
+assert.equal(client.announcementPending(), false);
+assert.equal(client.remainingMs(), 40000);
+console.log('Skip solo/online, mão visível com interação bloqueada e remoção do título ao jogar validados.');

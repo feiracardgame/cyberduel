@@ -68,15 +68,15 @@ body {
 /* ========================================================================== */
 
 :root {
-  --forge-bg: #030509;
-  --forge-panel: rgba(9, 14, 23, 0.92);
-  --forge-panel-solid: #090e17;
+  --forge-bg: #0b100e;
+  --forge-panel: #101813;
+  --forge-panel-solid: #101813;
   --forge-line: rgba(124, 255, 168, 0.14);
-  --forge-accent: #23ff6c;
-  --forge-green: #38f2a0;
-  --forge-violet: #a970ff;
+  --forge-accent: #58d6a0;
+  --forge-green: #58d6a0;
+  --forge-violet: #a9bcb0;
   --forge-text: #f3fcf6;
-  --forge-muted: #82a38d;
+  --forge-muted: #a0b4a7;
   --forge-danger: #ff5573;
 }
 
@@ -96,32 +96,20 @@ body.deck-forge-open #game-viewport canvas {
 
 .deck-forge {
   position: fixed;
-  top: 50%;
-  left: 50%;
+  left: var(--viewport-left, 0px);
+  top: var(--viewport-top, 0px);
   z-index: 8000;
-  width: min(100vw, var(--game-width-vh, 48.648649vh));
-  height: min(100vh, var(--game-height-vw, 205.555556vw));
+  width: var(--viewport-width, 100vw);
+  height: var(--viewport-height, 100dvh);
   overflow: hidden;
   color: var(--forge-text);
-  background:
-    radial-gradient(
-      circle at 8% 0%,
-      rgba(25, 150, 67, 0.14),
-      transparent 30rem
-    ),
-    radial-gradient(
-      circle at 92% 12%,
-      rgba(103, 49, 155, 0.13),
-      transparent 34rem
-    ),
-    var(--forge-bg);
-  font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+  background: var(--forge-bg);
+  font-family: "Courier New", monospace;
+  font-variant-numeric: tabular-nums;
   touch-action: pan-y;
-  scrollbar-color: #245434 #08140c;
+  scrollbar-color: #426c53 var(--forge-bg);
   opacity: 0;
-  transform: translate(-50%, -50%);
-  transition: opacity 0.35s ease;
-  container: title / inline-size;
+  transition: opacity 0.25s ease;
   container: forge / inline-size;
 }
 
@@ -175,10 +163,10 @@ body.deck-forge-open #game-viewport canvas {
 .forge-shell {
   position: relative;
   z-index: 4;
-  width: 100%;
+  width: min(100%, 1600px);
   height: 100%;
   margin: 0 auto;
-  padding: 34px 24px 44px;
+  padding: 24px 32px 32px;
   overflow: hidden auto;
   overscroll-behavior: contain;
 }
@@ -193,9 +181,9 @@ body.deck-forge-open #game-viewport canvas {
   grid-template-columns: 58px 1fr auto;
   gap: 22px;
   align-items: center;
-  min-height: 112px;
-  margin-bottom: 26px;
-  padding: 0 8px 24px;
+  min-height: 96px;
+  margin-bottom: 24px;
+  padding: 0 0 20px;
   border-bottom: 1px solid var(--forge-line);
 }
 
@@ -203,7 +191,7 @@ body.deck-forge-open #game-viewport canvas {
   width: 54px;
   height: 54px;
   border: 1px solid rgba(111, 255, 159, 0.28);
-  border-radius: 14px;
+  border-radius: 4px;
   color: #dfffea;
   background: rgba(12, 34, 19, 0.8);
   font-size: 28px;
@@ -231,7 +219,7 @@ body.deck-forge-open #game-viewport canvas {
   display: flex;
   gap: 9px;
   margin: 0;
-  font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+  font-family: "Rushblade", sans-serif;
   font-size: clamp(38px, 4vw, 58px);
   font-style: italic;
   font-weight: 900;
@@ -241,7 +229,7 @@ body.deck-forge-open #game-viewport canvas {
 
 .forge-title__accent {
   color: var(--forge-accent);
-  filter: drop-shadow(0 0 12px rgba(35, 255, 108, 0.3));
+
 }
 
 .forge-subtitle {
@@ -293,7 +281,7 @@ body.deck-forge-open #game-viewport canvas {
 
 .forge-workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(350px, 410px);
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
   gap: 22px;
   align-items: start;
 }
@@ -301,17 +289,12 @@ body.deck-forge-open #game-viewport canvas {
 .forge-collection,
 .forge-deck-panel {
   border: 1px solid var(--forge-line);
-  background: linear-gradient(
-    145deg,
-    rgba(12, 19, 30, 0.94),
-    rgba(6, 10, 17, 0.92)
-  );
-  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.3);
+  background: var(--forge-panel);
 }
 
 .forge-collection {
-  min-height: calc(100vh - 206px);
-  border-radius: 22px;
+  min-height: calc(100dvh - 160px);
+  border-radius: 4px;
   overflow: hidden;
 }
 
@@ -356,7 +339,7 @@ body.deck-forge-open #game-viewport canvas {
   height: 46px;
   margin-top: 20px;
   border: 1px solid rgba(120, 214, 151, 0.16);
-  border-radius: 12px;
+  border-radius: 4px;
   background: #06120a;
   transition:
     border-color 0.2s,
@@ -412,7 +395,7 @@ body.deck-forge-open #game-viewport canvas {
   min-height: 36px;
   padding: 0 12px;
   border: 1px solid transparent;
-  border-radius: 9px;
+  border-radius: 3px;
   color: #7fa08a;
   background: rgba(25, 50, 33, 0.55);
   font-size: 10px;
@@ -440,7 +423,7 @@ body.deck-forge-open #game-viewport canvas {
   white-space: nowrap;
 }
 .forge-order.is-descending {
-  color: #d1b3ff;
+  color: var(--forge-accent);
 }
 .forge-order.is-faction {
   border-color: rgba(255, 230, 160, 0.34);
@@ -450,7 +433,7 @@ body.deck-forge-open #game-viewport canvas {
 
 .forge-card-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 14px;
   padding: 22px;
 }
@@ -509,7 +492,7 @@ body.deck-forge-open #game-viewport canvas {
 
 .forge-faction-group__grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 14px;
 }
 
@@ -518,9 +501,9 @@ body.deck-forge-open #game-viewport canvas {
   min-width: 0;
   overflow: hidden;
   border: 1px solid rgba(132, 201, 155, 0.13);
-  border-radius: 16px;
-  background: #090f18;
-  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.24);
+  border-radius: 4px;
+  background: var(--forge-panel-solid);
+  box-shadow: none;
   transition:
     border-color 0.2s,
     box-shadow 0.2s,
@@ -545,7 +528,7 @@ body.deck-forge-open #game-viewport canvas {
   position: absolute;
   inset: 0;
   border: 2px solid transparent;
-  border-radius: 16px;
+  border-radius: 4px;
   pointer-events: none;
   content: "";
 }
@@ -601,19 +584,15 @@ body.deck-forge-open #game-viewport canvas {
 }
 
 .forge-card.is-selected {
-  border-color: color-mix(in srgb, var(--card-color) 42%, transparent);
-  background: linear-gradient(
-    150deg,
-    color-mix(in srgb, var(--card-color) 7%, #090f18),
-    #090f18 60%
-  );
+  border-color: var(--forge-accent);
+  background: #14281c;
 }
 
 .forge-card__art {
   position: relative;
   display: block;
   width: 100%;
-  aspect-ratio: 1.42 / 1;
+  aspect-ratio: 0.82 / 1;
   overflow: hidden;
   padding: 0;
   border: 0;
@@ -717,7 +696,7 @@ body.deck-forge-open #game-viewport canvas {
   display: -webkit-box;
   margin: 0;
   overflow: hidden;
-  color: #6f7e8d;
+  color: var(--forge-muted);
   font-size: 10px;
   line-height: 1.45;
   -webkit-box-orient: vertical;
@@ -740,7 +719,7 @@ body.deck-forge-open #game-viewport canvas {
   place-items: center;
   padding: 0;
   border: 1px solid rgba(154, 193, 167, 0.18);
-  border-radius: 9px;
+  border-radius: 3px;
   color: #b2c6b9;
   background: rgba(23, 43, 30, 0.8);
   font-size: 21px;
@@ -772,7 +751,7 @@ body.deck-forge-open #game-viewport canvas {
   font-size: 18px;
 }
 .forge-card__counter span {
-  color: #53705d;
+  color: var(--forge-muted);
   font-size: 10px;
 }
 
@@ -799,13 +778,15 @@ body.deck-forge-open #game-viewport canvas {
   position: sticky;
   top: 22px;
   display: flex;
-  max-height: calc(100vh - 44px);
+  max-height: calc(100dvh - 184px);
   flex-direction: column;
   overflow: hidden;
-  border-radius: 22px;
+  border-radius: 4px;
 }
 
 .forge-deck-summary {
+  display: grid;
+  gap: 14px;
   padding: 24px 24px 14px;
 }
 .forge-text-button,
@@ -830,7 +811,7 @@ body.deck-forge-open #game-viewport canvas {
 }
 
 .forge-text-button--random {
-  color: #d1b3ff;
+  color: var(--forge-accent);
 }
 
 .forge-text-button--random:hover {
@@ -846,55 +827,16 @@ body.deck-forge-open #game-viewport canvas {
 }
 
 .forge-progress {
-  --progress: 0%;
   display: grid;
-  width: 118px;
-  aspect-ratio: 1;
-  place-items: center;
-  border-radius: 50%;
-  background: conic-gradient(
-    var(--forge-accent) var(--progress),
-    rgba(75, 119, 90, 0.16) 0
-  );
-  box-shadow: 0 0 28px rgba(35, 255, 108, 0.1);
-  transition: background 0.3s;
+  min-height: 90px;
+  align-items: center;
+  border-bottom: 3px solid var(--forge-line);
 }
-
-.forge-progress.is-complete {
-  background: conic-gradient(var(--forge-green) 100%, var(--forge-green) 0);
-  box-shadow: 0 0 34px rgba(56, 242, 160, 0.2);
-}
-.forge-progress__inner {
-  display: grid;
-  width: 96px;
-  aspect-ratio: 1;
-  grid-template-columns: auto auto;
-  place-content: center;
-  align-items: baseline;
-  border: 1px solid rgba(127, 230, 161, 0.11);
-  border-radius: 50%;
-  background: #080e17;
-}
-.forge-progress__inner strong {
-  font-size: 29px;
-  line-height: 1;
-}
-.forge-progress__inner span {
-  color: #607f6a;
-  font-size: 10px;
-}
-.forge-progress__inner small {
-  grid-column: 1 / -1;
-  margin-top: 5px;
-  color: #6d9179;
-  font-size: 7px;
-  font-weight: 900;
-  letter-spacing: 0.17em;
-  text-align: center;
-}
-.forge-progress.is-complete small {
-  color: var(--forge-green);
-}
+.forge-progress.is-complete { border-color: var(--forge-accent); }
+.forge-progress__inner { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px; }
+.forge-progress__inner strong { font-size: 44px; letter-spacing: -0.08em; }
+.forge-progress__inner span { font-size: 14px; color: var(--forge-muted); }
+.forge-progress__inner small { width: 100%; color: var(--forge-accent); font-size: 10px; }
 
 .forge-requirements {
   display: grid;
@@ -988,7 +930,7 @@ body.deck-forge-open #game-viewport canvas {
   padding: 6px 8px 6px 6px;
   border: 1px solid rgba(117, 173, 136, 0.1);
   border-left: 2px solid var(--card-color);
-  border-radius: 9px;
+  border-radius: 3px;
   background: rgba(14, 30, 19, 0.8);
   contain: layout paint style;
 }
@@ -1024,7 +966,7 @@ body.deck-forge-open #game-viewport canvas {
   display: block;
   margin-top: 3px;
   overflow: hidden;
-  color: #617f6b;
+  color: var(--forge-muted);
   font-size: 7px;
   letter-spacing: 0.04em;
   text-overflow: ellipsis;
@@ -1171,7 +1113,7 @@ body.deck-forge-open #game-viewport canvas {
   max-height: min(700px, calc(100vh - 48px));
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--card-color) 65%, transparent);
-  border-radius: 22px;
+  border-radius: 4px;
   background: #080d15;
   box-shadow:
     0 30px 100px #000,
@@ -1338,7 +1280,7 @@ body.deck-forge-open #game-viewport canvas {
 }
 .forge-confirm__actions button {
   min-height: 44px;
-  border-radius: 9px;
+  border-radius: 3px;
   font-size: 9px;
   font-weight: 900;
   letter-spacing: 0.1em;
@@ -1370,7 +1312,7 @@ body.deck-forge-open #game-viewport canvas {
   max-width: min(420px, calc(100% - 32px));
   padding: 14px 18px;
   border: 1px solid rgba(35, 255, 108, 0.32);
-  border-radius: 12px;
+  border-radius: 4px;
   color: #dbede1;
   background: rgba(8, 23, 13, 0.96);
   box-shadow: 0 20px 55px rgba(0, 0, 0, 0.5);
@@ -1416,7 +1358,7 @@ body.deck-forge-open #game-viewport canvas {
   }
 }
 
-@container forge (max-width: 1200px) {
+@container forge (max-width: 760px) {
   .forge-card-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1440,7 +1382,7 @@ body.deck-forge-open #game-viewport canvas {
   .forge-icon-button {
     width: 42px;
     height: 42px;
-    border-radius: 12px;
+    border-radius: 4px;
     font-size: 22px;
   }
 
@@ -1476,7 +1418,7 @@ body.deck-forge-open #game-viewport canvas {
     margin-bottom: 10px;
     padding: 10px 12px;
     border: 1px solid rgba(94, 220, 136, 0.18);
-    border-radius: 13px;
+    border-radius: 4px;
     background: linear-gradient(
       110deg,
       rgba(13, 50, 25, 0.92),
@@ -1550,7 +1492,7 @@ body.deck-forge-open #game-viewport canvas {
   .forge-deck-panel {
     width: 100%;
     min-height: calc(100% - 130px);
-    border-radius: 15px;
+    border-radius: 4px;
   }
 
   .deck-forge[data-mobile-view="collection"] .forge-deck-panel,
@@ -1591,7 +1533,7 @@ body.deck-forge-open #game-viewport canvas {
     place-content: center;
     align-items: center;
     border: 1px solid transparent;
-    border-radius: 12px;
+    border-radius: 4px;
     color: #668871;
     background: transparent;
   }
@@ -1727,7 +1669,7 @@ body.deck-forge-open #game-viewport canvas {
   }
 
   .forge-card {
-    border-radius: 12px;
+    border-radius: 4px;
   }
 
   .forge-card__art {
@@ -1920,6 +1862,28 @@ body.deck-forge-open #game-viewport canvas {
 }
 
 /* ========================================================================== */
+
+.deck-forge button:active:not(:disabled) { transform: translateY(1px); }
+.forge-title { font-family: "Rushblade", sans-serif; letter-spacing: 0; }
+.forge-card__body { min-height: 118px; }
+.forge-card__owned { display: block; margin-bottom: 8px; color: var(--forge-muted); font-size: 11px; }
+.forge-card__description { font-size: 12px; }
+.forge-qty-button { min-height: 44px; }
+.forge-deck-row__identity strong { font-size: 12px; }
+.forge-deck-row__identity span { font-size: 10px; }
+.forge-deck-row__controls { grid-template-columns: 32px 20px 32px; }
+.forge-deck-row__controls button { width: 32px; min-height: 44px; }
+@container forge (max-width: 760px) {
+  .forge-title { display: grid; gap: 2px; font-size: clamp(24px, 7cqw, 38px); }
+  .forge-header-actions .forge-order { width: auto; min-height: 44px; font-size: 11px; }
+  .forge-mobile-status__requirements { font-size: 10px; letter-spacing: 0; }
+  .forge-card__body { min-height: 100px; }
+  .forge-card__description { display: none; }
+  .forge-card__name { font-size: 13px; }
+  .forge-card__owned { font-size: 10px; }
+  .forge-faction-group__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 /* TELA INICIAL // NEOFLORIPA TERMINAL */
 /* ========================================================================== */
 
@@ -2262,8 +2226,8 @@ body.title-terminal-open #game-viewport canvas {
 }
 
 .forge-card__owned {
-  color: #ffd166;
-  font-size: 9px;
+  color: var(--forge-muted);
+  font-size: 11px;
   font-weight: 900;
   letter-spacing: 0.08em;
 }
@@ -2777,7 +2741,7 @@ body.title-terminal-open #game-viewport canvas {
 }
 
 .title-dialog__actions--triple {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
 }
 
 .title-dialog__actions button {
@@ -2951,7 +2915,7 @@ body.title-terminal-open #game-viewport canvas {
   overflow: hidden;
 }
 #game-viewport canvas { display: block; }
-.title-terminal, .deck-forge {
+.title-terminal {
   left: calc(var(--viewport-left, 0px) + var(--viewport-width, 100vw) / 2);
   top: calc(var(--viewport-top, 0px) + var(--viewport-height, 100vh) / 2);
   width: var(--game-display-width, min(100vw, 48.648649vh));
@@ -3038,7 +3002,7 @@ body.title-terminal-open #game-viewport canvas {
 .profile-avatar { padding: 0; cursor: pointer; width: 112px; height: 112px; margin: 0 auto 16px; display: grid; place-items: center; border: 1px solid #48a567; border-radius: 50%; overflow: hidden; background: #164325; color: #8cecac; font-size: 32px; }
 .profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .profile-screen [hidden] { display: none !important; }
-.profile-photo-picker { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 20px; }
+.profile-photo-picker { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; margin-bottom: 20px; }
 .profile-photo-option { padding: 3px; border: 2px solid transparent; border-radius: 10px; background: #164325; cursor: pointer; }
 .profile-photo-option[aria-pressed="true"] { border-color: #70e697; background: #28663d; }
 .profile-photo-option img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 6px; }

@@ -159,7 +159,17 @@ async function run() {
   const other = sockets[3 - update.activePlayer];
   const liveUpdate = once(other, "state-update");
   assert.equal((await emitAck(active, "finish-turn", { state, step: 0, round: 1 })).ok, false, "Anúncio bloqueia ações no servidor.");
-  await new Promise(resolve => setTimeout(resolve, Math.max(0, update.phaseStartsAt - Date.now()) + 30));
+  assert.equal((await emitAck(intruder, "skip-battle-announcement", { step: 0, round: 1 })).ok, false);
+  assert.equal((await emitAck(other, "skip-battle-announcement", { step: 0, round: 1 })).ok, false);
+  assert.equal((await emitAck(active, "skip-battle-announcement", { step: 1, round: 1 })).ok, false);
+  const skipClock = once(other, "phase-clock");
+  const skipped = await emitAck(active, "skip-battle-announcement", { step: 0, round: 1 });
+  assert.equal(skipped.ok, true);
+  assert.equal(skipped.deadline - skipped.phaseStartsAt, 40_000);
+  assert.ok(skipped.phaseStartsAt <= Date.now());
+  update = { ...update, ...await skipClock };
+  const unchanged = await emitAck(active, "skip-battle-announcement", { step: 0, round: 1 });
+  assert.equal(unchanged.deadline, skipped.deadline, "Repetir skip não renova o timer.");
   const liveAck = await emitAck(active, "live-state", { state, step: 0, round: 1 });
   assert.equal(liveAck.ok, true);
   assert.equal((await liveUpdate).live, true);

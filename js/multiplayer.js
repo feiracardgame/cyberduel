@@ -231,6 +231,19 @@ class CyberduelMultiplayer {
 
   announcementPending() { return this.phaseStartsAt > Date.now() + this.clockOffset; }
 
+  skipAnnouncement() {
+    const now = Date.now() + this.clockOffset;
+    if (!this.socket || this.spectator || this.activePlayer !== this.player ||
+        now < this.announcementAt || !this.announcementPending() || this.effectsPaused) return;
+    const key = `${this.room}:${this.round}:${this.step}:${this.announcementAt}`;
+    if (this.skippedAnnouncement === key) return;
+    this.skippedAnnouncement = key;
+    this.socket.emit("skip-battle-announcement", { round: this.round, step: this.step }, response => {
+      if (response?.ok) this.applyPhase(response);
+      else this.skippedAnnouncement = null;
+    });
+  }
+
   remainingMs() {
     if (this.effectsPaused) return Math.max(0, this.effectsRemaining || 0);
     if (this.announcementPending()) return Math.max(0, (this.deadline || 0) - this.phaseStartsAt);

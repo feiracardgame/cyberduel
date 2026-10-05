@@ -166,3 +166,23 @@ assert.equal(monsters.length, 38);
   assert.equal(scene.duracaoPermitidaPara(p.jogador), 25000);
 }
 console.log('HumbaNet, artes prontas, supressões, Faro, Povo, trio e novos valores validados.');
+
+// O despertar do Dragão está reservado para uma implementação futura.
+{
+  const p = match(), boi = put(p, 'O Boi', 0), dragon = put(p, 'Dragão das Comunicações Móveis', 1);
+  const enemy = put(p, 'Dragão das Comunicações Móveis', 1, true);
+  p.resolverEfeitosInicioRodada(); assert.equal(dragon.poder, 14);
+  assert.ok(use(p, boi, 11).sucesso); assert.equal(enemy.dragaoDesperto, undefined);
+  boi.usadaEsteTurno = false;
+  assert.ok(use(p, boi, 1).sucesso); assert.equal(dragon.dragaoDesperto, undefined);
+  assert.ok(!p.eventosEfeito.some(e => e.momento === 'despertar'));
+  p.fimTurno({ semIA: true }); assert.equal(dragon.poder, 14);
+  const snapshot = codec.serializeMatch(p);
+  const restored = codec.hydrateMatch(codec.swapSnapshot(JSON.parse(JSON.stringify(snapshot))));
+  const synced = restored.inimigo.campo.cartas[1];
+  assert.equal(synced.dragaoDesperto, undefined);
+  restored.resolverEfeitosInicioRodada(); assert.equal(synced.poder, 14);
+  const serverRound = require('../server/duel-runtime').closeRound(snapshot);
+  assert.equal(serverRound.state.jogador.field[1].poder, 14, 'Rodada online mantém o Dragão adormecido.');
+}
+console.log('Dragão: Boi não desperta nem concede bônus, incluindo sincronização e rodada online.');

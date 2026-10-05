@@ -114,7 +114,7 @@ class CenaPreload extends Phaser.Scene {
     // sons
     this.load.audio("somTorcida", "assets/sons/jogo-torcida.wav");
     this.load.audio("somPop", "assets/sons/jogo-pop.mp3");
-    this.load.audio("somComprarCarta", "assets/sons/jogo-compra.mp3");
+    this.load.audio("somComprarCarta", "assets/sons/compra_carta.mp3");
     this.load.audio("somBuff", "assets/sons/jogo-buff.mp3");
     this.load.audio("somHover", "assets/sons/jogo-cartawhoosh.wav");
     this.load.audio("somTiro", "assets/sons/jogo-dipsptiro.wav");
@@ -136,6 +136,10 @@ class CenaPreload extends Phaser.Scene {
       somJuggernaut: "som-juggernaut.mp3", somDiego: "som-diego.mp3", somHumba: "som-humba.mp3",
       somProfessores: "som-professores.mp3", somExplosao: "jogo-explosao.mp3",
       somAlvo: "jogo-targetacq.wav", somInteracao: "interacao.mp3",
+      somCyberVendedor: "som-cybervendedor.mp3", somHal: "som-hal.mp3", somHarvis: "som-harvis.mp3",
+      somReplicantes: "som-replicantes.mp3", somDragao: "som-dragao.mp3",
+      somDeepClaude: "som-deepclaude.wav", somBug: "som-bug.mp3", somLonely: "som-lonely.mp3",
+      somTigreInvestida: "som-tigreataque.mp3",
     })) this.load.audio(key, `assets/sons/${file}`);
     for (const nome of ["humba", "diego", "professores"])
       this.load.video(`videoEfeito${nome}`, `assets/efeitos/efeito-${nome}-alpha.webm`);

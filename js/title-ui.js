@@ -1117,6 +1117,13 @@ class CyberduelTitleUI {
     });
     backgroundRow.append(background, this.element("span", "", "FUNDO ANIMADO DA PARTIDA"));
     controls.append(backgroundRow);
+    const skipRow = this.element("label", "title-setting title-setting--toggle");
+    const skip = this.element("input");
+    skip.type = "checkbox";
+    skip.checked = this.settings.get("skipBattleAnnouncements") === 1;
+    skip.addEventListener("change", () => this.settings.set("skipBattleAnnouncements", skip.checked));
+    skipRow.append(skip, this.element("span", "", "PULAR AVISOS DE INÍCIO E DE TURNO"));
+    controls.append(skipRow);
     const actions = this.element(
       "div",
       "title-dialog__actions title-dialog__actions--triple",
@@ -1130,6 +1137,7 @@ class CyberduelTitleUI {
       this.button("title-dialog__cancel", "RESTAURAR", () => {
         this.settings.reset();
         background.checked = true;
+        skip.checked = false;
         const keys = [
           "masterVolume",
           "musicVolume",

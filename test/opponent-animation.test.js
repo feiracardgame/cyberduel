@@ -52,6 +52,7 @@ function fixture(spectator = false) {
   const original = s.animarFonte;
   s.animarFonte = (event, source, keep, callback) => original.call(s,event,source,keep,()=>{impacts.push(event.id);callback();});
   return { s, source, fieldObject, objects, tweens, impacts, sounds,
+    getTime() { return time; },
     step() { tasks.sort((a,b)=>a.at-b.at); const next=tasks.shift(); if(!next)return false; time=next.at; next.fn(); s.update(); return true; },
     flush() { let n=0; while(this.step()) assert.ok(++n<200); },
     event(id, momento, extra={}) { return {id,lado:'inimigo',momento,fonte:{...source},alvos:[],...extra}; },
@@ -370,3 +371,49 @@ for (const presentation of [false, true]) for (const side of ['jogador', 'inimig
   assert.equal(f.objects.find(o => o.value === '+2 PA').angle || 0, angle);
 }
 console.log('Mesa: arte, verso, PA, invocação e números dos efeitos orientados para cada dono; demais modos preservados.');
+
+// Novos sons: mesmo gatilho para dono, oponente e espectador; fila não repete evento.
+const newSounds = [
+  ['CyberVendedor da RaspCorp', 'habilidade', 'somCyberVendedor'],
+  ['IA de treinamento', 'invocacao', 'somInteracao'],
+  ['HAL 9001', 'habilidade', 'somHal'],
+  ['H.A.R.V.I.S', 'invocacao', 'somHarvis'],
+  ['Replicantes', 'continuo', 'somReplicantes'],
+  ['Dragão das Comunicações Móveis', 'despertar', 'somDragao'],
+  ['DeepClaude ChatGemini', 'habilidade', 'somDeepClaude'],
+  ['Bug na Matrix', 'invocacao', 'somBug'],
+  ['Você Parece Sozinho', 'conjuracao', 'somLonely'],
+];
+for (const [name, moment, key] of newSounds) for (const side of ['jogador', 'inimigo']) for (const spectator of [false, true]) {
+  const f = fixture(spectator);
+  f.s.cache.audio.exists = () => true;
+  f.s.cache.audio.get = sound => ({ duration: sound === key ? 5 : 0 });
+  const event = f.event(1, moment, { lado: side, fonte: { ...f.source, nome: name },
+    alvos: [{ lado: side, id: f.source.id, indice: 0, delta: 3 }] });
+  f.s.receber([event]); f.s.receber([event]);
+  f.flush();
+  assert.equal(f.sounds.filter(s => s === key).length, 1, `${name}, ${side}, espectador ${spectator}`);
+  assert.ok(f.getTime() >= 5000, 'A fila espera a duração do som.');
+  if (moment !== 'invocacao') {
+    const inactive = fixture(); inactive.s.cache.audio.exists = () => true;
+    inactive.s.receber([inactive.event(1, 'invocacao', { fonte: { ...inactive.source, nome: name } })]);
+    inactive.flush(); assert.ok(!inactive.sounds.includes(key), `${name}: som somente no gatilho correto.`);
+  }
+  const hidden = fixture(true); hidden.s.cache.audio.exists = () => true;
+  hidden.s.receber([hidden.event(1, moment, { fonte: { ...hidden.source, nome: name, oculto: true } })]);
+  hidden.flush(); assert.ok(!hidden.sounds.includes(key), 'Som não revela a identidade de carta oculta ao espectador.');
+}
+{
+  const f = fixture(); f.s.cache.audio.exists = () => true;
+  f.s.receber([f.event(1, 'continuo', { fonte: { ...f.source, nome: 'Replicantes' },
+    alvos: [{ lado: 'jogador', id: f.source.id, indice: 0, delta: -3 }] })]);
+  f.flush(); assert.ok(!f.sounds.includes('somReplicantes'), 'Perder bônus não toca o anúncio de ganho.');
+}
+{
+  const f = fixture(); f.s.cache.audio.exists = () => true;
+  f.s.receber([f.event(1, 'habilidade', { fonte: { ...f.source, nome: 'O Tigre' },
+    alvos: [{ lado: 'inimigo', id: 1, indice: 0, delta: -3 }, { lado: 'inimigo', id: 2, indice: 1, delta: -3 }] })]);
+  f.flush();
+  for (const key of ['somTigreInvestida', 'somTigreAtaque', 'somTigre']) assert.equal(f.sounds.filter(s => s === key).length, 1);
+}
+console.log('Nove sons de cartas, gatilhos, perspectivas, áudio único, duração da fila e investida/garras do Tigre validados.');
