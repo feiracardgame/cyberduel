@@ -139,8 +139,8 @@ async function run() {
   assert.ok([1, 2].includes(update.starter));
   assert.equal(update.activePlayer, update.starter);
   assert.equal(update.phase, "colocar");
-  assert.ok(update.deadline - update.serverNow <= 40_000);
-  assert.ok(update.deadline - update.serverNow > 39_000);
+  assert.equal(update.deadline - update.phaseStartsAt, 40_000);
+  assert.ok(update.phaseStartsAt - update.serverNow > 6000);
   const starter = update.starter;
   const sockets = { 1: player1, 2: player2 };
 
@@ -158,6 +158,8 @@ async function run() {
   const active = sockets[update.activePlayer];
   const other = sockets[3 - update.activePlayer];
   const liveUpdate = once(other, "state-update");
+  assert.equal((await emitAck(active, "finish-turn", { state, step: 0, round: 1 })).ok, false, "Anúncio bloqueia ações no servidor.");
+  await new Promise(resolve => setTimeout(resolve, Math.max(0, update.phaseStartsAt - Date.now()) + 30));
   const liveAck = await emitAck(active, "live-state", { state, step: 0, round: 1 });
   assert.equal(liveAck.ok, true);
   assert.equal((await liveUpdate).live, true);
@@ -191,6 +193,7 @@ async function run() {
     assert.equal(update.activePlayer, step % 2 === 0 ? starter : 3 - starter);
     const actor = sockets[update.activePlayer];
     const listener = once(sockets[3 - update.activePlayer], "state-update");
+    await new Promise(resolve => setTimeout(resolve, Math.max(0, update.phaseStartsAt - Date.now()) + 30));
     const finished = await emitAck(actor, "finish-turn", { state, step, round: 1 });
     assert.equal(finished.ok, true);
     update = await listener;
@@ -228,6 +231,7 @@ async function run() {
     efeito: { tipo: "reduzir_tempo_oponente", valor: 15, minimo: 20 },
   };
   const timedBroadcast = once(sockets[3 - update.activePlayer], "state-update");
+  await new Promise(resolve => setTimeout(resolve, Math.max(0, update.phaseStartsAt - Date.now()) + 30));
   const timed = await emitAck(sockets[update.activePlayer], "live-state", { state, step: 0, round: 2 });
   assert.equal(timed.ok, true);
   assert.ok(timed.deadline - timed.serverNow <= 20_000);

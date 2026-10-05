@@ -107,6 +107,10 @@ class CenaPreload extends Phaser.Scene {
     // musicas
     this.load.audio("musicaFundo", "assets/sons/jogo-musica.wav");
     this.load.audio("somJogarCarta", "assets/sons/jogo-cartawhoosh.wav");
+    for (const aviso of Object.values(window.cyberduelBattleAnnouncements))
+      this.load.audio(aviso.som, `assets/sons/${aviso.arquivo}`);
+    this.load.audio("somVitoria", "assets/sons/vitoria.mp3");
+    this.load.audio("somDerrota", "assets/sons/derrota.mp3");
     // sons
     this.load.audio("somTorcida", "assets/sons/jogo-torcida.wav");
     this.load.audio("somPop", "assets/sons/jogo-pop.mp3");

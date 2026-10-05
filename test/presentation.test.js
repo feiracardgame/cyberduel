@@ -80,9 +80,9 @@ async function run() {
   first.update.state.jogador.field[0] = card;
   first.update.state.eventosEfeito = [{ id: 1, lado: 'jogador', momento: 'invocacao', fonte: { id: card.id, nome: card.nome, indice: 0 }, alvos: [] }];
   const actor = first.activePlayer === 1 ? one : two;
-  const update = event(reconnect, 'state-update');
   assert.equal((await ack(actor, 'finish-turn', { state: first.update.state, step: first.step, round: first.round })).ok, false, 'Contagem de início ainda bloqueia jogadas.');
-  await new Promise(resolve => setTimeout(resolve, 4050));
+  await new Promise(resolve => setTimeout(resolve, Math.max(0, first.phaseStartsAt - Date.now()) + 30));
+  const update = event(reconnect, "state-update");
   assert.equal((await ack(actor, 'finish-turn', { state: first.update.state, step: first.step, round: first.round })).ok, true);
   const next = await update;
   assert.deepEqual(next.state.jogador.hand, []); assert.deepEqual(next.state.inimigo.hand, []);

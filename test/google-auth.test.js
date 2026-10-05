@@ -111,6 +111,7 @@ async function checkClient(profile) {
   account.onChange(() => notified++);
   account.request = async (route, options) => {
     assert.equal(options.auth, false);
+    if (route === "/api/auth/options") return { localLogin: false };
     if (route.endsWith("/start")) return { clientId, loginId: "login-id", nonce: "login-nonce" };
     assert.equal(options.body.credential, "google-token");
     assert.equal(options.body.loginId, "login-id");
@@ -141,6 +142,7 @@ async function checkClient(profile) {
   let errorCallback;
   account.mountGoogleButton = (_, onError) => { errorCallback = onError; };
   ui.openAuthDialog();
+  await new Promise(resolve => setImmediate(resolve));
   const children = node => [node, ...node.children.flatMap(children)];
   assert.ok(errorCallback, "A tela deve carregar o botão do Google.");
   assert.equal(children(ui.modal).filter(node => ["input", "details"].includes(node.tag)).length, 0);

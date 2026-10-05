@@ -110,6 +110,12 @@ class CyberduelAccount {
     }
   }
 
+  async localLogin(username) {
+    return this.applyAuth(await this.request("/api/auth/local", {
+      method: "POST", body: { username }, auth: false,
+    }));
+  }
+
   async googleLogin(credential, loginId) {
     const payload = await this.request("/api/auth/google", {
       method: "POST", body: { credential, loginId }, auth: false,

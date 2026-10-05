@@ -75,6 +75,14 @@ class CenaJogo extends Phaser.Scene {
 
   create(dados = {}) {
     this.finalDebug = false;
+    this.avisoInicialPendente = true;
+    this.avisoBatalhaTexto = null;
+    this.avisoBatalhaSom = null;
+    this.avisoLocal = null;
+    this.tipoAvisoBatalha = null;
+    this.avisosBatalhaTocados = new Set();
+    this.avisoSequencia = 0;
+    this.events.once("shutdown", () => this.avisoBatalhaSom?.destroy());
     this.camadaModalCarta = null;
     this.events.once("shutdown", () => {
       this.limparEventosDescricao();
@@ -452,13 +460,14 @@ class CenaJogo extends Phaser.Scene {
       this.ehMeuTurno = this.soloStarter === 1;
       this.travado = !this.ehMeuTurno;
       this.partida.fase = "colocar";
-      if (!this.ehMeuTurno)
-        this.time.delayedCall(650, () => this.executarFaseSolo());
     }
     if (this.ehMeuTurno) this.reiniciarTimerTurno();
     else this.reiniciarTimerOponente();
 
     this.desenharInterface();
+    this.atualizarAvisoBatalha();
+    if (!this.multiplayerAtivo && !this.ehMeuTurno)
+      this.time.delayedCall(Math.max(0, this.avisoLocal.phaseStartsAt - Date.now()) + 650, () => this.executarFaseSolo());
 
     if (this.multiplayerAtivo && this.travado) this.mostrarEsperaMultiplayer();
 
@@ -469,6 +478,50 @@ class CenaJogo extends Phaser.Scene {
       duration: 600,
       ease: "Sine.easeOut",
     });
+  }
+
+  configurarAvisoLocal(duracaoTurno) {
+    const avisos = window.cyberduelBattleAnnouncements;
+    const announcementAt = Date.now();
+    const introUntil = announcementAt + (this.avisoInicialPendente ? avisos.inicio.duracao : 0);
+    this.avisoInicialPendente = false;
+    this.avisoSequencia++;
+    this.avisoLocal = { announcementAt, introUntil,
+      phaseStartsAt: introUntil + (this.ehMeuTurno ? avisos[this.faseAtual].duracao : 0) };
+    this.prazoFaseLocal = this.avisoLocal.phaseStartsAt + duracaoTurno;
+  }
+
+  avisoBatalhaPendente() {
+    return this.multiplayerAtivo ? this.multiplayer.announcementPending?.()
+      : this.avisoLocal?.phaseStartsAt > Date.now();
+  }
+
+  atualizarAvisoBatalha() {
+    const relogio = this.multiplayerAtivo ? this.multiplayer : this.avisoLocal;
+    const agora = Date.now() + (this.multiplayerAtivo ? this.multiplayer.clockOffset : 0);
+    let tipo = null;
+    if (!this.partida?.partidaEncerrada && !this.efeitosVisuaisPendentes() && !this.multiplayer?.effectsPaused &&
+        relogio && agora >= relogio.announcementAt && agora < relogio.phaseStartsAt) {
+      if (agora < relogio.introUntil) tipo = "inicio";
+      else if (this.ehMeuTurno && !this.multiplayer?.spectator) tipo = this.faseAtual;
+    }
+    const aviso = window.cyberduelBattleAnnouncements?.[tipo];
+    if (this.tipoAvisoBatalha !== tipo || (aviso && !this.avisoBatalhaTexto?.active)) {
+      this.avisoBatalhaTexto?.destroy();
+      this.avisoBatalhaTexto = aviso ? this.add.text(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, aviso.texto, {
+        fontFamily: "Rushblade, Arial, sans-serif", fontSize: "76px", color: "#ffffff",
+        stroke: "#000000", strokeThickness: 10, align: "center", wordWrap: { width: LARGURA_LAYOUT - 80 },
+      }).setOrigin(0.5).setDepth(5200) : null;
+      this.tipoAvisoBatalha = tipo;
+    }
+    const chave = this.multiplayerAtivo ? `${this.multiplayer.round}:${this.multiplayer.step}:${tipo}` : `${this.avisoSequencia}:${tipo}`;
+    if (aviso && !this.avisosBatalhaTocados.has(chave)) {
+      this.avisosBatalhaTocados.add(chave);
+      this.avisoBatalhaSom?.destroy();
+      this.avisoBatalhaSom = this.sound.add(aviso.som, { volume: window.cyberduelSettings?.effects(1) ?? 1 });
+      const inicio = tipo === "inicio" ? relogio.announcementAt : relogio.introUntil;
+      this.avisoBatalhaSom.play({ seek: Math.max(0, (agora - inicio) / 1000) });
+    }
   }
 
   apresentarEventosEfeito(eventos = this.partida?.eventosEfeito) {
@@ -512,7 +565,7 @@ class CenaJogo extends Phaser.Scene {
   }
 
   atualizarInteracaoDuranteEfeitos() {
-    const bloqueado = this.efeitosBloqueiamInteracao();
+    const bloqueado = this.efeitosBloqueiamInteracao() || this.avisoBatalhaPendente();
     let transicao = false;
     for (const objeto of this.children?.list || []) {
       if (!objeto.dadosCarta && objeto !== this.rodaBotoesContainer) continue;
@@ -561,10 +614,15 @@ class CenaJogo extends Phaser.Scene {
     this.atualizarInteracaoDuranteEfeitos();
     const agoraVisual = Date.now();
     const visual = this.efeitosVisuaisPendentes();
-    if (!this.multiplayerAtivo && this.prazoFaseLocal && (visual || this.visualAnterior))
-      this.prazoFaseLocal += Math.max(0, agoraVisual - (this.ultimoTickVisual || agoraVisual));
+    if (!this.multiplayerAtivo && this.prazoFaseLocal && (visual || this.visualAnterior)) {
+      const pausa = Math.max(0, agoraVisual - (this.ultimoTickVisual || agoraVisual));
+      this.prazoFaseLocal += pausa;
+      if (this.avisoLocal && this.avisoLocal.phaseStartsAt > (this.ultimoTickVisual || agoraVisual))
+        for (const key of ["announcementAt", "introUntil", "phaseStartsAt"]) this.avisoLocal[key] += pausa;
+    }
     this.ultimoTickVisual = agoraVisual;
     this.visualAnterior = visual;
+    this.atualizarAvisoBatalha();
     if (!visual && this.multiplayerAtivo)
       this.multiplayer.effectsReady?.(this.scene?.manager?.keys?.CenaEfeitos?.ultimoEvento || 0);
     if (this.turnoAposEfeitos && !this.efeitosOponentePendentes()) {
@@ -581,11 +639,11 @@ class CenaJogo extends Phaser.Scene {
     if (this.multiplayerAtivo && !this.multiplayer.initialized) return;
     const restante = this.multiplayerAtivo
       ? this.multiplayer.remainingMs()
-      : Math.max(0, (this.prazoFaseLocal || Date.now()) - Date.now());
+      : Math.max(0, (this.prazoFaseLocal || Date.now()) - Math.max(Date.now(), this.avisoLocal?.phaseStartsAt || 0));
     if (this.ehMeuTurno) this.tempoRestanteTurno = restante;
     else this.tempoRestanteOponente = restante;
     this.atualizarVisualTimerTurno();
-    if (visual || this.multiplayer?.effectsPaused || restante > 0 || this.timerTurnoExpirado || !this.ehMeuTurno) return;
+    if (this.avisoBatalhaPendente() || visual || this.multiplayer?.effectsPaused || restante > 0 || this.timerTurnoExpirado || !this.ehMeuTurno) return;
     this.timerTurnoExpirado = true;
     this.time.delayedCall(0, () => {
       if (this.partida.partidaEncerrada) return;
@@ -612,7 +670,7 @@ class CenaJogo extends Phaser.Scene {
   podeJogarCartasAgora() {
     return (
       this.ehMeuTurno &&
-      !this.efeitosVisuaisPendentes() && !this.multiplayer?.effectsPaused &&
+      !this.avisoBatalhaPendente() && !this.efeitosVisuaisPendentes() && !this.multiplayer?.effectsPaused &&
       ["colocar", "habilidades"].includes(this.faseAtual) &&
       !this.timerTurnoExpirado &&
       !this.multiplayer?.spectator
@@ -622,7 +680,7 @@ class CenaJogo extends Phaser.Scene {
   podeUsarHabilidadesAgora() {
     return (
       this.ehMeuTurno &&
-      !this.efeitosVisuaisPendentes() && !this.multiplayer?.effectsPaused &&
+      !this.avisoBatalhaPendente() && !this.efeitosVisuaisPendentes() && !this.multiplayer?.effectsPaused &&
       this.faseAtual === "habilidades" &&
       !this.timerTurnoExpirado &&
       !this.multiplayer?.spectator
@@ -631,7 +689,7 @@ class CenaJogo extends Phaser.Scene {
 
   podeConsultarCartas() {
     return (
-      !this.efeitosBloqueiamInteracao() &&
+      !this.avisoBatalhaPendente() && !this.efeitosBloqueiamInteracao() &&
       !this.multiplayer?.presentation &&
       !this.modalAberto &&
       !this.animacaoRemotaEmCurso &&
@@ -651,7 +709,7 @@ class CenaJogo extends Phaser.Scene {
     this.ultimoTickVisual = Date.now(); this.visualAnterior = false;
     this.duracaoTurnoAtual = this.duracaoPermitidaPara(this.partida?.jogador);
     if (!this.multiplayerAtivo)
-      this.prazoFaseLocal = Date.now() + this.duracaoTurnoAtual;
+      this.configurarAvisoLocal(this.duracaoTurnoAtual);
     this.tempoRestanteTurno = this.multiplayerAtivo
       ? this.multiplayer.remainingMs()
       : this.duracaoTurnoAtual;
@@ -667,7 +725,7 @@ class CenaJogo extends Phaser.Scene {
       this.partida?.inimigo,
     );
     if (!this.multiplayerAtivo)
-      this.prazoFaseLocal = Date.now() + this.duracaoTurnoOponenteAtual;
+      this.configurarAvisoLocal(this.duracaoTurnoOponenteAtual);
     this.tempoRestanteOponente = this.multiplayerAtivo
       ? this.multiplayer.remainingMs()
       : this.duracaoTurnoOponenteAtual;
@@ -724,7 +782,7 @@ class CenaJogo extends Phaser.Scene {
   }
 
   estadoTimerTurno() {
-    if (this.efeitosVisuaisPendentes() || this.multiplayer?.effectsPaused) return "animacao";
+    if (this.avisoBatalhaPendente() || this.efeitosVisuaisPendentes() || this.multiplayer?.effectsPaused) return "animacao";
     if (this.finalizandoJogada) return "enviando";
     if (!this.ehMeuTurno) return "oponente";
     if (this.timerTurnoExpirado) return "esgotado";
@@ -1126,7 +1184,9 @@ class CenaJogo extends Phaser.Scene {
     if (this.baseCampo) this.children.remove(this.baseCampo, false);
 
     // Destrói os objetos antigos para remover áreas de toque invisíveis.
+    if (this.avisoBatalhaTexto?.active) this.children.remove(this.avisoBatalhaTexto, false);
     this.children.removeAll(true);
+    if (this.avisoBatalhaTexto?.active) this.children.add(this.avisoBatalhaTexto);
     this.cartaMaoSelecionada = null;
 
     // Limpa referências aos controles destruídos.
@@ -2690,9 +2750,6 @@ class CenaJogo extends Phaser.Scene {
             "#ff5555",
             Math.round(24 * escala),
           );
-    if (this.multiplayer?.presentation && this.partida.inimigo.campo.cartas.includes(carta)) {
-      poderTexto?.setAngle(180);
-    }
     let fundo = viradaParaBaixo
       ? this.add.image(0, 0, "fundoCarta").setDisplaySize(CW, CH)
       : carta.imagem
@@ -2780,6 +2837,11 @@ class CenaJogo extends Phaser.Scene {
       );
     }
     filhos.push(...this.criarIndicadorExtintor(carta, CW, CH, escala));
+    // Gira o conteúdo para o dono; tweens no container externo não desfazem a orientação.
+    if (this.multiplayer?.presentation && this.partida.inimigo.campo.cartas.includes(carta)) {
+      for (const filho of filhos)
+        filho.setPosition(-filho.x, -filho.y).setAngle((filho.angle || 0) + 180);
+    }
 
     const chaveCarta = this.chaveCartaMultiplayer(carta);
     const aguardaInvocacao =
@@ -6748,6 +6810,7 @@ class CenaJogo extends Phaser.Scene {
   // Bloqueia comandos e resolve o encerramento do turno.
   aoClicarPassarTurno() {
     if (
+      this.avisoBatalhaPendente() ||
       this.efeitosVisuaisPendentes() ||
       this.multiplayer?.effectsPaused ||
       this.travado ||
@@ -7660,6 +7723,10 @@ class CenaJogo extends Phaser.Scene {
       return;
     }
     this.telaFinalExibida = true;
+    this.avisoBatalhaTexto?.destroy();
+    this.avisoBatalhaSom?.destroy();
+    this.avisoBatalhaTexto = null;
+    this.avisoBatalhaSom = null;
     const voltar = () => {
       this.retornoMenuTimer?.remove();
       this.multiplayer?.leaveRoom?.();
@@ -7731,15 +7798,25 @@ class CenaJogo extends Phaser.Scene {
 
     const corFundo = vitoria ? 0x1fd67a : derrota ? 0xff3b3b : 0xbbbbbb;
     const corTexto = vitoria ? "#afe5ce" : derrota ? "#ffc0ca" : "#eeeeee";
+    if (vitoria || derrota) this.sound?.play(this.multiplayer?.spectator || vitoria ? "somVitoria" : "somDerrota",
+      { volume: window.cyberduelSettings?.effects(1) ?? 1 });
     const textoPrincipal =
       this.multiplayer?.spectator && (vitoria || derrota)
-        ? `${vitoria ? this.multiplayer.localNickname : this.multiplayer.opponentNickname} VENCEU`
+        ? "VITÓRIA"
         : vitoria
-          ? "VOCÊ VENCEU"
+          ? "VITÓRIA"
           : derrota
-            ? "VOCÊ PERDEU"
+            ? "DERROTA"
             : "EMPATE";
 
+    if (this.multiplayer?.spectator && (vitoria || derrota)) {
+      const vencedor = vitoria ? this.multiplayer.localNickname : this.multiplayer.opponentNickname;
+      const perdedor = vitoria ? this.multiplayer.opponentNickname : this.multiplayer.localNickname;
+      const y = (vitoria ? this.layout.yJogadorFrente : this.layout.yInimigoTras) - this.layout.slotH / 2 - 80;
+      this.criarTextoUI(LARGURA_LAYOUT / 2, y, `VITÓRIA — ${vencedor}\nDERROTA — ${perdedor}`, {
+        fontFamily: "Rushblade, Arial, sans-serif", fontSize: "48px", color: "#ffffff", align: "center",
+      }).setOrigin(0.5).setDepth(5200);
+    }
     this.cameras.main.flash(
       400,
       vitoria ? 0 : 255,
@@ -7777,6 +7854,7 @@ class CenaJogo extends Phaser.Scene {
     const filhos = [];
 
     let textoGrande = this.criarTextoUI(0, -140, textoPrincipal, {
+      fontFamily: "Rushblade, Arial, sans-serif",
       fontSize: "88px",
       fontStyle: "bold",
       color: corTexto,
@@ -7864,7 +7942,7 @@ class CenaJogo extends Phaser.Scene {
       delay: 150,
       ease: "Back.Out",
     });
-    this.somBuff.play();
+    if (!vitoria && !derrota) this.somBuff.play();
   }
   // Gestos verticais alternam a visibilidade da mão.
 

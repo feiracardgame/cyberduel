@@ -7,7 +7,8 @@ Requer Node.js 22 ou superior.
 
 1. Na pasta do projeto, execute `npm ci` e depois `npm start` (com `.env`: `node --env-file=.env server/server.js`).
 2. Deixe esse terminal aberto e acesse **http://127.0.0.1:3000/**. O backend já serve o jogo completo, sem recarga automática por alterações nos arquivos.
-3. Para os atalhos de teste, inicie com `npm run dev` (com `.env`: `node --env-file=.env scripts/dev-server.js`) e use o mesmo endereço na porta 3000.
+3. Para jogar **sem conta Google**, inicie com `npm run dev` e abra **http://127.0.0.1:3000/**. Em **IDENTIFICAR // ENTRAR**, informe um nome de teste e clique em **ENTRAR LOCALMENTE**. A conta local tem acesso aos atalhos de teste/admin; escolha sua facção para receber o deck inicial. Use nomes diferentes para testar dois jogadores.
+4. As contas de desenvolvimento persistem em `server/data-dev/` (ignorado pelo Git). Reusar o mesmo nome recupera o progresso; `DATA_DIR`, se informado, tem prioridade. O servidor de desenvolvimento escuta apenas em `127.0.0.1`. `npm start` mantém login Google, dados normais e acesso pela rede, sem aceitar contas locais. Com `.env`, use `node --env-file=.env scripts/dev-server.js`.
 
 ### Live Server opcional
 
@@ -30,7 +31,7 @@ Ao testar pelo celular na mesma rede, abra o Live Server pelo IP do computador: 
 
 Esta integração usa [Google Identity Services](https://developers.google.com/identity/gsi/web/guides/display-button), com popup e validação do ID token no backend pela biblioteca oficial do Google. Não precisa de Client Secret nem de URI de redirecionamento. A tentativa expira em dez minutos e é de uso único; apenas o identificador `sub` do Google fica vinculado à conta, sem armazenar tokens do provedor ou vincular automaticamente contas antigas por nome/email.
 
-O acesso às contas é exclusivo pelo Google. Login e cadastro por senha foram desativados, incluindo as sessões antigas de contas sem vínculo Google. Os dados dessas contas são preservados até uma exclusão manual, sem vinculação automática ao Google. Sem `GOOGLE_CLIENT_ID`, o login fica indisponível. Se a aplicação Google estiver em modo de teste, adicione os jogadores como usuários de teste na tela de consentimento.
+Fora de `npm run dev`, o acesso às contas é exclusivo pelo Google. Login e cadastro por senha foram desativados, incluindo as sessões antigas de contas sem vínculo Google. Os dados dessas contas são preservados até uma exclusão manual, sem vinculação automática ao Google. Sem `GOOGLE_CLIENT_ID`, o login Google fica indisponível. Se a aplicação Google estiver em modo de teste, adicione os jogadores como usuários de teste na tela de consentimento.
 
 ### Excluir contas antigas de senha no servidor
 

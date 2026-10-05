@@ -147,6 +147,9 @@ class CenaEfeitos extends Phaser.Scene {
     }
     const verso = !habilidade && this.textures.exists("fundoCarta")
       ? this.add.image(0, 0, "fundoCarta").setDisplaySize(largura, altura) : null;
+    const orientacao = this.jogo.multiplayer?.presentation && evento.lado === "inimigo" ? 180 : 0;
+    frente.setAngle(orientacao);
+    verso?.setAngle(orientacao);
     frente.setVisible(!verso);
     const carta = guardar(this.add.container(origem.x, origem.y, [frente, verso].filter(Boolean)))
       .setDepth(30).setScale(habilidade ? 1 : 0.7).setAngle(habilidade ? 0 : -12);
@@ -255,8 +258,9 @@ class CenaEfeitos extends Phaser.Scene {
         }
         if (alvo.removida && !(alvo.oculto && (alvo.lado !== "jogador" || this.jogo.multiplayer?.spectator))) {
           if (alvo.imagem && this.textures.exists(alvo.imagem)) {
-            const fantasma = guardar(this.add.image(destino.x, destino.y, alvo.imagem).setDisplaySize(170, 230));
-            this.tweens.add({ targets: fantasma, alpha: 0, angle: 18, y: destino.y + 65, duration: 850 });
+            const orientacao = this.jogo.multiplayer?.presentation && alvo.lado === "inimigo" ? 180 : 0;
+            const fantasma = guardar(this.add.image(destino.x, destino.y, alvo.imagem).setDisplaySize(170, 230).setAngle(orientacao));
+            this.tweens.add({ targets: fantasma, alpha: 0, angle: orientacao + 18, y: destino.y + 65, duration: 850 });
           }
           if (alvo.nome === "CyberPolíticos") {
             for (let i = 0; i < 14; i++) {
@@ -274,7 +278,8 @@ class CenaEfeitos extends Phaser.Scene {
           fontFamily: "Arial, sans-serif", fontSize: "22px", fontStyle: "bold", align: "center",
           wordWrap: { width: 165, useAdvancedWrap: true }, color: alvo.delta < 0 ? "#ff889e" : "#a6deff",
           stroke: "#06220f", strokeThickness: 6,
-        }).setOrigin(0.5).setDepth(12));
+        }).setOrigin(0.5).setDepth(12)
+          .setAngle(this.jogo.multiplayer?.presentation && alvo.lado === "inimigo" ? 180 : 0));
         if (evento.momento === "habilidade" && perfil.visual === "plasma" && alvo.lado !== evento.lado) {
           for (let i = 0; i < 5; i++) {
             const orb = guardar(this.add.circle(origem.x, origem.y, 6 + i, perfil.cor ?? 0x43ff82, 0.85));

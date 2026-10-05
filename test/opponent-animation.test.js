@@ -328,3 +328,45 @@ for (const nome of ['A Aranha', 'O Boi']) {
   assert.ok(!f.objects.some(o => o.type === 'video'), `${nome}: vídeo somente na habilidade.`);
 }
 console.log('Vídeos de habilidade não disparam na invocação.');
+
+// Na mesa, arte e PA acompanham o dono; girar o container durante efeitos não altera o conteúdo.
+for (const presentation of [false, true]) for (const side of ['jogador', 'inimigo']) {
+  const f = fixture();
+  const card = { id: 90, imagem: 'arte', nome: 'Teste de orientação', poder: 7, tipo: 'monstro' };
+  const game = Object.assign(Object.create(Game.prototype), {
+    add: f.s.add, textures: f.s.textures, tweens: f.s.tweens, multiplayer: { presentation },
+    partida: { jogador: { campo: { cartas: side === 'jogador' ? [card] : [] } },
+      inimigo: { campo: { cartas: side === 'inimigo' ? [card] : [] } } },
+    renderizandoInterface: true, interfaceJaDesenhada: true, chavesCampoNovasRender: new Set(),
+    obterCorPorId: () => 0, chaveCartaMultiplayer: c => c.id,
+    criarSeloEstat: (x, y, power) => [f.s.add.circle(x,y,5), f.s.add.text(x,y,String(power))],
+  });
+  game.criarCartaDeCampo(100, 100, card, f.s.jogo.layout);
+  const art = f.objects.find(o => o.value === 'arte');
+  const power = f.objects.find(o => o.value === '7');
+  const angle = presentation && side === 'inimigo' ? 180 : 0;
+  assert.equal(art.angle || 0, angle);
+  assert.equal(power.angle || 0, angle);
+  assert.equal(power.y, angle ? -85 : 85, 'PA permanece na borda inferior da carta para seu dono.');
+  const container = f.objects.find(o => o.dadosCartaCampo === card);
+  container.setAngle(0);
+  assert.equal(art.angle || 0, angle, 'Animação externa não reinverte a arte.');
+  assert.equal(power.angle || 0, angle);
+  const hidden = { ...card, id: 91 };
+  game.partida[side].campo.cartas = [hidden];
+  game.criarCartaDeCampo(100, 100, hidden, f.s.jogo.layout, true);
+  assert.equal(f.objects.find(o => o.value === 'fundoCarta').angle || 0, angle);
+}
+for (const presentation of [false, true]) for (const side of ['jogador', 'inimigo']) {
+  const f = fixture(true);
+  f.s.jogo.multiplayer.presentation = presentation;
+  f.s.receber([f.event(1, 'invocacao', { lado: side,
+    alvos: [{ lado: side, id: 8, indice: 0, delta: 2 }] })]);
+  f.flush();
+  const angle = presentation && side === 'inimigo' ? 180 : 0;
+  const front = f.objects.find(o => o.type === 'container' && o.value.some(child => child.value === 'arte'));
+  assert.equal(front.angle || 0, angle);
+  assert.equal(f.objects.find(o => o.value === 'fundoCarta').angle || 0, angle);
+  assert.equal(f.objects.find(o => o.value === '+2 PA').angle || 0, angle);
+}
+console.log('Mesa: arte, verso, PA, invocação e números dos efeitos orientados para cada dono; demais modos preservados.');

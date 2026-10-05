@@ -931,7 +931,7 @@ class CyberduelTitleUI {
     nickname.setAttribute("aria-label", "Apelido");
     nicknameLabel.append(nickname);
     const identity = this.element("p", "profile-identity", `@${this.account.user}`);
-    const userHint = this.element("p", "profile-note", "Seu username é único e não muda. Use sua conta Google para entrar.");
+    const userHint = this.element("p", "profile-note", this.account.authProvider === "local" ? "Conta local de desenvolvimento." : "Seu username é único e não muda. Use sua conta Google para entrar.");
     const picker = this.element("div", "profile-photo-picker");
     picker.id = "profile-photo-picker";
     picker.hidden = true;
@@ -1463,7 +1463,32 @@ class CyberduelTitleUI {
     dialog.append(googleButton, retry, error);
     overlay.append(dialog);
     requestAnimationFrame(() => overlay.classList.add("is-visible"));
-    loadGoogle();
+    this.account.request("/api/auth/options", { auth: false }).then(options => {
+      if (this.modal !== overlay) return;
+      if (!options.localLogin) return loadGoogle();
+      googleButton.hidden = true;
+      const form = this.element("form", "title-auth-form");
+      const label = this.element("label", "", "NOME PARA TESTE LOCAL");
+      const username = this.element("input", "title-auth-input");
+      Object.assign(username, { name: "username", type: "text", value: "dev", required: true, minLength: 3, maxLength: 18 });
+      username.setAttribute("aria-label", "Nome para teste local");
+      label.append(username);
+      const enter = this.element("button", "title-dialog__confirm", "ENTRAR LOCALMENTE");
+      enter.type = "submit";
+      form.addEventListener("submit", async event => {
+        event.preventDefault();
+        enter.disabled = true;
+        error.textContent = "";
+        try {
+          await this.account.localLogin(username.value);
+          this.closeModal(true);
+        } catch (exception) { error.textContent = exception.message; }
+        finally { enter.disabled = false; }
+      });
+      form.append(label, enter);
+      dialog.append(this.element("p", "", "Conta de desenvolvimento nesta máquina. Não precisa de Google."), form);
+      username.focus();
+    }).catch(() => loadGoogle());
   }
 
   openRegistrationDialog() {

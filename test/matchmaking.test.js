@@ -99,11 +99,11 @@ async function run() {
   await ack(two, 'join-matchmaking', { accountToken: second.token });
   const next = await nextOne; await nextTwo;
   const players = { [next.player]: one, [3 - next.player]: two };
-  await new Promise(resolve => setTimeout(resolve, 4050));
   let update = next.update;
   for (let step = 0; step < 28 && !update.state.partidaEncerrada; step++) {
     const incoming = structuredClone(update.state);
     incoming.rodadasJogador = 999; incoming.partidaEncerrada = true;
+    await new Promise(resolve => setTimeout(resolve, Math.max(0, update.phaseStartsAt - Date.now()) + 30));
     const received = event(players[3 - update.activePlayer], 'state-update');
     const result = await ack(players[update.activePlayer], 'finish-turn', { state: incoming, step: update.step, round: update.round });
     assert.equal(result.ok, true); update = await received;

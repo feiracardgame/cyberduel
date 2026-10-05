@@ -21,8 +21,12 @@ const QRCode = require("qrcode");
 const { networkInterfaces } = require("node:os");
 const ranking = require("./ranking");
 const matchmaking = new Map();
+const battleAnnouncements = require("../js/battle-announcements");
 
 const PORT = Number(process.env.PORT) || 3000;
+const LOCAL_LOGIN = process.env.CYBERDUEL_LOCAL_LOGIN === "1" && process.env.CYBERDUEL_DEBUG === "1";
+const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
+const canAuthenticate = account => Boolean(account?.googleSub || (LOCAL_LOGIN && account?.localAccount === true));
 const PUBLIC_URL = String(process.env.PUBLIC_URL || "").trim();
 const PUBLIC_ROOT = path.resolve(__dirname, "..");
 const PROFILE_PHOTOS = readdirSync(path.join(PUBLIC_ROOT, "assets/fotosdeperfil"), { withFileTypes: true })
@@ -162,7 +166,7 @@ try {
   for (const [key, session] of Object.entries(loaded.sessions || {})) {
     if (/^[a-f0-9]{64}$/.test(key) && session &&
         Number.isFinite(session.expiresAt) && session.expiresAt > Date.now() &&
-        accountStore.accounts[session.accountKey]?.googleSub) {
+        canAuthenticate(accountStore.accounts[session.accountKey])) {
       sessions.set(key, session);
     }
   }
@@ -274,7 +278,7 @@ function authenticatedSession(request) {
     return null;
   }
   const account = accountStore.accounts[session.accountKey];
-  return account ? { token: match[1], account } : null;
+  return canAuthenticate(account) ? { token: match[1], account } : null;
 }
 
 function accountFromToken(token) {
@@ -285,7 +289,7 @@ function accountFromToken(token) {
     return null;
   }
   const account = accountStore.accounts[session.accountKey];
-  return account && !needsRegistration(account) ? account : null;
+  return canAuthenticate(account) && !needsRegistration(account) ? account : null;
 }
 
 function needsRegistration(account) {
@@ -311,7 +315,7 @@ function publicAccount(account) {
   return {
     username: account.username,
     nickname: account.nickname,
-    authProvider: account.googleSub ? "google" : "password",
+    authProvider: account.localAccount ? "local" : account.googleSub ? "google" : "password",
     isAdmin: isAdminAccount(account),
     needsRegistration: needsRegistration(account),
     needsUsername: Boolean(account.googleSub && !validUsername(account.username)),
@@ -413,8 +417,8 @@ function sanitizeGrantedCards(cards) {
 }
 
 function isAdminAccount(account) {
-  return Boolean(account?.googleSub && !needsRegistration(account) &&
-    ADMIN_USERNAMES.has(account.username.toLocaleLowerCase("pt-BR")));
+  return Boolean((LOCAL_LOGIN && account?.localAccount === true) || (account?.googleSub && !needsRegistration(account) &&
+    ADMIN_USERNAMES.has(account.username.toLocaleLowerCase("pt-BR"))));
 }
 
 function rollBooster(faction, gamesPlayed) {
@@ -478,7 +482,39 @@ function rollBooster(faction, gamesPlayed) {
   });
 }
 
+function localLoginAllowed(request) {
+  if (!LOCAL_LOGIN || !["127.0.0.1", "::1", "::ffff:127.0.0.1"].includes(request.socket.remoteAddress)) return false;
+  try {
+    return LOOPBACK_HOSTS.has(new URL(`http://${request.headers.host}`).hostname) &&
+      (!request.headers.origin || (LOOPBACK_HOSTS.has(new URL(request.headers.origin).hostname) && allowedFrontend(request.headers.origin, request.headers.host)));
+  } catch { return false; }
+}
+
 async function handleApi(request, response, pathname) {
+  if (request.method === "GET" && pathname === "/api/auth/options")
+    return sendJson(response, 200, { ok: true, localLogin: localLoginAllowed(request) });
+
+  if (request.method === "POST" && pathname === "/api/auth/local") {
+    if (!localLoginAllowed(request))
+      return sendJson(response, 403, { ok: false, error: "Acesso local disponível apenas com npm run dev nesta máquina." });
+    const body = await readJson(request);
+    const name = typeof body.username === "string" ? body.username.trim() : "";
+    if (!validUsername(name) || name.length > 18)
+      return sendJson(response, 400, { ok: false, error: "Use um nome local de 3 a 18 caracteres: letras, números, ponto, hífen ou sublinhado." });
+    const username = `local_${name}`;
+    const accountKey = normalizeUsername(username);
+    let account = accountStore.accounts[accountKey];
+    const existing = accountByUsername(username);
+    if ((account && !account.localAccount) || (existing && existing !== account))
+      return sendJson(response, 409, { ok: false, error: "Nome local já está em uso." });
+    if (!account) {
+      account = ensureAccountDefaults({ username, nickname: name, localAccount: true, createdAt: new Date().toISOString() });
+      accountStore.accounts[accountKey] = account;
+      saveAccounts();
+    }
+    return sendJson(response, 200, { ok: true, token: createSession(accountKey), ...publicAccount(account) });
+  }
+
   if (["/api/auth/login", "/api/auth/register"].includes(pathname))
     return sendJson(response, 410, { ok: false, error: "O acesso por senha foi desativado. Entre com Google." });
 
@@ -1092,6 +1128,7 @@ function phaseInfo(room) {
   return { activePlayer: room.turn, phase: room.step < 2 ? "colocar" : "habilidades",
     step: room.step, starter: room.starter, round: room.round,
     deadline: room.deadline, serverNow: Date.now(),
+    announcementAt: room.announcementAt, introUntil: room.introUntil, phaseStartsAt: room.phaseStartedAt,
     effectsPaused: !!room.effects, effectsSequence: room.effects?.sequence || 0,
     effectsRemaining: room.effects?.remaining ?? null };
 }
@@ -1153,10 +1190,14 @@ function phaseDuration(room) {
   return Math.max(floor, 40 - reduction) * 1000;
 }
 
-function armPhaseClock(room, reset = true) {
+function armPhaseClock(room, reset = true, initial = false) {
   clearTimeout(room.timer);
   if (room.effects) return;
-  if (reset) room.phaseStartedAt = Date.now();
+  if (reset) {
+    room.announcementAt = Math.max(Date.now(), room.startsAt || 0);
+    room.introUntil = room.announcementAt + (initial ? battleAnnouncements.inicio.duracao : 0);
+    room.phaseStartedAt = room.introUntil + battleAnnouncements[room.step < 2 ? "colocar" : "habilidades"].duracao;
+  }
   room.deadline = room.phaseStartedAt + phaseDuration(room);
   if (room.state?.partidaEncerrada) return;
   room.timer = setTimeout(() => advancePhase(room), Math.max(0, room.deadline - Date.now()));
@@ -1173,7 +1214,7 @@ function pauseForEffects(room) {
   clearTimeout(previous?.timeout);
   clearTimeout(room.timer);
   room.effects = { sequence, startedAt: previous?.startedAt || Date.now(),
-    remaining: previous?.remaining ?? Math.max(0, room.deadline - Date.now()),
+    remaining: previous?.remaining ?? Math.min(phaseDuration(room), Math.max(0, room.deadline - Date.now())),
     pending: new Set([...room.players].filter(([, id]) => id).map(([player]) => player)) };
   // Um cliente fechado não pode prender a sala indefinidamente.
   room.effects.timeout = setTimeout(() => resumeAfterEffects(room), Math.min(90000, events.length * 3500 + 5000));
@@ -1183,7 +1224,10 @@ function pauseForEffects(room) {
 function resumeAfterEffects(room) {
   if (!room.effects) return;
   clearTimeout(room.effects.timeout);
-  room.phaseStartedAt += Date.now() - room.effects.startedAt;
+  const paused = Date.now() - room.effects.startedAt;
+  room.phaseStartedAt += paused;
+  room.announcementAt += paused;
+  room.introUntil += paused;
   room.effects = null;
   if (!rooms.has(room.code) || room.state?.partidaEncerrada) return;
   armPhaseClock(room, false);
@@ -1354,8 +1398,7 @@ function matchQueuedPlayers() {
     room.starter = room.turn = randomInt(1, 3);
     room.state = require("./duel-runtime").createMatch(entry.deck, opponent.deck);
     room.startsAt = Date.now() + 4000;
-    room.phaseStartedAt = room.startsAt;
-    armPhaseClock(room, false);
+    armPhaseClock(room, true, true);
     emitMatchReady(room);
   }
 }
@@ -1505,8 +1548,8 @@ io.on("connection", (socket) => {
       if (room.players.size === 2) {
         room.starter = room.turn = randomInt(1, 3);
         room.state = require("./duel-runtime").createMatch(room.decks.get(1), room.decks.get(2));
-        room.startsAt = Date.now() + 4000; room.phaseStartedAt = room.startsAt;
-        armPhaseClock(room, false);
+        room.startsAt = Date.now() + 4000;
+        armPhaseClock(room, true, true);
         emitMatchReady(room);
       }
       notifyPresentation(room);
@@ -1587,14 +1630,14 @@ io.on("connection", (socket) => {
       return ack({ ok: false });
     room.state = payload.state;
     room.lastEffectsSequence = Math.max(0, ...(room.state.eventosEfeito || []).map(e => Number(e.id) || 0));
-    armPhaseClock(room);
+    armPhaseClock(room, true, true);
     broadcastState(room, { initial: true });
     ack({ ok: true, ...phaseInfo(room) });
   });
 
   socket.on("finish-turn", (payload = {}, ack = () => {}) => {
     const room = rooms.get(socket.data.room);
-    if (!room?.state || room.state.partidaEncerrada || room.startsAt > Date.now() || room.effects || room.turn !== socket.data.player)
+    if (!room?.state || room.state.partidaEncerrada || room.phaseStartedAt > Date.now() || room.effects || room.turn !== socket.data.player)
       return ack({ ok: false, error: "Não é a sua vez." });
     if (payload.step !== room.step || payload.round !== room.round)
       return ack({ ok: false, error: "Esta fase já terminou." });
@@ -1606,7 +1649,7 @@ io.on("connection", (socket) => {
 
   socket.on("live-state", (payload = {}, ack = () => {}) => {
     const room = rooms.get(socket.data.room);
-    if (!room?.state || room.state.partidaEncerrada || room.startsAt > Date.now() || room.turn !== socket.data.player ||
+    if (!room?.state || room.state.partidaEncerrada || room.phaseStartedAt > Date.now() || room.turn !== socket.data.player ||
         payload.step !== room.step || payload.round !== room.round || !validState(payload.state))
       return ack({ ok: false, error: "A fase não permite esta atualização." });
     room.state = acceptClientState(room, payload.state);
@@ -1630,7 +1673,7 @@ io.on("connection", (socket) => {
     const room = rooms.get(socket.data.room);
     if (!room?.state || room.turn !== socket.data.player) return;
     socket.to(room.code).emit("turn-time", { activePlayer: room.turn,
-      remainingMs: room.effects?.remaining ?? Math.max(0, room.deadline - Date.now()), running: !room.effects, ...phaseInfo(room) });
+      remainingMs: room.effects?.remaining ?? Math.min(phaseDuration(room), Math.max(0, room.deadline - Date.now())), running: !room.effects && room.phaseStartedAt <= Date.now(), ...phaseInfo(room) });
   });
 
   socket.on("debug-finish-match", (payload = {}, ack = () => {}) => {
@@ -1677,6 +1720,6 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => removeFromRoom(socket, true));
 });
 
-httpServer.listen(PORT, () => {
+httpServer.listen(PORT, LOCAL_LOGIN ? "127.0.0.1" : undefined, () => {
   console.log(`Cyberduel multiplayer ouvindo na porta ${PORT}`);
 });

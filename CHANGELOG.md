@@ -2,6 +2,39 @@
 
 Novidades, correções e verificações realizadas no projeto. As entregas mais recentes aparecem primeiro.
 
+## 2026-10-05
+
+### Acesso local sem conta Google
+
+- `npm run dev` agora oferece “ENTRAR LOCALMENTE” na tela de login: basta um nome de teste de 3 a 18 caracteres. A conta recebe username com prefixo `local_`, mantém progresso ao repetir o nome e usa os fluxos existentes de facção, deck, coleção e salas. Contas locais têm acesso ao admin e aos atalhos de desenvolvimento.
+- Dados de desenvolvimento ficam por padrão em `server/data-dev/`, ignorado pelo Git; `DATA_DIR` explícito mantém prioridade. O servidor desse modo escuta somente em `127.0.0.1`. A API valida endereço da conexão, Host, Origin e nome; recusa colisão com contas Google e não vincula identidades.
+- Fora do modo de desenvolvimento, a rota de login local é bloqueada e as sessões locais são recusadas. Mantido o login Google no modo normal. Atualizados README, versões dos scripts e nota do perfil local.
+- Validações aprovadas: teste de acesso local com persistência após reinício, validação de entrada, bloqueio de origem/Host externos, colisão Google, facção/deck, privilégios dev e recusa em produção; regressão do login Google; testes do cliente de contas e do menu. Playwright confirmou entrada pela interface sem carregar o Google, recebimento do deck e partida online com duas contas locais. Usados apenas servidores e diretórios temporários; nenhum dado real ou container alterado.
+
+### Orientação das cartas e do PA na apresentação
+
+- Na tela de apresentação, arte, verso, PA e demais indicadores das cartas do campo superior ficam voltados ao jogador do topo (180°); o campo inferior mantém a orientação do jogador de baixo (0°), independentemente de quem está no turno.
+- A rotação é aplicada ao conteúdo da carta, preservando a orientação durante animações no container externo. Corrigidas também a orientação da frente/verso na invocação e habilidade, da imagem de saída e dos números de PA nos efeitos da apresentação. Demais modos mantêm sua orientação anterior.
+- Ampliado o teste de animações para verificar os dois lados, carta oculta, posição do PA e textos dos efeitos, dentro e fora da apresentação. Aprovados testes de animações, layout da apresentação e interface do espectador, sintaxe dos 25 arquivos JavaScript de `js`, `server` e `scripts` e `git diff --check`.
+- Playwright com cenário visual definido na apresentação verificou os ângulos e a posição do PA nas duas fileiras, antes e depois de mudar o jogador ativo/fase. Capturas desktop (1440 × 1000) e viewport de celular (390 × 844) revisadas, sem erros JavaScript ou HTTP locais na execução final; arte e números do campo superior legíveis para o jogador do topo. Relatório e capturas em `/tmp/cyberduel-playwright/`.
+
+### Validação da batalha no Playwright
+
+- Executado Playwright com Chromium/WebGL em desktop (1440 × 1000) e celular emulado (390 × 844), usando servidor, contas Google e dados temporários. Conferidos abertura, posicionamento, habilidade, fonte Rushblade, bloqueio de interação durante os avisos e início da contagem somente depois do evento de conclusão dos áudios.
+- Verificadas três sessões online: ambos os jogadores e um espectador. Só o jogador ativo recebe o aviso e a voz da fase; o outro jogador e o espectador não recebem essas vozes. Confirmados resultados de vitória e derrota, uma reprodução por resultado e identificação do vencedor/perdedor sobre o campo vencedor.
+- Nenhum erro JavaScript ou recurso/API local com HTTP de erro na execução completa. Capturas de tela e relatórios guardados em `/tmp/cyberduel-playwright/`; Playwright instalado somente em `/tmp`, sem adicionar dependências ao projeto.
+- Corrigido o título final do espectador que encostava nas bordas: agora mostra “VITÓRIA”, mantendo os apelidos no aviso sobre o campo. Cenário online repetido no Playwright com sucesso, sem erros JavaScript ou HTTP locais; teste funcional de resultado/desistência e sintaxe JavaScript também aprovados após o ajuste.
+- Validação sonora feita por reprodução e eventos do WebAudio no navegador automatizado; celular físico e saída sonora ouvida por uma pessoa não foram testados. Dados reais, ambiente e containers de produção preservados; nenhum deploy realizado.
+
+### Avisos e áudios da batalha
+
+- Adicionados “Hora do Cyberduelo”, “Turno de posicionamento” e “Turno de habilidade” em Rushblade, usando os MP3 enviados. A abertura antecede o aviso do primeiro turno; avisos de fase aparecem e tocam somente para o jogador ativo, sem exibição ou reprodução para o oponente e os espectadores.
+- Relógios solo e online começam a contar depois das janelas dos anúncios, dimensionadas pela duração dos MP3 com pequena margem. O servidor bloqueia jogadas e passagem de turno durante essas janelas, preserva as reduções de tempo das cartas e sincroniza a pausa dos efeitos. Atualizações e redesenhos não repetem os áudios; reconexões seguem o horário da fase.
+- Tela final mostra “VITÓRIA” ou “DERROTA” na fonte do jogo e toca o áudio correspondente uma única vez. Espectadores veem os nomes do vencedor e do perdedor com os dois resultados acima do campo vencedor e ouvem vitória; empate mantém seu resultado sem essas vozes.
+- Atualizados preload, versões dos scripts no HTML e cópia do novo arquivo compartilhado na imagem Docker do servidor. Preservadas as entradas anteriores deste histórico.
+- Validações aprovadas: sintaxe dos 25 arquivos JavaScript de `js`, `server` e `scripts`, `git diff --check` e 16 testes funcionais relacionados, incluindo anúncios, assets, passagem de turno, resultado/desistência, animações, habilidade, interface de espectadores, apresentação, sincronização, desempenho, retorno à partida, multiplayer e matchmaking. Testes de servidor usam dados temporários; confirmados bloqueio durante anúncio, tempo integral, pausa de efeitos e conclusão das partidas.
+- Limitações: reprodução sonora e aparência não verificadas manualmente em navegador; durações configuradas devem acompanhar uma eventual troca dos MP3. Nenhum deploy ou reconstrução de container realizado.
+
 ## 2026-10-01
 
 ### Recompensas dobradas no matchmaking e em salas

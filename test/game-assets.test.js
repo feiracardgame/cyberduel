@@ -6,6 +6,7 @@ const context = vm.createContext({
   window: {},
   Phaser: { Scene: class {} },
 });
+vm.runInContext(fs.readFileSync("js/battle-announcements.js", "utf8"), context);
 vm.runInContext(fs.readFileSync("js/cenas/preload.js", "utf8"), context, {
   filename: "js/cenas/preload.js",
 });

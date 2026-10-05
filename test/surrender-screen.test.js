@@ -10,7 +10,7 @@ const Game = vm.runInContext('CenaJogo', context);
 const client = context.window.cyberduelMultiplayer;
 
 for (const player of [1, 2]) {
-  const texts = [], timers = [];
+  const texts = [], timers = [], sounds = [];
   const object = () => ({
     setDepth() { return this; }, setOrigin() { return this; },
     setScale() { return this; }, setAlpha() { return this; },
@@ -26,6 +26,7 @@ for (const player of [1, 2]) {
     criarTextoUI(x, y, text) { texts.push(text); return object(); },
     criarBotaoConfirmacao: object,
     add: { rectangle: object, container: object },
+    sound: { play(key) { sounds.push(key); } },
     cameras: { main: { flash() {} } }, somBuff: { play() {} },
     time: { delayedCall(delay, callback) { timers.push({ delay, callback }); return {}; } },
     tweens: { add() {} },
@@ -33,12 +34,41 @@ for (const player of [1, 2]) {
   });
   // A desistência local exibe a derrota antes da resposta do servidor.
   game.mostrarTelaFimDeJogo(result.resultadoCombate);
-  assert.ok(texts.includes('VOCÊ PERDEU'));
+  assert.ok(texts.includes('DERROTA'));
+  assert.deepEqual(sounds, ['somDerrota']);
   // O resultado confirmado pelo servidor não pode apagar nem duplicar essa tela.
   game.finalizarRecebimentoMultiplayer(result, { activePlayer: player, phase: 'colocar' }, false);
   game.desenharInterface(); // Também preserva o final em outros redesenhos tardios.
-  assert.equal(texts.filter(text => text === 'VOCÊ PERDEU').length, 1);
+  assert.equal(texts.filter(text => text === 'DERROTA').length, 1);
   assert.equal(timers.filter(timer => timer.delay === 10000).length, 1);
   assert.equal(game.travado, true);
+  assert.deepEqual(sounds, ['somDerrota'], 'Não repete o áudio após confirmar resultado.');
 }
 console.log('Desistência: derrota dos dois jogadores preservada após confirmação e redesenhos tardios.');
+
+for (const spectator of [false, true]) for (const winner of ['jogador', 'inimigo', 'empate']) {
+  const texts = [], sounds = [];
+  const object = () => ({ setDepth() { return this; }, setOrigin() { return this; }, setScale() { return this; }, setAlpha() { return this; } });
+  const game = Object.assign(Object.create(Game.prototype), {
+    multiplayer: { spectator, localNickname: 'Primeiro', opponentNickname: 'Segundo' },
+    partida: { partidaEncerrada: true }, layout: { yJogadorFrente: 1200, yInimigoTras: 560, slotH: 270 },
+    criarTextoUI(x, y, text) { texts.push({ y, text }); return object(); }, criarBotaoConfirmacao: object,
+    add: { rectangle: object, container: object }, cameras: { main: { flash() {} } },
+    sound: { play(key) { sounds.push(key); } }, somBuff: { play() {} },
+    time: { delayedCall() { return {}; } }, tweens: { add() {} },
+  });
+  game.mostrarTelaFimDeJogo({ resultado: winner, poderJogador: 0, poderInimigo: 0 });
+  if (winner === 'empate') assert.deepEqual(sounds, []);
+  else {
+    assert.deepEqual(sounds, [spectator || winner === 'jogador' ? 'somVitoria' : 'somDerrota']);
+    if (!spectator) {
+      assert.ok(texts.some(item => item.text === (winner === 'jogador' ? 'VITÓRIA' : 'DERROTA')));
+      continue;
+    }
+    assert.ok(texts.some(item => item.text === 'VITÓRIA'), 'Título do espectador não repete o apelido.');
+    const label = texts.find(item => item.text.startsWith('VITÓRIA —'));
+    assert.ok(label.text.includes(winner === 'jogador' ? 'VITÓRIA — Primeiro' : 'VITÓRIA — Segundo'));
+    assert.equal(label.y, (winner === 'jogador' ? 1200 : 560) - 135 - 80);
+  }
+}
+console.log('Espectador: resultados sobre o campo vencedor, áudio de vitória e empate sem voz aprovados.');

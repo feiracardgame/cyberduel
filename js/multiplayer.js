@@ -218,7 +218,9 @@ class CyberduelMultiplayer {
     this.round = update.round ?? this.round;
     this.starter = update.starter ?? this.starter;
     if (update.serverNow) this.clockOffset = update.serverNow - Date.now();
-    if (update.deadline) this.deadline = update.deadline;
+    if (Object.hasOwn(update, "deadline")) this.deadline = update.deadline;
+    for (const key of ["announcementAt", "introUntil", "phaseStartsAt"])
+      if (Object.hasOwn(update, key)) this[key] = update[key];
     if (Object.hasOwn(update, "effectsPaused")) {
       this.effectsPaused = update.effectsPaused;
       this.effectsSequence = update.effectsSequence || 0;
@@ -227,7 +229,13 @@ class CyberduelMultiplayer {
     }
   }
 
-  remainingMs() { if (this.effectsPaused) return Math.max(0, this.effectsRemaining || 0); return Math.max(0, (this.deadline || 0) - Date.now() - this.clockOffset); }
+  announcementPending() { return this.phaseStartsAt > Date.now() + this.clockOffset; }
+
+  remainingMs() {
+    if (this.effectsPaused) return Math.max(0, this.effectsRemaining || 0);
+    if (this.announcementPending()) return Math.max(0, (this.deadline || 0) - this.phaseStartsAt);
+    return Math.max(0, (this.deadline || 0) - Date.now() - this.clockOffset);
+  }
 
   effectsReady(sequence) {
     if (!this.effectsPaused || this.spectator || !this.socket || sequence < this.effectsSequence) return;
@@ -355,7 +363,7 @@ class CyberduelMultiplayer {
   sendLiveState(partida) {
     if (
       !this.active ||
-      !this.socket || !this.initialized || this.spectator ||
+      !this.socket || !this.initialized || this.spectator || this.announcementPending() ||
       this.activePlayer !== this.player ||
       partida.partidaEncerrada
     )

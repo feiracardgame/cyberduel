@@ -7,7 +7,7 @@ RUN npm ci --omit=dev
 
 COPY index.html ./
 COPY server ./server
-COPY js/cartas.js js/main.js js/deck-builder.js js/multiplayer.js ./js/
+COPY js/cartas.js js/main.js js/deck-builder.js js/multiplayer.js js/battle-announcements.js ./js/
 COPY assets/fotosdeperfil ./assets/fotosdeperfil
 
 # Verifica as regras e seus arquivos antes de publicar uma imagem incompleta.
