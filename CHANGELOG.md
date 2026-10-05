@@ -4,6 +4,13 @@ Novidades, correções e verificações realizadas no projeto. As entregas mais 
 
 ## 2026-10-05
 
+### Seleção visual, proteção do kit inicial e comissão do mercado
+
+- As quantidades recebidas no kit inicial da facção agora ficam protegidas contra anúncios, mesmo após sair do deck salvo. Cópias extras da mesma carta continuam vendáveis, respeitando também as cópias do deck. Registrada a coleção inicial ao escolher a facção; contas antigas sem esse registro adotam as quantidades do kit padrão. Ao iniciar o servidor, anúncios antigos que deixavam a coleção abaixo dessa proteção são cancelados e suas cartas devolvidas.
+- Substituído o seletor de texto por uma galeria com artes, busca, quantidade possuída, cópias vendáveis e indicação das cartas bloqueadas. Escolher uma carta abre a prévia e o formulário; “Trocar carta” retorna à galeria. Mantida a identidade visual do deck builder e o layout para celular.
+- O comprador continua pagando o total anunciado. Ao concluir a compra, o vendedor recebe 80% do total do lote, arredondados para baixo em tijolinhos inteiros; o restante é a taxa do mercado. Cálculo inteiro evita imprecisão numérica. Publicar/cancelar não cobra taxa nem paga comissão. O formulário e os próprios anúncios mostram o valor líquido.
+- Aprovados `player-market.test.js`, `booster-inventory.test.js`, `account-client.test.js` e `title-ui.test.js`: proteção em contas novas/antigas, cancelamento de anúncios antigos, cópias extras, comissão, preços baixos, arredondamento por lote, persistência, concorrência e recuperação após falha de gravação. Playwright verificou galeria, busca, carta inicial desabilitada, seleção/troca, prévia de 120 para oferta de 150, compra, saldo do vendedor de 620, cancelamento e coleção em desktop/celular. Sintaxe e `git diff --check` aprovados. Atualizados README e versões dos arquivos no HTML; usados dados temporários, sem deploy.
+
 ### Mercado com a identidade visual do montador de deck
 
 - Aplicadas as skills `redesign-existing-projects` e `matrix` ao mercado existente: tela ampla com os mesmos tokens do deck builder, superfícies escuras, verde moderado, título Rushblade e textos/valores monoespaçados. Reorganizados cabeçalho, saldo, abas, busca e contagem de anúncios; destacados arte vertical, quantidade, vendedor, preço por cópia e total de cada oferta.

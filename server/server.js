@@ -141,6 +141,8 @@ function ensureAccountDefaults(account) {
     if (!Number.isFinite(account[key])) account[key] = 0;
   if (!account.collection || typeof account.collection !== "object")
     account.collection = {};
+  if (!account.starterCollection || typeof account.starterCollection !== "object")
+    account.starterCollection = Object.fromEntries(starterForFaction(account.faction).map(c => [cardKey(c.tipo, c.nome), c.quantidade]));
   if (!Array.isArray(account.boosters)) account.boosters = [];
   if (typeof account.nickname !== "string" || !account.nickname.trim()) account.nickname = account.googleSub ? "" : account.username;
   if (!PROFILE_PHOTOS.includes(account.avatar)) account.avatar = FACTION_PHOTOS[account.faction] || "";
@@ -256,6 +258,19 @@ function saveMarketTrade(accounts, change) {
   }
 }
 
+// Anúncios antigos não podem manter cópias do kit inicial reservadas para venda.
+let returnedStarterCards = false;
+accountStore.marketListings = (accountStore.marketListings || []).filter(listing => {
+  const seller = accountStore.accounts[listing.seller], key = cardKey(listing.tipo, listing.nome);
+  if (seller && (seller.collection[key] || 0) < (seller.starterCollection[key] || 0)) {
+    grantCards(seller, [listing]);
+    returnedStarterCards = true;
+    return false;
+  }
+  return true;
+});
+if (returnedStarterCards) saveAccounts();
+
 function normalizeUsername(value) {
   return String(value || "")
     .trim()
@@ -343,6 +358,7 @@ function publicAccount(account) {
     currency: account.currency,
     gamesPlayed: account.gamesPlayed,
     collection: account.collection,
+    starterCollection: account.starterCollection,
     boosterPrice: BOOSTER_PRICE,
     boosters: account.boosters.filter((pack) => !pack.openedAt).map(({ id, faction, purchasedAt }) => ({ id, faction, purchasedAt })),
   };
@@ -614,8 +630,9 @@ async function handleApi(request, response, pathname) {
         return sendJson(response, 400, { ok: false, error: "Escolha uma carta, de 1 a 99 cópias e um preço inteiro positivo em tijolinhos." });
       const key = cardKey(card.tipo, card.nome);
       const deckCopies = (account.deck || []).filter(c => cardKey(c.tipo, c.nome) === key).reduce((n, c) => n + c.quantidade, 0);
-      if (quantity > (account.collection[key] || 0) - deckCopies)
-        return sendJson(response, 409, { ok: false, error: "Não há cópias livres suficientes. Retire a carta do deck salvo antes de anunciá-la." });
+      const protectedCopies = Math.max(deckCopies, account.starterCollection[key] || 0);
+      if (quantity > (account.collection[key] || 0) - protectedCopies)
+        return sendJson(response, 409, { ok: false, error: "Não há cópias vendáveis suficientes. O kit inicial não pode ser vendido, e cópias do deck salvo ficam protegidas." });
       const seller = Object.keys(accountStore.accounts).find(key => accountStore.accounts[key] === account);
       if (current.filter(l => l.seller === seller).length >= 100)
         return sendJson(response, 409, { ok: false, error: "Você já tem 100 anúncios ativos. Cancele ou venda algum primeiro." });
@@ -645,13 +662,14 @@ async function handleApi(request, response, pathname) {
       if (!seller || !canAuthenticate(seller) || seller === account)
         return sendJson(response, 403, { ok: false, error: "Você só pode comprar anúncios de outros jogadores ativos." });
       const total = listing.preco * listing.quantidade;
+      const proceeds = Number(BigInt(total) * 4n / 5n);
       if (!Number.isSafeInteger(account.currency) || account.currency < total)
         return sendJson(response, 409, { ok: false, error: "Tijolinhos insuficientes para esta compra." });
-      if (!Number.isSafeInteger(seller.currency + total))
+      if (!Number.isSafeInteger(seller.currency + proceeds))
         return sendJson(response, 409, { ok: false, error: "O saldo do vendedor atingiu o limite." });
       saveMarketTrade([account, seller], () => {
         account.currency -= total;
-        seller.currency += total;
+        seller.currency += proceeds;
         grantCards(account, [listing]);
         accountStore.marketListings = current.filter(l => l !== listing);
       });
@@ -785,6 +803,7 @@ async function handleApi(request, response, pathname) {
     session.account.faction = faction;
     session.account.avatar = FACTION_PHOTOS[faction];
     session.account.deck = starterDeck;
+    session.account.starterCollection = Object.fromEntries(starterDeck.map(c => [cardKey(c.tipo, c.nome), c.quantidade]));
     grantCards(session.account, starterDeck);
     session.account.updatedAt = new Date().toISOString();
     saveAccounts();
@@ -1007,6 +1026,7 @@ async function handleApi(request, response, pathname) {
       });
     ensureAccountDefaults(account);
     account.collection = {};
+    account.starterCollection = {};
     account.deck = null;
     account.updatedAt = new Date().toISOString();
     saveAccounts();

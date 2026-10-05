@@ -2035,7 +2035,7 @@ class CyberduelTitleUI {
     status.setAttribute("role", "status");
     const error = this.element("p", "title-dialog__error");
     error.setAttribute("role", "alert");
-    let view = initialView, listings = [], busy = false, loaded = false;
+    let view = initialView, listings = [], busy = false, loaded = false, selectedKey = null;
     const catalog = this.deckBuilder.getCatalog();
     const setBusy = value => {
       busy = value;
@@ -2056,7 +2056,7 @@ class CyberduelTitleUI {
         await this.account.marketTrade(action, body);
         status.textContent = action === "listings" ? "Anúncio publicado. Suas cartas estão reservadas."
           : action === "cancel" ? "Anúncio cancelado. Cartas devolvidas à coleção." : "Compra concluída. Cartas adicionadas à coleção.";
-        if (action === "listings") view = "mine";
+        if (action === "listings") { view = "mine"; selectedKey = null; }
         await load();
       } catch (exception) {
         error.textContent = exception.message;
@@ -2076,6 +2076,46 @@ class CyberduelTitleUI {
       content.replaceChildren();
       if (!loaded) { content.append(this.element("p", "player-market__empty", "Carregando anúncios…")); return; }
       if (view === "sell") {
+        const choices = catalog.map(card => {
+          const owned = this.account.collection[card.key] || 0;
+          const inDeck = (this.account.deck || []).filter(c => `${c.tipo}:${c.nome}` === card.key).reduce((sum, c) => sum + c.quantidade, 0);
+          const initial = this.account.starterCollection?.[card.key] || 0;
+          return { card, owned, initial, available: Math.max(0, owned - Math.max(inDeck, initial)) };
+        }).filter(c => c.owned > 0);
+        if (!choices.some(c => c.card.key === selectedKey && c.available > 0)) selectedKey = null;
+        if (!selectedKey) {
+          const heading = this.element("div", "player-market__section-heading player-market__selection-heading");
+          heading.append(this.element("span", "forge-kicker", "SUA COLEÇÃO"), this.element("h3", "", "Escolha uma carta para anunciar"));
+          const note = this.element("p", "player-market__note", "As cópias do kit inicial não podem ser vendidas. Cópias extras ficam disponíveis quando não estão no deck salvo.");
+          const search = this.element("input", "title-auth-input");
+          search.type = "search"; search.placeholder = "Buscar na coleção";
+          search.setAttribute("aria-label", "Buscar na coleção");
+          const grid = this.element("div", "player-market__grid player-market__selection");
+          const draw = () => {
+            grid.replaceChildren();
+            const matches = choices.filter(c => c.card.nome.toLocaleLowerCase("pt-BR").includes(search.value.trim().toLocaleLowerCase("pt-BR")));
+            for (const choice of matches) {
+              const button = this.button("player-market__pick", "", () => {
+                if (busy || !choice.available) return;
+                selectedKey = choice.card.key; render();
+                dialog.querySelector("#market-quantity")?.focus();
+              }, `Selecionar ${choice.card.nome}`);
+              const art = this.element("div", "player-market__art");
+              const source = window.CYBERDUEL_IMAGE_ASSETS?.[choice.card.imagem];
+              if (source) { const image = this.element("img", ""); image.src = source; image.alt = choice.card.nome; image.loading = "lazy"; art.append(image); }
+              art.append(this.element("span", "player-market__badge", `${choice.owned}×`));
+              const details = this.element("div", "player-market__details");
+              details.append(this.element("strong", "", choice.card.nome),
+                this.element("small", "", choice.available ? `${choice.available} cópias vendáveis` : choice.initial ? "Kit inicial protegido" : "Cópias no deck salvo"),
+                this.element("span", "player-market__pick-action", choice.available ? "Selecionar carta →" : "Indisponível para venda"));
+              if (!choice.available) { button.disabled = true; button.dataset.unavailable = "true"; }
+              button.append(art, details); grid.append(button);
+            }
+            if (!matches.length) grid.append(this.element("p", "player-market__empty", "Nenhuma carta encontrada na coleção."));
+          };
+          search.addEventListener("input", draw); draw();
+          content.append(heading, note, search, grid); return;
+        }
         const workspace = this.element("div", "player-market__sell-workspace");
         const artwork = this.element("aside", "player-market__preview");
         const image = this.element("img", "");
@@ -2084,24 +2124,15 @@ class CyberduelTitleUI {
         artwork.append(this.element("span", "forge-kicker", "DA SUA COLEÇÃO"), image, cardName, freeCopies);
         const form = this.element("form", "player-market__form");
         form.append(this.element("span", "forge-kicker", "NOVO ANÚNCIO"), this.element("h3", "", "Defina sua oferta"),
-          this.element("p", "player-market__note", "Escolha cópias livres da sua coleção. Elas ficam reservadas até vender ou cancelar o anúncio."));
-        const select = this.element("select", "title-auth-input");
-        select.id = "market-card";
-        const choices = catalog.map(card => {
-          const inDeck = (this.account.deck || []).filter(c => `${c.tipo}:${c.nome}` === card.key).reduce((sum, c) => sum + c.quantidade, 0);
-          return { card, available: Math.max(0, (this.account.collection[card.key] || 0) - inDeck) };
-        }).filter(c => c.available > 0);
-        for (const { card, available } of choices) {
-          const option = this.element("option", "", `${card.nome} · ${available} livres`);
-          option.value = card.key; select.append(option);
-        }
+          this.element("p", "player-market__note", "As cópias ficam reservadas até vender ou cancelar. Ao vender, você recebe 80% do total; 20% ficam como taxa do mercado."),
+          this.button("title-dialog__cancel", "← Trocar carta", () => { selectedKey = null; render(); }));
         const quantity = this.element("input", "title-auth-input");
         Object.assign(quantity, { id: "market-quantity", type: "number", min: "1", max: "99", step: "1", value: "1", required: true });
         const price = this.element("input", "title-auth-input");
         Object.assign(price, { id: "market-price", type: "number", min: "1", max: String(Number.MAX_SAFE_INTEGER), step: "1", required: true });
         const preview = this.element("p", "player-market__total", "");
         const update = () => {
-          const selected = choices.find(c => c.card.key === select.value);
+          const selected = choices.find(c => c.card.key === selectedKey);
           quantity.max = String(Math.min(99, selected?.available || 1));
           const source = window.CYBERDUEL_IMAGE_ASSETS?.[selected?.card.imagem];
           image.hidden = !source;
@@ -2109,9 +2140,13 @@ class CyberduelTitleUI {
           cardName.textContent = selected?.card.nome || "Sua coleção";
           freeCopies.textContent = selected ? `${selected.available} cópias livres para anunciar` : "Cópias do deck salvo ficam protegidas.";
           const total = Number(quantity.value) * Number(price.value);
-          preview.textContent = `Total do anúncio: ${Number.isSafeInteger(total) ? total.toLocaleString("pt-BR") : "—"} tijolinhos`;
+          const valid = Number.isSafeInteger(total) && total >= 0;
+          const proceeds = valid ? Number(BigInt(total) * 4n / 5n) : 0;
+          preview.replaceChildren(this.element("span", "", `Total do anúncio: ${valid ? total.toLocaleString("pt-BR") : "—"} tijolinhos`),
+            this.element("strong", "", `Você recebe: ${valid ? proceeds.toLocaleString("pt-BR") : "—"} tijolinhos (80%)`),
+            this.element("small", "", "Valores fracionados são arredondados para baixo."));
         };
-        for (const [labelText, control] of [["Carta", select], ["Quantidade", quantity], ["Preço por cópia (tijolinhos)", price]]) {
+        for (const [labelText, control] of [["Quantidade", quantity], ["Preço por cópia (tijolinhos)", price]]) {
           const label = this.element("label", "", labelText);
           label.htmlFor = control.id; form.append(label, control);
           control.addEventListener("input", update);
@@ -2124,7 +2159,7 @@ class CyberduelTitleUI {
         }
         form.addEventListener("submit", event => {
           event.preventDefault();
-          const card = choices.find(c => c.card.key === select.value)?.card;
+          const card = choices.find(c => c.card.key === selectedKey)?.card;
           if (card) act("listings", { tipo: card.tipo, nome: card.nome, quantidade: Number(quantity.value), preco: Number(price.value) });
         });
         update(); form.append(preview, publish); workspace.append(artwork, form); content.append(workspace);
@@ -2168,6 +2203,7 @@ class CyberduelTitleUI {
             this.element("p", "player-market__unit-price", `${listing.preco.toLocaleString("pt-BR")} tijolinhos / cópia`));
           const total = listing.preco * listing.quantidade;
           details.append(this.element("strong", "player-market__price", `${total.toLocaleString("pt-BR")} tijolinhos`));
+          if (listing.mine) details.append(this.element("small", "player-market__unit-price", `Você recebe ${Number(BigInt(total) * 4n / 5n).toLocaleString("pt-BR")} tijolinhos (80%)`));
           const button = this.button("title-dialog__confirm", listing.mine ? "CANCELAR ANÚNCIO" : `COMPRAR · ${total.toLocaleString("pt-BR")} TIJOLINHOS`,
             () => act(listing.mine ? "cancel" : "buy", { id: listing.id }));
           if (!listing.mine && this.account.currency < total) {

@@ -14,6 +14,7 @@ class CyberduelAccount {
     this.faction = null;
     this.currency = 0;
     this.collection = {};
+    this.starterCollection = {};
     this.gamesPlayed = 0;
     this.boosterPrice = 100;
     this.boosters = [];
@@ -47,6 +48,7 @@ class CyberduelAccount {
       faction: this.faction,
       currency: this.currency,
       collection: this.collection,
+      starterCollection: this.starterCollection,
       gamesPlayed: this.gamesPlayed,
       boosterPrice: this.boosterPrice,
       boosters: this.boosters,
@@ -94,6 +96,7 @@ class CyberduelAccount {
         ? payload.collection
         : {};
     this.boosters = Array.isArray(payload.boosters) ? payload.boosters : [];
+    this.starterCollection = payload.starterCollection || {};
     this.gamesPlayed = Math.max(0, Number(payload.gamesPlayed) || 0);
     this.boosterPrice = Math.max(1, Number(payload.boosterPrice) || 100);
     if (shouldNotify) this.notify();
@@ -346,6 +349,7 @@ class CyberduelAccount {
     this.collection = {};
     this.gamesPlayed = 0;
     this.boosters = [];
+    this.starterCollection = {};
     this.pendingBoosterPurchase = null;
     this.debugLegendaryUser = null;
     localStorage.removeItem(this.storageKey);

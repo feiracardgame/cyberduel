@@ -3186,6 +3186,17 @@ body.title-terminal-open #game-viewport canvas {
 .player-market .title-dialog__error { text-align: left; font-size: 12px; }
 .player-market__status:empty, .player-market .title-dialog__error:empty { display: none; }
 .player-market__empty { grid-column: 1 / -1; padding: 48px 24px; margin: 0; border: 1px dashed var(--forge-line); text-align: center; font-size: 14px; color: var(--forge-muted); }
+.player-market__selection { margin-top: 24px; }
+.player-market__selection-heading h3 { grid-column: 1 / -1; }
+.player-market .player-market__pick { display: flex; flex-direction: column; min-width: 0; padding: 0; border: 1px solid var(--forge-line); border-radius: 2px; background: var(--forge-panel); color: var(--forge-text); text-align: left; overflow: hidden; }
+.player-market__pick .player-market__art { width: 100%; }
+.player-market__pick .player-market__details { width: 100%; }
+.player-market__pick strong { font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.player-market__pick small { color: var(--forge-muted); font-size: 11px; }
+.player-market__pick-action { margin-top: auto; padding-top: 12px; color: var(--forge-accent); font-size: 11px; }
+.player-market .player-market__pick:hover:not(:disabled) { border-color: var(--forge-accent); background: #16251c; }
+.player-market__total { display: grid; gap: 12px; }
+.player-market__total span, .player-market__total small { color: var(--forge-muted); font-size: 12px; line-height: 1.5; }
 @media (max-width: 700px) {
   .title-dialog.player-market { padding: 20px 16px 32px; }
   .player-market__header { grid-template-columns: 40px 1fr; gap: 14px; padding-bottom: 20px; }

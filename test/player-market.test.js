@@ -5,7 +5,7 @@ const os = require('node:os');
 const { spawn } = require('node:child_process');
 const { once } = require('node:events');
 const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'cyberduel-market-'));
-const users = require('./account-fixture')(directory, ['Seller', 'Buyer', 'Other']);
+const users = require('./account-fixture')(directory, ['Seller', 'Buyer', 'Other', 'Starter']);
 const file = path.join(directory, 'accounts.json');
 const store = JSON.parse(fs.readFileSync(file));
 const key = 'monstro:O Rato';
@@ -13,6 +13,13 @@ for (const user of users) Object.assign(store.accounts[user.accountKey], {
   faction: 'echossystem', currency: 500, collection: { [key]: 10 },
   deck: [{ tipo: 'monstro', nome: 'O Rato', quantidade: 2 }],
 });
+fs.writeFileSync(file, JSON.stringify(store));
+// Conta antiga que já havia colocado parte do kit inicial à venda.
+store.accounts[users[2].accountKey].deck = null;
+store.accounts[users[2].accountKey].collection[key] = 1;
+store.marketListings = [{ id: 'legacy-starter', seller: users[2].accountKey, tipo: 'monstro', nome: 'O Rato', quantidade: 1, preco: 70 }];
+store.accounts[users[0].accountKey].collection['monstro:O Cão'] = 2;
+Object.assign(store.accounts[users[3].accountKey], { faction: null, collection: {}, deck: null });
 fs.writeFileSync(file, JSON.stringify(store));
 const base = 'http://127.0.0.1:32120';
 let server;
@@ -42,6 +49,14 @@ const account = async user => (await api('auth/session', user)).body;
 (async () => {
   await start();
   assert.equal((await api('market/listings')).status, 401);
+  const starter = await api('account/faction', users[3], { faction: 'echossystem' });
+  assert.equal(starter.status, 200); assert.equal(starter.body.starterCollection[key], 2);
+  assert.equal((await api('market/listings', users[3], offer())).status, 409, 'Novo kit inicial não pode ser anunciado.');
+  assert.equal((await api('market/listings', other)).body.listings.length, 0, 'Anúncio antigo do kit inicial é cancelado.');
+  assert.equal((await account(other)).collection[key], 2, 'Cópia inicial reservada é devolvida.');
+  assert.equal((await account(other)).starterCollection[key], 2, 'Proteção migra para contas antigas.');
+  assert.equal((await api('market/listings', other, offer())).status, 409, 'Kit inicial protegido mesmo fora do deck.');
+  assert.equal((await api('market/listings', seller, { ...offer(), nome: 'O Cão' })).status, 409);
   for (const body of [null, [], offer(0), offer(1, 0), offer(1, 1.5), offer(1, '50'), offer(2, Number.MAX_SAFE_INTEGER), { ...offer(), nome: 'Não existe' }])
     assert.equal((await api('market/listings', seller, body)).status, 400);
   assert.equal((await api('market/listings', seller, offer(9))).status, 409, 'Cópias do deck ficam protegidas.');
@@ -58,7 +73,7 @@ const account = async user => (await api('auth/session', user)).body;
   assert.equal((await api('market/listings', buyer)).body.listings[0].id, id, 'Anúncio persiste no reinício.');
   const bought = await api('market/buy', buyer, { id, preco: 1, quantidade: 99 });
   assert.equal(bought.status, 200); assert.equal(bought.body.currency, 360); assert.equal(bought.body.collection[key], 12);
-  assert.equal((await account(seller)).currency, 640);
+  assert.equal((await account(seller)).currency, 612, 'Vendedor recebe 80% de 140.');
   assert.equal((await api('market/buy', buyer, { id })).status, 409, 'Repetição não cobra duas vezes.');
   created = await api('market/listings', seller, offer(1, 900));
   assert.equal((await api('market/buy', buyer, { id: created.body.listingId })).status, 409);
@@ -67,8 +82,16 @@ const account = async user => (await api('auth/session', user)).body;
   created = await api('market/listings', seller, offer());
   const attempts = await Promise.all([buyer, other].map(user => api('market/buy', user, { id: created.body.listingId })));
   assert.deepEqual(attempts.map(a => a.status).sort(), [200, 409], 'Somente um comprador recebe a carta.');
-  assert.equal((await account(seller)).currency, 710);
+  assert.equal((await account(seller)).currency, 668);
   assert.equal((await account(seller)).collection[key], 7);
+  for (const price of [7, 1]) {
+    created = await api('market/listings', seller, offer(1, price));
+    assert.equal((await api('market/buy', buyer, { id: created.body.listingId })).status, 200);
+  }
+  assert.equal((await account(seller)).currency, 673, '80% são arredondados para baixo, inclusive em preços baixos.');
+  created = await api('market/listings', seller, offer(2, 7));
+  assert.equal((await api('market/buy', buyer, { id: created.body.listingId })).status, 200);
+  assert.equal((await account(seller)).currency, 684, 'Arredondamento ocorre sobre o total do lote.');
   created = await api('market/listings', seller, offer());
   const beforeBuyer = await account(buyer), beforeSeller = await account(seller);
   const temporary = `${file}.${server.pid}.tmp`;
@@ -82,6 +105,6 @@ const account = async user => (await api('auth/session', user)).body;
   assert.equal((await api('market/cancel', seller, { id: created.body.listingId })).status, 200);
   await stop(); await start();
   assert.equal((await api('market/listings', buyer)).body.listings.length, 0);
-  assert.equal((await account(seller)).currency, 710);
+  assert.equal((await account(seller)).currency, 684);
   console.log('Mercado: preços, reserva, deck, compra/cancelamento, permissões, concorrência, rollback e persistência aprovados.');
 })().catch(error => { console.error(error); process.exitCode = 1; }).finally(async () => { if (server) await stop(); });

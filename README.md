@@ -294,9 +294,9 @@ X = valor médio de item da feira e será reajustado conforme demanda, de forma 
 
 ## Do mercado de cartas
 
-O menu **Mercado → Anunciar cartas** permite vender de 1 a 99 cópias por anúncio, com preço inteiro em tijolinhos definido pelo vendedor para cada cópia. As cartas ficam reservadas fora da coleção até a venda ou o cancelamento; cópias utilizadas no deck salvo não podem ser anunciadas. Há um limite de 100 anúncios ativos por jogador.
+O menu **Mercado → Anunciar cartas** abre uma galeria para escolher de 1 a 99 cópias por anúncio, com preço inteiro em tijolinhos definido pelo vendedor para cada cópia. As cópias recebidas no kit inicial da facção não podem ser vendidas; cópias extras da mesma carta podem ser anunciadas. As cartas à venda ficam reservadas fora da coleção até a compra ou o cancelamento; cópias utilizadas no deck salvo também ficam protegidas. Há um limite de 100 anúncios ativos por jogador.
 
-Em **Visualizar anúncios**, busque por carta ou vendedor e compre o lote pelo total exibido. A transferência das cartas e dos tijolinhos ocorre no servidor, sem taxa. **Meus anúncios** permite cancelar e recuperar as cópias. Use **Atualizar** para conferir novas ofertas, vendas e saldo; anúncios e transações são persistidos junto das contas em `accounts.json`.
+Em **Visualizar anúncios**, busque por carta ou vendedor e compre o lote pelo total exibido. O comprador paga o preço integral, e o vendedor recebe 80% do total na conclusão da compra, arredondados para baixo em tijolinhos inteiros. O restante é a taxa do mercado; anunciar ou cancelar não cobra taxa nem gera pagamento. O formulário mostra o valor líquido antes da publicação. **Meus anúncios** permite cancelar e recuperar as cópias. Use **Atualizar** para conferir novas ofertas, vendas e saldo; anúncios e transações são persistidos junto das contas em `accounts.json`.
 
 Os Booster packs terão valores de X tijolinhos, contudo, esse valor pode ser reajustado de acordo com a demanda. Além disso, o lançamento deles pode ser direto (todos os boosters serão disponibilizados no site de venda da feira automaticamente desde o início) ou gradual (os boosters são lançados ao longo da feira).
 
