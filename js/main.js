@@ -37,7 +37,6 @@ class Campo {
   adicionarCarta(carta, posicao) {
     if (this.cartas[posicao] === null) {
       this.cartas[posicao] = carta;
-      delete carta.marcoPerdasOponente;
       carta.marcoPerdas = (this.dono?.cartasPerdidas || 0) + (this.dono?.efeitosUtilizados || 0);
       if (carta.tipo === "monstro" && this.dono?.penalidadesInvocacao?.length) {
         carta.penalidadesRecebidas = this.dono.penalidadesInvocacao.slice(-1).map((penalidade) => {
@@ -486,9 +485,7 @@ class Partida {
       if (carta.efeito?.tipo === TIPOS_EFEITO.BONUS_POR_PERDIDAS) {
         const total = (dono.cartasPerdidas || 0) + (dono.efeitosUtilizados || 0);
         carta.marcoPerdas ??= total;
-        const totalOponente = (oponente.cartasPerdidas || 0) + (oponente.efeitosUtilizados || 0);
-        carta.marcoPerdasOponente ??= totalOponente;
-        bonus += Math.max(0, total + totalOponente - carta.marcoPerdas - carta.marcoPerdasOponente) * (carta.efeito.valor || 1);
+        bonus += Math.max(0, total - carta.marcoPerdas) * (carta.efeito.valor || 1);
       }
       if (carta.efeito?.tipo === TIPOS_EFEITO.BONUS_TRIO_ADJACENTE) {
         const vizinhos = [indice - 1, indice + 1].filter(

@@ -60,11 +60,12 @@ console.log('Armadilha, ordem de revelação e proteção parcial do Porco valid
   p.aplicarEfeitoInvocacao(card('O Cão'), p.jogador, p.inimigo);
   assert.equal(p.inimigo.penalidadesInvocacao.length, 1);
 }
-// Povo da Areia só cresce por perdas do campo ou cartas de efeito consumidas.
-for (const side of ['jogador', 'inimigo']) {
+// Povo da Areia só cresce por perdas e cartas de efeito do próprio dono.
+for (const owner of ['jogador', 'inimigo']) for (const side of ['jogador', 'inimigo']) {
   let p = match();
   const sand = card('Povo da Areia');
-  p.jogador.campo.adicionarCarta(sand, 0);
+  p[owner].campo.adicionarCarta(sand, 0);
+  const gain = side === owner ? 1 : 0;
   const refresh = () => { p.resolverEfeitosContinuos(p.jogador); p.resolverEfeitosContinuos(p.inimigo); };
   refresh();
   const ally = card('Agente da DIPSP'); p[side].mao.cartas.push(ally);
@@ -86,16 +87,21 @@ for (const side of ['jogador', 'inimigo']) {
   const ground = card('Saloon'); p[side].campo.adicionarCarta(ground, 1); refresh();
   assert.equal(sand.bonusEfeitoContinuo, 0, 'Invocar terreno não conta.');
   p[side].campo.removerCarta(1); refresh();
-  assert.equal(sand.bonusEfeitoContinuo, 1, 'Remover terreno conta uma vez.');
+  assert.equal(sand.bonusEfeitoContinuo, gain, 'Só remover terreno do dono conta.');
   ally.poder = 0; p[side].campo.removerMortas(); refresh();
-  assert.equal(sand.bonusEfeitoContinuo, 2, 'Morte conta uma vez.');
+  assert.equal(sand.bonusEfeitoContinuo, 2 * gain, 'Só morte no campo do dono conta.');
   const effect = new Carta(id++, 0, 'efeito', { nome: 'Teste' });
   p[side].mao.cartas.push(effect); assert.equal(p[side].jogarCartaEfeito(effect), true); refresh();
-  assert.equal(sand.bonusEfeitoContinuo, 3, 'Conjurar efeito conta uma vez.');
+  assert.equal(sand.bonusEfeitoContinuo, 3 * gain, 'Só conjurar efeito do dono conta.');
   assert.equal(p[side].jogarCartaEfeito(effect), false);
   for (let i = 0; i < 4; i++) refresh();
-  assert.equal(sand.bonusEfeitoContinuo, 3, 'Recálculo não acumula bônus.');
+  assert.equal(sand.bonusEfeitoContinuo, 3 * gain, 'Recálculo não acumula bônus.');
   p = codec.hydrateMatch(codec.serializeMatch(p)); refresh();
-  assert.equal(p.jogador.campo.cartas[0].bonusEfeitoContinuo, 3, 'Sincronização preserva o bônus.');
+  assert.equal(p[owner].campo.cartas[0].bonusEfeitoContinuo, 3 * gain, 'Sincronização preserva o bônus.');
+  p = codec.hydrateMatch(codec.swapSnapshot(codec.serializeMatch(p))); refresh();
+  const swappedOwner = owner === 'jogador' ? 'inimigo' : 'jogador';
+  assert.equal(p[swappedOwner].campo.cartas[0].bonusEfeitoContinuo, 3 * gain, 'Troca de perspectiva preserva o dono.');
+  const round = require('../server/duel-runtime').closeRound(codec.serializeMatch(p));
+  assert.equal(round.state[swappedOwner].field[0].poder, 4 + 3 * gain, 'Motor online usa apenas os contadores do dono.');
 }
 console.log('Faro sem acúmulo e gatilhos do Povo da Areia nos dois lados validados.');

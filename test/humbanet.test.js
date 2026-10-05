@@ -104,7 +104,7 @@ assert.equal(monsters.length, 38);
   update(p); assert.equal(povo.poder, 6);
   p.jogador.registrarDescarte(card('O Tigre'), false); update(p); assert.equal(povo.poder, 6);
   put(p, 'Saloon', 1); p.jogador.campo.removerCarta(1); update(p); assert.equal(povo.poder, 7);
-  put(p, 'O Rato', 0, true); p.inimigo.campo.removerCarta(0); update(p); assert.equal(povo.poder, 8);
+  put(p, 'O Rato', 0, true); p.inimigo.campo.removerCarta(0); update(p); assert.equal(povo.poder, 7);
 }
 // Feio's own bonus must not be confused with an adjacent IA's bonus.
 {

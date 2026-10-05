@@ -4,6 +4,11 @@ Novidades, correções e verificações realizadas no projeto. As entregas mais 
 
 ## 2026-10-05
 
+### Povo da Areia considera apenas o próprio jogador
+
+- Corrigido o cálculo de “Por Aqueles que Ainda Virão”: o bônus usa apenas personagens perdidos, terrenos removidos e cartas de efeito utilizadas pelo dono do Povo da Areia desde sua invocação. Removida a soma dos contadores do oponente no motor compartilhado pelo solo e pelo online; compras e descartes da mão continuam sem gerar bônus.
+- Aprovados `echossystem-effects.test.js`, `humbanet.test.js` e `new-cards.test.js`. A regressão cobre o Povo em ambos os campos, ações próprias e adversárias, recálculo sem acúmulo, serialização, troca de perspectiva e rodada do motor online. Sintaxe de `js/main.js` e `git diff --check` aprovados. Atualizada a versão do script para renovar o cache.
+
 ### Despertar do Dragão reservado para implementação futura
 
 - Removido o gatilho que despertava o Dragão das Comunicações Móveis pela habilidade do Boi e concedia +3 PA por rodada. O Boi mantém apenas seu efeito normal; não emite evento nem som de despertar. O áudio permanece carregado e associado ao evento futuro, sem gatilho ativo no motor.
