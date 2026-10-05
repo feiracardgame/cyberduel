@@ -4,6 +4,19 @@ Novidades, correções e verificações realizadas no projeto. As entregas mais 
 
 ## 2026-10-05
 
+### Mercado com a identidade visual do montador de deck
+
+- Aplicadas as skills `redesign-existing-projects` e `matrix` ao mercado existente: tela ampla com os mesmos tokens do deck builder, superfícies escuras, verde moderado, título Rushblade e textos/valores monoespaçados. Reorganizados cabeçalho, saldo, abas, busca e contagem de anúncios; destacados arte vertical, quantidade, vendedor, preço por cópia e total de cada oferta.
+- Tela de anúncio agora apresenta a carta escolhida ao lado do formulário, com atualização da arte e das cópias livres ao selecionar outra carta. No celular, a galeria usa duas colunas e a prévia/formulário se empilham; mantidos estados vazios, carregamento, erros, foco visível e redução de movimento. Preservados reserva, compra, cancelamento e sincronização da coleção.
+- `title-ui.test.js`, sintaxe de `js/title-ui.js` e `git diff --check` aprovados. Playwright validou anúncios, busca, compra, cancelamento, saldo e coleção com duas contas, em desktop e celular; conferida também a largura de 320 pixels sem overflow horizontal. Capturas de galeria e formulário em `/tmp/cyberduel-playwright/`, sem erros JavaScript ou HTTP locais. Atualizadas versões de CSS e JavaScript no HTML; nenhum deploy realizado.
+
+### Mercado de cartas entre jogadores
+
+- Ativados “Anunciar cartas” e “Visualizar anúncios” no menu Mercado. Jogadores podem publicar lotes de 1 a 99 cópias com preço inteiro por cópia em tijolinhos, buscar por carta/vendedor, comprar pelo total exibido e cancelar seus próprios anúncios. Interface adaptada a desktop e celular, com artes, saldo e mensagens de resultado; botão “Atualizar” consulta novas ofertas e vendas.
+- Cartas anunciadas ficam reservadas fora da coleção e retornam ao cancelar. Cópias utilizadas no deck salvo não podem ser anunciadas; limite de 100 anúncios ativos por jogador. Compra transfere o lote e os tijolinhos sem taxa, usando o preço registrado pelo servidor. Bloqueadas compra própria, cancelamento por terceiros, falta de saldo, preços/quantidades inválidos e valores fora do limite numérico seguro.
+- Anúncios, coleções e saldos são persistidos juntos no arquivo de contas existente. Operações são concluídas sem espera intermediária entre validação e gravação; compras concorrentes têm apenas um vencedor. Falha de persistência desfaz as alterações em memória, preserva o anúncio e retorna erro, sem cobrança ou transferência parcial. Atualizados README e versões dos arquivos no HTML.
+- Aprovados `player-market.test.js`, `title-ui.test.js`, `account-client.test.js` e `booster-inventory.test.js`: reserva, deck protegido, permissões, preço do servidor, compra/cancelamento, repetição, concorrência, falha de gravação e persistência após reinício. Playwright confirmou o fluxo real com dois jogadores em desktop/celular, busca, compra, saldo do vendedor ao atualizar, cancelamento e coleção, sem erros JavaScript ou HTTP locais. Capturas em `/tmp/cyberduel-playwright/`; sintaxe dos arquivos alterados e `git diff --check` aprovados. Usados somente dados temporários, sem deploy.
+
 ### Povo da Areia considera apenas o próprio jogador
 
 - Corrigido o cálculo de “Por Aqueles que Ainda Virão”: o bônus usa apenas personagens perdidos, terrenos removidos e cartas de efeito utilizadas pelo dono do Povo da Areia desde sua invocação. Removida a soma dos contadores do oponente no motor compartilhado pelo solo e pelo online; compras e descartes da mão continuam sem gerar bônus.

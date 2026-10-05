@@ -350,11 +350,13 @@ class CyberduelTitleUI {
             "Anunciar cartas",
             "Negocie com outros duelistas",
             "anunciar_cartas",
+            () => this.openPlayerMarket("sell"),
           ],
           [
             "Visualizar anúncios",
             "Encontre sua próxima carta",
             "visualizar_anuncios",
+            () => this.openPlayerMarket(),
           ],
         ],
       },
@@ -2005,6 +2007,186 @@ class CyberduelTitleUI {
       this.element("small", "", action),
     );
     return button;
+  }
+
+  openPlayerMarket(initialView = "browse") {
+    if (this.modal || !this.account?.user) return;
+    const overlay = this.createModal("player-market");
+    document.body.append(overlay);
+    this.modalAfterClose = () => this.account.notify();
+    const dialog = this.element("section", "title-dialog player-market");
+    dialog.setAttribute("role", "dialog");
+    dialog.setAttribute("aria-modal", "true");
+    dialog.setAttribute("aria-label", "Mercado entre jogadores");
+    const header = this.element("header", "player-market__header");
+    const identity = this.element("div", "player-market__identity");
+    const title = this.element("h2", "");
+    title.append(this.element("span", "", "MERCADO"), this.element("span", "player-market__accent", "DE CARTAS"));
+    identity.append(this.element("span", "forge-overline", "CYBERDUEL / ENTRE DUELISTAS"), title,
+      this.element("p", "", "Sua próxima carta está aqui."));
+    const balance = this.element("strong", "");
+    const wallet = this.element("div", "player-market__wallet");
+    wallet.append(this.element("span", "forge-kicker", "SEU SALDO"), balance);
+    header.append(this.button("booster-close", "←", () => this.closeModal(), "Fechar mercado"), identity, wallet);
+    const tabs = this.element("nav", "player-market__tabs");
+    tabs.setAttribute("aria-label", "Seções do mercado");
+    const content = this.element("div", "player-market__content");
+    const status = this.element("p", "player-market__status");
+    status.setAttribute("role", "status");
+    const error = this.element("p", "title-dialog__error");
+    error.setAttribute("role", "alert");
+    let view = initialView, listings = [], busy = false, loaded = false;
+    const catalog = this.deckBuilder.getCatalog();
+    const setBusy = value => {
+      busy = value;
+      dialog.setAttribute("aria-busy", String(value));
+      dialog.querySelectorAll("button:not(.booster-close), input, select").forEach(control => {
+        control.disabled = value || control.dataset.unavailable === "true";
+      });
+    };
+    const load = async () => {
+      listings = await this.account.marketListings();
+      loaded = true;
+    };
+    const act = async (action, body) => {
+      if (busy) return;
+      error.textContent = "";
+      setBusy(true);
+      try {
+        await this.account.marketTrade(action, body);
+        status.textContent = action === "listings" ? "Anúncio publicado. Suas cartas estão reservadas."
+          : action === "cancel" ? "Anúncio cancelado. Cartas devolvidas à coleção." : "Compra concluída. Cartas adicionadas à coleção.";
+        if (action === "listings") view = "mine";
+        await load();
+      } catch (exception) {
+        error.textContent = exception.message;
+        try { await load(); } catch { /* Mantém o erro da operação original. */ }
+      } finally {
+        if (this.modal === overlay) { render(); setBusy(false); }
+      }
+    };
+    const render = () => {
+      balance.textContent = `${this.account.currency.toLocaleString("pt-BR")} tijolinhos`;
+      tabs.replaceChildren();
+      for (const [id, label] of [["browse", "Comprar cartas"], ["sell", "Anunciar carta"], ["mine", "Meus anúncios"]]) {
+        const tab = this.button("title-dialog__cancel", label, () => { if (!busy) { view = id; status.textContent = ""; error.textContent = ""; render(); } });
+        tab.setAttribute("aria-pressed", String(view === id));
+        tabs.append(tab);
+      }
+      content.replaceChildren();
+      if (!loaded) { content.append(this.element("p", "player-market__empty", "Carregando anúncios…")); return; }
+      if (view === "sell") {
+        const workspace = this.element("div", "player-market__sell-workspace");
+        const artwork = this.element("aside", "player-market__preview");
+        const image = this.element("img", "");
+        const cardName = this.element("h3", "");
+        const freeCopies = this.element("p", "");
+        artwork.append(this.element("span", "forge-kicker", "DA SUA COLEÇÃO"), image, cardName, freeCopies);
+        const form = this.element("form", "player-market__form");
+        form.append(this.element("span", "forge-kicker", "NOVO ANÚNCIO"), this.element("h3", "", "Defina sua oferta"),
+          this.element("p", "player-market__note", "Escolha cópias livres da sua coleção. Elas ficam reservadas até vender ou cancelar o anúncio."));
+        const select = this.element("select", "title-auth-input");
+        select.id = "market-card";
+        const choices = catalog.map(card => {
+          const inDeck = (this.account.deck || []).filter(c => `${c.tipo}:${c.nome}` === card.key).reduce((sum, c) => sum + c.quantidade, 0);
+          return { card, available: Math.max(0, (this.account.collection[card.key] || 0) - inDeck) };
+        }).filter(c => c.available > 0);
+        for (const { card, available } of choices) {
+          const option = this.element("option", "", `${card.nome} · ${available} livres`);
+          option.value = card.key; select.append(option);
+        }
+        const quantity = this.element("input", "title-auth-input");
+        Object.assign(quantity, { id: "market-quantity", type: "number", min: "1", max: "99", step: "1", value: "1", required: true });
+        const price = this.element("input", "title-auth-input");
+        Object.assign(price, { id: "market-price", type: "number", min: "1", max: String(Number.MAX_SAFE_INTEGER), step: "1", required: true });
+        const preview = this.element("p", "player-market__total", "");
+        const update = () => {
+          const selected = choices.find(c => c.card.key === select.value);
+          quantity.max = String(Math.min(99, selected?.available || 1));
+          const source = window.CYBERDUEL_IMAGE_ASSETS?.[selected?.card.imagem];
+          image.hidden = !source;
+          if (source) { image.src = source; image.alt = selected.card.nome; }
+          cardName.textContent = selected?.card.nome || "Sua coleção";
+          freeCopies.textContent = selected ? `${selected.available} cópias livres para anunciar` : "Cópias do deck salvo ficam protegidas.";
+          const total = Number(quantity.value) * Number(price.value);
+          preview.textContent = `Total do anúncio: ${Number.isSafeInteger(total) ? total.toLocaleString("pt-BR") : "—"} tijolinhos`;
+        };
+        for (const [labelText, control] of [["Carta", select], ["Quantidade", quantity], ["Preço por cópia (tijolinhos)", price]]) {
+          const label = this.element("label", "", labelText);
+          label.htmlFor = control.id; form.append(label, control);
+          control.addEventListener("input", update);
+        }
+        const publish = this.button("title-dialog__confirm", "PUBLICAR ANÚNCIO", () => {});
+        publish.type = "submit";
+        if (!choices.length) {
+          publish.disabled = true; publish.dataset.unavailable = "true";
+          form.append(this.element("p", "player-market__note", "Nenhuma cópia livre para venda. Ajuste seu deck ou obtenha mais cartas."));
+        }
+        form.addEventListener("submit", event => {
+          event.preventDefault();
+          const card = choices.find(c => c.card.key === select.value)?.card;
+          if (card) act("listings", { tipo: card.tipo, nome: card.nome, quantidade: Number(quantity.value), preco: Number(price.value) });
+        });
+        update(); form.append(preview, publish); workspace.append(artwork, form); content.append(workspace);
+        return;
+      }
+      const controls = this.element("div", "player-market__filters");
+      const heading = this.element("div", "player-market__section-heading");
+      heading.append(this.element("span", "forge-kicker", view === "mine" ? "SUAS OFERTAS" : "CARTAS DISPONÍVEIS"),
+        this.element("h3", "", view === "mine" ? "Meus anúncios" : "Encontre sua próxima jogada"));
+      const count = this.element("span", "player-market__count");
+      heading.append(count); content.append(heading);
+      const search = this.element("input", "title-auth-input");
+      search.type = "search"; search.placeholder = "Buscar carta ou vendedor";
+      search.setAttribute("aria-label", "Buscar carta ou vendedor");
+      const refresh = this.button("title-dialog__cancel", "ATUALIZAR", async () => {
+        if (busy) return;
+        setBusy(true); error.textContent = "";
+        try { await load(); } catch (exception) { error.textContent = exception.message; }
+        finally { if (this.modal === overlay) { render(); setBusy(false); } }
+      });
+      controls.append(search, refresh); content.append(controls);
+      const grid = this.element("div", "player-market__grid");
+      const draw = () => {
+        grid.replaceChildren();
+        const query = search.value.trim().toLocaleLowerCase("pt-BR");
+        const matches = listings.filter(l => (view === "mine" ? l.mine : !l.mine) && `${l.nome} ${l.seller} ${l.nickname}`.toLocaleLowerCase("pt-BR").includes(query));
+        for (const listing of matches) {
+          const item = this.element("article", "player-market__listing");
+          const model = catalog.find(c => c.key === `${listing.tipo}:${listing.nome}`);
+          const art = this.element("div", "player-market__art");
+          art.append(this.element("span", "player-market__badge", `${listing.quantidade}×`),
+            this.element("span", "player-market__type", model?.nivel || listing.tipo));
+          const source = window.CYBERDUEL_IMAGE_ASSETS?.[model?.imagem];
+          if (source) {
+            const image = this.element("img", ""); image.src = source; image.alt = listing.nome; image.loading = "lazy";
+            art.append(image);
+          }
+          const details = this.element("div", "player-market__details");
+          details.append(this.element("h3", "", listing.nome),
+            this.element("small", "player-market__seller", `@${listing.seller}`),
+            this.element("p", "player-market__unit-price", `${listing.preco.toLocaleString("pt-BR")} tijolinhos / cópia`));
+          const total = listing.preco * listing.quantidade;
+          details.append(this.element("strong", "player-market__price", `${total.toLocaleString("pt-BR")} tijolinhos`));
+          const button = this.button("title-dialog__confirm", listing.mine ? "CANCELAR ANÚNCIO" : `COMPRAR · ${total.toLocaleString("pt-BR")} TIJOLINHOS`,
+            () => act(listing.mine ? "cancel" : "buy", { id: listing.id }));
+          if (!listing.mine && this.account.currency < total) {
+            button.disabled = true; button.dataset.unavailable = "true";
+            details.append(this.element("small", "", "Saldo insuficiente"));
+          }
+          details.append(button); item.append(art, details); grid.append(item);
+        }
+        count.textContent = `${matches.length} anúncio${matches.length === 1 ? "" : "s"}`;
+        if (!matches.length) grid.append(this.element("p", "player-market__empty", view === "mine" ? "Você não tem anúncios ativos." : "Nenhum anúncio encontrado."));
+      };
+      search.addEventListener("input", draw); draw(); content.append(grid);
+    };
+    dialog.append(header, tabs, status, error, content); overlay.append(dialog);
+    render(); setBusy(true);
+    requestAnimationFrame(() => { overlay.classList.add("is-visible"); dialog.querySelector("button")?.focus(); });
+    load().catch(exception => { loaded = true; error.textContent = exception.message; }).finally(() => {
+      if (this.modal === overlay) { render(); setBusy(false); }
+    });
   }
 
   boosterFactions() {

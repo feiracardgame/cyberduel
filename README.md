@@ -294,11 +294,15 @@ X = valor médio de item da feira e será reajustado conforme demanda, de forma 
 
 ## Do mercado de cartas
 
+O menu **Mercado → Anunciar cartas** permite vender de 1 a 99 cópias por anúncio, com preço inteiro em tijolinhos definido pelo vendedor para cada cópia. As cartas ficam reservadas fora da coleção até a venda ou o cancelamento; cópias utilizadas no deck salvo não podem ser anunciadas. Há um limite de 100 anúncios ativos por jogador.
+
+Em **Visualizar anúncios**, busque por carta ou vendedor e compre o lote pelo total exibido. A transferência das cartas e dos tijolinhos ocorre no servidor, sem taxa. **Meus anúncios** permite cancelar e recuperar as cópias. Use **Atualizar** para conferir novas ofertas, vendas e saldo; anúncios e transações são persistidos junto das contas em `accounts.json`.
+
 Os Booster packs terão valores de X tijolinhos, contudo, esse valor pode ser reajustado de acordo com a demanda. Além disso, o lançamento deles pode ser direto (todos os boosters serão disponibilizados no site de venda da feira automaticamente desde o início) ou gradual (os boosters são lançados ao longo da feira).
 
 Os boosters serão temáticos com o grupo (RaspCorp, EchoSystem, Sindicato, etc) e só conterão cartas daquele grupo.
 
-Como recurso adicional, também gostaríamos de implementar um sistema de mercado de cartas. A ideia seria criar um espaço em que jogadores podem comprar e vender cartas com tijolinhas, para aumentar as transações econômicas envolvendo o jogo. Isso poderia ser feito de duas maneiras:
+Na proposta original do mercado, foram consideradas duas alternativas para negociar cartas com tijolinhos:
 
 - Simplificada: apenas um sistema de compra direta, em que você faz uma transação direta com outro jogador, oferecendo a carta e informando o preço e o outro jogador informa na tela dele se aceita ou não a transação.
 - Ideal: Literalmente um MarketPlace de anúncio e venda de cartas onde cartas podem ser anunciadas por um valor e compradas, similar à Amazon.

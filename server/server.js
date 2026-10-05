@@ -241,6 +241,21 @@ function saveAccounts() {
   renameSync(temporary, ACCOUNTS_FILE);
 }
 
+// Cartas reservadas e pagamentos ficam no mesmo arquivo, em uma única gravação.
+function saveMarketTrade(accounts, change) {
+  const listings = [...(accountStore.marketListings || [])];
+  const previous = accounts.map(account => ({ account, collection: { ...account.collection }, currency: account.currency }));
+  try {
+    change();
+    saveAccounts();
+  } catch (error) {
+    accountStore.marketListings = listings;
+    previous.forEach(({ account, collection, currency }) => Object.assign(account, { collection, currency }));
+    error.marketPersistence = true;
+    throw error;
+  }
+}
+
 function normalizeUsername(value) {
   return String(value || "")
     .trim()
@@ -572,6 +587,78 @@ async function handleApi(request, response, pathname) {
     "/api/auth/session", "/api/auth/logout", "/api/account/profile",
   ].includes(pathname))
     return sendJson(response, 403, { ok: false, error: "Escolha seu username e apelido antes de continuar." });
+
+  if (pathname.startsWith("/api/market/")) {
+    if (!pending) return sendJson(response, 401, { ok: false, error: "Entre na sua conta para negociar cartas." });
+    const account = pending.account;
+    if (!account.faction) return sendJson(response, 403, { ok: false, error: "Escolha sua facção primeiro." });
+    const listings = accountStore.marketListings || [];
+    if (request.method === "GET" && pathname === "/api/market/listings") {
+      const entries = listings.map(({ seller, ...listing }) => {
+        const owner = accountStore.accounts[seller];
+        return { ...listing, seller: owner?.username || "", nickname: owner?.nickname || "", mine: owner === account };
+      });
+      return sendJson(response, 200, { ok: true, listings: entries, ...publicAccount(account) });
+    }
+    if (request.method !== "POST") return sendJson(response, 405, { ok: false, error: "Método inválido." });
+    const body = await readJson(request);
+    // Releitura após o await: outra compra pode ter encerrado o anúncio.
+    if (!body || typeof body !== "object" || Array.isArray(body))
+      return sendJson(response, 400, { ok: false, error: "Dados do anúncio inválidos." });
+    const current = accountStore.marketListings || [];
+    if (pathname === "/api/market/listings") {
+      const card = ALL_AVAILABLE_CARDS.find(c => c.tipo === body.tipo && c.nome === body.nome);
+      const quantity = body.quantidade, price = body.preco;
+      if (!card || !Number.isSafeInteger(quantity) || quantity < 1 || quantity > 99 ||
+          !Number.isSafeInteger(price) || price < 1 || !Number.isSafeInteger(price * quantity))
+        return sendJson(response, 400, { ok: false, error: "Escolha uma carta, de 1 a 99 cópias e um preço inteiro positivo em tijolinhos." });
+      const key = cardKey(card.tipo, card.nome);
+      const deckCopies = (account.deck || []).filter(c => cardKey(c.tipo, c.nome) === key).reduce((n, c) => n + c.quantidade, 0);
+      if (quantity > (account.collection[key] || 0) - deckCopies)
+        return sendJson(response, 409, { ok: false, error: "Não há cópias livres suficientes. Retire a carta do deck salvo antes de anunciá-la." });
+      const seller = Object.keys(accountStore.accounts).find(key => accountStore.accounts[key] === account);
+      if (current.filter(l => l.seller === seller).length >= 100)
+        return sendJson(response, 409, { ok: false, error: "Você já tem 100 anúncios ativos. Cancele ou venda algum primeiro." });
+      const listing = { id: randomBytes(16).toString("hex"), seller, tipo: card.tipo, nome: card.nome,
+        quantidade: quantity, preco: price, createdAt: new Date().toISOString() };
+      saveMarketTrade([account], () => {
+        account.collection[key] -= quantity;
+        accountStore.marketListings = [listing, ...current];
+      });
+      return sendJson(response, 201, { ok: true, listingId: listing.id, ...publicAccount(account) });
+    }
+    const listing = current.find(l => l.id === body.id);
+    if (!listing) return sendJson(response, 409, { ok: false, error: "Este anúncio já foi comprado ou cancelado. Atualize a lista." });
+    const seller = accountStore.accounts[listing.seller];
+    const cardCount = (account.collection[cardKey(listing.tipo, listing.nome)] || 0) + listing.quantidade;
+    if (!Number.isSafeInteger(cardCount))
+      return sendJson(response, 409, { ok: false, error: "Sua coleção atingiu o limite de cópias." });
+    if (pathname === "/api/market/cancel") {
+      if (seller !== account) return sendJson(response, 403, { ok: false, error: "Só o vendedor pode cancelar este anúncio." });
+      saveMarketTrade([account], () => {
+        grantCards(account, [listing]);
+        accountStore.marketListings = current.filter(l => l !== listing);
+      });
+      return sendJson(response, 200, { ok: true, ...publicAccount(account) });
+    }
+    if (pathname === "/api/market/buy") {
+      if (!seller || !canAuthenticate(seller) || seller === account)
+        return sendJson(response, 403, { ok: false, error: "Você só pode comprar anúncios de outros jogadores ativos." });
+      const total = listing.preco * listing.quantidade;
+      if (!Number.isSafeInteger(account.currency) || account.currency < total)
+        return sendJson(response, 409, { ok: false, error: "Tijolinhos insuficientes para esta compra." });
+      if (!Number.isSafeInteger(seller.currency + total))
+        return sendJson(response, 409, { ok: false, error: "O saldo do vendedor atingiu o limite." });
+      saveMarketTrade([account, seller], () => {
+        account.currency -= total;
+        seller.currency += total;
+        grantCards(account, [listing]);
+        accountStore.marketListings = current.filter(l => l !== listing);
+      });
+      return sendJson(response, 200, { ok: true, ...publicAccount(account) });
+    }
+    return sendJson(response, 404, { ok: false, error: "Ação do mercado não encontrada." });
+  }
 
   if (pathname.startsWith("/api/admin/")) {
     if (!pending) return sendJson(response, 401, { ok: false, error: "Entre na sua conta primeiro." });
@@ -1018,7 +1105,7 @@ function serveGame(request, response) {
     handleApi(request, response, pathname).catch((error) => {
       console.error("Falha na API:", error.message);
       if (!response.headersSent)
-        sendJson(response, error.message === "PAYLOAD_TOO_LARGE" ? 413 : 400, {
+        sendJson(response, error.marketPersistence ? 500 : error.message === "PAYLOAD_TOO_LARGE" ? 413 : 400, {
           ok: false,
           error: "Não foi possível processar a requisição.",
         });

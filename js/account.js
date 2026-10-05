@@ -201,6 +201,20 @@ class CyberduelAccount {
     return this.deck;
   }
 
+  async marketListings() {
+    const payload = await this.request("/api/market/listings");
+    this.applyAuth(payload, false);
+    window.cyberduelDeckBuilder?.setAccountSession(this.user, this.deck, this.collection);
+    return payload.listings;
+  }
+
+  async marketTrade(action, body) {
+    const payload = await this.request(`/api/market/${action}`, { method: "POST", body });
+    this.applyAuth(payload, false);
+    window.cyberduelDeckBuilder?.setAccountSession(this.user, this.deck, this.collection);
+    return payload;
+  }
+
   async chooseFaction(faction) {
     const payload = await this.request("/api/account/faction", {
       method: "POST",
