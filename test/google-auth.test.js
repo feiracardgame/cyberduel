@@ -127,7 +127,7 @@ async function checkClient(profile) {
   assert.equal(account.snapshot().needsRegistration, true);
   assert.equal(storage.get(account.storageKey), "session-token");
 
-  // O primeiro acesso separa username único e apelido, sem senha/foto/facção.
+  // O cadastro pede só o nick único; o apelido fica para o tutorial.
   const UI = vm.runInContext("CyberduelTitleUI", context);
   const ui = new UI({ account, callbacks: {} });
   function element(tag, className, text) {
@@ -156,12 +156,11 @@ async function checkClient(profile) {
   assert.equal(ui.modalRequired, true);
   const form = ui.modal.children[0];
   const fields = children(form).filter(child => child.tag === "input");
-  assert.equal(fields.length, 2);
+  assert.equal(fields.length, 1);
   const username = fields.find(child => child.name === "username");
-  const input = fields.find(child => child.name === "nickname");
+  assert.equal(fields.find(child => child.name === "nickname"), undefined);
   assert.equal(username.readOnly, false);
   assert.equal(username.value, "");
-  assert.equal(input.value, "");
   ui.closeModal();
   assert.ok(ui.modal, "Escape não pode pular o cadastro.");
   const savedBuilds = JSON.stringify([{ name: "Deck salvo", deck: [{ nome: "O Rato" }] }]);
@@ -170,20 +169,15 @@ async function checkClient(profile) {
   account.request = async (route, options) => {
     assert.equal(route, "/api/account/profile");
     assert.equal(options.body.username, "duelista_123");
-    assert.equal(options.body.nickname, "Duelista");
+    assert.equal(options.body.nickname, undefined);
     assert.equal(options.body.avatar, undefined);
     if (duplicate) { duplicate = false; throw new Error("Esse username já está em uso. Escolha outro."); }
-    return { ...profile, username: "duelista_123", nickname: "Duelista", needsUsername: false, needsRegistration: false };
+    return { ...profile, username: "duelista_123", nickname: "", needsUsername: false, needsRegistration: false };
   };
   username.value = "a";
-  input.value = "Duelista";
   await form.events.submit({ preventDefault() {} });
   assert.equal(account.needsUsername, true);
   username.value = " duelista_123 ";
-  input.value = " ";
-  await form.events.submit({ preventDefault() {} });
-  assert.equal(account.needsRegistration, true);
-  input.value = " Duelista ";
   await form.events.submit({ preventDefault() {} });
   assert.equal(account.needsRegistration, true);
   assert.equal(children(form).find(node => node.type === "submit").disabled, false);
@@ -193,7 +187,7 @@ async function checkClient(profile) {
   assert.equal(account.user, "duelista_123");
   assert.equal(storage.get("cyberduel.builds.v1:duelista_123"), savedBuilds);
   assert.equal(account.needsUsername, false);
-  assert.equal(account.nickname, "Duelista");
+  assert.equal(account.nickname, "", "O cadastro não preenche o apelido pedido no tutorial.");
   assert.equal(account.needsRegistration, false);
   assert.equal(notified, 2);
   account.clear();
@@ -254,13 +248,19 @@ async function checkClient(profile) {
     assert.equal((await api("account/profile", { username, nickname: "Duelista" }, "PUT")).status, 400);
   const rejected = await api("account/profile", { username: "SENHAANTIGA", nickname: "Duelista" }, "PUT");
   assert.equal(rejected.status, 409, "Contas preservadas também reservam seu username.");
-  const chosen = await api("account/profile", { username: "  duelista_123  ", nickname: "  Duelista 🌟  " }, "PUT");
-  assert.equal(chosen.status, 200);
-  assert.equal(chosen.body.username, "duelista_123");
-  assert.equal(chosen.body.needsUsername, false);
-  assert.equal(chosen.body.nickname, "Duelista 🌟");
-  assert.equal(chosen.body.needsRegistration, false);
-  assert.equal(chosen.body.faction, null, "Cadastro pede username e apelido; facção é separada.");
+  const registeredNick = await api("account/profile", { username: "  duelista_123  " }, "PUT");
+  assert.equal(registeredNick.status, 200);
+  assert.equal(registeredNick.body.username, "duelista_123");
+  assert.equal(registeredNick.body.needsUsername, false);
+  assert.equal(registeredNick.body.nickname, "");
+  assert.equal(registeredNick.body.needsRegistration, false);
+  assert.equal(registeredNick.body.tutorial.introSeen, false);
+  assert.equal(registeredNick.body.tutorial.named, false);
+  assert.equal((await api("account/tutorial", { introSeen: true }, "PUT")).status, 200);
+  const chosen = await api("account/profile", { nickname: "  Duelista 🌟  " }, "PUT");
+  assert.equal(chosen.status, 200); assert.equal(chosen.body.nickname, "Duelista 🌟");
+  assert.equal(chosen.body.tutorial.named, true);
+  assert.equal(chosen.body.faction, null, "Cadastro, apelido no tutorial e facção são etapas separadas.");
   const faction = await api("account/faction", { faction: "raspcorp" });
   assert.equal(faction.status, 200);
   await stop(); await start();

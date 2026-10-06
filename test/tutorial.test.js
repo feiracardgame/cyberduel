@@ -78,18 +78,29 @@ const ack = (socket, event, payload) => new Promise((resolve, reject) => socket.
 async function connect() { const s = io(url, { transports: ['websocket'], forceNew: true }); sockets.push(s); await once(s, 'connect'); return s; }
 (async () => {
   // O login vem antes da história, cujo progresso pertence à conta, não ao navegador.
-  let logins = 0, introductions = 0;
+  let logins = 0, registrations = 0, introductions = 0;
   const storyScene = { scene: { isActive: () => true }, multiplayer: {}, account: { user: null },
-    titleUI: { openAuthDialog() { logins++; }, openFactionDialog() {}, destroy() {} },
+    titleUI: { openAuthDialog() { logins++; }, openRegistrationDialog() { registrations++; }, openFactionDialog() {}, destroy() {} },
     montarInterfaceTitulo() {}, atualizarStatus(message) { throw Error(message); } };
   const story = new CyberduelStory(storyScene);
-  story.say = async dialogue => { if (dialogue[0].text === lines.intro[0].text) introductions++; };
+  story.say = async (dialogue, options) => {
+    if (dialogue[0].text === lines.intro[0].text) introductions++;
+    if (options?.name) {
+      assert.equal(storyScene.account.needsRegistration, false);
+      assert.equal(storyScene.account.tutorial.introSeen, true);
+      await options.name('SIXTY SEVEN');
+    }
+  };
   await story.menu();
   assert.equal(logins, 1); assert.equal(introductions, 0);
   const newAccount = () => ({ user: 'new', faction: null, tutorial: { introSeen: false, named: true, wantsTutorial: false },
     async saveTutorial(progress) { Object.assign(this.tutorial, progress); } });
-  storyScene.account = newAccount(); await story.menu();
+  storyScene.account = newAccount(); storyScene.account.needsRegistration = true; storyScene.account.tutorial.named = false;
+  storyScene.account.updateProfile = async nickname => { storyScene.account.nickname = nickname; };
+  await story.menu(); assert.equal(registrations, 1); assert.equal(introductions, 0, 'O cadastro abre antes da história.');
+  storyScene.account.needsRegistration = false; await story.menu();
   assert.equal(introductions, 1); assert.equal(storyScene.account.tutorial.introSeen, true);
+  assert.equal(storyScene.account.nickname, 'SIXTY SEVEN'); assert.equal(storyScene.account.tutorial.named, true);
   await story.menu(); assert.equal(introductions, 1, 'A mesma conta não repete a introdução.');
   storyScene.account = newAccount(); await story.menu();
   assert.equal(introductions, 2, 'Outra conta nova no mesmo navegador recebe sua introdução.');

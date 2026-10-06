@@ -94,7 +94,7 @@ class CyberduelAccount {
     this.isAdmin = payload.isAdmin === true;
     this.needsRegistration = payload.needsRegistration === true;
     this.needsUsername = payload.needsUsername === true;
-    this.nickname = payload.nickname || (this.needsRegistration ? "" : this.user) || "";
+    this.nickname = typeof payload.nickname === "string" ? payload.nickname : (this.needsRegistration ? "" : this.user) || "";
     this.avatar = payload.avatar || "";
     this.profilePhotos = payload.profilePhotos || [];
     this.deck = Array.isArray(payload.deck) ? payload.deck : null;
@@ -190,9 +190,9 @@ class CyberduelAccount {
     }
   }
 
-  async completeRegistration(username, nickname) {
+  async completeRegistration(username) {
     const payload = await this.request("/api/account/profile", {
-      method: "PUT", body: { username, nickname },
+      method: "PUT", body: { username },
     });
     const builds = localStorage.getItem(`cyberduel.builds.v1:${this.user}`);
     const buildsKey = `cyberduel.builds.v1:${payload.username}`;

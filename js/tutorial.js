@@ -207,20 +207,15 @@ class CyberduelStory {
     const scene = this.scene, account = scene.account;
     if (this.busy || !scene.scene.isActive() || scene.titleUI?.modal || scene.multiplayer.room || scene.entrandoPorConvite) return;
     if (!account?.user) { scene.titleUI.openAuthDialog(); return; }
+    if (account.needsRegistration) { scene.titleUI.openRegistrationDialog(); return; }
     this.busy = true;
     try {
-      let introduced = false;
       if (!account.tutorial.introSeen) {
         await this.say(ELENAI_DIALOGUES.intro.slice(0, -1), { choicesAt: 3, choices: [["Cyberduelista?"], ["outra época?"]] });
         if (!scene.scene.isActive()) return;
         await account.saveTutorial({ introSeen: true });
-        introduced = true;
       }
       if (!scene.scene.isActive()) return;
-      if (account.needsRegistration) {
-        if (introduced) await this.say(ELENAI_DIALOGUES.intro.slice(-1));
-        scene.titleUI.openRegistrationDialog(); return;
-      }
       if (!account.tutorial.named) {
         await this.say(ELENAI_DIALOGUES.intro.slice(-1), { name: async nickname => {
           await account.updateProfile(nickname, account.avatar);

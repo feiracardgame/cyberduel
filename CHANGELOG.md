@@ -4,6 +4,14 @@ Novidades, correções e verificações realizadas no projeto. As entregas mais 
 
 ## 2026-10-06
 
+### Google, cadastro do nick e apelido pedido no tutorial
+
+- Corrigida a sequência inicial: autenticar com Google → completar o cadastro com o nick único da conta → iniciar a apresentação da ElenAI → escolher o apelido exibido no jogo durante o tutorial. O formulário de cadastro agora tem apenas o campo de nick; removido o pedido antecipado de apelido.
+- O cadastro salva somente o username, preservando a escolha do display name como etapa pendente do tutorial. A API aceita essa conclusão sem apelido, mantém a unicidade e a imutabilidade do nick e continua validando normalmente alterações de apelido. Contas com nick válido e sem apelido passam à escolha do nome no tutorial, sem refazer o cadastro; apelido vazio permanece vazio no cliente até ser escolhido.
+- Atualizado o cache dos scripts alterados. Aprovados os testes de Google, perfil, tutorial, cliente de conta e acesso local, incluindo cadastro com um único campo, colisão de nick, ordem cadastro/história/apelido e persistência dos nomes; sintaxe e `git diff --check` aprovados.
+- Playwright confirmou no celular login Google → cadastro com apenas nick → introdução → escolha separada do display name → treino. Recarregar preserva o nick e o apelido, sem refazer o cadastro ou a escolha do nome. O cabeçalho mostra o nick após concluir o cadastro até escolher o apelido. Validação usou botão Google simulado e JWT assinado de teste, conferido pela biblioteca de autenticação; nenhum erro JavaScript. Capturas inspecionadas e script em `/tmp/cyberduel-playwright/google-nick-tutorial.cjs`; sem deploy.
+- Limitação preexistente: `title-ui.test.js` procura a opção antiga “Carteirinha de jogador”, enquanto o HEAD atual usa “Clube secreto”. A mesma falha foi reproduzida com `js/title-ui.js` do HEAD; preservado o nome atual do menu.
+
 ### Carteirinha de jogador e partidas do Clube pela apresentação
 
 - Substituída a opção do Clube por uma carteirinha com foto, apelido, identificação da conta, facção, partidas e vitórias contra jogadores e dentro do Clube. O acesso aparece como liberado a partir de 3 vitórias contra jogadores ou bloqueado com o requisito para liberar; a carteirinha abre também sem acesso e sem deck salvo, para apresentar ao segurança.

@@ -154,6 +154,7 @@ function ensureAccountDefaults(account) {
     account.starterCollection = Object.fromEntries(starterForFaction(account.faction).map(c => [cardKey(c.tipo, c.nome), c.quantidade]));
   if (!Array.isArray(account.boosters)) account.boosters = [];
   if (typeof account.nickname !== "string" || !account.nickname.trim()) account.nickname = account.googleSub ? "" : account.username;
+  if (account.googleSub && !account.nickname) account.tutorial.named = false;
   if (!PROFILE_PHOTOS.includes(account.avatar)) account.avatar = FACTION_PHOTOS[account.faction] || "";
   return account;
 }
@@ -332,7 +333,7 @@ function accountFromToken(token) {
 }
 
 function needsRegistration(account) {
-  return Boolean(account.googleSub && (!validUsername(account.username) || !account.nickname?.trim()));
+  return Boolean(account.googleSub && !validUsername(account.username));
 }
 
 function allowedFrontend(origin, host) {
@@ -622,7 +623,7 @@ async function handleApi(request, response, pathname) {
   if (pending && needsRegistration(pending.account) && ![
     "/api/auth/session", "/api/auth/logout", "/api/account/profile",
   ].includes(pathname))
-    return sendJson(response, 403, { ok: false, error: "Escolha seu username e apelido antes de continuar." });
+    return sendJson(response, 403, { ok: false, error: "Escolha seu nick único antes de continuar." });
 
   if (pathname.startsWith("/api/market/")) {
     if (!pending) return sendJson(response, 401, { ok: false, error: "Entre na sua conta para negociar cartas." });
@@ -748,8 +749,9 @@ async function handleApi(request, response, pathname) {
     const username = needsUsername && typeof body.username === "string" ? body.username.trim() : session.account.username;
     if (!validUsername(username))
       return sendJson(response, 400, { ok: false, error: "Use um username de 3 a 24 caracteres: letras, números, ponto, hífen ou sublinhado." });
-    const nickname = typeof body.nickname === "string" ? body.nickname.trim() : "";
-    if (!nickname || Array.from(nickname).length > 32 || /[\u0000-\u001f\u007f]/.test(nickname))
+    const completingUsername = needsUsername && body.nickname === undefined;
+    const nickname = typeof body.nickname === "string" ? body.nickname.trim() : completingUsername ? session.account.nickname || "" : "";
+    if ((!nickname && !completingUsername) || Array.from(nickname).length > 32 || /[\u0000-\u001f\u007f]/.test(nickname))
       return sendJson(response, 400, { ok: false, error: "Use um apelido de 1 a 32 caracteres." });
     const avatar = body.avatar === undefined ? session.account.avatar : body.avatar;
     if (avatar !== "" && !PROFILE_PHOTOS.includes(avatar))
@@ -759,7 +761,7 @@ async function handleApi(request, response, pathname) {
       return sendJson(response, 409, { ok: false, error: "Esse username já está em uso. Escolha outro." });
     session.account.username = username;
     session.account.nickname = nickname;
-    if (session.account.tutorial?.introSeen) session.account.tutorial.named = true;
+    if (nickname && session.account.tutorial?.introSeen) session.account.tutorial.named = true;
     session.account.avatar = avatar || FACTION_PHOTOS[session.account.faction] || "";
     session.account.updatedAt = new Date().toISOString();
     saveAccounts();

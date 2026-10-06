@@ -1224,7 +1224,7 @@ class CyberduelTitleUI {
     const accountButton = this.button(
       "title-account",
       this.account?.user
-        ? `◉ ${this.account.nickname || "COMPLETAR CADASTRO"} // SAIR`
+        ? `◉ ${this.account.nickname || (this.account.needsRegistration ? "COMPLETAR CADASTRO" : this.account.user)} // SAIR`
         : "IDENTIFICAR // ENTRAR",
       () => {
         if (this.account?.user) this.account.logout();
@@ -1741,32 +1741,21 @@ class CyberduelTitleUI {
     const dialog = this.element("form", "title-dialog title-auth-dialog");
     dialog.setAttribute("role", "dialog");
     dialog.setAttribute("aria-modal", "true");
-    dialog.setAttribute("aria-label", "Escolha seu username e apelido");
-    const usernameLabel = this.element("label", "", "USERNAME (ÚNICO)");
+    dialog.setAttribute("aria-label", "Escolha seu nick único");
+    const usernameLabel = this.element("label", "", "NICK (ÚNICO)");
     const username = this.element("input", "title-auth-input");
     username.type = "text";
     username.name = "username";
     username.autocomplete = "username";
-    username.placeholder = "SEU USERNAME";
+    username.placeholder = "SEU NICK";
     username.required = true;
     username.minLength = 3;
     username.maxLength = 24;
     username.pattern = "[a-zA-Z0-9_.\\-]{3,24}";
     username.readOnly = !this.account.needsUsername;
     username.value = this.account.needsUsername ? "" : this.account.user;
-    username.setAttribute("aria-label", "Username único");
+    username.setAttribute("aria-label", "Nick único");
     usernameLabel.append(username);
-    const nicknameLabel = this.element("label", "", "APELIDO (DISPLAY NAME)");
-    const nickname = this.element("input", "title-auth-input");
-    nickname.type = "text";
-    nickname.name = "nickname";
-    nickname.autocomplete = "nickname";
-    nickname.placeholder = "SEU APELIDO";
-    nickname.required = true;
-    nickname.maxLength = 64;
-    nickname.value = this.account.nickname || "";
-    nickname.setAttribute("aria-label", "Apelido exibido no jogo");
-    nicknameLabel.append(nickname);
     const error = this.element("span", "title-dialog__error");
     error.setAttribute("role", "alert");
     const save = this.element("button", "title-dialog__confirm", "CONTINUAR");
@@ -1784,24 +1773,14 @@ class CyberduelTitleUI {
       const handle = username.value.trim();
       if (!/^[a-zA-Z0-9_.-]{3,24}$/.test(handle)) {
         error.textContent =
-          "Use um username de 3 a 24 caracteres: letras, números, ponto, hífen ou sublinhado.";
+          "Use um nick de 3 a 24 caracteres: letras, números, ponto, hífen ou sublinhado.";
         username.focus();
-        return;
-      }
-      const value = nickname.value.trim();
-      if (
-        !value ||
-        Array.from(value).length > 32 ||
-        /[\u0000-\u001f\u007f]/.test(value)
-      ) {
-        error.textContent = "Use um apelido de 1 a 32 caracteres.";
-        nickname.focus();
         return;
       }
       save.disabled = true;
       error.textContent = "";
       try {
-        await this.account.completeRegistration(handle, value);
+        await this.account.completeRegistration(handle);
       } catch (exception) {
         error.textContent =
           exception.message || "Não foi possível concluir o cadastro.";
@@ -1813,22 +1792,21 @@ class CyberduelTitleUI {
       this.element(
         "p",
         "",
-        "Escolha um username único e um apelido para aparecer no jogo. O apelido pode ser igual ao de outros jogadores.",
+        "Escolha seu nick único para identificar a conta. A ElenAI vai pedir seu apelido durante o tutorial.",
       ),
       usernameLabel,
       this.element(
         "p",
         "",
-        "Username: 3 a 24 caracteres, sem espaços. Letras, números, ponto, hífen ou sublinhado. Não poderá ser alterado depois.",
+        "Nick: 3 a 24 caracteres, sem espaços. Letras, números, ponto, hífen ou sublinhado. Não poderá ser alterado depois.",
       ),
-      nicknameLabel,
       error,
       actions,
     );
     overlay.append(dialog);
     requestAnimationFrame(() => {
       overlay.classList.add("is-visible");
-      (username.readOnly ? nickname : username).focus();
+      username.focus();
     });
   }
 
