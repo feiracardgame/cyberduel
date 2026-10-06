@@ -4,6 +4,23 @@ Novidades, correções e verificações realizadas no projeto. As entregas mais 
 
 ## 2026-10-06
 
+### Mensagem de restauração do Boi
+
+- Alterada para “PA restaurado” a mensagem que o efeito do Boi exibia como “PA protegido”. Mantidas as mensagens de proteção das demais cartas e os números de PA quando há variação. Teste de apresentação aprovado para o Boi e o Porco; Playwright confirmou a nova mensagem durante a habilidade real do Boi, sem erros JavaScript ou HTTP locais.
+
+### Booster da RaspCorp azul
+
+- Alterada a cor compartilhada do booster da RaspCorp para azul (`#4da6ff`), utilizada na loja, no inventário e na abertura. Atualizada a versão do script no HTML para renovar o cache.
+- `booster-ui.test.js` e `booster-inventory.test.js` aprovados. Playwright confirmou a cor e a apresentação da loja em desktop e celular.
+
+### Efeitos visuais conforme Cartas e boosters
+
+- Implementados sprite 14 da IA de treinamento no canto da tela, cadeado persistente do HAL sobre a carta silenciada e contornos verdes nos terrenos dos dois jogadores enquanto os Replicantes estão ativos.
+- Adicionados popup animado dos CryptoAcionistas somente ao ganhar PA e vídeo do Juggernaut sobre o alvo atingido. Preparadas versões transparentes dos arquivos existentes, preservando os originais; vídeos mantêm proporção e aguardam sua conclusão junto com o áudio, com liberação da fila em caso de erro ou bloqueio de reprodução.
+- Ajustados brilhos azul/vermelho e alvos de CyberVendedor, Estagiário, GRPH e DIPSP; Cobra brilha ao aplicar veneno e pinta o símbolo nos turnos de dano. Refinadas as três garras do Tigre e o encaixe da armadilha privada do Macaco no slot. Cavalo também faz tremer a carta eliminada antes de desaparecer. Reutilizados os efeitos existentes das demais cartas descritas.
+- Preparada a arte completa do Dragão para o evento de despertar, junto do rugido. O gatilho de despertar continua desativado no motor conforme a alteração anterior; validado apenas por prévia do evento, sem reativar a regra.
+- Aprovados os testes de animação, assets, boosters, preload de vídeos, habilidades, apresentação, espectador, título, seleção da mão e desempenho da cena. Playwright conferiu 18 cenários com eventos do motor e a prévia do Dragão, além do sprite em celular, sem erros JavaScript ou HTTP locais. Testes cobrem gatilhos, perspectivas, sigilo, marcadores persistentes e limpeza da fila. Sintaxe dos scripts alterados e `git diff --check` aprovados. Usados conta e dados temporários; capturas em `/tmp/cyberduel-playwright/`, sem deploy.
+
 ### Reciclagem restaura o PA e os efeitos originais da carta
 
 - Reproduzido no Playwright o problema com uma carta morta ao lado da IA de treinamento: Reciclagem devolvia o Tigre com 0 PA e o registro antigo de +4; ao reinvocar, ele era removido novamente. Conferidas 152 combinações de cartas novas em slots adjacentes nos dois campos, sem transferência de dano entre cartas distintas.

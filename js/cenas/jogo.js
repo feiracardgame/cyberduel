@@ -2831,6 +2831,12 @@ class CenaJogo extends Phaser.Scene {
     }
 
     if (carta.efeitoDesabilitado && !viradaParaBaixo) {
+      if (carta.fonteSupressao?.efeito?.tipo === TIPOS_EFEITO.SILENCIAR_CARTA && this.textures.exists("efeitoHal")) {
+        const cadeado = this.add.image(0, 0, "efeitoHal");
+        cadeado.setScale(Math.min(CW * 0.75 / cadeado.width, CH * 0.65 / cadeado.height));
+        cadeado.indicadorHal = true;
+        filhos.push(cadeado);
+      }
       filhos.push(
         this.add
           .text(0, -CH / 2 + 22, "EFEITO BLOQUEADO", {
@@ -2842,6 +2848,14 @@ class CenaJogo extends Phaser.Scene {
           })
           .setOrigin(0.5),
       );
+    }
+    if (carta.tipo === "terreno" && !viradaParaBaixo &&
+      [...this.partida.jogador.campo.cartas, ...this.partida.inimigo.campo.cartas]
+        .some((c) => c?.efeito && c.efeito.tipo === TIPOS_EFEITO.BONUS_POR_TERRENOS)) {
+      const contorno = this.add.rectangle(0, 0, CW + 6, CH + 6, 0x38ff68, 0.025)
+        .setStrokeStyle(5, 0x38ff68, 0.95);
+      contorno.indicadorReplicantes = true;
+      filhos.push(contorno);
     }
     filhos.push(...this.criarIndicadorExtintor(carta, CW, CH, escala));
     // Gira o conteúdo para o dono; tweens no container externo não desfazem a orientação.

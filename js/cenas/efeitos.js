@@ -5,22 +5,22 @@ const APRESENTACAO_EFEITOS = Object.freeze({
   "Torre MonteCorp": { invocacao: "somTorre" },
   "Beira-mar norte de NeoFloripa": { invocacao: "somBeira" },
   "Nexus de Dados Global": { invocacao: "somNexus" },
-  "CyberVendedor da RaspCorp": { habilidade: "somCyberVendedor" },
-  "IA de treinamento": { invocacao: "somInteracao" },
-  "HAL 9001": { habilidade: "somHal" },
+  "CyberVendedor da RaspCorp": { habilidade: "somCyberVendedor", momentos: ["habilidade"] },
+  "IA de treinamento": { invocacao: "somInteracao", momentos: ["invocacao"], visual: "tutorial" },
+  "HAL 9001": { habilidade: "somHal", momentos: ["habilidade"] },
   "H.A.R.V.I.S": { invocacao: "somHarvis" },
   "Replicantes": { continuo: "somReplicantes" },
-  "Dragão das Comunicações Móveis": { despertar: "somDragao" },
+  "Dragão das Comunicações Móveis": { despertar: "somDragao", momentos: ["despertar"], visual: "fullart" },
   "DeepClaude ChatGemini": { habilidade: "somDeepClaude" },
   "Bug na Matrix": { invocacao: "somBug" },
   "Você Parece Sozinho": { conjuracao: "somLonely" },
-  "Estagiário de Machine Learning": { habilidade: "somEstagiario" },
-  "Gestor de Recursos Predominantemente Humanos": { habilidade: "somGRPH" },
+  "Estagiário de Machine Learning": { habilidade: "somEstagiario", momentos: ["habilidade"] },
+  "Gestor de Recursos Predominantemente Humanos": { habilidade: "somGRPH", momentos: ["habilidade"] },
   "NeoAnalista de Suporte Nível Alpha": { invocacao: "somNeoAnalista", video: "efeitoNeoAnalista" },
-  "CryptoAcionistas": { inicio_turno: "somCryptoAcionistas" },
-  "Advogado Corporativo": { habilidade: "somAdvogado", visual: "juridico" },
-  "Agente da DIPSP": { habilidade: "somTiro", visual: "plasma", cor: 0x3388ff },
-  'UCC "Juggernaut"': { habilidade: "somJuggernaut", visual: "plasma" },
+  "CryptoAcionistas": { inicio_turno: "somCryptoAcionistas", video: "videoEfeitoCrypto", momentos: ["inicio_turno"], somenteGanho: true },
+  "Advogado Corporativo": { habilidade: "somAdvogado", visual: "juridico", momentos: ["habilidade"] },
+  "Agente da DIPSP": { habilidade: "somTiro", visual: "plasma", cor: 0x3388ff, corAlvo: 0x3388ff, momentos: ["habilidade"] },
+  'UCC "Juggernaut"': { habilidade: "somJuggernaut", video: "videoEfeitoJuggernaut", videoNoAlvo: true, momentos: ["habilidade"] },
   "O Tigre": { habilidade: "somTigre", imagem: "efeitoTigre", momentos: ["habilidade"], visual: "garras" },
   "RaspClay MonteCorp": { invocacao: "somRaspClay", video: "efeitoRaspClayVertical", volume: 0.75 },
   "Dieh'Go, o Xerife": { habilidade: "somDiego", visual: "caveiras", video: "videoEfeitodiego", momentos: ["habilidade"], volume: 0.75 },
@@ -29,7 +29,7 @@ const APRESENTACAO_EFEITOS = Object.freeze({
   "A Cabra": { habilidade: "somCabra", imagem: "efeitoCabra", momentos: ["habilidade"] },
   "O Cão": { passiva: "somCao", imagem: "efeitoCao", momentos: ["passiva"] },
   "O Trotar do Cavalo": { conjuracao: "somCavalo", imagem: "efeitoCavalo", momentos: ["conjuracao"] },
-  "A Cobra": { veneno: "somCobra", imagem: "efeitoCobra", momentos: ["veneno"] },
+  "A Cobra": { veneno: "somCobra", imagem: "efeitoCobra", momentos: ["habilidade", "veneno"], picharMomentos: ["veneno"] },
   "A Toca do Coelho": { invocacao: "somCoelho", imagem: "efeitoCoelho", momentos: ["invocacao"] },
   "O Canto do Galo": { conjuracao: "somGalo", imagem: "efeitoGalo", momentos: ["conjuracao"] },
   "A Travessura do Macaco": { conjuracao: "somMacaco", armadilha: "somMacaco", imagem: "efeitoMacaco", momentos: ["conjuracao", "armadilha"] },
@@ -208,6 +208,13 @@ class CenaEfeitos extends Phaser.Scene {
     this.tweens.add({ targets: simbolo, alpha: 0, delay: 650, duration: 300 });
   }
 
+  tremerCarta(carta) {
+    if (!carta?.active) return;
+    const x = carta.x;
+    this.tweens.add({ targets: carta, x: x + 7, duration: 45, yoyo: true, repeat: 3,
+      onComplete: () => { if (carta.active) carta.x = x; } });
+  }
+
   proximo() {
     if (this.executando || !this.fila.length) return;
     this.executando = true;
@@ -229,21 +236,38 @@ class CenaEfeitos extends Phaser.Scene {
         const halo = guardar(this.add.rectangle(p.x, p.y, largura, altura, corHalo, 0.12).setStrokeStyle(5, corHalo));
         this.tweens.add({ targets: halo, scale: 1.12, alpha: 0.15, duration: 420, yoyo: true });
       };
-      const ativo = perfil.momentos?.includes(evento.momento);
+      const ativo = perfil.momentos?.includes(evento.momento) &&
+        (!perfil.somenteGanho || evento.alvos?.some((alvo) => alvo.id === fonte.id && alvo.delta > 0));
+      const pichacaoAtiva = ativo && (!perfil.picharMomentos || perfil.picharMomentos.includes(evento.momento));
       let alvos = (evento.alvos || []).filter((alvo) => alvo.lado !== evento.lado || alvo.id !== fonte.id || perfil.imagem === "efeitoBoi" || (alvo.delta && perfil.imagem !== "efeitoRato"));
       if (ativo && perfil.visual === "garras" && alvos.length && this.cache.audio.exists("somTigreAtaque"))
         this.sound.play("somTigreAtaque", { volume: window.cyberduelSettings?.effects(0.3) ?? 0.3 });
       // Só o autor vê onde a armadilha foi plantada; o disparo é público.
       if (remoto && fonte.efeito?.tipo === TIPOS_EFEITO.ARMADILHA_ESPACO && evento.momento === "conjuracao") alvos = [];
-      if (fonte.indice >= 0 && (!echo || (ativo && ["efeitoRato", "efeitoCabra"].includes(perfil.imagem)))) pulsar(origem);
+      if (fonte.indice >= 0 && ((!echo && !perfil.momentos) ||
+        (ativo && ["efeitoRato", "efeitoCabra"].includes(perfil.imagem)))) pulsar(origem);
+      if (ativo && perfil.visual === "tutorial" && this.textures.exists("iaTutorial14")) {
+        const topo = this.jogo.multiplayer?.presentation && evento.lado === "inimigo";
+        const tutorial = guardar(this.add.image(topo ? 160 : LARGURA_LAYOUT - 160,
+          topo ? 170 : ALTURA_LAYOUT - 170, "iaTutorial14").setDepth(20));
+        tutorial.setScale(Math.min(280 / tutorial.width, 280 / tutorial.height)).setAngle(topo ? 180 : 0).setAlpha(0);
+        this.tweens.add({ targets: tutorial, alpha: 1, duration: 220 });
+      }
+      if (ativo && perfil.visual === "fullart" && fonte.imagem && this.textures.exists(fonte.imagem)) {
+        guardar(this.add.rectangle(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, LARGURA_LAYOUT, ALTURA_LAYOUT, 0x000000, 0.7).setDepth(19));
+        const arte = guardar(this.add.image(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, fonte.imagem).setDepth(20));
+        arte.setScale(Math.min((LARGURA_LAYOUT - 80) / arte.width, (ALTURA_LAYOUT - 80) / arte.height));
+      }
       if (ativo && perfil.imagem === "efeitoCoelho") {
         this.pichar(perfil.imagem, { x: LARGURA_LAYOUT / 2, y: ALTURA_LAYOUT / 2 }, guardar, 650, 750);
       }
       for (const alvo of alvos) {
         const destino = this.ponto(alvo.lado, alvo.indice);
-        if (!echo || ativo) pulsar(destino, 170, 240, echo ? cor : alvo.delta < 0 ? 0xff526c : 0x69caff);
-        if (ativo && perfil.imagem !== "efeitoCoelho" && (perfil.imagem !== "efeitoAranha" || alvo.capturada)) {
-          this.pichar(perfil.imagem, destino, guardar);
+        if ((!perfil.momentos && !echo) || ativo) pulsar(destino, 170, 240, perfil.corAlvo ?? (echo ? cor : alvo.delta < 0 ? 0xff526c : 0x69caff));
+        if (pichacaoAtiva && perfil.imagem && perfil.imagem !== "efeitoCoelho" && (perfil.imagem !== "efeitoAranha" || alvo.capturada)) {
+          const layout = this.jogo.layout;
+          this.pichar(perfil.imagem, destino, guardar,
+            alvo.armadilha ? layout.slotW - 8 : 170, alvo.armadilha ? layout.slotH - 8 : 210);
         }
         if (alvo.cascaGrossa) {
           pulsar(destino, 170, 240, 0xff304e);
@@ -252,24 +276,23 @@ class CenaEfeitos extends Phaser.Scene {
         }
         if (ativo && perfil.visual === "garras") {
           for (let i = 0; i < 3; i++) {
-            const garra = guardar(this.add.rectangle(destino.x + (i - 1) * 35, destino.y, 5, 160, 0xffdae0))
-              .setAngle(28).setScale(1).setDepth(11);
-            this.tweens.add({ targets: garra, scaleY: 0, alpha: 0, delay: i * 70, duration: 450 });
+            const garra = guardar(this.add.triangle(destino.x + (i - 1) * 35, destino.y,
+              0, 0, 14, 55, 5, 180, 0xffdae0).setStrokeStyle(2, 0xff405c))
+              .setAngle(28).setScale(1, 0.02).setDepth(11);
+            this.tweens.add({ targets: garra, scaleY: 1, delay: i * 70, duration: 130,
+              onComplete: () => this.tweens.add({ targets: garra, alpha: 0, delay: 180, duration: 220 }) });
           }
         }
         if (ativo && perfil.imagem === "efeitoCavalo" && alvo.delta < 0) {
           const cartaCampo = this.jogo.children.list.find((o) => o.dadosCartaCampo?.id === alvo.id &&
             this.jogo.partida?.[alvo.lado]?.campo.cartas.includes(o.dadosCartaCampo));
-          if (cartaCampo) {
-            const x = cartaCampo.x;
-            this.tweens.add({ targets: cartaCampo, x: x + 7, duration: 45, yoyo: true, repeat: 3,
-              onComplete: () => { if (cartaCampo.active) cartaCampo.x = x; } });
-          }
+          this.tremerCarta(cartaCampo);
         }
         if (alvo.removida && !(alvo.oculto && (alvo.lado !== "jogador" || this.jogo.multiplayer?.spectator))) {
           if (alvo.imagem && this.textures.exists(alvo.imagem)) {
             const orientacao = this.jogo.multiplayer?.presentation && alvo.lado === "inimigo" ? 180 : 0;
             const fantasma = guardar(this.add.image(destino.x, destino.y, alvo.imagem).setDisplaySize(170, 230).setAngle(orientacao));
+            if (ativo && perfil.imagem === "efeitoCavalo" && alvo.delta < 0) this.tremerCarta(fantasma);
             this.tweens.add({ targets: fantasma, alpha: 0, angle: orientacao + 18, y: destino.y + 65, duration: 850 });
           }
           if (alvo.nome === "CyberPolíticos") {
@@ -281,9 +304,9 @@ class CenaEfeitos extends Phaser.Scene {
             guardar(this.add.text(destino.x, destino.y, "CONTRATO\nROMPIDO", { fontSize: "25px", color: "#e2b0ff", align: "center", stroke: "#160c22", strokeThickness: 5 }).setOrigin(0.5));
           }
         }
-        if (echo && !ativo && !alvo.cascaGrossa) continue;
+        if ((echo || perfil.somenteGanho) && !ativo && !alvo.cascaGrossa) continue;
         if (alvo.armadilha) continue;
-        const texto = alvo.removida ? "Saiu do campo" : alvo.delta ? `${alvo.delta > 0 ? "+" : ""}${alvo.delta} PA` : alvo.bloqueado ? "PA protegido" : "Efeito ativo";
+        const texto = alvo.removida ? "Saiu do campo" : alvo.delta ? `${alvo.delta > 0 ? "+" : ""}${alvo.delta} PA` : alvo.bloqueado ? (perfil.imagem === "efeitoBoi" ? "PA restaurado" : "PA protegido") : "Efeito ativo";
         guardar(this.add.text(destino.x, destino.y - 70, texto, {
           fontFamily: "Arial, sans-serif", fontSize: "22px", fontStyle: "bold", align: "center",
           wordWrap: { width: 165, useAdvancedWrap: true }, color: alvo.delta < 0 ? "#ff889e" : "#a6deff",
@@ -314,32 +337,49 @@ class CenaEfeitos extends Phaser.Scene {
       }
       const som = perfil[evento.momento] || (evento.momento === "invocacao" ? "somJogarCarta" : alvos.some(a => a.removida) ? "somExplosao" : "somBuff");
       const volume = perfil.volume ?? 0.3;
-      const tocaSom = (!echo || (ativo && (alvos.length || perfil.imagem === "efeitoCoelho" || ["efeitoAranha", "efeitoBoi", "efeitoCabra"].includes(perfil.imagem)))) &&
+      const tocaSom = (!perfil.somenteGanho || ativo) && (!echo || (ativo && (alvos.length || perfil.imagem === "efeitoCoelho" || ["efeitoAranha", "efeitoBoi", "efeitoCabra"].includes(perfil.imagem)))) &&
         (som !== "somReplicantes" || alvos.some(alvo => alvo.delta > 0)) && this.cache.audio.exists(som);
       if (tocaSom) this.sound.play(som, { volume: window.cyberduelSettings?.effects(volume) ?? volume });
       const duracaoInvestida = ativo && perfil.visual === "garras" ? (this.cache.audio.get?.("somTigreInvestida")?.duration || 0) * 1000 : 0;
       let duracao = Math.max(1000, duracaoInvestida, tocaSom ? (this.cache.audio.get?.(som)?.duration || 0) * 1000 : 0);
+      let audioTerminou = false, videoPendente = false, concluido = false;
+      const concluir = () => {
+        if (concluido || !audioTerminou || videoPendente) return;
+        concluido = true;
+        objetos.forEach((o) => { if (o.active) o.destroy(); });
+        this.executando = false;
+        this.proximo();
+      };
       if ((perfil.momentos ? ativo : evento.momento === "invocacao") && perfil.video && this.cache.video.exists(perfil.video)) {
         duracao = Math.max(duracao, 1700);
-        const video = guardar(this.add.video(origem.x, origem.y, perfil.video).setDepth(-1).setVisible(false));
+        videoPendente = true;
+        const pontoVideo = perfil.videoNoAlvo && alvos.length ? this.ponto(alvos[0].lado, alvos[0].indice) : origem;
+        const video = guardar(this.add.video(pontoVideo.x, pontoVideo.y, perfil.video).setDepth(-1).setVisible(false));
+        const liberarVideo = () => { videoPendente = false; concluir(); };
+        video.once("complete", liberarVideo);
         video.once("created", () => {
           const grande = ["efeitoRaspClayVertical", "videoEfeitoAranha", "videoEfeitoBoi", "videoEfeitohumba", "videoEfeitodiego", "videoEfeitoprofessores"].includes(perfil.video);
-          video.setPosition(grande ? LARGURA_LAYOUT / 2 : origem.x, grande ? ALTURA_LAYOUT / 2 : origem.y);
+          video.setPosition(grande ? LARGURA_LAYOUT / 2 : pontoVideo.x, grande ? ALTURA_LAYOUT / 2 : pontoVideo.y);
           const ajustar = perfil.video === "videoEfeitoAranha" ? Math.max : Math.min;
-          const escala = ajustar((grande ? LARGURA_LAYOUT : 260) / video.width, (grande ? ALTURA_LAYOUT : 260) / video.height);
+          const escala = ajustar((grande ? LARGURA_LAYOUT : perfil.videoNoAlvo ? 340 : 260) / video.width,
+            (grande ? ALTURA_LAYOUT : perfil.videoNoAlvo ? 245 : 260) / video.height);
           video.setScale(escala).setVisible(true);
+          if (!grande) video.setAngle(this.jogo.multiplayer?.presentation &&
+            (perfil.videoNoAlvo ? alvos[0]?.lado : evento.lado) === "inimigo" ? 180 : 0);
           if (!grande) video.setPosition(
             Math.max(video.displayWidth / 2 + 12, Math.min(LARGURA_LAYOUT - video.displayWidth / 2 - 12, video.x)),
             Math.max(video.displayHeight / 2 + 12, Math.min(ALTURA_LAYOUT - video.displayHeight / 2 - 12, video.y)));
         });
-        video.once("error", () => video.setVisible(false));
+        video.once("error", () => { video.setVisible(false); liberarVideo(); });
         video.setMute(true);
         video.play(false);
+        // Decodificação/reprodução bloqueada não pode prender o turno.
+        const esperaVideo = this.time.delayedCall(15000, liberarVideo);
+        video.once("destroy", () => esperaVideo.remove?.());
       }
       this.time.delayedCall(duracao, () => {
-        objetos.forEach((o) => { if (o.active) o.destroy(); });
-        this.executando = false;
-        this.proximo();
+        audioTerminou = true;
+        concluir();
       });
     };
     if (evento.momento === "habilidade" && perfil.visual === "garras" && this.cache.audio.exists("somTigreInvestida"))

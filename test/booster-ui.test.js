@@ -21,6 +21,7 @@ class Element {
 const context = vm.createContext({ document: { body: new Element("body") }, window: { matchMedia: () => ({ matches: true }) }, console, setTimeout: f => { f(); }, requestAnimationFrame: f => f() });
 vm.runInContext(fs.readFileSync('js/title-ui.js', 'utf8') + '\nglobalThis.UI = CyberduelTitleUI;', context);
 const ui = Object.create(context.UI.prototype);
+assert.equal(ui.boosterFactions().find(faction => faction[0] === 'raspcorp')[3], '#4da6ff');
 ui.element = (tag, cls, text) => new Element(tag, cls, text);
 ui.button = (cls, text, handler) => { const el = ui.element('button', cls, text); el.handler = handler; return el; };
 ui.createModal = () => ui.modal = new Element('div');

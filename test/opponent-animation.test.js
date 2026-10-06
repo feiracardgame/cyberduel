@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const context = vm.createContext({ window: {}, Phaser: { Scene: class {} },
   LARGURA_LAYOUT: 1080, ALTURA_LAYOUT: 2220, Y_MAO_INIMIGO: 230, Y_MAO_JOGADOR: 1900,
-  TIPOS_EFEITO: { ARMADILHA_ESPACO: 'armadilha' },
+  TIPOS_EFEITO: { ARMADILHA_ESPACO: 'armadilha', SILENCIAR_CARTA: 'silenciar_carta', BONUS_POR_TERRENOS: 'bonus_por_terrenos' },
 });
 vm.runInContext(fs.readFileSync('js/cenas/efeitos.js', 'utf8'), context);
 const Scene = context.window.CenaEfeitos;
@@ -13,16 +13,18 @@ function fixture(spectator = false) {
   const schedule = (delay, fn) => tasks.push({ at: time + delay, fn });
   const object = (type, x, y, value) => {
     const o = { type, x, y, value, active: true, visible: true, width: 512, height: 768,
+      get displayWidth() { return this.width * (this.scaleX ?? 1); },
+      get displayHeight() { return this.height * (this.scaleY ?? 1); },
       setPosition(x,y) { this.x=x; this.y=y; return this; },
       setMute() { return this; }, once(event, fn) { (this.handlers ||= {})[event]=fn; return this; },
       play() { this.handlers?.created?.(); return this; },
       setDisplaySize(w,h) { this.width=w; this.height=h; return this; },
       setCrop(...crop) { this.crop=crop; return this; },
-      setStrokeStyle() { return this; }, setOrigin() { return this; },
+      setStrokeStyle(width, color) { this.strokeColor=color; return this; }, setOrigin() { return this; },
       setAlpha(v) { this.alpha=v; return this; }, setSize() { return this; },
       setInteractive() { return this; }, on() { return this; },
       setVisible(v) { this.visible=v; return this; }, setDepth() { return this; },
-      setScale(v) { this.scaleX=this.scaleY=v; return this; }, setAngle(v) { this.angle=v; return this; },
+      setScale(x,y=x) { this.scaleX=x; this.scaleY=y; return this; }, setAngle(v) { this.angle=v; return this; },
       add(children) { this.value.push(...children); return this; },
       destroy() { this.active=false; if(Array.isArray(this.value)) this.value.forEach(c=>c.destroy()); },
     };
@@ -36,7 +38,7 @@ function fixture(spectator = false) {
       x: [110,325,540,755,970], yInimigo: [560,842], yJogador: [1436,1154] },
       partida: { inimigo: { campo: { cartas: [source] } }, jogador: { campo: { cartas: [] } } },
       children: { list: [fieldObject] } },
-    add: Object.fromEntries(['image','rectangle','text','circle','ellipse','container','video'].map(type=>[type,(...args)=>object(type,...args)])),
+    add: Object.fromEntries(['image','rectangle','text','circle','ellipse','triangle','container','video'].map(type=>[type,(...args)=>object(type,...args)])),
     sound: { play: key => sounds.push(key) },
     textures: { exists:()=>true }, cache: { audio: { exists:()=>false }, video: { exists:()=>false } },
     time: { delayedCall: schedule },
@@ -297,6 +299,25 @@ for (const [name, video, sound] of [['A Aranha', 'videoEfeitoAranha', 'somAranha
 }
 console.log('Vídeos da Aranha/Boi, sons próprios, tremor do Cavalo e limpeza validados.');
 
+for (const [nome, texto] of [['O Boi', 'PA restaurado'], ['O Porco', 'PA protegido']]) {
+  const f = fixture();
+  f.s.receber([f.event(1, nome === 'O Boi' ? 'habilidade' : 'protecao', {
+    fonte: { ...f.source, nome }, alvos: [{ lado: 'jogador', id: 8, indice: 5, delta: 0, bloqueado: true }],
+  })]);
+  f.flush();
+  assert.ok(f.objects.some(o => o.type === 'text' && o.value === texto));
+}
+
+{
+  const f = fixture();
+  f.s.receber([f.event(1, 'conjuracao', { fonte: { ...f.source, nome: 'O Trotar do Cavalo' },
+    alvos: [{ lado: 'jogador', id: 8, indice: 5, delta: -3, removida: true, imagem: 'arte' }] })]);
+  f.flush();
+  const ghost = f.objects.find(o => o.type === 'image' && o.value === 'arte' && o.width === 170);
+  assert.ok(f.tweens.some(t => t.targets === ghost && t.repeat === 3 && t.yoyo));
+  assert.equal(ghost.active, false, 'A carta removida também treme e desaparece.');
+}
+
 // Face, selo de PA e coelhinho convivem no mesmo container; a marca da Aranha acompanha o vínculo.
 for (const captured of [false, true]) {
   const f = fixture(), own = { id: 9, imagem: 'arte', poder: 5, tipo: 'monstro', ocultadaPelaToca: true, revelada: false,
@@ -417,3 +438,84 @@ for (const [name, moment, key] of newSounds) for (const side of ['jogador', 'ini
   for (const key of ['somTigreInvestida', 'somTigreAtaque', 'somTigre']) assert.equal(f.sounds.filter(s => s === key).length, 1);
 }
 console.log('Nove sons de cartas, gatilhos, perspectivas, áudio único, duração da fila e investida/garras do Tigre validados.');
+
+// Cores e alvos definidos no documento, inclusive custo do Estagiário e transferência do GRPH.
+for (const [name, alvos] of [
+  ['CyberVendedor da RaspCorp', [{ lado: 'jogador', id: 2, indice: 5, delta: 1 }]],
+  ['Estagiário de Machine Learning', [{ lado: 'inimigo', id: 1, indice: 0, delta: -1 }, { lado: 'jogador', id: 2, indice: 5, delta: 3 }]],
+  ['Gestor de Recursos Predominantemente Humanos', [{ lado: 'jogador', id: 2, indice: 5, delta: -2 }, { lado: 'jogador', id: 3, indice: 6, delta: 4 }]],
+]) {
+  const f = fixture();
+  f.s.receber([f.event(1, 'habilidade', { fonte: { ...f.source, nome: name }, alvos })]);
+  f.flush();
+  for (const alvo of alvos) {
+    const point = f.s.ponto(alvo.lado, alvo.indice);
+    assert.ok(f.objects.some(o => o.type === 'rectangle' && o.x === point.x && o.y === point.y &&
+      o.strokeColor === (alvo.delta < 0 ? 0xff526c : 0x69caff)), `${name}: cor do alvo ${alvo.id}`);
+  }
+  if (name === 'CyberVendedor da RaspCorp')
+    assert.ok(!f.objects.some(o => o.type === 'rectangle' && o.x === 110 && o.y === 560 && o.strokeColor === 0x69caff));
+}
+for (const side of ['jogador', 'inimigo']) {
+  const f = fixture(true); f.s.jogo.multiplayer.presentation = true;
+  f.s.receber([f.event(1, 'invocacao', { lado: side, fonte: { ...f.source, nome: 'IA de treinamento' } })]);
+  f.flush();
+  const sprite = f.objects.find(o => o.value === 'iaTutorial14');
+  assert.ok(sprite); assert.equal(sprite.angle, side === 'inimigo' ? 180 : 0);
+  assert.equal(sprite.x, side === 'inimigo' ? 160 : 920);
+  assert.equal(sprite.active, false);
+}
+for (const ganho of [false, true]) {
+  const f = fixture(); f.s.cache.video.exists = () => true; f.s.cache.audio.exists = () => true;
+  f.s.receber([f.event(1, 'inicio_turno', { fonte: { ...f.source, nome: 'CryptoAcionistas' },
+    alvos: [{ lado: 'inimigo', id: 1, indice: 0, delta: ganho ? 2 : 0 }] })]);
+  const clip = f.objects.find(o => o.value === 'videoEfeitoCrypto');
+  assert.equal(!!clip, ganho);
+  assert.equal(f.sounds.includes('somCryptoAcionistas'), ganho);
+  if (ganho) {
+    assert.equal(clip.x, 110); assert.equal(clip.y, 560);
+    while (f.getTime() < 1700) f.step();
+    assert.equal(f.s.executando, true, 'A fila não corta um vídeo que ainda está tocando.');
+    clip.handlers.complete();
+    assert.equal(f.s.executando, false);
+  }
+  f.flush();
+}
+for (const completion of ['complete', 'error', 'timeout']) {
+  const f = fixture(); f.s.cache.video.exists = () => true;
+  f.s.jogo.multiplayer.presentation = true;
+  f.s.receber([f.event(1, 'habilidade', { lado: 'jogador', fonte: { ...f.source, nome: 'UCC "Juggernaut"' },
+    alvos: [{ lado: 'inimigo', id: 2, indice: 3, delta: -5 }] })]);
+  while (!f.objects.some(o => o.value === 'videoEfeitoJuggernaut')) f.step();
+  const clip = f.objects.find(o => o.value === 'videoEfeitoJuggernaut');
+  assert.equal(clip.x, 755); assert.equal(clip.y, 560); assert.equal(clip.angle, 180);
+  if (completion !== 'timeout') clip.handlers[completion]();
+  f.flush(); assert.equal(f.s.executando, false); assert.equal(clip.active, false);
+}
+// Cadeado do HAL acompanha o estado atual; os Replicantes contornam terrenos de ambos os campos.
+for (const active of [false, true]) for (const side of ['jogador', 'inimigo']) {
+  const f = fixture(), terrain = { id: 8, tipo: 'terreno', imagem: 'arte', poder: 0 };
+  const target = { id: 9, tipo: 'monstro', imagem: 'arte', poder: 7, efeitoDesabilitado: active,
+    fonteSupressao: { efeito: { tipo: 'silenciar_carta' } } };
+  const rep = { id: 10, tipo: 'monstro', efeito: active ? { tipo: 'bonus_por_terrenos' } : null };
+  f.s.jogo.partida[side].campo.cartas = [terrain, target];
+  f.s.jogo.partida[side === 'jogador' ? 'inimigo' : 'jogador'].campo.cartas = [rep];
+  const game = Object.assign(Object.create(Game.prototype), {
+    add: f.s.add, textures: f.s.textures, tweens: f.s.tweens, multiplayer: {}, partida: f.s.jogo.partida,
+    renderizandoInterface: true, interfaceJaDesenhada: true, chavesCampoNovasRender: new Set(),
+    obterCorPorId: () => 0, chaveCartaMultiplayer: c => c.id,
+    criarSeloEstat: () => [f.s.add.circle(0,0,5), f.s.add.text(0,0,'7')],
+  });
+  for (const card of [terrain, target]) game.criarCartaDeCampo(100, 100, card, f.s.jogo.layout);
+  assert.equal(f.objects.filter(o => o.indicadorHal).length, active ? 1 : 0);
+  assert.equal(f.objects.filter(o => o.indicadorReplicantes).length, active ? 1 : 0);
+}
+{
+  const f = fixture();
+  f.s.receber([f.event(1, 'despertar', { fonte: { ...f.source, nome: 'Dragão das Comunicações Móveis' } })]);
+  f.flush(); assert.ok(f.objects.some(o => o.type === 'image' && o.value === 'arte' && o.x === 540 && o.y === 1110));
+  const dormant = fixture();
+  dormant.s.receber([dormant.event(1, 'invocacao', { fonte: { ...dormant.source, nome: 'Dragão das Comunicações Móveis' } })]);
+  dormant.flush(); assert.ok(!dormant.objects.some(o => o.type === 'image' && o.value === 'arte' && o.x === 540 && o.y === 1110));
+}
+console.log('Visuais do documento: cores, sprite 14, Crypto apenas no ganho, Juggernaut no alvo, fila de vídeo, HAL, Replicantes e full art do despertar validados.');

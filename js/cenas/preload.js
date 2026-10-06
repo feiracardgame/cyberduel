@@ -59,6 +59,8 @@ window.CYBERDUEL_IMAGE_ASSETS = Object.freeze({
   jogoFundo: "assets/fundo/jogo-fundo.png",
   efeitoDiego: "assets/efeitos/efeito-diego.png",
   efeitoAdvogado: "assets/efeitos/efeito-advogado.png",
+  efeitoHal: "assets/efeitos/efeito-hal.png",
+  iaTutorial14: "assets/sprites/ia-tutorial-14.png",
   efeitoAranha: "assets/efeitos/efeito-aranha.png",
   efeitoBoi: "assets/efeitos/efeito-boi.png",
   efeitoCabra: "assets/efeitos/efeito-cabra.png",
@@ -124,6 +126,8 @@ class CenaPreload extends Phaser.Scene {
     }
     this.load.video("videoEfeitoAranha", "assets/efeitos/efeito-aranha.webm");
     this.load.video("videoEfeitoBoi", "assets/efeitos/efeito-boi-alpha.webm");
+    this.load.video("videoEfeitoCrypto", "assets/efeitos/efeito-cryptoacionista-alpha.webm");
+    this.load.video("videoEfeitoJuggernaut", "assets/efeitos/efeito-juggernaut-alpha.webm");
     this.load.audio("somAdvogado", "assets/sons/som-advogado.mp3");
     this.load.audio("somRaspClay", "assets/sons/som-raspclay.mp3");
     this.load.audio("somNeoAnalista", "assets/sons/som-neoanalista.mp3");
