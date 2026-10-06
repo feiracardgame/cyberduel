@@ -4,6 +4,41 @@ Novidades, correções e verificações realizadas no projeto. As entregas mais 
 
 ## 2026-10-06
 
+### Reprodução mais leve do POW do Juggernaut
+
+- Otimizado o próprio `efeito-juggernaut-alpha.webm`: removido o segundo transparente inicial e o restante não utilizado, reduzida a resolução de 452 × 328 para 340 × 246 e mantidos os 25 quadros por segundo e a transparência. O arquivo passou de 138.987 para 58.265 bytes; preservada a fonte MP4.
+- Removidos avanço em 16×, salto de tempo e espera por quadros do trecho vazio. O WebM toca diretamente desde o início, na velocidade normal, mantendo POW antes do dano aos 300 ms e saída da carta aos 650 ms. Renovadas as versões dos scripts e a URL do vídeo para substituir o asset em cache.
+- Aprovados os testes de apresentação, assets e preload de vídeos. Playwright confirmou quatro cenários com início entre 142 e 195 ms, avanço do vídeo, pixels visíveis, PA antigo antes do dano e saída ao final, sem erros JavaScript ou HTTP locais. Sintaxe e `git diff --check` aprovados; sem deploy.
+- Reprodução isolada no Chromium apresentou os 25 quadros do arquivo, na velocidade normal, sem descartar quadros. Limitação da validação: com o tabuleiro completo e renderização por software, a medição ainda apresentou perdas variáveis de quadros; não foi confirmada ausência de travadas em todos os ambientes.
+
+### Início mais rápido do POW do Juggernaut
+
+- Removida a animação de preparação da fonte antes do POW. O trecho inicial transparente do WebM avança em velocidade 16× quando não é possível saltá-lo imediatamente; ao chegar ao desenho, a reprodução retorna à velocidade normal. Mantidos o PA anterior antes do dano, a apresentação do dano após 300 ms e a saída da carta ao final dos 650 ms.
+- `opponent-animation.test.js` aprovado: entrada acelerada, retorno à velocidade normal e ausência de espera pela preparação, além da sequência POW/dano/remoção. Atualizada a versão do script no HTML; sintaxe e `git diff --check` aprovados.
+- Playwright confirmou quatro cenários nos dois campos, com início do desenho entre 170 e 444 ms no navegador de teste, mantendo POW antes do dano e a remoção ao final. Sem erros JavaScript ou HTTP locais; mantida a reprodução direta de `efeito-juggernaut-alpha.webm`, sem deploy.
+
+### POW do Juggernaut antes da apresentação do dano
+
+- Durante os primeiros 300 ms do POW, o alvo mantém a imagem e o PA anteriores ao ataque. Depois são apresentados o dano, o brilho e o novo PA; cartas eliminadas permanecem com 0 PA até sair ao final dos 650 ms. Preservada a reprodução direta do WebM e a ocultação das cartas viradas para baixo. A resolução das regras no motor permanece imediata; a sequência visual acompanha o impacto.
+- `opponent-animation.test.js` aprovado: POW antes da mensagem de dano, PA anterior preservado, atualização aos 300 ms, saída aos 650 ms, alvos sobreviventes/eliminados e duas perspectivas. Atualizada a versão do script no HTML.
+- Playwright confirmou quatro cenários com a habilidade real: Rato eliminado e Tigre sobrevivente nos dois campos, POW visível com PA antigo antes do dano e mudança somente depois. Conferidos pixels opacos e avanço do WebM, sem erros JavaScript ou HTTP locais. Sintaxe e `git diff --check` aprovados; capturas em `/tmp/cyberduel-playwright/`, sem deploy.
+
+### Juggernaut pula o início transparente do WebM
+
+- Identificada a causa do efeito invisível: o primeiro segundo de `efeito-juggernaut-alpha.webm` não contém pixels opacos; a reprodução de 650 ms terminava antes de aparecer o desenho. O vídeo solicita o salto para 1 segundo e só inicia os 650 ms quando um quadro desse trecho foi decodificado, inclusive quando o navegador não consegue saltar imediatamente. Mantidas a reprodução direta do mesmo arquivo e a saída da carta ao final. Atualizada a versão do script no HTML.
+- `opponent-animation.test.js` aprovado com regressões para o ponto inicial da reprodução e a espera pelo quadro visível. A validação anterior verificava avanço do vídeo, mas não a presença de pixels visíveis; reforçado o teste do navegador para conferir também o desenho.
+- Playwright confirmou o desenho com mais de 20 mil pixels opacos, avanço da animação e carta visível até o final nos dois campos, sem erros JavaScript ou HTTP locais. Conferida a captura do impacto visível; sintaxe e `git diff --check` aprovados.
+
+### Juggernaut reproduz diretamente o WebM transparente
+
+- Refeito o efeito para carregar e reproduzir `assets/efeitos/efeito-juggernaut-alpha.webm` diretamente sobre o alvo, sem imagem fixa nem folha de quadros. Mantidos os 650 ms, contados por temporizador real a partir do início da reprodução, e a saída conjunta da carta ao encerrar o vídeo. Removida a folha de quadros gerada na tentativa anterior; preservado o WebM original.
+- Aprovados os testes de apresentação, assets e preload de vídeo, incluindo reprodução atrasada, erro e timeout sem prender a fila. Playwright confirmou o arquivo exato, avanço do tempo do vídeo, carta visível durante a reprodução e remoção ao final nos dois campos, sem erros JavaScript ou HTTP locais. Atualizadas as versões dos scripts; sintaxe e `git diff --check` aprovados, sem deploy.
+
+### Juggernaut com animação durante os 650 ms
+
+- Substituída a imagem fixa por 20 quadros extraídos da animação original, com transparência, reproduzidos em 650 ms sobre o alvo. A carta eliminada permanece visível durante a animação e desaparece ao final. Atualizado o carregamento da folha de quadros e as versões dos scripts no HTML.
+- Aprovados `opponent-animation.test.js`, `game-assets.test.js` e `preload-video.test.js`: avanço dos quadros, duração, remoção sincronizada e carregamento do asset. Playwright confirmou a habilidade real nos dois campos, com vários quadros distintos, carta visível durante toda a animação e saída no final, sem erros JavaScript ou HTTP locais. Sintaxe e `git diff --check` aprovados; capturas em `/tmp/cyberduel-playwright/`, sem deploy.
+
 ### Impacto do Juggernaut ampliado para 650 ms
 
 - Aumentada de 200 para 650 ms a duração do impacto. A carta eliminada continua visível até desaparecer junto com o fim do efeito. Atualizada a versão do script no HTML para renovar o cache.

@@ -11,17 +11,20 @@ function fixture(spectator = false) {
   const tasks = [], objects = [], tweens = [], impacts = [], sounds = [];
   let time = 0;
   const schedule = (delay, fn) => tasks.push({ at: time + delay, fn });
+  context.window.setTimeout = (fn, delay) => schedule(delay, fn);
+  context.window.clearTimeout = () => {};
   const object = (type, x, y, value) => {
     const o = { type, x, y, value, active: true, visible: true, width: 512, height: 768,
       get displayWidth() { return this.width * (this.scaleX ?? 1); },
       get displayHeight() { return this.height * (this.scaleY ?? 1); },
       setPosition(x,y) { this.x=x; this.y=y; return this; },
       setMute() { return this; }, once(event, fn) { (this.handlers ||= {})[event]=fn; return this; },
-      play() { this.handlers?.created?.(); return this; },
+      play(...args) { this.playArgs=args; this.handlers?.created?.(); return this; },
       setDisplaySize(w,h) { this.width=w; this.height=h; return this; },
       setCrop(...crop) { this.crop=crop; return this; },
       setStrokeStyle(width, color) { this.strokeColor=color; return this; }, setOrigin() { return this; },
       setAlpha(v) { this.alpha=v; return this; }, setSize() { return this; },
+      setText(v) { this.value=v; return this; },
       setInteractive() { return this; }, on() { return this; },
       setVisible(v) { this.visible=v; return this; }, setDepth() { return this; },
       setScale(x,y=x) { this.scaleX=x; this.scaleY=y; return this; }, setAngle(v) { this.angle=v; return this; },
@@ -482,19 +485,31 @@ for (const ganho of [false, true]) {
   f.flush();
 }
 for (const side of ['jogador', 'inimigo']) for (const removed of [false, true]) {
-  const f = fixture(); f.s.cache.audio.exists = () => true;
+  const f = fixture(); f.s.cache.audio.exists = () => true; f.s.cache.video.exists = () => true;
   f.s.cache.audio.get = () => ({ duration: 5 });
   f.s.jogo.multiplayer.presentation = true;
   const targetSide = side === 'jogador' ? 'inimigo' : 'jogador';
+  if (!removed) f.s.jogo.partida[targetSide].campo.cartas[3] = { id: 2, poder: 4 };
   f.s.receber([f.event(1, 'habilidade', { lado: side, fonte: { ...f.source, nome: 'UCC "Juggernaut"' },
     alvos: [{ lado: targetSide, id: 2, indice: 3, delta: -5, removida: removed, imagem: 'vitima' }] })]);
   const victim = f.objects.find(o => o.value === 'vitima');
-  assert.equal(!!victim, removed);
-  if (removed) assert.equal(victim.active, true, 'A vítima permanece visível antes do impacto.');
-  while (!f.objects.some(o => o.value === 'efeitoJuggernaut')) assert.ok(f.step());
-  const start = f.getTime(), impact = f.objects.find(o => o.value === 'efeitoJuggernaut');
+  assert.ok(victim);
+  assert.equal(victim.active, true, 'A vítima permanece visível antes do impacto.');
+  const preview = f.objects.find(o => o.antesDanoJuggernaut);
+  assert.equal(preview.value.find(o => o.type === 'text').value, removed ? '5' : '9', 'PA anterior ao dano.');
+  while (!f.objects.some(o => o.value === 'videoEfeitoJuggernaut')) assert.ok(f.step());
+  const start = f.getTime(), impact = f.objects.find(o => o.value === 'videoEfeitoJuggernaut');
+  assert.equal(impact.type, 'video', 'O impacto reproduz diretamente o WebM.');
+  assert.equal(impact.visible, true, 'O arquivo já começa no trecho visível, sem seek ou aceleração.');
+  assert.ok(!f.objects.some(o => o.eventoApresentado), 'POW começa sem esperar a animação de preparação da fonte.');
   assert.equal(impact.x, 755); assert.equal(impact.y, targetSide === 'inimigo' ? 560 : 1436);
   assert.equal(impact.angle, targetSide === 'inimigo' ? 180 : 0);
+  const damageText = removed ? 'Saiu do campo' : '-5 PA';
+  assert.ok(!f.objects.some(o => o.value === damageText), 'POW aparece antes do dano.');
+  while (f.getTime() - start < 300) assert.ok(f.step());
+  assert.equal(f.getTime() - start, 300);
+  assert.ok(f.objects.some(o => o.value === damageText), 'Dano é apresentado depois dos primeiros 300 ms do POW.');
+  assert.equal(victim.active, removed, 'Sobrevivente revela o novo PA; eliminada aguarda o fim do vídeo.');
   assert.ok(!f.tweens.some(t => t.targets === victim && t.alpha === 0), 'Sem saída antecipada.');
   while (f.s.executando) {
     if (removed) assert.equal(victim.active, true);
@@ -511,6 +526,23 @@ for (const side of ['jogador', 'inimigo']) for (const removed of [false, true]) 
     alvos: [{ lado: 'inimigo', id: 2, indice: 3, delta: -5, removida: true, oculto: true, imagem: 'secreta' }] })]);
   assert.ok(f.objects.some(o => o.value === 'fundoCarta'));
   assert.ok(!f.objects.some(o => o.value === 'secreta'), 'O impacto preserva o verso da vítima oculta.');
+  f.flush();
+}
+for (const mode of ['delayed', 'error', 'timeout']) {
+  const f = fixture(); f.s.cache.video.exists = () => true;
+  const addVideo = f.s.add.video;
+  f.s.add.video = (...args) => {
+    const video = addVideo(...args); video.play = () => video;
+    return video;
+  };
+  f.s.receber([f.event(1, 'habilidade', { lado: 'jogador', fonte: { ...f.source, nome: 'UCC "Juggernaut"' },
+    alvos: [{ lado: 'inimigo', id: 2, indice: 3, delta: -5, removida: true, imagem: 'vitima' }] })]);
+  const video = f.objects.find(o => o.value === 'videoEfeitoJuggernaut');
+  if (mode === 'delayed') f.s.time.delayedCall(1000, () => video.handlers.created());
+  if (mode === 'error') video.handlers.error();
+  while (f.s.executando) assert.ok(f.step());
+  assert.equal(f.getTime(), mode === 'delayed' ? 1650 : mode === 'timeout' ? 15000 : 0);
+  assert.equal(video.active, false);
   f.flush();
 }
 // Cadeado do HAL acompanha o estado atual; os Replicantes contornam terrenos de ambos os campos.

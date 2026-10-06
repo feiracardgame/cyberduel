@@ -55,6 +55,7 @@ const Preload = vm.runInContext('CenaPreload', context);
 Preload.prototype.carregarAssets.call({ load: {
   image() {}, audio(key, url) { preloadSounds.push([key, url]); }, video(key, url) { preloadVideos.push([key, url]); },
 } });
+assert.ok(preloadVideos.some(([key, url]) => key === 'videoEfeitoJuggernaut' && url.split('?')[0] === 'assets/efeitos/efeito-juggernaut-alpha.webm'));
 assert.ok(preloadVideos.some(([key, url]) => key === 'videoEfeitoBoi' && url === 'assets/efeitos/efeito-boi-alpha.webm'));
 assert.ok(fs.statSync('assets/efeitos/efeito-boi-alpha.webm').size > 0);
 console.log('Boi carrega a versão transparente do vídeo.');
