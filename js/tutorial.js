@@ -210,6 +210,7 @@ class CyberduelStory {
     if (account.needsRegistration) { scene.titleUI.openRegistrationDialog(); return; }
     this.busy = true;
     try {
+      let accepted = false;
       if (!account.tutorial.introSeen) {
         await this.say(ELENAI_DIALOGUES.intro.slice(0, -1), { choicesAt: 3, choices: [["Cyberduelista?"], ["outra época?"]] });
         if (!scene.scene.isActive()) return;
@@ -223,7 +224,6 @@ class CyberduelStory {
         } });
       }
       if (account.tutorial.wantsTutorial === null) {
-        let accepted;
         await this.say(ELENAI_DIALOGUES.question, { choicesAt: 0, choices: [
           ["SIM", async () => { await account.saveTutorial({ wantsTutorial: true }); accepted = true; }],
           ["NÃO", async () => { await account.saveTutorial({ wantsTutorial: false }); accepted = false; }],
@@ -231,8 +231,8 @@ class CyberduelStory {
         await this.say(accepted ? ELENAI_DIALOGUES.accepted : ELENAI_DIALOGUES.declined);
       }
       if (account.tutorial.wantsTutorial && !account.tutorial.completed) {
-        if (!window.cyberduelTutorialPaused) scene.iniciarTutorial();
-        return;
+        // Uma conta que interrompeu o treino pode retomá-lo pela carta do menu.
+        if (accepted) { scene.iniciarTutorial(); return; }
       }
       if (!account.faction) {
         if (account.tutorial.wantsTutorial) {
@@ -296,10 +296,7 @@ class CyberduelTraining {
     this.guide.setAttribute("aria-live", "polite");
     this.hint = ui.element("p", "");
     const header = ui.element("div", "elenai-guide-header");
-    header.append(ui.element("strong", "", "TREINO COM ELENAI"),
-      ui.button("elenai-exit", "SAIR DO TUTORIAL", () => {
-        window.cyberduelTutorialPaused = true; this.scene.scene.start("CenaTitulo");
-      }));
+    header.append(ui.element("strong", "", "TREINO COM ELENAI"));
     this.guide.append(header, this.hint);
     document.body.append(this.guide);
     this.say(0, 2, () => this.setStep("intern", "Toque no Estagiário na mão e depois no espaço brilhante. Você também pode arrastar a carta."));
@@ -366,6 +363,13 @@ class CyberduelTraining {
   }
   update() {
     const scene = this.scene;
+    if (scene.botaoPassarTutorial?.input)
+      scene.botaoPassarTutorial.input.enabled = ["tiger-pass", "dipsp-pass"].includes(this.step);
+    for (const object of scene.children?.list || []) {
+      if (!object.input) continue;
+      if (object.dadosCartaCampo) object.input.enabled = this.canUse(object.dadosCartaCampo);
+      if (object.dadosCarta) object.input.enabled = ["intern", "tiger", "dipsp"].includes(this.step);
+    }
     if (this.pending && !scene.efeitosVisuaisPendentes()) {
       const done = this.pending; this.pending = null; done();
     }

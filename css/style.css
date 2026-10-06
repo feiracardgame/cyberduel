@@ -3295,4 +3295,3 @@ body.title-terminal-open #game-viewport canvas {
 .player-id__access[data-unlocked="true"] { color: #85ffac; }
 .player-id > .player-id__note { color: #b2c9ba; font-size: 13px; }
 .player-id .title-dialog__cancel { width: 100%; min-height: 44px; }
-.title-terminal .card-menu__shortcuts { grid-template-columns: repeat(3, minmax(0, 1fr)); }

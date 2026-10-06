@@ -74,6 +74,8 @@ class CenaJogo extends Phaser.Scene {
   // Os assets já foram carregados pela CenaPreload.
 
   create(dados = {}) {
+    // Phaser reutiliza os dados da última abertura quando start() não recebe dados.
+    this.sys.settings.data = {};
     this.tutorial = dados.tutorial === true;
     this.training = null;
     this.finalDebug = false;
@@ -681,6 +683,7 @@ class CenaJogo extends Phaser.Scene {
 
   podeJogarCartasAgora() {
     return (
+      (!this.training || ["intern", "tiger", "dipsp"].includes(this.training.step)) &&
       !this.training?.dialog &&
       this.ehMeuTurno &&
       !this.avisoBatalhaPendente() && !this.efeitosVisuaisPendentes() && !this.multiplayer?.effectsPaused &&
@@ -692,6 +695,7 @@ class CenaJogo extends Phaser.Scene {
 
   podeUsarHabilidadesAgora() {
     return (
+      (!this.training || ["tiger-ability", "dipsp-ability"].includes(this.training.step)) &&
       !this.training?.dialog &&
       this.ehMeuTurno &&
       !this.avisoBatalhaPendente() && !this.efeitosVisuaisPendentes() && !this.multiplayer?.effectsPaused &&
@@ -703,6 +707,7 @@ class CenaJogo extends Phaser.Scene {
 
   podeConsultarCartas() {
     return (
+      (!this.training || ["intern", "tiger", "dipsp", "tiger-ability", "dipsp-ability"].includes(this.training.step)) &&
       !this.avisoBatalhaPendente() && !this.efeitosBloqueiamInteracao() &&
       !this.multiplayer?.presentation &&
       !this.modalAberto &&
@@ -714,7 +719,7 @@ class CenaJogo extends Phaser.Scene {
   encerrarSelecoesDaFase() {
     this.objetosSelecaoAlvo?.forEach((o) => o.destroy());
     this.objetosSelecaoAlvo = null;
-    this.modalAberto = false;
+    this.modalAberto = !!this.painelDetalheAtual?.active;
     this.travado = false;
     this.desenharInterface();
   }
@@ -1171,6 +1176,12 @@ class CenaJogo extends Phaser.Scene {
   desenharInterface() {
     // Atualizações após a desistência não podem apagar o resultado já exibido.
     if (this.telaFinalExibida) return;
+    // O estado continua sincronizado; o campo será redesenhado ao terminar a leitura.
+    if (this.painelDetalheAtual?.active) {
+      this.redesenhoAposLeitura = true;
+      return;
+    }
+    this.redesenhoAposLeitura = false;
     this.limparCamadaModalCarta();
     this.partida.atualizarOverrides();
     const chavesCampoAtuais = new Set(
@@ -3193,6 +3204,7 @@ class CenaJogo extends Phaser.Scene {
   }
 
   selecionarCartaDaMao(container) {
+    if (this.training && !this.podeJogarCartasAgora()) return;
     if (
       !this.podeConsultarCartas() ||
       container.animandoCompra ||
@@ -3569,6 +3581,7 @@ class CenaJogo extends Phaser.Scene {
   // Ficha da carta com arte, PA e descrição.
 
   mostrarDetalheCarta(carta) {
+    if (this.training && !this.training.canUse(carta)) return;
     if (this.cache?.audio.exists("somInteracao")) this.sound.play("somInteracao", { volume: window.cyberduelSettings?.effects(0.16) ?? 0.16 });
     if (this.modalAberto) return;
     // Lendárias usam uma ficha própria com arte ampliada.
@@ -4609,6 +4622,7 @@ class CenaJogo extends Phaser.Scene {
       this.overlayDetalheAtual = null;
       this.modalAberto = false;
       this.travado = !this.ehMeuTurno;
+      if (this.redesenhoAposLeitura) this.desenharInterface();
       if (!imediato) this.somJogarCarta.play();
     };
     if (imediato) concluir();
@@ -6668,6 +6682,7 @@ class CenaJogo extends Phaser.Scene {
     const botaoMenu = this.add.container(X, Y, [bg, icone]);
     botaoMenu.setSize(RAIO * 2, RAIO * 2);
     botaoMenu.setInteractive({ useHandCursor: true });
+    if (this.training) botaoMenu.setVisible(false).disableInteractive();
 
     botaoMenu.on("pointerover", () => {
       if (this.travado) return;
@@ -6693,6 +6708,7 @@ class CenaJogo extends Phaser.Scene {
       0x23ff6c,
       () => this.aoClicarPassarTurno(),
     );
+    this.botaoPassarTutorial = this.training ? botaoPassar : null;
 
     const roda = this.add.container(0, 0, [botaoMenu, botaoPassar]);
     roda.setDepth(200);
@@ -6710,6 +6726,7 @@ class CenaJogo extends Phaser.Scene {
 
   // Abre as opções; tocar no fundo fecha o menu.
   abrirOpcoesDaRoda() {
+    if (this.training) return;
     if (this.rodaOpcoesContainer) return;
 
     const LARGURA = 500;
@@ -7505,6 +7522,7 @@ class CenaJogo extends Phaser.Scene {
 
   // Handler do botão "Desistir": pede confirmação (ação irreversível) antes de encerrar a partida como derrota do jogador.
   aoClicarDesistir() {
+    if (this.training) return;
     if (this.partida.partidaEncerrada || this.modalAberto) return;
 
     this.modalAberto = true;
@@ -7767,6 +7785,7 @@ class CenaJogo extends Phaser.Scene {
       }
       return;
     }
+    if (this.painelDetalheAtual?.active) this.fecharDetalheCarta(true);
     this.telaFinalExibida = true;
     this.avisoBatalhaTexto?.destroy();
     this.avisoBatalhaSom?.destroy();
@@ -7992,6 +8011,7 @@ class CenaJogo extends Phaser.Scene {
   // Gestos verticais alternam a visibilidade da mão.
 
   configurarGestosMao() {
+    if (this.training) return;
     // Arrastar para baixo esconde a mão; para cima, mostra.
 
     if (this.gestosMaoConfigurados) return;

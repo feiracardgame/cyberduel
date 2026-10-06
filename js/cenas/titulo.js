@@ -185,7 +185,6 @@ class CenaTitulo extends Phaser.Scene {
   }
 
   iniciarTutorial() {
-    window.cyberduelTutorialPaused = false;
     this.multiplayer.active = false;
     this.scene.start("CenaJogo", { tutorial: true });
   }

@@ -6,46 +6,28 @@ vm.runInContext(fs.readFileSync('js/cenas/jogo.js', 'utf8'), context);
 const Scene = vm.runInContext('CenaJogo', context);
 const object = depth => ({ active: true, depth,
   setDepth(value) { this.depth = value; return this; },
-  destroy() { this.active = false; },
 });
-const flight = object(30);
-const video = object(5000);
-const effects = { sys: { isActive: () => true }, children: [flight, video], add: {
-  layer() {
-    const layer = Object.assign(object(0), {
-      list: [], add(objects) { this.list.push(...objects); },
-      destroy() { this.list.forEach(o => o.destroy()); this.active = false; },
-    });
-    effects.children.push(layer);
-    return layer;
-  },
-} };
+let onTop = false;
+const removed = [];
 const game = Object.assign(Object.create(Scene.prototype), {
-  scene: { manager: { keys: { CenaEfeitos: effects } } },
+  scene: { bringToTop() { onTop = true; }, sendToBack() { onTop = false; } },
+  limparMascaraRender(mask) { if (mask) removed.push(mask); },
 });
 const overlay = object(4000), card = object(4001);
 game.elevarModalCarta(overlay, card);
-const layer = game.camadaModalCarta;
-assert.ok(layer.depth > flight.depth && layer.depth > video.depth,
-  'Ficha e escurecimento devem aparecer acima de voo e vídeo da cena independente.');
-assert.deepEqual(layer.list, [overlay, card]);
+assert.equal(onTop, true, 'Cena da ficha acima da cena de efeitos.');
+assert.ok(overlay.depth > 5000 && card.depth > overlay.depth);
 const zoomOverlay = object(4500), zoom = object(4501);
 game.elevarModalCarta(zoomOverlay, zoom);
-assert.equal(game.camadaModalCarta, layer);
-assert.ok(zoom.depth > card.depth && zoomOverlay.depth > card.depth);
+assert.ok(zoomOverlay.depth > card.depth && zoom.depth > zoomOverlay.depth);
+const mask = {};
+game.mascaraDescricaoAtual = mask;
 game.limparCamadaModalCarta();
-assert.ok([layer, overlay, card, zoomOverlay, zoom].every(o => !o.active));
-assert.ok(flight.active && video.active, 'Fechar a ficha não cancela os efeitos.');
-assert.equal(game.camadaModalCarta, null);
+assert.equal(onTop, false, 'Efeitos voltam ao topo após fechar a leitura.');
+assert.equal(game.mascaraDescricaoAtual, null);
+assert.deepEqual(removed, [mask]);
 game.limparCamadaModalCarta();
+assert.deepEqual(removed, [mask], 'Limpeza repetida não destrói a máscara duas vezes.');
 game.elevarModalCarta(object(4000), object(4001));
-assert.notEqual(game.camadaModalCarta, layer, 'Reabrir cria uma camada válida.');
-game.limparCamadaModalCarta();
-for (const effectScene of [undefined, { sys: { isActive: () => false } }]) {
-  game.scene.manager.keys.CenaEfeitos = effectScene;
-  const localOverlay = object(4000), localCard = object(4001), localZoom = object(4501);
-  game.elevarModalCarta(localOverlay, localCard, localZoom);
-  assert.ok(localOverlay.depth > 5000 && localCard.depth > localOverlay.depth);
-  assert.ok(localZoom.depth > localCard.depth, 'Fallback preserva ordem de ficha e zoom.');
-}
-console.log('Ficha: camada acima dos efeitos, zoom, limpeza, reabertura e fallback validados.');
+assert.equal(onTop, true, 'Reabrir eleva novamente a cena.');
+console.log('Ficha: cena acima dos efeitos, zoom, máscara, limpeza e reabertura validadas.');

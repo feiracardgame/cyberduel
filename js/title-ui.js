@@ -137,6 +137,14 @@ class CyberduelTitleUI {
         action: "ESCOLHER PARTIDA",
       },
       {
+        id: "tutorial",
+        title: "TUTORIAL",
+        art: "repetir_tutorial",
+        kicker: "TREINO COM ELENAI",
+        description: "Aprenda a invocar cartas e usar habilidades.",
+        action: "INICIAR TUTORIAL",
+      },
+      {
         id: "cartas",
         title: "CARTAS",
         art: "montar_deck",
@@ -611,6 +619,8 @@ class CyberduelTitleUI {
   openCategoryOptions(kind) {
     if (this.cardMenuState.mode === "options" || this.cardMenuTransitioning)
       return;
+    if (kind === "tutorial")
+      return this.runMenuAction(() => this.callbacks.onTutorial?.(), "none");
     const sectionData = this.getMenuSections()[kind];
     if (!sectionData) return;
     const items = sectionData.rows.map(
@@ -844,7 +854,6 @@ class CyberduelTitleUI {
     for (const [icon, label, handler] of [
       ["◇", "PERFIL", () => this.openProfileScreen()],
       ["⚙", "AJUSTES", () => this.openSettingsDialog()],
-      ["?", "TUTORIAL", () => this.callbacks.onTutorial?.()],
     ]) {
       const button = this.button("card-menu__shortcut", "", handler, label);
       const mark = this.element("span", "", icon);

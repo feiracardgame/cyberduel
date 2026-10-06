@@ -107,6 +107,25 @@ async function connect() { const s = io(url, { transports: ['websocket'], forceN
   storyScene.account = { user: 'old', faction: 'raspcorp', tutorial: { introSeen: true, named: true,
     wantsTutorial: false, completed: true, farewellSeen: true, seen: [] }, gamesPlayed: 0, humanWins: 0 };
   await story.menu(); assert.equal(introductions, 2, 'Contas antigas entram no menu.');
+  let trainingStarts = 0;
+  storyScene.iniciarTutorial = () => { trainingStarts++; };
+  storyScene.account.tutorial.wantsTutorial = true;
+  storyScene.account.tutorial.completed = false;
+  await story.menu();
+  assert.equal(trainingStarts, 0, 'Treino interrompido não sequestra o menu nem as partidas.');
+  storyScene.account.faction = null;
+  storyScene.account.chooseFaction = async faction => { storyScene.account.faction = faction; };
+  storyScene.account.saveTutorial = async progress => Object.assign(storyScene.account.tutorial, progress);
+  story.say = async (_lines, options) => { if (options?.factions) await options.choices[0][1](); };
+  await story.menu();
+  assert.equal(storyScene.account.faction, 'raspcorp', 'Conta que interrompeu o treino pode liberar seu deck.');
+  assert.equal(trainingStarts, 0);
+  storyScene.account.tutorial.wantsTutorial = null;
+  story.say = async (dialogue, options) => {
+    if (dialogue === lines.question) await options.choices[0][1]();
+  };
+  await story.menu();
+  assert.equal(trainingStarts, 1, 'Aceitar o tutorial pela primeira vez ainda inicia o treino.');
 
   await start();
   assert.equal((await api('account/tutorial', { wantsTutorial: true }, null)).status, 401);

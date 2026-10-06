@@ -4,6 +4,29 @@ Novidades, correções e verificações realizadas no projeto. As entregas mais 
 
 ## 2026-10-06
 
+### Tutorial direto e atalhos centralizados no início
+
+- A carta Tutorial inicia o treino com um único clique, sem submenu intermediário. A ação do menu também usa esse acesso direto, disponível sem facção ou deck.
+- Removida a regra antiga de três colunas dos atalhos: Perfil e Ajustes agora ocupam duas colunas simétricas, centralizadas na tela inicial. Renovado o cache do CSS e do script do menu.
+- Aprovados os testes de menu e navegação do tutorial, sintaxe e `git diff --check`. Playwright confirmou o acesso com um clique e a centralização dos dois botões em 390 × 844 e 1280 × 900, sem transbordamento horizontal ou erros JavaScript. Captura do celular inspecionada; script e capturas em `C:/Users/odbea/AppData/Local/Temp/cyberduel-browser-check/direct-menu.cjs`. Sem deploy.
+
+### Orientação para iniciar o servidor de desenvolvimento no PowerShell
+
+- Conferidos `npm run dev`, seu script `scripts/dev-server.js` e a habilitação de debug e login local, com dados separados em `server/data-dev`.
+- Confirmado que Node e npm não estão no PATH deste ambiente; indicada a inclusão temporária do Node portátil já disponível em `%TEMP%/cyberduel-node-runtime/node-v22.20.0-win-x64`, seguida de `npm.cmd run dev`. Orientado o acesso em `http://localhost:3000` e o encerramento com Ctrl+C. Nenhum servidor iniciado neste pedido.
+
+### Tutorial como carta, isolamento do treino e leitura preservada
+
+- Adicionada a carta Tutorial ao carrossel principal, com a arte `repetir_tutorial.png`, substituindo o atalho inferior. O treino continua disponível sem facção ou deck.
+- Limpos os dados de abertura da CenaJogo após seu consumo: partidas solo, aleatórias e por sala não herdam o modo tutorial nem os dados de debug da abertura anterior. Tutorial interrompido não força novo redirecionamento; a conta pode escolher sua facção e retomar o treino pela carta do menu. A primeira aceitação ainda inicia o treino normalmente.
+- Bloqueados menu de desistência, saída do tutorial, gestos de esconder a mão, consultas a cartas sem relação com a etapa e conclusão de jogada antecipada. Invocações, habilidades e alvos continuam validados pelo roteiro e pelo motor.
+- A janela de leitura permanece aberta durante redesenhos do campo, inclusive nas atualizações multiplayer e no encerramento das seleções da fase, continuando disponível para fechar. O estado da partida continua sincronizado e o campo apresenta as alterações acumuladas quando a janela é fechada; o fim da partida fecha a leitura para apresentar o resultado. Renovadas as versões dos scripts no HTML.
+- Instaladas as skills ponytail e caveman nos diretórios pessoais do Codex, a partir dos repositórios solicitados, sem substituir as instruções do projeto ou alterar `Tutorial.md` do usuário.
+- Aprovadas sintaxe dos 26 scripts e 42 dos 44 arquivos de testes funcionais, incluindo regressões novas para dados de cena, bloqueios do treino, conta com treino interrompido e leitura preservada. Atualizados os testes antigos do nome do Clube e da elevação da cena da ficha para refletir a implementação atual.
+- Playwright no Chrome confirmou carta Tutorial no carrossel em 390 × 844 e 1280 × 900 e treino completo no celular por cliques nas invocações e nas duas habilidades, com desistência bloqueada, retorno ao menu e abertura de partida comum sem herdar tutorial. Confirmada a preservação da ficha durante invocações inimigas pelo motor nas duas resoluções e a atualização do campo ao fechar, inclusive após encerrar as seleções da fase; capturas inspecionadas, sem erros JavaScript.
+- Playwright também confirmou, nas duas resoluções, contas com treino incompleto entrando no menu, retomando o tutorial e iniciando Jogar solo e Partida aleatória pelo carrossel após interromper o treino na mesma instância da cena. Matchmaking real contra outra conta via Socket.IO, sem herdar tutorial ou marcar sua conclusão. Contas e sessões de teste criadas em diretório temporário; não foi exercitado o login Google externo. Scripts, logs e capturas em `C:/Users/odbea/AppData/Local/Temp/cyberduel-browser-check/`.
+- Limitações da suíte: `effect-events.test.js` encontra divergência preexistente entre a descrição de O Bom e `Cartas e boosters.md`; `matchmaking-ui.test.js` espera um texto antigo do ranking, com a mesma falha confirmada usando `js/title-ui.js` do HEAD. Sem deploy.
+
 ### Google, cadastro do nick e apelido pedido no tutorial
 
 - Corrigida a sequência inicial: autenticar com Google → completar o cadastro com o nick único da conta → iniciar a apresentação da ElenAI → escolher o apelido exibido no jogo durante o tutorial. O formulário de cadastro agora tem apenas o campo de nick; removido o pedido antecipado de apelido.
