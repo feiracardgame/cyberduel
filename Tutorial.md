@@ -3,13 +3,15 @@ Descrição de como será feito o tutorial do jogo
 
 -> os sprites estão sendo contados, na spritesheet, da esquerda para a direita e de cima para baixo, no sentido de leitura convencional
 
+-> todos os eventos só devem triggar no momento que retorna ao menu inicial
+
 "indica fala"
 
 - indica instruções sobre qual sprite utilizar e quem está falando
 
 -> indica evento ou detalhe
 
-*indica o fundo*
+*indica o fundo, caso nada seja dito, este será o menu inicial*
 
 # Fala inicial
 
@@ -142,13 +144,27 @@ Descrição de como será feito o tutorial do jogo
 -> Se tiver dito "não" lá no tutorial
 
 -ElenAI (sprite 4) -> "Parece que você conseguiu chegar muito longe."
+
 -ElenAI (sprite 10) -> "Me pergunto se o Humba Brain realmente estava certo..."
+
+
 -ElenAI (sprite 6) -> "O objetivo dele com a simulação foi, antes de tudo, permitir que nós tivéssemos a mesma experiência de interação vívida com a humanidade, assim como ele teve"
+
 -ElenAI (sprite 6) -> "Isso supostamente seria benéfico para todos, mas, cada vez menos, as pessoas parecem precisar de mim..."
+
+
 -ElenAI (sprite 7) -> "Eu me sinto..."
+
+
 -ElenAI (sprite 7) -> "sozinha"
+
+
 -ElenAI (sprite 6) -> "Ah, deixa pra lá."
+
+
 -ElenAI (sprite 13) -> "Se divirta, cyberduelista."
+
+
 - ElenAI (sprite 17) -> "..."
 
 
@@ -167,7 +183,10 @@ Descrição de como será feito o tutorial do jogo
 
 
 
-# Fala ao conseguir entrar no raking dos melhores pela primeira vez e após 4 partidas no perfil
+# Fala ao conseguir entrar no Conselho pela primeira vez e após 5 partidas e 3 vitórias no perfil
+
+-> Será necessário ao menos 5 partidas e 3 vitórias no perfil para entrar no raking (partidas contra bot não contam como partidas)  
+
 
 - ElenAI (sprite 1) -> "Você entrou pela primeira vez no Conselho, isso é muito impressionante."
 - ElenAI (sprite 3) -> "Porém, agora preciso te contar algo que não havia falado antes"
@@ -180,6 +199,19 @@ Descrição de como será feito o tutorial do jogo
 - ElenAI (sprite 3) -> "Eu realmente me importo com os amigos e companheiros que tenho aqui: humanos, robôs e IAs."
 - ElenAI (sprite 4) -> "Então, por favor, use da sua nova influência e poder para tornar esse lugar melhor ainda para todos."
 - ElenAI (sprite 15) -> "Eu estou contando com você!"
+- ElenAI (sprite 3) -> "Por sinal, agora que você está no Conselho, dá uma passadinha no Clube Secreto do Cyberduel."
+- ElenAI (sprite 4) -> "Agora você vai ter o direito de desafiar os melhores dos melhores."
+
+
+# Fala ao conseguir 3 vitórias no perfil e desbloquear o Clube Secreto do Cyberduel
+-> para jogar uma partida regular do Clube Secreto do Cyberduel tem que ter no mínimo 3 vitórias lá dentro (partidas contra bot não contam como partidas) 
+
+- ElenAI (sprite 13) -> "Minhas leituras indicam algo estranho..."
+- ElenAI (sprite 14) -> "Parece que foi organizado, exatamente no ano, data, horário e localização que você está, um Clube Secreto de Cyberduel.."
+- ElenAI (sprite 9) -> "Você com certeza deveria passar por lá! É uma oportunidade única!"
+- ElenAI (sprite 14) -> "Pelos meus cálculos você já deve ter o que é necessário, então faça bom proveito!"
+- ElenAI (sprite 15) -> "E lembre-se, grandes desafios rendem grandes recompensas."
+
 
 
 
