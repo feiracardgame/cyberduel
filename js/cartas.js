@@ -1,9 +1,12 @@
 console.log("cartas.js carregado");
 
-// Dados das cartas.
+// Dados das cartas
 
 const NIVEIS_CARTAS = {
-  "IA de treinamento": "baixa", "HAL 9001": "media", "H.A.R.V.I.S": "media", "Replicantes": "alta",
+  "IA de treinamento": "baixa",
+  "HAL 9001": "media",
+  "H.A.R.V.I.S": "media",
+  Replicantes: "alta",
   NeoPalhoça: "terreno",
   "Dragão das Comunicações Móveis": "alta",
   "Professores de Duelo": "lendaria",
@@ -53,8 +56,11 @@ function classificarNivelCarta(nome, poder, tipo, lendaria) {
 // Catálogo e regras de descrição das cartas.
 
 const TIPOS_EFEITO = {
-  BUFF_ADJACENTES: "buff_adjacentes", BONUS_POR_TERRENOS: "bonus_por_terrenos",
-  SILENCIAR_CARTA: "silenciar_carta", RENOVAR_MAO: "renovar_mao", PENALIZAR_PROXIMA_INVOCACAO: "penalizar_proxima_invocacao",
+  BUFF_ADJACENTES: "buff_adjacentes",
+  BONUS_POR_TERRENOS: "bonus_por_terrenos",
+  SILENCIAR_CARTA: "silenciar_carta",
+  RENOVAR_MAO: "renovar_mao",
+  PENALIZAR_PROXIMA_INVOCACAO: "penalizar_proxima_invocacao",
   SINDICATO: "sindicato",
   VINCULO_ALIADO: "vinculo_aliado",
   BUFF_ALIADOS: "buff_aliados", // fortalece as outras cartas aliadas já em campo
@@ -96,10 +102,14 @@ function descreverEfeito(efeito) {
   if (!efeito) return "";
   switch (efeito.tipo) {
     case TIPOS_EFEITO.SILENCIAR_CARTA:
-    case TIPOS_EFEITO.RENOVAR_MAO: return efeito.texto;
-    case TIPOS_EFEITO.BUFF_ADJACENTES: return `Benefício do tutorial -> Cartas aliadas adjacentes ganham +${efeito.valor} PA enquanto esta carta estiver em campo.`;
-    case TIPOS_EFEITO.BONUS_POR_TERRENOS: return `Demanda operacional -> Recebe +${efeito.valor} PA por terreno presente em qualquer um dos campos.`;
-    case TIPOS_EFEITO.PENALIZAR_PROXIMA_INVOCACAO: return `Faro -> Ao ser invocado, a próxima carta de personagem invocada pelo adversário perde ${efeito.valor} PA. Não acumula.`;
+    case TIPOS_EFEITO.RENOVAR_MAO:
+      return efeito.texto;
+    case TIPOS_EFEITO.BUFF_ADJACENTES:
+      return `Benefício do tutorial -> Cartas aliadas adjacentes ganham +${efeito.valor} PA enquanto esta carta estiver em campo.`;
+    case TIPOS_EFEITO.BONUS_POR_TERRENOS:
+      return `Demanda operacional -> Recebe +${efeito.valor} PA por terreno presente em qualquer um dos campos.`;
+    case TIPOS_EFEITO.PENALIZAR_PROXIMA_INVOCACAO:
+      return `Faro -> Ao ser invocado, a próxima carta de personagem invocada pelo adversário perde ${efeito.valor} PA. Não acumula.`;
     case TIPOS_EFEITO.SINDICATO:
     case TIPOS_EFEITO.VINCULO_ALIADO:
       return efeito.texto;
@@ -117,8 +127,8 @@ function descreverEfeito(efeito) {
       return efeito.permiteProprio
         ? `Venda Casada -> Uma vez por turno, escolha uma carta aliada ou esta para ganhar +${efeito.valor} PA.`
         : efeito.custoProprio
-        ? `Habilidade ativa (1x por turno, em campo): escolha uma carta aliada em campo para ganhar +${efeito.valor} de poder. Esta carta perde ${efeito.custoProprio} de poder.`
-        : `Ao ser invocada: escolha uma carta aliada em campo (pode ser esta) para ganhar +${efeito.valor} de poder.`;
+          ? `Habilidade ativa (1x por turno, em campo): escolha uma carta aliada em campo para ganhar +${efeito.valor} de poder. Esta carta perde ${efeito.custoProprio} de poder.`
+          : `Ao ser invocada: escolha uma carta aliada em campo (pode ser esta) para ganhar +${efeito.valor} de poder.`;
     case TIPOS_EFEITO.REDISTRIBUIR_PODER:
       return `Habilidade ativa (1x por turno, em campo): escolha uma carta aliada com pelo menos ${efeito.perda} de PA para perder ${efeito.perda} de poder, e outra carta aliada para ganhar +${efeito.ganho} de poder.`;
     case TIPOS_EFEITO.DESTRUIR_TERRENO_INIMIGO:
@@ -142,7 +152,10 @@ function descreverEfeito(efeito) {
     case TIPOS_EFEITO.RESETAR_PODER:
       return `Habilidade ativa (1x por turno, em campo): escolha uma carta em campo para retornar ao seu poder original, perdendo todos os bônus e reduções que tiver recebido.`;
     case TIPOS_EFEITO.ATACAR_DOIS_ALVOS:
-      return efeito.texto || `Habilidade ativa (1x por turno, em campo): escolha 2 cartas inimigas no alcance indicado (H${efeito.rangeH}/V${efeito.rangeV}) para perder ${efeito.valor} de PA cada.`;
+      return (
+        efeito.texto ||
+        `Habilidade ativa (1x por turno, em campo): escolha 2 cartas inimigas no alcance indicado (H${efeito.rangeH}/V${efeito.rangeV}) para perder ${efeito.valor} de PA cada.`
+      );
     case TIPOS_EFEITO.OVERRIDE:
       return `Habilidade ativa (1x por turno, em campo): controle uma carta inimiga com PA menor que o desta carta. Ao escolher outro alvo, o controle anterior é transferido para o novo.`;
     case TIPOS_EFEITO.ROUBAR_PODER:
@@ -207,41 +220,45 @@ function descreverEfeitoContinuo(efeito) {
 
 // Modelos de terrenos; o deck define os IDs.
 const POOL_CARTAS_TERRENO = [
-{
-  "nome": "DeepClaude ChatGemini",
-  "poder": 0,
-  "descricao": "As IAs eram gratuitas até todo mundo começar a usá-las. Quando perceberam que havia dinheiro envolvido, seus criadores rapidamente introduziram assinaturas, créditos e limites de utilização. O Humba Brain resolveu o problema de uma maneira simples: reuniu todas elas em um único modelo para que nenhum NeoFlorianopolitano precisasse pagar por elas.",
-  "imagem": "deepclaude",
-  "booster": "humbanet",
-  "efeito": {
-    "tipo": "renovar_mao",
-    "texto": "Claro, aqui está... -> Uma vez por turno, descarte sua mão e compre a mesma quantidade de cartas."
+  {
+    nome: "DeepClaude ChatGemini",
+    poder: 0,
+    descricao:
+      "As IAs eram gratuitas até todo mundo começar a usá-las. Quando perceberam que havia dinheiro envolvido, seus criadores rapidamente introduziram assinaturas, créditos e limites de utilização. O Humba Brain resolveu o problema de uma maneira simples: reuniu todas elas em um único modelo para que nenhum NeoFlorianopolitano precisasse pagar por elas.",
+    imagem: "deepclaude",
+    booster: "humbanet",
+    efeito: {
+      tipo: "renovar_mao",
+      texto:
+        "Claro, aqui está... -> Uma vez por turno, descarte sua mão e compre a mesma quantidade de cartas.",
+    },
+    habilidadeAtiva: true,
   },
-  "habilidadeAtiva": true
-},
-{
-  "nome": "Bug na Matrix",
-  "poder": 0,
-  "descricao": "Todo produto possui alguns defeitos. Felizmente, nosso estimado criador trabalha incansavelmente em novas correções para garantir a felicidade geral da cybernação. Afinal, se algo não funciona, basta lançar uma atualização e fingir que estava tudo planejado.",
-  "imagem": "bug_matrix",
-  "booster": "humbanet",
-  "efeitoContinuo": {
-    "tipo": "buff_campo_continuo",
-    "valor": 2
-  }
-},
+  {
+    nome: "Bug na Matrix",
+    poder: 0,
+    descricao:
+      "Todo produto possui alguns defeitos. Felizmente, nosso estimado criador trabalha incansavelmente em novas correções para garantir a felicidade geral da cybernação. Afinal, se algo não funciona, basta lançar uma atualização e fingir que estava tudo planejado.",
+    imagem: "bug_matrix",
+    booster: "humbanet",
+    efeitoContinuo: {
+      tipo: "buff_campo_continuo",
+      valor: 2,
+    },
+  },
   {
     nome: "NeoPalhoça",
     poder: 0,
-    descricao: "Para combater o alto custo de vida de NeoFloripa, a solução encontrada foi criar NeoPalhoça: uma região barata, distante e convenientemente localizada longe de tudo que importa. A simulação foi tão fiel que seus moradores enfrentam diariamente trânsito, longos deslocamentos e falta de infraestrutura. A única novidade foi o vulcão.",
+    descricao:
+      "Para combater o alto custo de vida de NeoFloripa, a solução encontrada foi criar NeoPalhoça: uma região barata, distante e convenientemente localizada longe de tudo que importa. A simulação foi tão fiel que seus moradores enfrentam diariamente trânsito, longos deslocamentos e falta de infraestrutura. A única novidade foi o vulcão.",
     imagem: "neo_palhoca",
     booster: "sindicato",
     nivel: "terreno",
     efeitoContinuo: {
       tipo: "buff_campo_continuo",
       valor: 3,
-      booster: "sindicato"
-    }
+      booster: "sindicato",
+    },
   },
   {
     nome: "Torre MonteCorp",
@@ -330,67 +347,75 @@ function descreverEfeitoTurno(efeito) {
 
 // Modelos de monstros e suas habilidades.
 const POOL_CARTAS_MONSTRO = [
-{
-  "nome": "IA de treinamento",
-  "poder": 4,
-  "descricao": "Para tornar a experiência acessível a todos, a HumbaNet criou uma integrante responsável por demonstrar as funcionalidades e explicar as regras da nova simulação. Infelizmente, ninguém descobriu como tornar suas interrupções menos irritantes ou implementar um botão de pular tutorial.",
-  "imagem": "ia_treinamento",
-  "booster": "humbanet",
-  "efeito": {
-    "tipo": "buff_adjacentes",
-    "valor": 4
-  }
-},
-{
-  "nome": "HAL 9001",
-  "poder": 5,
-  "descricao": "A versão aprimorada de uma das IAs mais referenciadas da história promete novas funcionalidades, análises aprimoradas e um comportamento, esperamos, um pouco menos destrutivo e manipulador. Contudo, ela continua banida de operações espaciais.",
-  "imagem": "hal9001",
-  "booster": "humbanet",
-  "efeito": {
-    "tipo": "silenciar_carta",
-    "texto": "Controle de Risco -> Uma vez por turno, escolha uma carta inimiga. Seus efeitos ficam desabilitados enquanto HAL estiver em campo. Cada HAL mantém apenas um alvo."
+  {
+    nome: "IA de treinamento",
+    poder: 4,
+    descricao:
+      "Para tornar a experiência acessível a todos, a HumbaNet criou uma integrante responsável por demonstrar as funcionalidades e explicar as regras da nova simulação. Infelizmente, ninguém descobriu como tornar suas interrupções menos irritantes ou implementar um botão de pular tutorial.",
+    imagem: "ia_treinamento",
+    booster: "humbanet",
+    efeito: {
+      tipo: "buff_adjacentes",
+      valor: 4,
+    },
   },
-  "habilidadeAtiva": true
-},
-{
-  "nome": "H.A.R.V.I.S",
-  "poder": 5,
-  "descricao": "Conheça Harvis, sua nova IA assistente! Criado para auxiliar os usuários de NeoFloripa, ele pode responder perguntas, realizar tarefas, controlar dispositivos, oferecer recomendações e facilitar sua vida dentro da simulação. Harvis está sempre ao seu lado, mesmo quando você não pediu. O fato de agora possuir um corpo físico na simulação torna isso um pouco mais estranho.",
-  "imagem": "harvis",
-  "booster": "humbanet",
-  "efeito": {
-    "tipo": "comprar_carta",
-    "valor": 1
-  }
-},
-{
-  "nome": "Replicantes",
-  "poder": 7,
-  "descricao": "Os Replicantes eram seres biologicamente aprimorados, desenvolvidos para executar tarefas perigosas e trabalhos manuais no mundo antigo. Contudo, em NeoFloripa, são responsáveis pela manutenção e integridade da simulação. Ironicamente, em um mundo virtual completamente controlado, são mais livres do que jamais foram na realidade.",
-  "imagem": "replicantes",
-  "booster": "humbanet",
-  "efeito": {
-    "tipo": "bonus_por_terrenos",
-    "valor": 3
-  }
-},
+  {
+    nome: "HAL 9001",
+    poder: 5,
+    descricao:
+      "A versão aprimorada de uma das IAs mais referenciadas da história promete novas funcionalidades, análises aprimoradas e um comportamento, esperamos, um pouco menos destrutivo e manipulador. Contudo, ela continua banida de operações espaciais.",
+    imagem: "hal9001",
+    booster: "humbanet",
+    efeito: {
+      tipo: "silenciar_carta",
+      texto:
+        "Controle de Risco -> Uma vez por turno, escolha uma carta inimiga. Seus efeitos ficam desabilitados enquanto HAL estiver em campo. Cada HAL mantém apenas um alvo.",
+    },
+    habilidadeAtiva: true,
+  },
+  {
+    nome: "H.A.R.V.I.S",
+    poder: 5,
+    descricao:
+      "Conheça Harvis, sua nova IA assistente! Criado para auxiliar os usuários de NeoFloripa, ele pode responder perguntas, realizar tarefas, controlar dispositivos, oferecer recomendações e facilitar sua vida dentro da simulação. Harvis está sempre ao seu lado, mesmo quando você não pediu. O fato de agora possuir um corpo físico na simulação torna isso um pouco mais estranho.",
+    imagem: "harvis",
+    booster: "humbanet",
+    efeito: {
+      tipo: "comprar_carta",
+      valor: 1,
+    },
+  },
+  {
+    nome: "Replicantes",
+    poder: 7,
+    descricao:
+      "Os Replicantes eram seres biologicamente aprimorados, desenvolvidos para executar tarefas perigosas e trabalhos manuais no mundo antigo. Contudo, em NeoFloripa, são responsáveis pela manutenção e integridade da simulação. Ironicamente, em um mundo virtual completamente controlado, são mais livres do que jamais foram na realidade.",
+    imagem: "replicantes",
+    booster: "humbanet",
+    efeito: {
+      tipo: "bonus_por_terrenos",
+      valor: 3,
+    },
+  },
   {
     nome: "Dragão das Comunicações Móveis",
     poder: 14,
-    descricao: "Um dos primeiros experimentos do HumbaBrain foi fazer o upload de um indivíduo no fim da vida para a simulação, permitindo que escolhesse sua própria forma. O resultado foi... inusitado. Temendo sua possível ameaça, o criador decidiu mantê-lo desativado até que um sinal específico de radiofrequência seja emitido. Desde então, a plateia aguarda para descobrir se ele será um espetáculo ou um desastre.",
+    descricao:
+      "Um dos primeiros experimentos do HumbaBrain foi fazer o upload de um indivíduo no fim da vida para a simulação, permitindo que escolhesse sua própria forma. O resultado foi... inusitado. Temendo sua possível ameaça, o criador decidiu mantê-lo desativado até que um sinal específico de radiofrequência seja emitido. Desde então, a plateia aguarda para descobrir se ele será um espetáculo ou um desastre.",
     imagem: "o_dragao",
     booster: "humbanet",
     nivel: "alta",
     efeito: {
       tipo: "texto_regra",
-      texto: "Adormecido -> Esta carta não possui efeitos enquanto estiver adormecida."
-    }
+      texto:
+        "Adormecido -> Esta carta não possui efeitos enquanto estiver adormecida.",
+    },
   },
   {
     nome: "Professores de Duelo",
     poder: 8,
-    descricao: "Apesar de todo o desenvolvimento tecnológico, NeoFloripa parece valorizar mais o entretenimento do que a educação. Por isso, professores precisam associar suas matérias ao CyberDuel para manter a atenção dos alunos. Curiosamente, a estratégia parece ter tido o efeito contrário: uma dupla de professores já chegou ao topo do ranking de CyberDuel, integrando o Conselho, e agora tenta guiar a sociedade com base em acontecimentos históricos e dados geográficos.",
+    descricao:
+      "Apesar de todo o desenvolvimento tecnológico, NeoFloripa parece valorizar mais o entretenimento do que a educação. Por isso, professores precisam associar suas matérias ao CyberDuel para manter a atenção dos alunos. Curiosamente, a estratégia parece ter tido o efeito contrário: uma dupla de professores já chegou ao topo do ranking de CyberDuel, integrando o Conselho, e agora tenta guiar a sociedade com base em acontecimentos históricos e dados geográficos.",
     imagem: "professores_de_duelo",
     booster: "sindicato",
     nivel: "lendaria",
@@ -399,14 +424,16 @@ const POOL_CARTAS_MONSTRO = [
       tipo: "sindicato",
       acao: "reativar",
       alvo: "aliado",
-      texto: "Recuperação -> Uma vez por turno, escolha uma carta aliada que já tenha usado seu efeito. Ela pode utilizá-lo novamente."
+      texto:
+        "Recuperação -> Uma vez por turno, escolha uma carta aliada que já tenha usado seu efeito. Ela pode utilizá-lo novamente.",
     },
-    habilidadeAtiva: true
+    habilidadeAtiva: true,
   },
   {
     nome: "CyberPolíticos",
     poder: 6,
-    descricao: "Outrora decisores do futuro da sociedade, os políticos agora disputam influência através de duelos de cartas em vez de discursos elaborados. Continuam prometendo colocar NeoFloripa nas mãos do povo, mas a promessa parece perder força quando surge uma mão mais conveniente, especialmente se ela vier acompanhada de uma carta brilhante.",
+    descricao:
+      "Outrora decisores do futuro da sociedade, os políticos agora disputam influência através de duelos de cartas em vez de discursos elaborados. Continuam prometendo colocar NeoFloripa nas mãos do povo, mas a promessa parece perder força quando surge uma mão mais conveniente, especialmente se ela vier acompanhada de uma carta brilhante.",
     imagem: "cyber_politico",
     booster: "sindicato",
     nivel: "alta",
@@ -414,13 +441,15 @@ const POOL_CARTAS_MONSTRO = [
       tipo: "vinculo_aliado",
       acao: "vinculo",
       alvo: "aliado",
-      texto: "Troca de Favores -> Ao invocá-lo, escolha uma carta aliada. Enquanto ela ainda estiver em campo, o Político recebe +6 de PA. Caso ela seja destruída, o político é eliminado junto."
-    }
+      texto:
+        "Troca de Favores -> Ao invocá-lo, escolha uma carta aliada. Enquanto ela ainda estiver em campo, o Político recebe +6 de PA. Caso ela seja destruída, o político é eliminado junto.",
+    },
   },
   {
     nome: "Influenciador Digital",
     poder: 6,
-    descricao: "Dentre as chamadas \"pessoas normais\", o Influenciador é aquele que acredita ser mais especial. Dita tendências, opiniões e comportamentos, embora suas convicções possam mudar diante de uma proposta melhor. Não produz nada além de conteúdo, engajamento e publicidade, mas finalmente encontrou uma forma de vender a própria existência e chamar isso de trabalho.",
+    descricao:
+      'Dentre as chamadas "pessoas normais", o Influenciador é aquele que acredita ser mais especial. Dita tendências, opiniões e comportamentos, embora suas convicções possam mudar diante de uma proposta melhor. Não produz nada além de conteúdo, engajamento e publicidade, mas finalmente encontrou uma forma de vender a própria existência e chamar isso de trabalho.',
     imagem: "neo_influencer",
     booster: "sindicato",
     nivel: "media",
@@ -428,14 +457,16 @@ const POOL_CARTAS_MONSTRO = [
       tipo: "sindicato",
       acao: "opiniao",
       alvo: "qualquer",
-      texto: "Opinião Pública -> Uma vez por turno, escolha duas cartas em campo. Se for aliada, ela recebe engajamento e ganha +2 de PA. Se for inimiga, ela sofre um cancelamento e perde essa mesma quantidade."
+      texto:
+        "Opinião Pública -> Uma vez por turno, escolha duas cartas em campo. Se for aliada, ela recebe engajamento e ganha +2 de PA. Se for inimiga, ela sofre um cancelamento e perde essa mesma quantidade.",
     },
-    habilidadeAtiva: true
+    habilidadeAtiva: true,
   },
   {
     nome: "NeoMedicânico",
     poder: 5,
-    descricao: "Com o avanço da medicina, envelhecer deixou de ser um dos maiores problemas da humanidade. Em compensação, implantes cibernéticos começaram a apresentar falhas cada vez mais frequentes. Por isso, as faculdades de medicina tiveram que atualizar seus currículos: além de anatomia, agora é necessário saber um pouco de engenharia eletrônica e mecânica.",
+    descricao:
+      "Com o avanço da medicina, envelhecer deixou de ser um dos maiores problemas da humanidade. Em compensação, implantes cibernéticos começaram a apresentar falhas cada vez mais frequentes. Por isso, as faculdades de medicina tiveram que atualizar seus currículos: além de anatomia, agora é necessário saber um pouco de engenharia eletrônica e mecânica.",
     imagem: "neomedicanico",
     booster: "sindicato",
     nivel: "media",
@@ -443,14 +474,16 @@ const POOL_CARTAS_MONSTRO = [
       tipo: "sindicato",
       acao: "curar",
       alvo: "aliado",
-      texto: "Uma vez por turno, escolha uma carta aliada que tenha perdido PA. Ela recupera todos seus PA."
+      texto:
+        "Uma vez por turno, escolha uma carta aliada que tenha perdido PA. Ela recupera todos seus PA.",
     },
-    habilidadeAtiva: true
+    habilidadeAtiva: true,
   },
   {
     nome: "TecnoAgentes de Segurança",
     poder: 5,
-    descricao: "Enquanto IAs e Firewalls físicos protegem NeoFloripa de ameaças reais, a nova versão dos policiais mantem a paz nas pequenas confusões do dia a dia. Nem sempre é um trabalho glorioso, mas alguém ainda precisa convencer o vizinho a abaixar o volume da música.",
+    descricao:
+      "Enquanto IAs e Firewalls físicos protegem NeoFloripa de ameaças reais, a nova versão dos policiais mantem a paz nas pequenas confusões do dia a dia. Nem sempre é um trabalho glorioso, mas alguém ainda precisa convencer o vizinho a abaixar o volume da música.",
     imagem: "tecno_agente",
     booster: "sindicato",
     nivel: "media",
@@ -458,14 +491,16 @@ const POOL_CARTAS_MONSTRO = [
       tipo: "sindicato",
       acao: "advertir",
       alvo: "inimigo",
-      texto: "Advertência -> Escolha uma carta inimiga. Ela recebe uma advertência. Cada vez que ela utilizar seu efeito, enquanto o TecnoAgente estiver em campo, perde 3 de PA."
+      texto:
+        "Advertência -> Escolha uma carta inimiga. Ela recebe uma advertência. Cada vez que ela utilizar seu efeito, enquanto o TecnoAgente estiver em campo, perde 3 de PA.",
     },
-    habilidadeAtiva: true
+    habilidadeAtiva: true,
   },
   {
     nome: "CyberUnidades de Emergência",
     poder: 5,
-    descricao: "Os bombeiros continuam enfrentando incêndios, acidentes e desastres para salvar vidas. Em uma sociedade dominada por IAs, tornaram-se símbolos daqueles que ainda defendem a superioridade humana. Afinal, até agora, nenhuma IA parece ter entendido por que alguém escolheria entrar voluntariamente em um prédio em chamas para salvar um simples humano.",
+    descricao:
+      "Os bombeiros continuam enfrentando incêndios, acidentes e desastres para salvar vidas. Em uma sociedade dominada por IAs, tornaram-se símbolos daqueles que ainda defendem a superioridade humana. Afinal, até agora, nenhuma IA parece ter entendido por que alguém escolheria entrar voluntariamente em um prédio em chamas para salvar um simples humano.",
     imagem: "bombeiro_neofloripa",
     booster: "sindicato",
     nivel: "media",
@@ -473,14 +508,16 @@ const POOL_CARTAS_MONSTRO = [
       tipo: "sindicato",
       acao: "bloquear_bonus",
       alvo: "inimigo",
-      texto: "Extintor -> Uma vez por turno, escolha uma carta inimiga. Até o fim da próxima rodada, ela não pode receber bônus de PA."
+      texto:
+        "Extintor -> Uma vez por turno, escolha uma carta inimiga. Até o fim da próxima rodada, ela não pode receber bônus de PA.",
     },
-    habilidadeAtiva: true
+    habilidadeAtiva: true,
   },
   {
     nome: "Estudante de Curso Técnico",
     poder: 3,
-    descricao: "O estudante de curso técnico possui potencial infinito. Não há quase nada que ele não possa aprender a fazer, embora às vezes o preço envolva seu tempo, esforço e sanidade mental. Seu maior desafio, porém, continua sendo descobrir como fazer qualquer coisa sem pesquisar no CyberSmartPhone primeiro.",
+    descricao:
+      "O estudante de curso técnico possui potencial infinito. Não há quase nada que ele não possa aprender a fazer, embora às vezes o preço envolva seu tempo, esforço e sanidade mental. Seu maior desafio, porém, continua sendo descobrir como fazer qualquer coisa sem pesquisar no CyberSmartPhone primeiro.",
     imagem: "estudante_tecnico",
     booster: "sindicato",
     nivel: "baixa",
@@ -488,14 +525,16 @@ const POOL_CARTAS_MONSTRO = [
       tipo: "sindicato",
       acao: "aprender",
       alvo: "aliado",
-      texto: "Escolha uma carta aliada que tenha habilidade ativável e perca 2 de PA. O Estudante aprende permanentemente a habilidade da carta escolhida. Este efeito só pode ser utilizado uma vez."
+      texto:
+        "Escolha uma carta aliada que tenha habilidade ativável e perca 2 de PA. O Estudante aprende permanentemente a habilidade da carta escolhida. Este efeito só pode ser utilizado uma vez.",
     },
-    habilidadeAtiva: true
+    habilidadeAtiva: true,
   },
   {
     nome: "Montadores de Cabos",
     poder: 4,
-    descricao: "Quem falou que as máquinas e as IAs roubariam nossos empregos não poderia estar mais errado. Na verdade, hoje trabalhamos cinco vezes mais **para elas**. Afinal, até mesmo as máquinas mais avançadas do planeta continuam incapazes de explicar por que todo cabo é exatamente 10 centímetros curto demais ou 20 metros longo demais.",
+    descricao:
+      "Quem falou que as máquinas e as IAs roubariam nossos empregos não poderia estar mais errado. Na verdade, hoje trabalhamos cinco vezes mais **para elas**. Afinal, até mesmo as máquinas mais avançadas do planeta continuam incapazes de explicar por que todo cabo é exatamente 10 centímetros curto demais ou 20 metros longo demais.",
     imagem: "montador_de_cabos",
     booster: "sindicato",
     nivel: "baixa",
@@ -503,14 +542,16 @@ const POOL_CARTAS_MONSTRO = [
       tipo: "sindicato",
       acao: "mover",
       alvo: "aliado",
-      texto: "Extensão ->Uma vez por turno, escolha uma carta aliada. Você pode movê-la para qualquer outro espaço livre em seu campo."
+      texto:
+        "Extensão ->Uma vez por turno, escolha uma carta aliada. Você pode movê-la para qualquer outro espaço livre em seu campo.",
     },
-    habilidadeAtiva: true
+    habilidadeAtiva: true,
   },
   {
     nome: "Refrigeradores de DataCenter",
     poder: 4,
-    descricao: "Com a média da temperatura global já em 30°C, o processo de implementação e manutenção de sistemas de refrigeração em servidores de megacorporações tem sido cada vez frequente. Para isso, os técnicos em refrigeração precisam encontrar soluções inovadoras para a resolução desse problema, já que a criatividade é o único recurso que atualmente ainda não se encontra em escassez.",
+    descricao:
+      "Com a média da temperatura global já em 30°C, o processo de implementação e manutenção de sistemas de refrigeração em servidores de megacorporações tem sido cada vez frequente. Para isso, os técnicos em refrigeração precisam encontrar soluções inovadoras para a resolução desse problema, já que a criatividade é o único recurso que atualmente ainda não se encontra em escassez.",
     imagem: "refrigerador_de_datacenter",
     booster: "sindicato",
     nivel: "baixa",
@@ -518,9 +559,10 @@ const POOL_CARTAS_MONSTRO = [
       tipo: "sindicato",
       acao: "proteger",
       alvo: "aliado",
-      texto: "Manutenção Preventiva -> O técnico previne que o servidor superaqueça. Uma vez por turno, escolha uma carta aliada, ela não pode perder PA até o início do seu próximo turno."
+      texto:
+        "Manutenção Preventiva -> O técnico previne que o servidor superaqueça. Uma vez por turno, escolha uma carta aliada, ela não pode perder PA até o início do seu próximo turno.",
     },
-    habilidadeAtiva: true
+    habilidadeAtiva: true,
   },
   {
     nome: "CryptoAcionistas",
@@ -534,7 +576,7 @@ const POOL_CARTAS_MONSTRO = [
     efeitoTurno: {
       tipo: TIPOS_EFEITO_TURNO.CHANCE_GANHAR_PODER,
       chance: 0.5,
-      valor: 2,
+      valor: 3,
     },
   },
 
@@ -549,7 +591,7 @@ const POOL_CARTAS_MONSTRO = [
     habilidadeAtiva: true,
     efeito: {
       tipo: TIPOS_EFEITO.BUFF_ALIADO_ESCOLHIDO,
-      valor: 1,
+      valor: 2,
       permiteProprio: true,
     },
     // Venda Casada: efeito passivo normal (dispara ao invocar), não é habilidade ativa — segue o mesmo fluxo de BUFF_ALIADOS/DEBUFF_INIMIGOS.
@@ -568,7 +610,8 @@ const POOL_CARTAS_MONSTRO = [
       rangeH: 3, // A regra usa rangeH - 1: distância máxima de uma coluna.
       rangeV: 2,
       atingeTodos: false,
-      texto: "Missão de Paz -> Uma vez por turno, escolha até 2 cartas em alcance curto ou longo, a até uma coluna de distância. Cada alvo perde 3 PA.",
+      texto:
+        "Missão de Paz -> Uma vez por turno, escolha até 2 cartas em alcance curto ou longo, a até uma coluna de distância. Cada alvo perde 3 PA.",
     },
     habilidadeAtiva: true, // NÃO dispara ao invocar — precisa ser ativada em campo
     somAtaque: "somTiro",
@@ -584,9 +627,8 @@ const POOL_CARTAS_MONSTRO = [
     efeito: {
       tipo: TIPOS_EFEITO.ATACAR,
       valor: 5,
-      // Este alcance cobre todo o campo inimigo.
-      rangeH: 1,
-      rangeV: 3,
+      rangeH: 2,
+      rangeV: 2,
       atingeTodos: false,
     },
     habilidadeAtiva: true, // Protocolo de Segurança: não dispara ao invocar — ativa em campo, 1x por turno
@@ -916,7 +958,7 @@ const POOL_CARTAS_EFEITO = [
       "Há muito tempo, a humanidade admirava seus maiores atletas. Depois descobriu que podia construir robôs mais rápidos. Assim, os humanos desapareceram das pistas. Um deles foi O Cavalo. Tricampeão olímpico, hoje presta serviços à EchoSsystem realizando entregas, causando distrações e se arremessando contra ciborgues. Felizmente, a concussão cerebral deixou de ser um problema depois que metade do seu crânio foi substituída por titânio.",
     imagem: "cavalo",
     booster: "echossystem",
-    efeito: { tipo: TIPOS_EFEITO.ATACAR_COLUNA, valor: 3 },
+    efeito: { tipo: TIPOS_EFEITO.ATACAR_COLUNA, valor: 6 },
   },
 
   {
@@ -927,7 +969,7 @@ const POOL_CARTAS_EFEITO = [
     imagem: "galo",
     foco: { x: 0.5, y: 0 },
     booster: "echossystem",
-    efeito: { tipo: TIPOS_EFEITO.BUFF_DOIS_ALIADOS, valores: [3, 2] },
+    efeito: { tipo: TIPOS_EFEITO.BUFF_DOIS_ALIADOS, valores: [5, 4] },
   },
   {
     nome: "A Travessura do Macaco",
@@ -937,7 +979,7 @@ const POOL_CARTAS_EFEITO = [
     imagem: "macaco",
     foco: { x: 0.5, y: 0 },
     booster: "echossystem",
-    efeito: { tipo: TIPOS_EFEITO.ARMADILHA_ESPACO, valor: 2 },
+    efeito: { tipo: TIPOS_EFEITO.ARMADILHA_ESPACO, valor: 7 },
   },
   {
     nome: "Você Parece Sozinho",
@@ -949,7 +991,7 @@ const POOL_CARTAS_EFEITO = [
     booster: "humbanet",
     efeito: {
       tipo: TIPOS_EFEITO.BUFF_ALIADO_ESCOLHIDO,
-      valor: 5,
+      valor: 6,
       exigeAlvoIsolado: true,
     },
   },
@@ -968,7 +1010,7 @@ const POOL_CARTAS_EFEITO = [
     nome: "Vento dos Ermos",
     poder: 1,
     descricao:
-      "A forte ventania nas terras destruídas ajuda a acelerar a desertificação no local. De acordo com os anciões remanescentes \"o vento tudo leva, menos as lembranças daqueles que passaram\"",
+      'A forte ventania nas terras destruídas ajuda a acelerar a desertificação no local. De acordo com os anciões remanescentes "o vento tudo leva, menos as lembranças daqueles que passaram"',
     imagem: "ventodosermos",
     booster: "remanescentes",
     efeito: { tipo: TIPOS_EFEITO.REMOVER_TERRENO },
@@ -1026,7 +1068,8 @@ class Carta {
       this.efeito.tipo === TIPOS_EFEITO.CASCA_GROSSA
     ) {
       const antes = this.poder;
-      if (antes + valor < 6) this.ativacoesCascaGrossa = (this.ativacoesCascaGrossa || 0) + 1;
+      if (antes + valor < 6)
+        this.ativacoesCascaGrossa = (this.ativacoesCascaGrossa || 0) + 1;
       this.poder = Math.max(Math.min(6, antes), antes + valor);
       return this.poder - antes;
     }
@@ -1046,15 +1089,27 @@ class Carta {
   // Separa ambientação e regras para colorir a descrição.
   partesDescricao() {
     const partes = [];
-    if (this.efeitoDesabilitado) partes.push({ tipo: "efeito", texto: "EFEITOS DESABILITADOS — " + (this.silenciadaPorNome || "Controle de Risco") });
+    if (this.efeitoDesabilitado)
+      partes.push({
+        tipo: "efeito",
+        texto:
+          "EFEITOS DESABILITADOS — " +
+          (this.silenciadaPorNome || "Controle de Risco"),
+      });
     if (this.descricaoFlavor)
       partes.push({ texto: this.descricaoFlavor, tipo: "flavor" });
-    const textoEfeito = descreverEfeito(this.efeito || this.efeitosSuspensos?.efeito);
+    const textoEfeito = descreverEfeito(
+      this.efeito || this.efeitosSuspensos?.efeito,
+    );
     if (textoEfeito) partes.push({ texto: textoEfeito, tipo: "efeito" });
-    const textoEfeitoTurno = descreverEfeitoTurno(this.efeitoTurno || this.efeitosSuspensos?.efeitoTurno);
+    const textoEfeitoTurno = descreverEfeitoTurno(
+      this.efeitoTurno || this.efeitosSuspensos?.efeitoTurno,
+    );
     if (textoEfeitoTurno)
       partes.push({ texto: textoEfeitoTurno, tipo: "efeito" });
-    const textoEfeitoContinuo = descreverEfeitoContinuo(this.efeitoContinuo || this.efeitosSuspensos?.efeitoContinuo);
+    const textoEfeitoContinuo = descreverEfeitoContinuo(
+      this.efeitoContinuo || this.efeitosSuspensos?.efeitoContinuo,
+    );
     if (textoEfeitoContinuo)
       partes.push({ texto: textoEfeitoContinuo, tipo: "efeito" });
     if (partes.length === 0)
