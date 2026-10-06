@@ -4,6 +4,11 @@ Novidades, correções e verificações realizadas no projeto. As entregas mais 
 
 ## 2026-10-06
 
+### Impacto do Juggernaut ampliado para 650 ms
+
+- Aumentada de 200 para 650 ms a duração do impacto. A carta eliminada continua visível até desaparecer junto com o fim do efeito. Atualizada a versão do script no HTML para renovar o cache.
+- `opponent-animation.test.js` aprovado: duração de 650 ms, saída da carta ao final, alvos sobreviventes, sigilo e duas perspectivas. `git diff --check` aprovado.
+
 ### Impacto do Juggernaut antes da remoção, limitado a 200 ms
 
 - Substituído o vídeo longo por um flash transparente extraído do próprio efeito, exibido sobre o alvo por 200 ms. A carta eliminada permanece visualmente no slot durante a preparação e o impacto; desaparece junto com o fim do flash, sem começar a animação de saída antes disso. A duração do áudio não prolonga o efeito.

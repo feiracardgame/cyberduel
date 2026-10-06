@@ -500,7 +500,7 @@ for (const side of ['jogador', 'inimigo']) for (const removed of [false, true]) 
     if (removed) assert.equal(victim.active, true);
     assert.ok(f.step());
   }
-  assert.equal(f.getTime() - start, 200, 'Impacto termina em 200 ms, independente do áudio.');
+  assert.equal(f.getTime() - start, 650, 'Impacto termina em 650 ms, independente do áudio.');
   assert.equal(impact.active, false);
   if (removed) assert.equal(victim.active, false, 'A vítima sai junto com o fim do impacto.');
   f.flush();

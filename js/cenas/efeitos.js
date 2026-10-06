@@ -357,7 +357,7 @@ class CenaEfeitos extends Phaser.Scene {
         (som !== "somReplicantes" || alvos.some(alvo => alvo.delta > 0)) && this.cache.audio.exists(som);
       if (tocaSom) this.sound.play(som, { volume: window.cyberduelSettings?.effects(volume) ?? volume });
       const duracaoInvestida = ativo && perfil.visual === "garras" ? (this.cache.audio.get?.("somTigreInvestida")?.duration || 0) * 1000 : 0;
-      let duracao = impactoJuggernaut ? 200 : Math.max(1000, duracaoInvestida, tocaSom ? (this.cache.audio.get?.(som)?.duration || 0) * 1000 : 0);
+      let duracao = impactoJuggernaut ? 650 : Math.max(1000, duracaoInvestida, tocaSom ? (this.cache.audio.get?.(som)?.duration || 0) * 1000 : 0);
       let audioTerminou = false, videoPendente = false, concluido = false;
       const concluir = () => {
         if (concluido || !audioTerminou || videoPendente) return;
