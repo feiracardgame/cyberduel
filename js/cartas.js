@@ -565,7 +565,7 @@ const POOL_CARTAS_MONSTRO = [
     efeito: {
       tipo: TIPOS_EFEITO.ATACAR_DOIS_ALVOS,
       valor: 3,
-      rangeH: 2, // A regra usa rangeH - 1: distância máxima de uma coluna.
+      rangeH: 3, // A regra usa rangeH - 1: distância máxima de uma coluna.
       rangeV: 2,
       atingeTodos: false,
       texto: "Missão de Paz -> Uma vez por turno, escolha até 2 cartas em alcance curto ou longo, a até uma coluna de distância. Cada alvo perde 3 PA.",
@@ -585,7 +585,7 @@ const POOL_CARTAS_MONSTRO = [
       tipo: TIPOS_EFEITO.ATACAR,
       valor: 5,
       // Este alcance cobre todo o campo inimigo.
-      rangeH: 2,
+      rangeH: 1,
       rangeV: 3,
       atingeTodos: false,
     },
