@@ -36,6 +36,7 @@ async function run() {
   const screen = await connect(), one = await connect(), two = await connect(), outsider = await connect();
   const room = await ack(screen, 'create-presentation');
   assert.equal(room.ok, true); assert.equal(room.room.players, 0);
+  assert.equal(room.room.club, true, 'A apresentação identifica uma sala do Clube no servidor.');
   assert.equal(room.invitations.length, 2);
   const invitations = room.invitations.map(invite => {
     assert.match(invite.qrCode, /^data:image\/png;base64,/);
@@ -88,9 +89,23 @@ async function run() {
   assert.deepEqual(next.state.jogador.hand, []); assert.deepEqual(next.state.inimigo.hand, []);
   assert.equal(next.state.jogador.field[0].nome, card.nome);
   assert.equal(next.state.eventosEfeito[0].fonte.nome, card.nome);
+  const final = event(two, 'state-update');
+  assert.equal((await ack(one, 'decline-match', { room: room.room.code, accountToken: accounts[0].token })).ok, true);
+  assert.equal((await final).state.partidaEncerrada, true);
+  for (const [index, account] of accounts.entries()) {
+    const response = await fetch(url + '/api/auth/session', { headers: { Authorization: `Bearer ${account.token}` } });
+    const profile = await response.json();
+    assert.equal(profile.clubGames, 1); assert.equal(profile.humanGames, 1);
+    assert.equal(profile.clubWins, index); assert.equal(profile.humanWins, index);
+  }
+  one.emit('surrender');
+  assert.equal((await ack(one, 'decline-match', { room: room.room.code, accountToken: accounts[0].token })).ok, false);
+  const saved = JSON.parse(fs.readFileSync(path.join(dataDir, 'accounts.json'))).accounts;
+  assert.equal(saved[accounts[0].accountKey].clubGames, 1);
+  assert.equal(saved[accounts[1].accountKey].clubWins, 1, 'Estatísticas do Clube persistidas uma única vez.');
   const left = event(one, 'opponent-left');
   reconnect.emit('leave-room'); await left;
-  console.log('Apresentação: página separada, dois QR codes, lugares exclusivos, início, privacidade, espectador comum, reconexão e encerramento validados.');
+  console.log('Apresentação: página separada, QR codes, lugares, privacidade, reconexão, identificação do Clube e estatísticas persistidas validados.');
 }
 run().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => {
   sockets.forEach(socket => socket.disconnect()); server.kill(); fs.rmSync(dataDir, { recursive: true, force: true });

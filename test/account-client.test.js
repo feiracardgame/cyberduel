@@ -16,6 +16,9 @@ const context = vm.createContext({
 vm.runInContext(fs.readFileSync("js/account.js", "utf8"), context);
 
 const account = context.window.cyberduelAccount;
+account.applyAuth({ username: 'Jogador', clubGames: 4, clubWins: 2, clubUnlocked: true });
+assert.equal(account.snapshot().clubGames, 4); assert.equal(account.snapshot().clubWins, 2);
+account.clear(); assert.equal(account.clubGames, 0); assert.equal(account.clubWins, 0);
 account.user = "Gabriel";
 account.request = async () => ({
   ok: true,

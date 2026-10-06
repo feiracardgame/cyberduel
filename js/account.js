@@ -19,6 +19,7 @@ class CyberduelAccount {
     this.tutorial = null;
     this.humanGames = 0;
     this.humanWins = 0;
+    this.clubGames = this.clubWins = 0;
     this.clubUnlocked = false;
     this.councilReached = false;
     this.boosterPrice = 100;
@@ -56,6 +57,7 @@ class CyberduelAccount {
       starterCollection: this.starterCollection,
       gamesPlayed: this.gamesPlayed,
       tutorial: this.tutorial, humanGames: this.humanGames, humanWins: this.humanWins,
+      clubGames: this.clubGames, clubWins: this.clubWins,
       clubUnlocked: this.clubUnlocked, councilReached: this.councilReached,
       boosterPrice: this.boosterPrice,
       boosters: this.boosters,
@@ -108,6 +110,8 @@ class CyberduelAccount {
     this.tutorial = payload.tutorial || null;
     this.humanGames = Math.max(0, Number(payload.humanGames) || 0);
     this.humanWins = Math.max(0, Number(payload.humanWins) || 0);
+    this.clubGames = Math.max(0, Number(payload.clubGames) || 0);
+    this.clubWins = Math.max(0, Number(payload.clubWins) || 0);
     this.clubUnlocked = payload.clubUnlocked === true;
     this.councilReached = payload.councilReached === true;
     this.boosterPrice = Math.max(1, Number(payload.boosterPrice) || 100);
@@ -354,6 +358,7 @@ class CyberduelAccount {
   clear() {
     this.tutorial = null;
     this.humanGames = this.humanWins = 0;
+    this.clubGames = this.clubWins = 0;
     this.clubUnlocked = this.councilReached = false;
     this.token = null;
     this.user = null;

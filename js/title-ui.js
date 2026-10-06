@@ -30,7 +30,11 @@ class CyberduelTitleUI {
     const deck = this.deckBuilder.getSavedDeck();
     const status = this.deckBuilder.status(deck || []);
     const identityReady = this.account
-      ? Boolean(this.account.user && !this.account.needsRegistration && this.account.faction)
+      ? Boolean(
+          this.account.user &&
+          !this.account.needsRegistration &&
+          this.account.faction,
+        )
       : true;
     return { ...status, deckReady: Boolean(deck) && identityReady };
   }
@@ -83,26 +87,40 @@ class CyberduelTitleUI {
     const alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZアイウエオカキクケコ";
     for (let column = 0; column < 24; column++) {
       const stream = this.element("div", "title-matrix-stream");
-      stream.style.left = `${(column + 0.5) * 100 / 24}%`;
+      stream.style.left = `${((column + 0.5) * 100) / 24}%`;
       stream.style.animationDuration = `${10 + Math.random() * 12}s`;
       stream.style.animationDelay = `${-Math.random() * 22}s`;
-      const characters = Array.from({ length: 8 + Math.floor(Math.random() * 9) },
-        () => alphabet[Math.floor(Math.random() * alphabet.length)]);
+      const characters = Array.from(
+        { length: 8 + Math.floor(Math.random() * 9) },
+        () => alphabet[Math.floor(Math.random() * alphabet.length)],
+      );
       stream.append(
         this.element("span", "title-matrix-trail", characters.join("\n")),
         this.element("span", "title-matrix-head", characters.at(-1)),
       );
       rain.append(stream);
-      streams.push({ characters, trail: stream.children[0], head: stream.children[1] });
+      streams.push({
+        characters,
+        trail: stream.children[0],
+        head: stream.children[1],
+      });
     }
     this.matrixTimer = setInterval(() => {
-      if (document.hidden || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+      if (
+        document.hidden ||
+        window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+      )
+        return;
       for (const { characters, trail, head } of streams) {
         const index = Math.floor(Math.random() * characters.length);
         const offset = 1 + Math.floor(Math.random() * (alphabet.length - 1));
-        characters[index] = alphabet[(alphabet.indexOf(characters[index]) + offset) % alphabet.length];
+        characters[index] =
+          alphabet[
+            (alphabet.indexOf(characters[index]) + offset) % alphabet.length
+          ];
         trail.textContent = characters.join("\n");
-        head.textContent = alphabet[Math.floor(Math.random() * alphabet.length)];
+        head.textContent =
+          alphabet[Math.floor(Math.random() * alphabet.length)];
       }
     }, 180);
     return rain;
@@ -295,23 +313,34 @@ class CyberduelTitleUI {
             () => this.callbacks.onSolo(),
             "deck",
           ],
-          ["Partida aleatória", "Ranqueada · adversário por pontuação", "partida_aleatória", () => this.callbacks.onMatchmaking(), "deck"],
+          [
+            "Partida aleatória",
+            "Ranqueada · adversário por pontuação",
+            "partida_aleatória",
+            () => this.callbacks.onMatchmaking(),
+            "deck",
+          ],
           [
             "Criar sala",
-            "Convide um amigo por código ou QR",
+            "Convide um amigo por código ou QR (Não rendem tijolinhos).",
             "partida_codigo",
             () => this.callbacks.onCreateRoom(),
             "deck",
           ],
           [
             "Entrar por código",
-            "Entre na sala de um amigo",
-            "qr_code",
+            "Entre na sala de um amigo (Não rendem tijolinhos).",
+            "sala_hibrida",
             () => this.openJoinDialog(this.callbacks.onJoinRoom),
             "deck",
           ],
-          ["Sala híbrida", "Celular e mesa compartilhada", "sala_hibrida"],
-          ["Clube Secreto do Cyberduel", this.account?.clubUnlocked ? "Desafie outros cyberduelistas" : "Libere com 3 vitórias contra jogadores", "sala_hibrida", () => this.openSecretClub(), "deck"],
+          [
+            "Clube secreto",
+            "Identidade e acesso ao Clube Secreto do Cyberduel",
+            "qr_code",
+            () => this.openSecretClub(),
+            "account",
+          ],
           [
             "Espectar sala",
             "Acompanhe uma batalha pelo código",
@@ -450,7 +479,10 @@ class CyberduelTitleUI {
               ? "right"
               : "";
       entry.el.setAttribute("aria-pressed", String(entry.offset === 0));
-      entry.el.setAttribute("aria-hidden", String(Math.abs(entry.offset) === 2));
+      entry.el.setAttribute(
+        "aria-hidden",
+        String(Math.abs(entry.offset) === 2),
+      );
     });
     this.cardMenuRing = ring;
     this.updateCaption();
@@ -714,7 +746,10 @@ class CyberduelTitleUI {
       byOffset.get(0),
       byOffset.get(1),
     ];
-    this.cardMenuEls.ghosts = { left: byOffset.get(-2), right: byOffset.get(2) };
+    this.cardMenuEls.ghosts = {
+      left: byOffset.get(-2),
+      right: byOffset.get(2),
+    };
     this.updateCaption();
     this.playMenuSwipe();
     return true;
@@ -770,8 +805,7 @@ class CyberduelTitleUI {
 
       const delta = event.clientX - startX;
       const t = -delta / fanWidth;
-      const direction =
-        moved && Math.abs(t) > threshold ? (t > 0 ? 1 : -1) : 0;
+      const direction = moved && Math.abs(t) > threshold ? (t > 0 ? 1 : -1) : 0;
       let committed = false;
       if (direction) {
         this.cardMenuDragged = true;
@@ -820,7 +854,16 @@ class CyberduelTitleUI {
         image.alt = "";
         mark.replaceChildren(image);
       }
-      button.append(mark, this.element("small", "", label === "PERFIL" && this.account?.user ? (this.account.nickname || this.account.user) : label));
+      button.append(
+        mark,
+        this.element(
+          "small",
+          "",
+          label === "PERFIL" && this.account?.user
+            ? this.account.nickname || this.account.user
+            : label,
+        ),
+      );
       nav.append(button);
     }
     return nav;
@@ -830,8 +873,7 @@ class CyberduelTitleUI {
     this.closeModal(true);
     if (requirement !== "none" && !this.account?.user)
       return this.openAuthDialog();
-    if (this.account?.needsRegistration)
-      return this.openRegistrationDialog();
+    if (this.account?.needsRegistration) return this.openRegistrationDialog();
     if (requirement !== "none" && !this.account?.faction)
       return this.openFactionDialog();
     if (requirement === "deck" && !this.deckSummary().deckReady) {
@@ -842,19 +884,86 @@ class CyberduelTitleUI {
   }
 
   openSecretClub() {
-    if (!this.account?.clubUnlocked) {
-      this.setStatus("O Clube Secreto abre após 3 vitórias contra jogadores. Partidas contra o bot não contam.", "warning");
-      return;
-    }
+    if (!this.account?.user) return this.openAuthDialog();
     const overlay = this.createModal("secret-club");
-    const dialog = this.element("section", "title-dialog");
-    dialog.setAttribute("role", "dialog"); dialog.setAttribute("aria-modal", "true");
-    dialog.append(this.element("h2", "", "Clube Secreto do Cyberduel"),
-      this.element("p", "", "Crie uma sala ou entre pelo código de outro membro. Todos precisam de 3 vitórias contra jogadores."),
-      this.button("title-dialog__confirm", "CRIAR SALA DO CLUBE", () => { this.closeModal(true); this.callbacks.onCreateClub(); }),
-      this.button("title-dialog__confirm", "ENTRAR POR CÓDIGO", () => { this.closeModal(true); this.openJoinDialog(this.callbacks.onJoinRoom); }),
-      this.button("title-dialog__cancel", "VOLTAR", () => this.closeModal()));
-    overlay.append(dialog); requestAnimationFrame(() => overlay.classList.add("is-visible"));
+    const dialog = this.element("section", "title-dialog player-id");
+    dialog.setAttribute("role", "dialog");
+    dialog.setAttribute("aria-modal", "true");
+    dialog.setAttribute("aria-label", "Carteirinha de jogador");
+    const account = this.account;
+    const avatar = this.element("div", "profile-avatar");
+    if (account.avatar) {
+      const image = this.element("img");
+      image.src = account.avatar;
+      image.alt = "Foto do jogador";
+      avatar.append(image);
+    } else
+      avatar.textContent = Array.from(account.nickname || account.user)
+        .slice(0, 2)
+        .join("")
+        .toUpperCase();
+    const stats = this.element("dl", "player-id__stats");
+    for (const [label, value] of [
+      ["Partidas contra jogadores", account.humanGames],
+      ["Vitórias contra jogadores", account.humanWins],
+      ["Partidas no Clube", account.clubGames],
+      ["Vitórias no Clube", account.clubWins],
+    ]) {
+      const stat = this.element("div");
+      stat.append(
+        this.element("dt", "", label),
+        this.element("dd", "", String(value || 0)),
+      );
+      stats.append(stat);
+    }
+    const access = this.element(
+      "p",
+      "player-id__access",
+      account.clubUnlocked
+        ? "ACESSO AO CLUBE LIBERADO"
+        : "ACESSO AO CLUBE BLOQUEADO",
+    );
+    access.dataset.unlocked = String(!!account.clubUnlocked);
+    const close = this.button("title-dialog__cancel", "VOLTAR", () =>
+      this.closeModal(),
+    );
+    dialog.append(
+      this.element("small", "player-id__brand", "CYBERDUEL / NEOFLORIPA"),
+      this.element("h2", "", "Carteirinha de jogador"),
+      avatar,
+      this.element(
+        "strong",
+        "player-id__name",
+        account.nickname || account.user,
+      ),
+      this.element("p", "profile-identity", `@${account.user}`),
+      this.element(
+        "p",
+        "player-id__faction",
+        account.faction === "raspcorp"
+          ? "RASPCORP"
+          : account.faction === "echossystem"
+            ? "ECHOSSYSTEM"
+            : "SEM FACÇÃO",
+      ),
+      stats,
+      this.element("h3", "", "Clube Secreto do Cyberduel"),
+      access,
+      this.element(
+        "p",
+        "player-id__note",
+        account.clubUnlocked
+          ? "Apresente esta carteirinha ao segurança."
+          : "Conquiste 3 vitórias contra jogadores para liberar o acesso. Partidas contra o bot não contam.",
+      ),
+      close,
+    );
+    overlay.append(dialog);
+    this.settings?.applyDomTextScale(overlay);
+    requestAnimationFrame(() => {
+      overlay.classList.add("is-visible");
+      close.focus();
+    });
   }
 
   openMenuSection(kind) {
@@ -930,12 +1039,22 @@ class CyberduelTitleUI {
     dialog.setAttribute("aria-modal", "true");
     dialog.setAttribute("aria-label", "Meu perfil");
     const header = this.element("header", "profile-header");
-    const close = this.button("profile-close", "×", () => this.closeModal(), "Fechar perfil");
+    const close = this.button(
+      "profile-close",
+      "×",
+      () => this.closeModal(),
+      "Fechar perfil",
+    );
     header.append(this.element("h2", "", "Meu perfil"), close);
-    const avatar = this.button("profile-avatar", "", () => {
-      picker.hidden = !picker.hidden;
-      avatar.setAttribute("aria-expanded", String(!picker.hidden));
-    }, "Trocar foto de perfil");
+    const avatar = this.button(
+      "profile-avatar",
+      "",
+      () => {
+        picker.hidden = !picker.hidden;
+        avatar.setAttribute("aria-expanded", String(!picker.hidden));
+      },
+      "Trocar foto de perfil",
+    );
     avatar.setAttribute("aria-expanded", "false");
     avatar.setAttribute("aria-controls", "profile-photo-picker");
     const preview = this.element("img");
@@ -950,24 +1069,43 @@ class CyberduelTitleUI {
     nickname.autocomplete = "nickname";
     nickname.setAttribute("aria-label", "Apelido");
     nicknameLabel.append(nickname);
-    const identity = this.element("p", "profile-identity", `@${this.account.user}`);
-    const userHint = this.element("p", "profile-note", this.account.authProvider === "local" ? "Conta local de desenvolvimento." : "Seu username é único e não muda. Use sua conta Google para entrar.");
+    const identity = this.element(
+      "p",
+      "profile-identity",
+      `@${this.account.user}`,
+    );
+    const userHint = this.element(
+      "p",
+      "profile-note",
+      this.account.authProvider === "local"
+        ? "Conta local de desenvolvimento."
+        : "Seu username é único e não muda. Use sua conta Google para entrar.",
+    );
     const picker = this.element("div", "profile-photo-picker");
     picker.id = "profile-photo-picker";
     picker.hidden = true;
     picker.setAttribute("role", "group");
     picker.setAttribute("aria-label", "Escolher foto de perfil");
     const options = (this.account.profilePhotos || []).map((src) => {
-      const name = src.split("/").pop().replace("_icon.png", "").replaceAll("_", " ");
-      const option = this.button("profile-photo-option", "", () => {
-        if (busy) return;
-        photo = src;
-        picker.hidden = true;
-        avatar.setAttribute("aria-expanded", "false");
-        avatar.focus();
-        status.textContent = "Salve para aplicar a alteração.";
-        renderPreview();
-      }, `Usar foto: ${name}`);
+      const name = src
+        .split("/")
+        .pop()
+        .replace("_icon.png", "")
+        .replaceAll("_", " ");
+      const option = this.button(
+        "profile-photo-option",
+        "",
+        () => {
+          if (busy) return;
+          photo = src;
+          picker.hidden = true;
+          avatar.setAttribute("aria-expanded", "false");
+          avatar.focus();
+          status.textContent = "Salve para aplicar a alteração.";
+          renderPreview();
+        },
+        `Usar foto: ${name}`,
+      );
       const image = this.element("img");
       image.src = src;
       image.alt = name;
@@ -982,8 +1120,14 @@ class CyberduelTitleUI {
     error.setAttribute("role", "alert");
     let busy = false;
     const refresh = () => {
-      save.disabled = avatar.disabled = close.disabled = nickname.disabled = busy;
-      options.forEach((option) => { option.disabled = busy; });
+      save.disabled =
+        avatar.disabled =
+        close.disabled =
+        nickname.disabled =
+          busy;
+      options.forEach((option) => {
+        option.disabled = busy;
+      });
       this.modalRequired = busy;
     };
     const renderPreview = () => {
@@ -991,8 +1135,18 @@ class CyberduelTitleUI {
       initials.hidden = Boolean(photo);
       if (photo) preview.src = photo;
       else preview.removeAttribute("src");
-      initials.textContent = Array.from(nickname.value.trim() || this.account.user).slice(0, 2).join("").toUpperCase();
-      options.forEach((option, index) => option.setAttribute("aria-pressed", String(this.account.profilePhotos[index] === photo)));
+      initials.textContent = Array.from(
+        nickname.value.trim() || this.account.user,
+      )
+        .slice(0, 2)
+        .join("")
+        .toUpperCase();
+      options.forEach((option, index) =>
+        option.setAttribute(
+          "aria-pressed",
+          String(this.account.profilePhotos[index] === photo),
+        ),
+      );
     };
     nickname.addEventListener("input", () => {
       status.textContent = "";
@@ -1016,16 +1170,36 @@ class CyberduelTitleUI {
         nickname.value = this.account.nickname;
         status.textContent = "Perfil salvo.";
       } catch (exception) {
-        error.textContent = exception.message || "Não foi possível salvar o perfil.";
+        error.textContent =
+          exception.message || "Não foi possível salvar o perfil.";
         status.textContent = "";
       } finally {
         busy = false;
         if (this.modal === overlay) refresh();
       }
     });
-    dialog.append(header, avatar, this.element("p", "profile-note", "Clique na foto para trocar."), picker, identity, userHint,
-      this.element("p", "profile-note", `${this.account.gamesPlayed} partidas · ${this.account.humanGames || 0} contra jogadores · ${this.account.humanWins || 0} vitórias contra jogadores`), nicknameLabel,
-      this.element("p", "profile-note", "Até 32 caracteres. Seu apelido pode ser igual ao de outros jogadores."), error, status, save);
+    dialog.append(
+      header,
+      avatar,
+      this.element("p", "profile-note", "Clique na foto para trocar."),
+      picker,
+      identity,
+      userHint,
+      this.element(
+        "p",
+        "profile-note",
+        `${this.account.gamesPlayed} partidas · ${this.account.humanGames || 0} contra jogadores · ${this.account.humanWins || 0} vitórias contra jogadores`,
+      ),
+      nicknameLabel,
+      this.element(
+        "p",
+        "profile-note",
+        "Até 32 caracteres. Seu apelido pode ser igual ao de outros jogadores.",
+      ),
+      error,
+      status,
+      save,
+    );
     overlay.append(dialog);
     renderPreview();
     this.settings?.applyDomTextScale(overlay);
@@ -1129,21 +1303,35 @@ class CyberduelTitleUI {
         maximum: 135,
       }),
     ];
-    const backgroundRow = this.element("label", "title-setting title-setting--toggle");
+    const backgroundRow = this.element(
+      "label",
+      "title-setting title-setting--toggle",
+    );
     const background = this.element("input");
     background.type = "checkbox";
     background.checked = this.settings.get("animatedBackground") !== 0;
     background.addEventListener("change", () => {
       this.settings.set("animatedBackground", background.checked);
     });
-    backgroundRow.append(background, this.element("span", "", "FUNDO ANIMADO DA PARTIDA"));
+    backgroundRow.append(
+      background,
+      this.element("span", "", "FUNDO ANIMADO DA PARTIDA"),
+    );
     controls.append(backgroundRow);
-    const skipRow = this.element("label", "title-setting title-setting--toggle");
+    const skipRow = this.element(
+      "label",
+      "title-setting title-setting--toggle",
+    );
     const skip = this.element("input");
     skip.type = "checkbox";
     skip.checked = this.settings.get("skipBattleAnnouncements") === 1;
-    skip.addEventListener("change", () => this.settings.set("skipBattleAnnouncements", skip.checked));
-    skipRow.append(skip, this.element("span", "", "PULAR AVISOS DE INÍCIO E DE TURNO"));
+    skip.addEventListener("change", () =>
+      this.settings.set("skipBattleAnnouncements", skip.checked),
+    );
+    skipRow.append(
+      skip,
+      this.element("span", "", "PULAR AVISOS DE INÍCIO E DE TURNO"),
+    );
     controls.append(skipRow);
     const actions = this.element(
       "div",
@@ -1392,10 +1580,9 @@ class CyberduelTitleUI {
       );
       toggleBusy(true);
       try {
-        await this.account.grantCardsByUsername(
-          target,
-          [{ tipo: cardType.value, nome: name, quantidade: amount }],
-        );
+        await this.account.grantCardsByUsername(target, [
+          { tipo: cardType.value, nome: name, quantidade: amount },
+        ]);
         result.textContent = `Carta concedida para ${target}: ${cardType.value} / ${name} x${amount}.`;
       } catch (exception) {
         error.textContent = exception.message || "Falha ao conceder carta.";
@@ -1447,12 +1634,7 @@ class CyberduelTitleUI {
       this.button("title-dialog__cancel", "VOLTAR", () => this.closeModal()),
     );
 
-    form.append(
-      username,
-      currencySection,
-      deckSection,
-      cardSection,
-    );
+    form.append(username, currencySection, deckSection, cardSection);
     dialog.append(form, result, error, actionButtons);
     overlay.append(dialog);
     this.settings?.applyDomTextScale(overlay);
@@ -1477,14 +1659,22 @@ class CyberduelTitleUI {
     );
     const error = this.element("span", "title-dialog__error");
     error.setAttribute("role", "alert");
-    const googleButton = this.element("div", "title-google-login", "Carregando login com Google…");
-    const retry = this.button("title-small-button", "TENTAR GOOGLE NOVAMENTE", () => loadGoogle());
+    const googleButton = this.element(
+      "div",
+      "title-google-login",
+      "Carregando login com Google…",
+    );
+    const retry = this.button(
+      "title-small-button",
+      "TENTAR GOOGLE NOVAMENTE",
+      () => loadGoogle(),
+    );
     retry.hidden = true;
     const loadGoogle = () => {
       error.textContent = "";
       retry.hidden = true;
       googleButton.textContent = "Carregando login com Google…";
-      this.account.mountGoogleButton(googleButton, exception => {
+      this.account.mountGoogleButton(googleButton, (exception) => {
         error.textContent = exception.message;
         retry.hidden = false;
       });
@@ -1492,32 +1682,56 @@ class CyberduelTitleUI {
     dialog.append(googleButton, retry, error);
     overlay.append(dialog);
     requestAnimationFrame(() => overlay.classList.add("is-visible"));
-    this.account.request("/api/auth/options", { auth: false }).then(options => {
-      if (this.modal !== overlay) return;
-      if (!options.localLogin) return loadGoogle();
-      googleButton.hidden = true;
-      const form = this.element("form", "title-auth-form");
-      const label = this.element("label", "", "NOME PARA TESTE LOCAL");
-      const username = this.element("input", "title-auth-input");
-      Object.assign(username, { name: "username", type: "text", value: "dev", required: true, minLength: 3, maxLength: 18 });
-      username.setAttribute("aria-label", "Nome para teste local");
-      label.append(username);
-      const enter = this.element("button", "title-dialog__confirm", "ENTRAR LOCALMENTE");
-      enter.type = "submit";
-      form.addEventListener("submit", async event => {
-        event.preventDefault();
-        enter.disabled = true;
-        error.textContent = "";
-        try {
-          await this.account.localLogin(username.value);
-          this.closeModal(true);
-        } catch (exception) { error.textContent = exception.message; }
-        finally { enter.disabled = false; }
-      });
-      form.append(label, enter);
-      dialog.append(this.element("p", "", "Conta de desenvolvimento nesta máquina. Não precisa de Google."), form);
-      username.focus();
-    }).catch(() => loadGoogle());
+    this.account
+      .request("/api/auth/options", { auth: false })
+      .then((options) => {
+        if (this.modal !== overlay) return;
+        if (!options.localLogin) return loadGoogle();
+        googleButton.hidden = true;
+        const form = this.element("form", "title-auth-form");
+        const label = this.element("label", "", "NOME PARA TESTE LOCAL");
+        const username = this.element("input", "title-auth-input");
+        Object.assign(username, {
+          name: "username",
+          type: "text",
+          value: "dev",
+          required: true,
+          minLength: 3,
+          maxLength: 18,
+        });
+        username.setAttribute("aria-label", "Nome para teste local");
+        label.append(username);
+        const enter = this.element(
+          "button",
+          "title-dialog__confirm",
+          "ENTRAR LOCALMENTE",
+        );
+        enter.type = "submit";
+        form.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          enter.disabled = true;
+          error.textContent = "";
+          try {
+            await this.account.localLogin(username.value);
+            this.closeModal(true);
+          } catch (exception) {
+            error.textContent = exception.message;
+          } finally {
+            enter.disabled = false;
+          }
+        });
+        form.append(label, enter);
+        dialog.append(
+          this.element(
+            "p",
+            "",
+            "Conta de desenvolvimento nesta máquina. Não precisa de Google.",
+          ),
+          form,
+        );
+        username.focus();
+      })
+      .catch(() => loadGoogle());
   }
 
   openRegistrationDialog() {
@@ -1558,18 +1772,28 @@ class CyberduelTitleUI {
     const save = this.element("button", "title-dialog__confirm", "CONTINUAR");
     save.type = "submit";
     const actions = this.element("div", "title-dialog__actions");
-    actions.append(this.button("title-dialog__cancel", "SAIR DA CONTA", () => this.account.logout()), save);
-    dialog.addEventListener("submit", async event => {
+    actions.append(
+      this.button("title-dialog__cancel", "SAIR DA CONTA", () =>
+        this.account.logout(),
+      ),
+      save,
+    );
+    dialog.addEventListener("submit", async (event) => {
       event.preventDefault();
       if (save.disabled) return;
       const handle = username.value.trim();
       if (!/^[a-zA-Z0-9_.-]{3,24}$/.test(handle)) {
-        error.textContent = "Use um username de 3 a 24 caracteres: letras, números, ponto, hífen ou sublinhado.";
+        error.textContent =
+          "Use um username de 3 a 24 caracteres: letras, números, ponto, hífen ou sublinhado.";
         username.focus();
         return;
       }
       const value = nickname.value.trim();
-      if (!value || Array.from(value).length > 32 || /[\u0000-\u001f\u007f]/.test(value)) {
+      if (
+        !value ||
+        Array.from(value).length > 32 ||
+        /[\u0000-\u001f\u007f]/.test(value)
+      ) {
         error.textContent = "Use um apelido de 1 a 32 caracteres.";
         nickname.focus();
         return;
@@ -1579,19 +1803,33 @@ class CyberduelTitleUI {
       try {
         await this.account.completeRegistration(handle, value);
       } catch (exception) {
-        error.textContent = exception.message || "Não foi possível concluir o cadastro.";
+        error.textContent =
+          exception.message || "Não foi possível concluir o cadastro.";
         save.disabled = false;
       }
     });
     dialog.append(
       this.element("h2", "", "Complete seu cadastro"),
-      this.element("p", "", "Escolha um username único e um apelido para aparecer no jogo. O apelido pode ser igual ao de outros jogadores."),
+      this.element(
+        "p",
+        "",
+        "Escolha um username único e um apelido para aparecer no jogo. O apelido pode ser igual ao de outros jogadores.",
+      ),
       usernameLabel,
-      this.element("p", "", "Username: 3 a 24 caracteres, sem espaços. Letras, números, ponto, hífen ou sublinhado. Não poderá ser alterado depois."),
-      nicknameLabel, error, actions,
+      this.element(
+        "p",
+        "",
+        "Username: 3 a 24 caracteres, sem espaços. Letras, números, ponto, hífen ou sublinhado. Não poderá ser alterado depois.",
+      ),
+      nicknameLabel,
+      error,
+      actions,
     );
     overlay.append(dialog);
-    requestAnimationFrame(() => { overlay.classList.add("is-visible"); (username.readOnly ? nickname : username).focus(); });
+    requestAnimationFrame(() => {
+      overlay.classList.add("is-visible");
+      (username.readOnly ? nickname : username).focus();
+    });
   }
 
   createHero() {
@@ -1773,9 +2011,25 @@ class CyberduelTitleUI {
       photo.src = profile.avatar;
       photo.alt = `Foto de ${profile.nickname || "Duelista"}`;
       card.append(photo);
-    } else card.append(this.element("div", "versus-avatar versus-initials", Array.from(profile.nickname || "?").slice(0, 2).join("").toUpperCase()));
-    card.append(this.element("h3", "", profile.nickname || "Duelista"),
-      this.element("p", "versus-rank", `${profile.rank || "Bronze"} · ${profile.rating ?? 1000} pontos`));
+    } else
+      card.append(
+        this.element(
+          "div",
+          "versus-avatar versus-initials",
+          Array.from(profile.nickname || "?")
+            .slice(0, 2)
+            .join("")
+            .toUpperCase(),
+        ),
+      );
+    card.append(
+      this.element("h3", "", profile.nickname || "Duelista"),
+      this.element(
+        "p",
+        "versus-rank",
+        `${profile.rank || "Bronze"} · ${profile.rating ?? 1000} pontos`,
+      ),
+    );
     return card;
   }
 
@@ -1784,19 +2038,24 @@ class CyberduelTitleUI {
     const overlay = this.createModal("versus");
     this.modalRequired = true;
     const dialog = this.element("section", "title-dialog versus-dialog");
-    dialog.setAttribute("role", "dialog"); dialog.setAttribute("aria-modal", "true");
+    dialog.setAttribute("role", "dialog");
+    dialog.setAttribute("aria-modal", "true");
     dialog.setAttribute("aria-label", "Apresentação da partida");
     dialog.append(this.element("h2", "", "DUELO ENCONTRADO"));
     const matchup = this.element("div", "versus-matchup");
-    matchup.append(this.playerPresentation(profiles?.[player]), this.element("strong", "versus-mark", "VS"),
-      this.playerPresentation(profiles?.[3 - player]));
+    matchup.append(
+      this.playerPresentation(profiles?.[player]),
+      this.element("strong", "versus-mark", "VS"),
+      this.playerPresentation(profiles?.[3 - player]),
+    );
     dialog.append(matchup, this.element("p", "", "Preparando a arena…"));
     overlay.append(dialog);
     requestAnimationFrame(() => overlay.classList.add("is-visible"));
     clearTimeout(this.versusTimer);
     this.versusTimer = setTimeout(() => {
       if (this.modal !== overlay) return;
-      this.closeModal(true); done();
+      this.closeModal(true);
+      done();
     }, 4000);
   }
 
@@ -1805,28 +2064,47 @@ class CyberduelTitleUI {
     const overlay = this.createModal("matchmaking");
     this.modalRequired = true;
     const dialog = this.element("section", "title-dialog matchmaking-dialog");
-    dialog.setAttribute("role", "dialog"); dialog.setAttribute("aria-modal", "true");
+    dialog.setAttribute("role", "dialog");
+    dialog.setAttribute("aria-modal", "true");
     dialog.setAttribute("aria-label", "Buscar partida ranqueada");
     const status = this.element("p", "", "Entrando na fila…");
     status.setAttribute("role", "status");
     const cancel = this.button("title-small-button", "CANCELAR BUSCA", () => {
       cancel.disabled = true;
-      multiplayer.cancelMatchmaking(result => {
+      multiplayer.cancelMatchmaking((result) => {
         if (this.modal !== overlay) return;
         if (result.ok) this.closeModal(true);
-        else { status.textContent = result.error; cancel.disabled = false; }
+        else {
+          status.textContent = result.error;
+          cancel.disabled = false;
+        }
       });
     });
-    dialog.append(this.element("h2", "", "Buscando adversário"), status,
-      this.element("p", "", "Sorteamos um jogador com rank próximo. A faixa aumenta conforme a espera."), cancel);
+    dialog.append(
+      this.element("h2", "", "Buscando adversário"),
+      status,
+      this.element(
+        "p",
+        "",
+        "Sorteamos um jogador com rank próximo. A faixa aumenta conforme a espera.",
+      ),
+      cancel,
+    );
     overlay.append(dialog);
-    requestAnimationFrame(() => { overlay.classList.add("is-visible"); cancel.focus(); });
-    multiplayer.joinMatchmaking(result => {
+    requestAnimationFrame(() => {
+      overlay.classList.add("is-visible");
+      cancel.focus();
+    });
+    multiplayer.joinMatchmaking((result) => {
       if (this.modal !== overlay) return;
-      if (result.ok) status.textContent = `${result.profile.rank} · ${result.profile.rating} pontos — aguardando outro duelista…`;
+      if (result.ok)
+        status.textContent = `${result.profile.rank} · ${result.profile.rating} pontos — aguardando outro duelista…`;
       else {
         this.closeModal(true);
-        this.setStatus(result.error || "Não foi possível entrar na fila.", "error");
+        this.setStatus(
+          result.error || "Não foi possível entrar na fila.",
+          "error",
+        );
       }
     });
   }
@@ -1835,48 +2113,82 @@ class CyberduelTitleUI {
     if (this.modal) return;
     const overlay = this.createModal("leaderboard");
     const dialog = this.element("section", "title-dialog leaderboard-dialog");
-    dialog.setAttribute("role", "dialog"); dialog.setAttribute("aria-modal", "true");
+    dialog.setAttribute("role", "dialog");
+    dialog.setAttribute("aria-modal", "true");
     dialog.setAttribute("aria-label", "Leaderboard");
     const status = this.element("p", "", "Carregando ranking…");
     status.setAttribute("role", "status");
-    const close = this.button("title-small-button", "FECHAR", () => this.closeModal());
-    dialog.append(this.element("h2", "", "TOP 20 DUELISTAS"),
-      this.element("p", "", "Para entrar no ranking: 5 partidas e 3 vitórias contra jogadores. O top 10 forma o Conselho. Partidas contra o bot não contam."), status, close);
+    const close = this.button("title-small-button", "FECHAR", () =>
+      this.closeModal(),
+    );
+    dialog.append(
+      this.element("h2", "", "TOP 20 DUELISTAS"),
+      this.element(
+        "p",
+        "",
+        "Para entrar no ranking: 5 partidas e 3 vitórias contra jogadores. O top 10 forma o Conselho. Partidas contra o bot não contam.",
+      ),
+      status,
+      close,
+    );
     overlay.append(dialog);
-    requestAnimationFrame(() => { overlay.classList.add("is-visible"); close.focus(); });
+    requestAnimationFrame(() => {
+      overlay.classList.add("is-visible");
+      close.focus();
+    });
     try {
-      const response = await this.account.request("/api/leaderboard", { auth: false });
+      const response = await this.account.request("/api/leaderboard", {
+        auth: false,
+      });
       if (this.modal !== overlay) return;
-      status.textContent = response.entries.length ? "Classificação por pontos nas partidas aleatórias." : "Nenhum cyberduelista cumpriu os requisitos do ranking ainda.";
+      status.textContent = response.entries.length
+        ? "Classificação por pontos nas partidas aleatórias."
+        : "Nenhum cyberduelista cumpriu os requisitos do ranking ainda.";
       if (!response.entries.length) return;
       const table = this.element("table", "leaderboard-table");
       const head = this.element("tr", "");
-      for (const label of ["#", "Apelido", "Rank", "Pontos", "V / D"]) head.append(this.element("th", "", label));
-      const thead = this.element("thead", ""); thead.append(head); table.append(thead);
+      for (const label of ["#", "Apelido", "Rank", "Pontos", "V / D"])
+        head.append(this.element("th", "", label));
+      const thead = this.element("thead", "");
+      thead.append(head);
+      table.append(thead);
       const body = this.element("tbody", "");
       for (const entry of response.entries) {
         const row = this.element("tr", "");
         row.append(this.element("td", "", String(entry.position)));
         const player = this.element("td", "");
         const identity = this.element("div", "leaderboard-player");
-        const avatar = this.element(entry.avatar ? "img" : "span", "leaderboard-avatar");
+        const avatar = this.element(
+          entry.avatar ? "img" : "span",
+          "leaderboard-avatar",
+        );
         if (entry.avatar) {
           avatar.src = entry.avatar;
           avatar.alt = "";
         } else {
-          avatar.textContent = Array.from(entry.nickname || "?").slice(0, 2).join("").toUpperCase();
+          avatar.textContent = Array.from(entry.nickname || "?")
+            .slice(0, 2)
+            .join("")
+            .toUpperCase();
           avatar.setAttribute("aria-hidden", "true");
         }
         identity.append(avatar, this.element("span", "", entry.nickname));
         player.append(identity);
         row.append(player);
-        for (const value of [entry.rank, entry.rating, `${entry.wins} / ${entry.losses}`])
+        for (const value of [
+          entry.rank,
+          entry.rating,
+          `${entry.wins} / ${entry.losses}`,
+        ])
           row.append(this.element("td", "", String(value)));
         body.append(row);
       }
-      table.append(body); dialog.append(table);
+      table.append(body);
+      dialog.append(table);
     } catch (error) {
-      if (this.modal === overlay) status.textContent = error.message || "Não foi possível carregar o ranking.";
+      if (this.modal === overlay)
+        status.textContent =
+          error.message || "Não foi possível carregar o ranking.";
     }
   }
 
@@ -1898,7 +2210,8 @@ class CyberduelTitleUI {
         if (this.modal !== overlay) return;
         if (result.ok) this.closeModal(true);
         else {
-          error.textContent = result.error || "Não foi possível concluir. Tente novamente.";
+          error.textContent =
+            result.error || "Não foi possível concluir. Tente novamente.";
           yes.disabled = no.disabled = false;
         }
       });
@@ -1907,10 +2220,21 @@ class CyberduelTitleUI {
     const no = this.button("title-small-button", "NÃO", () => choose(decline));
     const actions = this.element("div", "title-dialog__actions");
     actions.append(yes, no);
-    dialog.append(this.element("h2", "", "Voltar à partida?"),
-      this.element("p", "", `A partida ${code} está em andamento. Ao escolher Não, você perde automaticamente e não poderá voltar.`), error, actions);
+    dialog.append(
+      this.element("h2", "", "Voltar à partida?"),
+      this.element(
+        "p",
+        "",
+        `A partida ${code} está em andamento. Ao escolher Não, você perde automaticamente e não poderá voltar.`,
+      ),
+      error,
+      actions,
+    );
     overlay.append(dialog);
-    requestAnimationFrame(() => { overlay.classList.add("is-visible"); yes.focus(); });
+    requestAnimationFrame(() => {
+      overlay.classList.add("is-visible");
+      yes.focus();
+    });
   }
 
   openJoinDialog(onSubmit) {
@@ -2041,13 +2365,28 @@ class CyberduelTitleUI {
     const header = this.element("header", "player-market__header");
     const identity = this.element("div", "player-market__identity");
     const title = this.element("h2", "");
-    title.append(this.element("span", "", "MERCADO"), this.element("span", "player-market__accent", "DE CARTAS"));
-    identity.append(this.element("span", "forge-overline", "CYBERDUEL / ENTRE DUELISTAS"), title,
-      this.element("p", "", "Sua próxima carta está aqui."));
+    title.append(
+      this.element("span", "", "MERCADO"),
+      this.element("span", "player-market__accent", "DE CARTAS"),
+    );
+    identity.append(
+      this.element("span", "forge-overline", "CYBERDUEL / ENTRE DUELISTAS"),
+      title,
+      this.element("p", "", "Sua próxima carta está aqui."),
+    );
     const balance = this.element("strong", "");
     const wallet = this.element("div", "player-market__wallet");
     wallet.append(this.element("span", "forge-kicker", "SEU SALDO"), balance);
-    header.append(this.button("booster-close", "←", () => this.closeModal(), "Fechar mercado"), identity, wallet);
+    header.append(
+      this.button(
+        "booster-close",
+        "←",
+        () => this.closeModal(),
+        "Fechar mercado",
+      ),
+      identity,
+      wallet,
+    );
     const tabs = this.element("nav", "player-market__tabs");
     tabs.setAttribute("aria-label", "Seções do mercado");
     const content = this.element("div", "player-market__content");
@@ -2055,14 +2394,20 @@ class CyberduelTitleUI {
     status.setAttribute("role", "status");
     const error = this.element("p", "title-dialog__error");
     error.setAttribute("role", "alert");
-    let view = initialView, listings = [], busy = false, loaded = false, selectedKey = null;
+    let view = initialView,
+      listings = [],
+      busy = false,
+      loaded = false,
+      selectedKey = null;
     const catalog = this.deckBuilder.getCatalog();
-    const setBusy = value => {
+    const setBusy = (value) => {
       busy = value;
       dialog.setAttribute("aria-busy", String(value));
-      dialog.querySelectorAll("button:not(.booster-close), input, select").forEach(control => {
-        control.disabled = value || control.dataset.unavailable === "true";
-      });
+      dialog
+        .querySelectorAll("button:not(.booster-close), input, select")
+        .forEach((control) => {
+          control.disabled = value || control.dataset.unavailable === "true";
+        });
     };
     const load = async () => {
       listings = await this.account.marketListings();
@@ -2074,175 +2419,456 @@ class CyberduelTitleUI {
       setBusy(true);
       try {
         await this.account.marketTrade(action, body);
-        status.textContent = action === "listings" ? "Anúncio publicado. Suas cartas estão reservadas."
-          : action === "cancel" ? "Anúncio cancelado. Cartas devolvidas à coleção." : "Compra concluída. Cartas adicionadas à coleção.";
-        if (action === "listings") { view = "mine"; selectedKey = null; }
+        status.textContent =
+          action === "listings"
+            ? "Anúncio publicado. Suas cartas estão reservadas."
+            : action === "cancel"
+              ? "Anúncio cancelado. Cartas devolvidas à coleção."
+              : "Compra concluída. Cartas adicionadas à coleção.";
+        if (action === "listings") {
+          view = "mine";
+          selectedKey = null;
+        }
         await load();
       } catch (exception) {
         error.textContent = exception.message;
-        try { await load(); } catch { /* Mantém o erro da operação original. */ }
+        try {
+          await load();
+        } catch {
+          /* Mantém o erro da operação original. */
+        }
       } finally {
-        if (this.modal === overlay) { render(); setBusy(false); }
+        if (this.modal === overlay) {
+          render();
+          setBusy(false);
+        }
       }
     };
     const render = () => {
       balance.textContent = `${this.account.currency.toLocaleString("pt-BR")} tijolinhos`;
       tabs.replaceChildren();
-      for (const [id, label] of [["browse", "Comprar cartas"], ["sell", "Anunciar carta"], ["mine", "Meus anúncios"]]) {
-        const tab = this.button("title-dialog__cancel", label, () => { if (!busy) { view = id; status.textContent = ""; error.textContent = ""; render(); } });
+      for (const [id, label] of [
+        ["browse", "Comprar cartas"],
+        ["sell", "Anunciar carta"],
+        ["mine", "Meus anúncios"],
+      ]) {
+        const tab = this.button("title-dialog__cancel", label, () => {
+          if (!busy) {
+            view = id;
+            status.textContent = "";
+            error.textContent = "";
+            render();
+          }
+        });
         tab.setAttribute("aria-pressed", String(view === id));
         tabs.append(tab);
       }
       content.replaceChildren();
-      if (!loaded) { content.append(this.element("p", "player-market__empty", "Carregando anúncios…")); return; }
+      if (!loaded) {
+        content.append(
+          this.element("p", "player-market__empty", "Carregando anúncios…"),
+        );
+        return;
+      }
       if (view === "sell") {
-        const choices = catalog.map(card => {
-          const owned = this.account.collection[card.key] || 0;
-          const inDeck = (this.account.deck || []).filter(c => `${c.tipo}:${c.nome}` === card.key).reduce((sum, c) => sum + c.quantidade, 0);
-          const initial = this.account.starterCollection?.[card.key] || 0;
-          return { card, owned, initial, available: Math.max(0, owned - Math.max(inDeck, initial)) };
-        }).filter(c => c.owned > 0);
-        if (!choices.some(c => c.card.key === selectedKey && c.available > 0)) selectedKey = null;
+        const choices = catalog
+          .map((card) => {
+            const owned = this.account.collection[card.key] || 0;
+            const inDeck = (this.account.deck || [])
+              .filter((c) => `${c.tipo}:${c.nome}` === card.key)
+              .reduce((sum, c) => sum + c.quantidade, 0);
+            const initial = this.account.starterCollection?.[card.key] || 0;
+            return {
+              card,
+              owned,
+              initial,
+              available: Math.max(0, owned - Math.max(inDeck, initial)),
+            };
+          })
+          .filter((c) => c.owned > 0);
+        if (!choices.some((c) => c.card.key === selectedKey && c.available > 0))
+          selectedKey = null;
         if (!selectedKey) {
-          const heading = this.element("div", "player-market__section-heading player-market__selection-heading");
-          heading.append(this.element("span", "forge-kicker", "SUA COLEÇÃO"), this.element("h3", "", "Escolha uma carta para anunciar"));
-          const note = this.element("p", "player-market__note", "As cópias do kit inicial não podem ser vendidas. Cópias extras ficam disponíveis quando não estão no deck salvo.");
+          const heading = this.element(
+            "div",
+            "player-market__section-heading player-market__selection-heading",
+          );
+          heading.append(
+            this.element("span", "forge-kicker", "SUA COLEÇÃO"),
+            this.element("h3", "", "Escolha uma carta para anunciar"),
+          );
+          const note = this.element(
+            "p",
+            "player-market__note",
+            "As cópias do kit inicial não podem ser vendidas. Cópias extras ficam disponíveis quando não estão no deck salvo.",
+          );
           const search = this.element("input", "title-auth-input");
-          search.type = "search"; search.placeholder = "Buscar na coleção";
+          search.type = "search";
+          search.placeholder = "Buscar na coleção";
           search.setAttribute("aria-label", "Buscar na coleção");
-          const grid = this.element("div", "player-market__grid player-market__selection");
+          const grid = this.element(
+            "div",
+            "player-market__grid player-market__selection",
+          );
           const draw = () => {
             grid.replaceChildren();
-            const matches = choices.filter(c => c.card.nome.toLocaleLowerCase("pt-BR").includes(search.value.trim().toLocaleLowerCase("pt-BR")));
+            const matches = choices.filter((c) =>
+              c.card.nome
+                .toLocaleLowerCase("pt-BR")
+                .includes(search.value.trim().toLocaleLowerCase("pt-BR")),
+            );
             for (const choice of matches) {
-              const button = this.button("player-market__pick", "", () => {
-                if (busy || !choice.available) return;
-                selectedKey = choice.card.key; render();
-                dialog.querySelector("#market-quantity")?.focus();
-              }, `Selecionar ${choice.card.nome}`);
+              const button = this.button(
+                "player-market__pick",
+                "",
+                () => {
+                  if (busy || !choice.available) return;
+                  selectedKey = choice.card.key;
+                  render();
+                  dialog.querySelector("#market-quantity")?.focus();
+                },
+                `Selecionar ${choice.card.nome}`,
+              );
               const art = this.element("div", "player-market__art");
-              const source = window.CYBERDUEL_IMAGE_ASSETS?.[choice.card.imagem];
-              if (source) { const image = this.element("img", ""); image.src = source; image.alt = choice.card.nome; image.loading = "lazy"; art.append(image); }
-              art.append(this.element("span", "player-market__badge", `${choice.owned}×`));
+              const source =
+                window.CYBERDUEL_IMAGE_ASSETS?.[choice.card.imagem];
+              if (source) {
+                const image = this.element("img", "");
+                image.src = source;
+                image.alt = choice.card.nome;
+                image.loading = "lazy";
+                art.append(image);
+              }
+              art.append(
+                this.element(
+                  "span",
+                  "player-market__badge",
+                  `${choice.owned}×`,
+                ),
+              );
               const details = this.element("div", "player-market__details");
-              details.append(this.element("strong", "", choice.card.nome),
-                this.element("small", "", choice.available ? `${choice.available} cópias vendáveis` : choice.initial ? "Kit inicial protegido" : "Cópias no deck salvo"),
-                this.element("span", "player-market__pick-action", choice.available ? "Selecionar carta →" : "Indisponível para venda"));
-              if (!choice.available) { button.disabled = true; button.dataset.unavailable = "true"; }
-              button.append(art, details); grid.append(button);
+              details.append(
+                this.element("strong", "", choice.card.nome),
+                this.element(
+                  "small",
+                  "",
+                  choice.available
+                    ? `${choice.available} cópias vendáveis`
+                    : choice.initial
+                      ? "Kit inicial protegido"
+                      : "Cópias no deck salvo",
+                ),
+                this.element(
+                  "span",
+                  "player-market__pick-action",
+                  choice.available
+                    ? "Selecionar carta →"
+                    : "Indisponível para venda",
+                ),
+              );
+              if (!choice.available) {
+                button.disabled = true;
+                button.dataset.unavailable = "true";
+              }
+              button.append(art, details);
+              grid.append(button);
             }
-            if (!matches.length) grid.append(this.element("p", "player-market__empty", "Nenhuma carta encontrada na coleção."));
+            if (!matches.length)
+              grid.append(
+                this.element(
+                  "p",
+                  "player-market__empty",
+                  "Nenhuma carta encontrada na coleção.",
+                ),
+              );
           };
-          search.addEventListener("input", draw); draw();
-          content.append(heading, note, search, grid); return;
+          search.addEventListener("input", draw);
+          draw();
+          content.append(heading, note, search, grid);
+          return;
         }
         const workspace = this.element("div", "player-market__sell-workspace");
         const artwork = this.element("aside", "player-market__preview");
         const image = this.element("img", "");
         const cardName = this.element("h3", "");
         const freeCopies = this.element("p", "");
-        artwork.append(this.element("span", "forge-kicker", "DA SUA COLEÇÃO"), image, cardName, freeCopies);
+        artwork.append(
+          this.element("span", "forge-kicker", "DA SUA COLEÇÃO"),
+          image,
+          cardName,
+          freeCopies,
+        );
         const form = this.element("form", "player-market__form");
-        form.append(this.element("span", "forge-kicker", "NOVO ANÚNCIO"), this.element("h3", "", "Defina sua oferta"),
-          this.element("p", "player-market__note", "As cópias ficam reservadas até vender ou cancelar. Ao vender, você recebe 80% do total; 20% ficam como taxa do mercado."),
-          this.button("title-dialog__cancel", "← Trocar carta", () => { selectedKey = null; render(); }));
+        form.append(
+          this.element("span", "forge-kicker", "NOVO ANÚNCIO"),
+          this.element("h3", "", "Defina sua oferta"),
+          this.element(
+            "p",
+            "player-market__note",
+            "As cópias ficam reservadas até vender ou cancelar. Ao vender, você recebe 80% do total; 20% ficam como taxa do mercado.",
+          ),
+          this.button("title-dialog__cancel", "← Trocar carta", () => {
+            selectedKey = null;
+            render();
+          }),
+        );
         const quantity = this.element("input", "title-auth-input");
-        Object.assign(quantity, { id: "market-quantity", type: "number", min: "1", max: "99", step: "1", value: "1", required: true });
+        Object.assign(quantity, {
+          id: "market-quantity",
+          type: "number",
+          min: "1",
+          max: "99",
+          step: "1",
+          value: "1",
+          required: true,
+        });
         const price = this.element("input", "title-auth-input");
-        Object.assign(price, { id: "market-price", type: "number", min: "1", max: String(Number.MAX_SAFE_INTEGER), step: "1", required: true });
+        Object.assign(price, {
+          id: "market-price",
+          type: "number",
+          min: "1",
+          max: String(Number.MAX_SAFE_INTEGER),
+          step: "1",
+          required: true,
+        });
         const preview = this.element("p", "player-market__total", "");
         const update = () => {
-          const selected = choices.find(c => c.card.key === selectedKey);
+          const selected = choices.find((c) => c.card.key === selectedKey);
           quantity.max = String(Math.min(99, selected?.available || 1));
           const source = window.CYBERDUEL_IMAGE_ASSETS?.[selected?.card.imagem];
           image.hidden = !source;
-          if (source) { image.src = source; image.alt = selected.card.nome; }
+          if (source) {
+            image.src = source;
+            image.alt = selected.card.nome;
+          }
           cardName.textContent = selected?.card.nome || "Sua coleção";
-          freeCopies.textContent = selected ? `${selected.available} cópias livres para anunciar` : "Cópias do deck salvo ficam protegidas.";
+          freeCopies.textContent = selected
+            ? `${selected.available} cópias livres para anunciar`
+            : "Cópias do deck salvo ficam protegidas.";
           const total = Number(quantity.value) * Number(price.value);
           const valid = Number.isSafeInteger(total) && total >= 0;
-          const proceeds = valid ? Number(BigInt(total) * 4n / 5n) : 0;
-          preview.replaceChildren(this.element("span", "", `Total do anúncio: ${valid ? total.toLocaleString("pt-BR") : "—"} tijolinhos`),
-            this.element("strong", "", `Você recebe: ${valid ? proceeds.toLocaleString("pt-BR") : "—"} tijolinhos (80%)`),
-            this.element("small", "", "Valores fracionados são arredondados para baixo."));
+          const proceeds = valid ? Number((BigInt(total) * 4n) / 5n) : 0;
+          preview.replaceChildren(
+            this.element(
+              "span",
+              "",
+              `Total do anúncio: ${valid ? total.toLocaleString("pt-BR") : "—"} tijolinhos`,
+            ),
+            this.element(
+              "strong",
+              "",
+              `Você recebe: ${valid ? proceeds.toLocaleString("pt-BR") : "—"} tijolinhos (80%)`,
+            ),
+            this.element(
+              "small",
+              "",
+              "Valores fracionados são arredondados para baixo.",
+            ),
+          );
         };
-        for (const [labelText, control] of [["Quantidade", quantity], ["Preço por cópia (tijolinhos)", price]]) {
+        for (const [labelText, control] of [
+          ["Quantidade", quantity],
+          ["Preço por cópia (tijolinhos)", price],
+        ]) {
           const label = this.element("label", "", labelText);
-          label.htmlFor = control.id; form.append(label, control);
+          label.htmlFor = control.id;
+          form.append(label, control);
           control.addEventListener("input", update);
         }
-        const publish = this.button("title-dialog__confirm", "PUBLICAR ANÚNCIO", () => {});
+        const publish = this.button(
+          "title-dialog__confirm",
+          "PUBLICAR ANÚNCIO",
+          () => {},
+        );
         publish.type = "submit";
         if (!choices.length) {
-          publish.disabled = true; publish.dataset.unavailable = "true";
-          form.append(this.element("p", "player-market__note", "Nenhuma cópia livre para venda. Ajuste seu deck ou obtenha mais cartas."));
+          publish.disabled = true;
+          publish.dataset.unavailable = "true";
+          form.append(
+            this.element(
+              "p",
+              "player-market__note",
+              "Nenhuma cópia livre para venda. Ajuste seu deck ou obtenha mais cartas.",
+            ),
+          );
         }
-        form.addEventListener("submit", event => {
+        form.addEventListener("submit", (event) => {
           event.preventDefault();
-          const card = choices.find(c => c.card.key === selectedKey)?.card;
-          if (card) act("listings", { tipo: card.tipo, nome: card.nome, quantidade: Number(quantity.value), preco: Number(price.value) });
+          const card = choices.find((c) => c.card.key === selectedKey)?.card;
+          if (card)
+            act("listings", {
+              tipo: card.tipo,
+              nome: card.nome,
+              quantidade: Number(quantity.value),
+              preco: Number(price.value),
+            });
         });
-        update(); form.append(preview, publish); workspace.append(artwork, form); content.append(workspace);
+        update();
+        form.append(preview, publish);
+        workspace.append(artwork, form);
+        content.append(workspace);
         return;
       }
       const controls = this.element("div", "player-market__filters");
       const heading = this.element("div", "player-market__section-heading");
-      heading.append(this.element("span", "forge-kicker", view === "mine" ? "SUAS OFERTAS" : "CARTAS DISPONÍVEIS"),
-        this.element("h3", "", view === "mine" ? "Meus anúncios" : "Encontre sua próxima jogada"));
+      heading.append(
+        this.element(
+          "span",
+          "forge-kicker",
+          view === "mine" ? "SUAS OFERTAS" : "CARTAS DISPONÍVEIS",
+        ),
+        this.element(
+          "h3",
+          "",
+          view === "mine" ? "Meus anúncios" : "Encontre sua próxima jogada",
+        ),
+      );
       const count = this.element("span", "player-market__count");
-      heading.append(count); content.append(heading);
+      heading.append(count);
+      content.append(heading);
       const search = this.element("input", "title-auth-input");
-      search.type = "search"; search.placeholder = "Buscar carta ou vendedor";
+      search.type = "search";
+      search.placeholder = "Buscar carta ou vendedor";
       search.setAttribute("aria-label", "Buscar carta ou vendedor");
-      const refresh = this.button("title-dialog__cancel", "ATUALIZAR", async () => {
-        if (busy) return;
-        setBusy(true); error.textContent = "";
-        try { await load(); } catch (exception) { error.textContent = exception.message; }
-        finally { if (this.modal === overlay) { render(); setBusy(false); } }
-      });
-      controls.append(search, refresh); content.append(controls);
+      const refresh = this.button(
+        "title-dialog__cancel",
+        "ATUALIZAR",
+        async () => {
+          if (busy) return;
+          setBusy(true);
+          error.textContent = "";
+          try {
+            await load();
+          } catch (exception) {
+            error.textContent = exception.message;
+          } finally {
+            if (this.modal === overlay) {
+              render();
+              setBusy(false);
+            }
+          }
+        },
+      );
+      controls.append(search, refresh);
+      content.append(controls);
       const grid = this.element("div", "player-market__grid");
       const draw = () => {
         grid.replaceChildren();
         const query = search.value.trim().toLocaleLowerCase("pt-BR");
-        const matches = listings.filter(l => (view === "mine" ? l.mine : !l.mine) && `${l.nome} ${l.seller} ${l.nickname}`.toLocaleLowerCase("pt-BR").includes(query));
+        const matches = listings.filter(
+          (l) =>
+            (view === "mine" ? l.mine : !l.mine) &&
+            `${l.nome} ${l.seller} ${l.nickname}`
+              .toLocaleLowerCase("pt-BR")
+              .includes(query),
+        );
         for (const listing of matches) {
           const item = this.element("article", "player-market__listing");
-          const model = catalog.find(c => c.key === `${listing.tipo}:${listing.nome}`);
+          const model = catalog.find(
+            (c) => c.key === `${listing.tipo}:${listing.nome}`,
+          );
           const art = this.element("div", "player-market__art");
-          art.append(this.element("span", "player-market__badge", `${listing.quantidade}×`),
-            this.element("span", "player-market__type", model?.nivel || listing.tipo));
+          art.append(
+            this.element(
+              "span",
+              "player-market__badge",
+              `${listing.quantidade}×`,
+            ),
+            this.element(
+              "span",
+              "player-market__type",
+              model?.nivel || listing.tipo,
+            ),
+          );
           const source = window.CYBERDUEL_IMAGE_ASSETS?.[model?.imagem];
           if (source) {
-            const image = this.element("img", ""); image.src = source; image.alt = listing.nome; image.loading = "lazy";
+            const image = this.element("img", "");
+            image.src = source;
+            image.alt = listing.nome;
+            image.loading = "lazy";
             art.append(image);
           }
           const details = this.element("div", "player-market__details");
-          details.append(this.element("h3", "", listing.nome),
-            this.element("small", "player-market__seller", `@${listing.seller}`),
-            this.element("p", "player-market__unit-price", `${listing.preco.toLocaleString("pt-BR")} tijolinhos / cópia`));
+          details.append(
+            this.element("h3", "", listing.nome),
+            this.element(
+              "small",
+              "player-market__seller",
+              `@${listing.seller}`,
+            ),
+            this.element(
+              "p",
+              "player-market__unit-price",
+              `${listing.preco.toLocaleString("pt-BR")} tijolinhos / cópia`,
+            ),
+          );
           const total = listing.preco * listing.quantidade;
-          details.append(this.element("strong", "player-market__price", `${total.toLocaleString("pt-BR")} tijolinhos`));
-          if (listing.mine) details.append(this.element("small", "player-market__unit-price", `Você recebe ${Number(BigInt(total) * 4n / 5n).toLocaleString("pt-BR")} tijolinhos (80%)`));
-          const button = this.button("title-dialog__confirm", listing.mine ? "CANCELAR ANÚNCIO" : `COMPRAR · ${total.toLocaleString("pt-BR")} TIJOLINHOS`,
-            () => act(listing.mine ? "cancel" : "buy", { id: listing.id }));
+          details.append(
+            this.element(
+              "strong",
+              "player-market__price",
+              `${total.toLocaleString("pt-BR")} tijolinhos`,
+            ),
+          );
+          if (listing.mine)
+            details.append(
+              this.element(
+                "small",
+                "player-market__unit-price",
+                `Você recebe ${Number((BigInt(total) * 4n) / 5n).toLocaleString("pt-BR")} tijolinhos (80%)`,
+              ),
+            );
+          const button = this.button(
+            "title-dialog__confirm",
+            listing.mine
+              ? "CANCELAR ANÚNCIO"
+              : `COMPRAR · ${total.toLocaleString("pt-BR")} TIJOLINHOS`,
+            () => act(listing.mine ? "cancel" : "buy", { id: listing.id }),
+          );
           if (!listing.mine && this.account.currency < total) {
-            button.disabled = true; button.dataset.unavailable = "true";
+            button.disabled = true;
+            button.dataset.unavailable = "true";
             details.append(this.element("small", "", "Saldo insuficiente"));
           }
-          details.append(button); item.append(art, details); grid.append(item);
+          details.append(button);
+          item.append(art, details);
+          grid.append(item);
         }
         count.textContent = `${matches.length} anúncio${matches.length === 1 ? "" : "s"}`;
-        if (!matches.length) grid.append(this.element("p", "player-market__empty", view === "mine" ? "Você não tem anúncios ativos." : "Nenhum anúncio encontrado."));
+        if (!matches.length)
+          grid.append(
+            this.element(
+              "p",
+              "player-market__empty",
+              view === "mine"
+                ? "Você não tem anúncios ativos."
+                : "Nenhum anúncio encontrado.",
+            ),
+          );
       };
-      search.addEventListener("input", draw); draw(); content.append(grid);
+      search.addEventListener("input", draw);
+      draw();
+      content.append(grid);
     };
-    dialog.append(header, tabs, status, error, content); overlay.append(dialog);
-    render(); setBusy(true);
-    requestAnimationFrame(() => { overlay.classList.add("is-visible"); dialog.querySelector("button")?.focus(); });
-    load().catch(exception => { loaded = true; error.textContent = exception.message; }).finally(() => {
-      if (this.modal === overlay) { render(); setBusy(false); }
+    dialog.append(header, tabs, status, error, content);
+    overlay.append(dialog);
+    render();
+    setBusy(true);
+    requestAnimationFrame(() => {
+      overlay.classList.add("is-visible");
+      dialog.querySelector("button")?.focus();
     });
+    load()
+      .catch((exception) => {
+        loaded = true;
+        error.textContent = exception.message;
+      })
+      .finally(() => {
+        if (this.modal === overlay) {
+          render();
+          setBusy(false);
+        }
+      });
   }
 
   boosterFactions() {
@@ -2288,27 +2914,63 @@ class CyberduelTitleUI {
   openBoosterInventory() {
     if (this.modal || !this.account?.user) return;
     const overlay = this.createModal("booster-inventory");
-    const dialog = this.element("section", "title-dialog title-booster-dialog booster-inventory");
+    const dialog = this.element(
+      "section",
+      "title-dialog title-booster-dialog booster-inventory",
+    );
     dialog.setAttribute("role", "dialog");
     dialog.setAttribute("aria-modal", "true");
     dialog.setAttribute("aria-label", "Inventário de boosters");
     this.modalAfterClose = () => this.account.notify();
     const header = this.element("header", "booster-header");
-    header.append(this.element("h2", "", "Seus boosters"), this.button("booster-close", "×", () => this.closeModal(), "Fechar inventário"));
+    header.append(
+      this.element("h2", "", "Seus boosters"),
+      this.button(
+        "booster-close",
+        "×",
+        () => this.closeModal(),
+        "Fechar inventário",
+      ),
+    );
     const list = this.element("div", "booster-inventory-list");
     const packs = this.account.boosters || [];
     for (const faction of this.boosterFactions()) {
-      const owned = packs.filter(pack => pack.faction === faction[0]);
+      const owned = packs.filter((pack) => pack.faction === faction[0]);
       if (!owned.length) continue;
       const row = this.element("article", "booster-inventory-item");
       row.style.setProperty("--pack-color", faction[3]);
       const label = this.element("div");
-      label.append(this.element("strong", "", faction[1]), this.element("small", "", `${owned.length} pacote${owned.length === 1 ? "" : "s"} · 5 cartas cada`));
-      row.append(label, this.button("booster-buy", "ABRIR BOOSTER", () => this.switchBoosterView(() => this.openBoosterOpening(owned[0]))));
+      label.append(
+        this.element("strong", "", faction[1]),
+        this.element(
+          "small",
+          "",
+          `${owned.length} pacote${owned.length === 1 ? "" : "s"} · 5 cartas cada`,
+        ),
+      );
+      row.append(
+        label,
+        this.button("booster-buy", "ABRIR BOOSTER", () =>
+          this.switchBoosterView(() => this.openBoosterOpening(owned[0])),
+        ),
+      );
       list.append(row);
     }
-    if (!packs.length) list.append(this.element("p", "booster-status", "Nenhum booster guardado. Compre um pacote para abrir aqui."));
-    dialog.append(header, list, this.button("booster-buy", "COMPRAR BOOSTERS", () => this.switchBoosterView(() => this.openBoosterShop())));
+    if (!packs.length)
+      list.append(
+        this.element(
+          "p",
+          "booster-status",
+          "Nenhum booster guardado. Compre um pacote para abrir aqui.",
+        ),
+      );
+    dialog.append(
+      header,
+      list,
+      this.button("booster-buy", "COMPRAR BOOSTERS", () =>
+        this.switchBoosterView(() => this.openBoosterShop()),
+      ),
+    );
     overlay.append(dialog);
     this.settings?.applyDomTextScale(overlay);
     requestAnimationFrame(() => overlay.classList.add("is-visible"));
@@ -2333,23 +2995,35 @@ class CyberduelTitleUI {
     const dialog = this.element("section", "title-dialog title-booster-dialog");
     dialog.setAttribute("role", "dialog");
     dialog.setAttribute("aria-modal", "true");
-    dialog.setAttribute("aria-label", opening ? "Abertura de booster" : "Mercado de boosters");
+    dialog.setAttribute(
+      "aria-label",
+      opening ? "Abertura de booster" : "Mercado de boosters",
+    );
     this.modalAfterClose = () => this.account.notify();
     const factions = this.boosterFactions();
     let selected =
-      factions.find((f) => f[0] === (ownedPack?.faction || this.account.faction)) || factions[0];
+      factions.find(
+        (f) => f[0] === (ownedPack?.faction || this.account.faction),
+      ) || factions[0];
     let busy = false;
     let opened = false;
     const header = this.element("header", "booster-header");
     const heading = this.element("div");
     heading.append(
-      this.element("span", "title-kicker", opening ? "SEU PACOTE" : "MERCADO / COLEÇÃO"),
+      this.element(
+        "span",
+        "title-kicker",
+        opening ? "SEU PACOTE" : "MERCADO / COLEÇÃO",
+      ),
       this.element("h2", "", opening ? "Abra seu booster" : "Booster Vault"),
     );
     const close = this.button(
       "booster-close",
       "×",
-      () => opening ? this.switchBoosterView(() => this.openBoosterInventory()) : this.closeModal(),
+      () =>
+        opening
+          ? this.switchBoosterView(() => this.openBoosterInventory())
+          : this.closeModal(),
       opening ? "Voltar ao inventário" : "Fechar loja de boosters",
     );
     header.append(heading, close);
@@ -2383,8 +3057,15 @@ class CyberduelTitleUI {
     pack.append(artwork, foil, packBrand, packName, seal);
     const flash = this.element("div", "booster-flash");
     flash.setAttribute("aria-hidden", "true");
-    const scratch = this.button("booster-scratch", "RISQUE AQUI PARA ABRIR →", () => {});
-    scratch.setAttribute("aria-label", "Abrir pacote. Arraste horizontalmente ou pressione Enter.");
+    const scratch = this.button(
+      "booster-scratch",
+      "RISQUE AQUI PARA ABRIR →",
+      () => {},
+    );
+    scratch.setAttribute(
+      "aria-label",
+      "Abrir pacote. Arraste horizontalmente ou pressione Enter.",
+    );
     scratch.hidden = !opening;
     pack.append(scratch);
     pack.removeAttribute("aria-hidden");
@@ -2408,8 +3089,11 @@ class CyberduelTitleUI {
     let position = 0;
     let revealing = false;
     let generation = 0;
-    const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    const pause = (ms) => new Promise(resolve => setTimeout(resolve, reducedMotion ? 0 : ms));
+    const reducedMotion = window.matchMedia?.(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    const pause = (ms) =>
+      new Promise((resolve) => setTimeout(resolve, reducedMotion ? 0 : ms));
     const cutin = this.element("div", "booster-cutin");
     cutin.hidden = true;
     const revealNext = async () => {
@@ -2417,7 +3101,8 @@ class CyberduelTitleUI {
       revealing = true;
       refresh();
       const currentGeneration = generation;
-      const alive = () => this.modal === overlay && currentGeneration === generation;
+      const alive = () =>
+        this.modal === overlay && currentGeneration === generation;
       const previous = results.querySelector(".is-front");
       if (previous) {
         previous.classList.add("is-leaving");
@@ -2428,7 +3113,10 @@ class CyberduelTitleUI {
       const card = queue[position];
       const item = results.children[0];
       if (card.nivel === "lendaria") {
-        cutin.replaceChildren(this.element("strong", "", "LENDÁRIA!"), this.element("span", "", card.nome));
+        cutin.replaceChildren(
+          this.element("strong", "", "LENDÁRIA!"),
+          this.element("span", "", card.nome),
+        );
         const source = window.CYBERDUEL_LEGENDARY_CUTINS?.[card.nome];
         if (source) {
           const art = this.element("img");
@@ -2447,7 +3135,9 @@ class CyberduelTitleUI {
       await pause(450);
       if (!alive()) return;
       if (position === 0 && queue.length > 1) {
-        item.prepend(this.element("span", "booster-swipe-hint", "↑ arraste para cima"));
+        item.prepend(
+          this.element("span", "booster-swipe-hint", "↑ arraste para cima"),
+        );
       }
       position++;
       revealing = false;
@@ -2474,7 +3164,8 @@ class CyberduelTitleUI {
         if (!opening) {
           await this.account.buyBooster(selected[0]);
           if (this.modal === overlay) {
-            status.textContent = "Pacote guardado no inventário. Abra quando quiser.";
+            status.textContent =
+              "Pacote guardado no inventário. Abra quando quiser.";
             inventory.textContent = `VER INVENTÁRIO · ${this.account.boosters.length}`;
           }
           return;
@@ -2484,13 +3175,22 @@ class CyberduelTitleUI {
           this.account.notify();
           return;
         }
-        const revealed = cards.flatMap((card) =>
-          Array.from({ length: card.quantidade || 1 }, () => ({
-            ...card,
-            nivel: card.nivel || this.deckBuilder.getCatalogByKey().get(`${card.tipo}:${card.nome}`)?.nivel || "utilidade",
-            quantidade: 1,
-          })),
-        ).sort((a, b) => this.boosterRevealOrder(a) - this.boosterRevealOrder(b));
+        const revealed = cards
+          .flatMap((card) =>
+            Array.from({ length: card.quantidade || 1 }, () => ({
+              ...card,
+              nivel:
+                card.nivel ||
+                this.deckBuilder
+                  .getCatalogByKey()
+                  .get(`${card.tipo}:${card.nome}`)?.nivel ||
+                "utilidade",
+              quantidade: 1,
+            })),
+          )
+          .sort(
+            (a, b) => this.boosterRevealOrder(a) - this.boosterRevealOrder(b),
+          );
         dialog.classList.add("is-opening");
         status.textContent = "Rompendo o lacre…";
         balance.textContent = `${this.account.currency.toLocaleString("pt-BR")} TIJOLINHOS`;
@@ -2526,8 +3226,11 @@ class CyberduelTitleUI {
         if (this.modal === overlay) await revealNext();
       } catch (exception) {
         if (this.modal === overlay) {
-          error.textContent = exception.message || "Falha ao processar booster.";
-          status.textContent = opening ? "Não foi possível abrir o pacote. Tente novamente." : "Não foi possível comprar. Tente novamente.";
+          error.textContent =
+            exception.message || "Falha ao processar booster.";
+          status.textContent = opening
+            ? "Não foi possível abrir o pacote. Tente novamente."
+            : "Não foi possível comprar. Tente novamente.";
           dialog.classList.remove("is-opening");
         }
       } finally {
@@ -2549,13 +3252,20 @@ class CyberduelTitleUI {
         );
       }
       buy.disabled =
-        busy || revealing || (!opening && this.account.currency < this.account.boosterPrice);
+        busy ||
+        revealing ||
+        (!opening && this.account.currency < this.account.boosterPrice);
       scratch.disabled = busy || opened;
       buy.textContent = busy
-        ? (opening ? "ABRINDO…" : "COMPRANDO…")
+        ? opening
+          ? "ABRINDO…"
+          : "COMPRANDO…"
         : opened
-          ? (position < queue.length ? "PRÓXIMA CARTA ↑" : "VOLTAR AO INVENTÁRIO")
-          : opening ? "ABRIR PACOTE"
+          ? position < queue.length
+            ? "PRÓXIMA CARTA ↑"
+            : "VOLTAR AO INVENTÁRIO"
+          : opening
+            ? "ABRIR PACOTE"
             : this.account.currency < this.account.boosterPrice
               ? "SALDO INSUFICIENTE"
               : `COMPRAR PACOTE · ${this.account.boosterPrice} TIJOLINHOS`;
@@ -2604,8 +3314,11 @@ class CyberduelTitleUI {
     scratch.addEventListener("pointermove", (event) => {
       if (!scratchStart || event.pointerId !== scratchStart.id) return;
       const distance = Math.abs(event.clientX - scratchStart.x);
-      scratch.style.setProperty("--scratch", `${Math.min(100, distance / scratch.clientWidth * 100)}%`);
-      if (distance >= scratch.clientWidth * .55) {
+      scratch.style.setProperty(
+        "--scratch",
+        `${Math.min(100, (distance / scratch.clientWidth) * 100)}%`,
+      );
+      if (distance >= scratch.clientWidth * 0.55) {
         scratchStart = null;
         buy.click();
       }
@@ -2616,23 +3329,35 @@ class CyberduelTitleUI {
     };
     scratch.addEventListener("pointerup", cancelScratch);
     scratch.addEventListener("pointercancel", cancelScratch);
-    scratch.addEventListener("click", event => { if (event.detail === 0) buy.click(); });
+    scratch.addEventListener("click", (event) => {
+      if (event.detail === 0) buy.click();
+    });
     let swipeStart = null;
-    results.addEventListener("pointerdown", event => {
+    results.addEventListener("pointerdown", (event) => {
       swipeStart = { id: event.pointerId, y: event.clientY };
       results.setPointerCapture(event.pointerId);
     });
-    results.addEventListener("pointerup", event => {
-      if (swipeStart?.id === event.pointerId && swipeStart.y - event.clientY > 45) revealNext();
+    results.addEventListener("pointerup", (event) => {
+      if (
+        swipeStart?.id === event.pointerId &&
+        swipeStart.y - event.clientY > 45
+      )
+        revealNext();
       swipeStart = null;
     });
-    results.addEventListener("pointercancel", () => { swipeStart = null; });
-    results.addEventListener("wheel", event => {
-      if (opened && position < queue.length) {
-        event.preventDefault();
-        if (event.deltaY < -15) revealNext();
-      }
-    }, { passive: false });
+    results.addEventListener("pointercancel", () => {
+      swipeStart = null;
+    });
+    results.addEventListener(
+      "wheel",
+      (event) => {
+        if (opened && position < queue.length) {
+          event.preventDefault();
+          if (event.deltaY < -15) revealNext();
+        }
+      },
+      { passive: false },
+    );
     for (const faction of factions) {
       const button = this.button("booster-faction", faction[1], () => {
         if (busy) return;
@@ -2642,7 +3367,11 @@ class CyberduelTitleUI {
       button.dataset.faction = faction[0];
       tabs.append(button);
     }
-    const inventory = this.button("booster-inventory-link", `VER INVENTÁRIO · ${(this.account.boosters || []).length}`, () => this.switchBoosterView(() => this.openBoosterInventory()));
+    const inventory = this.button(
+      "booster-inventory-link",
+      `VER INVENTÁRIO · ${(this.account.boosters || []).length}`,
+      () => this.switchBoosterView(() => this.openBoosterInventory()),
+    );
     inventory.hidden = opening;
     dialog.append(
       header,

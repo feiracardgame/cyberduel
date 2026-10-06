@@ -163,7 +163,7 @@ class CyberduelMultiplayer {
     if (response.update) this.enterExisting(response);
   }
 
-  createRoom(callback, club = false) {
+  createRoom(callback) {
     this.localDeck = window.cyberduelDeckBuilder.getDeckForMatch();
     this.connect().emit(
       "create-room",
@@ -171,7 +171,6 @@ class CyberduelMultiplayer {
         deck: this.localDeck,
         accountToken: window.cyberduelAccount?.token || null,
         inviteBase: `${location.origin}${location.pathname}`,
-        club,
       },
       (response) => {
         if (!response.ok) return callback(response);

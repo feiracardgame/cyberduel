@@ -25,6 +25,11 @@ vm.runInContext(
 );
 const { builder, CyberduelTitleUI } = context.titleExports;
 const ui = new CyberduelTitleUI({ deckBuilder: builder, callbacks: {} });
+const modes = ui.getMenuSections().partidas.rows;
+assert.equal(modes.some(([name]) => name === 'Sala híbrida'), false);
+assert.equal(modes.find(([name]) => name === 'Entrar por código')[2], 'sala_hibrida');
+const playerCard = modes.find(([name]) => name === 'Carteirinha de jogador');
+assert.equal(playerCard[2], 'qr_code'); assert.equal(playerCard[4], 'account', 'A carteirinha não exige deck ou acesso ao Clube.');
 
 const emptySummary = ui.deckSummary();
 assert.equal(emptySummary.deckReady, false);

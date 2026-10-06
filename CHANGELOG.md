@@ -4,6 +4,15 @@ Novidades, correções e verificações realizadas no projeto. As entregas mais 
 
 ## 2026-10-06
 
+### Carteirinha de jogador e partidas do Clube pela apresentação
+
+- Substituída a opção do Clube por uma carteirinha com foto, apelido, identificação da conta, facção, partidas e vitórias contra jogadores e dentro do Clube. O acesso aparece como liberado a partir de 3 vitórias contra jogadores ou bloqueado com o requisito para liberar; a carteirinha abre também sem acesso e sem deck salvo, para apresentar ao segurança.
+- Trocadas as imagens entre a carteirinha e “Entrar por código” e removida a opção “Sala híbrida”. Retirados os botões de criar/entrar em salas do Clube da antiga janela; o duelo comum por código continua no menu de partidas.
+- A identificação de partidas do Clube agora vem das salas criadas pelo fluxo de `/apresentacao`, no servidor. Salas comuns ignoram a antiga marcação `club` enviada pelo cliente. Partidas concluídas entre contas distintas nessa apresentação registram partidas e vitórias do Clube uma única vez, junto às estatísticas contra jogadores, e persistem na conta. Preservadas as regras existentes de entrada por QR code na apresentação; a carteirinha informa o acesso para conferência presencial.
+- Contadores específicos do Clube começam em zero nas contas existentes: não há registro antigo suficiente para reconstruir quais partidas ocorreram em apresentações. Renovado o cache do CSS e dos scripts alterados.
+- Aprovados os testes de tutorial, menu, cliente de conta, cliente de apresentação, multiplayer e apresentação, incluindo rejeição da classificação de Clube pelo cliente, sala comum sem contagem de Clube e apresentação com estatísticas persistidas. Sintaxe dos scripts alterados e `git diff --check` aprovados.
+- Playwright confirmou a abertura pelo menu real sem deck salvo, identidade e contadores corretos, acesso liberado/bloqueado, troca das imagens, ausência de “Sala híbrida” e retorno ao menu, em celular e computador, sem transbordamento horizontal ou erros JavaScript. Capturas inspecionadas e script em `/tmp/cyberduel-playwright/player-card.cjs`; sem deploy.
+
 ### ElenAI visível e apresentação vinculada à conta após o login
 
 - Corrigido o enquadramento dos diálogos: a personagem ocupa o espaço acima da caixa de texto, sem ficar encoberta nas falas longas. A caixa permite rolagem quando necessário em telas menores; o ajuste compartilhado também atende aos diálogos do treino.

@@ -170,7 +170,6 @@ class CenaTitulo extends Phaser.Scene {
         onSolo: () => this.iniciarPartida(false),
         onMatchmaking: () => this.titleUI.openMatchmaking(this.multiplayer),
         onCreateRoom: () => this.criarSala(),
-        onCreateClub: () => this.criarSala(true),
         onTutorial: () => this.iniciarTutorial(),
         onJoinRoom: (code) => this.entrarNaSala(code),
         onSpectate: (code) => this.multiplayer.spectateRoom(code, (response) => {
@@ -226,7 +225,7 @@ class CenaTitulo extends Phaser.Scene {
     } else this.iniciarPartida(true);
   }
 
-  criarSala(club = false) {
+  criarSala() {
     if (!this.account?.user || this.account.needsRegistration || !this.account?.faction) {
       this.atualizarStatus("Entre e escolha sua facção antes de criar uma sala.", "warning");
       return;
@@ -257,7 +256,7 @@ class CenaTitulo extends Phaser.Scene {
           `Sala ${response.room.code} ativa. Aguardando oponente...`,
           "success",
         );
-      }, club);
+      });
     } catch (error) {
       this.atualizarStatus(error.message, "error");
     }

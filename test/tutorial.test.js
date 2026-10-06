@@ -121,11 +121,19 @@ async function connect() { const s = io(url, { transports: ['websocket'], forceN
   }
   assert.equal((await api('auth/session', undefined, fixtures[2])).body.tutorial.seen.length, 4);
   const host = await connect(), guest = await connect();
-  assert.equal((await ack(host, 'create-room', { club: true, accountToken: fixtures[1].token })).ok, false);
+  const forgedClub = await ack(host, 'create-room', { club: true, accountToken: fixtures[1].token });
+  assert.equal(forgedClub.ok, true);
+  assert.equal(forgedClub.room.club, false, 'O cliente não pode marcar uma sala comum como Clube.');
   const room = await ack(host, 'create-room', { club: true, accountToken: fixtures[2].token, deck: member.deck });
   assert.equal(room.ok, true);
-  assert.equal((await ack(guest, 'join-room', { code: room.room.code, accountToken: fixtures[1].token })).ok, false);
-  assert.equal((await ack(guest, 'join-room', { code: room.room.code, accountToken: fixtures[3].token })).ok, true);
+  assert.equal(room.room.club, false);
+  assert.equal((await ack(guest, 'join-room', { code: room.room.code, accountToken: fixtures[3].token, deck: member.deck })).ok, true);
+  vm.runInContext(fs.readFileSync('js/multiplayer.js', 'utf8'), context);
+  assert.equal((await ack(host, 'initial-state', { state: context.window.cyberduelMultiplayer.serializeMatch(scene.partida) })).ok, true);
+  assert.equal((await ack(host, 'decline-match', { room: room.room.code, accountToken: fixtures[2].token })).ok, true);
+  const friendly = (await api('auth/session', undefined, fixtures[2])).body;
+  assert.equal(friendly.humanGames, member.humanGames + 1);
+  assert.equal(friendly.clubGames, 0); assert.equal(friendly.clubWins, 0);
   sockets.forEach(s => s.disconnect()); await stop(); await start();
   const restored = (await api('auth/session')).body;
   assert.equal(restored.tutorial.wantsTutorial, false); assert.equal(restored.tutorial.introSeen, true);

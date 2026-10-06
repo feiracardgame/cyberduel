@@ -141,6 +141,8 @@ function ensureAccountDefaults(account) {
     if (!Number.isFinite(account[key])) account[key] = 0;
   if (!Number.isFinite(account.humanGames)) account.humanGames = account.rankedGames;
   if (!Number.isFinite(account.humanWins)) account.humanWins = account.rankedWins;
+  for (const key of ["clubGames", "clubWins"])
+    if (!Number.isFinite(account[key])) account[key] = 0;
   if (!account.tutorial || typeof account.tutorial !== "object") {
     const existing = Boolean(account.faction);
     account.tutorial = { introSeen: existing, named: existing, wantsTutorial: existing ? true : null,
@@ -372,6 +374,7 @@ function publicAccount(account) {
     currency: account.currency,
     gamesPlayed: account.gamesPlayed,
     humanGames: account.humanGames, humanWins: account.humanWins,
+    clubGames: account.clubGames, clubWins: account.clubWins,
     tutorial: account.tutorial, councilReached: Boolean(account.councilReached),
     clubUnlocked: account.humanWins >= 3,
     collection: account.collection,
@@ -1237,7 +1240,7 @@ function generateRoomCode() {
 }
 
 function publicRoom(room) {
-  return { code: room.code, players: room.players.size, turn: room.turn };
+  return { code: room.code, players: room.players.size, turn: room.turn, club: !!room.presentation };
 }
 
 function sanitizeDeck(deck) {
@@ -1501,6 +1504,10 @@ function settleMatch(room) {
     if (accounts.every(Boolean) && accounts[0] !== accounts[1]) {
       account.humanGames += 1;
       if (player === winnerPlayer) account.humanWins += 1;
+      if (room.presentation) {
+        account.clubGames += 1;
+        if (player === winnerPlayer) account.clubWins += 1;
+      }
     }
     account.updatedAt = new Date().toISOString();
   });
@@ -1641,11 +1648,8 @@ io.on("connection", (socket) => {
     const active = findResumable(payload);
     if (active?.room.ranked) return ack({ ok: false, error: "Conclua sua partida ranqueada antes de criar uma sala." });
     const account = accountFromToken(payload.accountToken);
-    if (payload.club && (!account?.faction || (account.humanWins || 0) < 3))
-      return ack({ ok: false, error: "O Clube Secreto exige 3 vitórias contra jogadores." });
     removeFromRoom(socket);
     const room = createRoomRecord(socket, sanitizeDeck(payload.deck), account);
-    room.club = payload.club === true;
     const code = room.code;
     const inviteUrl = buildInviteUrl(
       PUBLIC_URL || payload.inviteBase || socket.handshake.headers.origin,
@@ -1682,8 +1686,6 @@ io.on("connection", (socket) => {
       .slice(0, 6);
     const room = rooms.get(code);
     if (!room) return ack({ ok: false, error: "Sala não encontrada." });
-    if (room.club && (!accountFromToken(payload.accountToken)?.faction || (accountFromToken(payload.accountToken)?.humanWins || 0) < 3))
-      return ack({ ok: false, error: "O Clube Secreto exige 3 vitórias contra jogadores." });
     if (room.presentation) {
       const player = Number(payload.seat);
       if (![1, 2].includes(player) || payload.ticket !== room.seatTokens.get(player))

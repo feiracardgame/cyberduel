@@ -3275,4 +3275,24 @@ body.title-terminal-open #game-viewport canvas {
 .elenai-actions .title-faction strong { font-size: 18px; }
 .elenai-actions .title-faction span { font-size: 14px; }
 .elenai-actions .title-faction small { font-size: 12px; }
+.player-id {
+  width: calc(100% - 32px); margin: auto; box-sizing: border-box;
+  max-height: calc(100% - 32px); overflow-y: auto; text-align: center;
+  border: 1px solid #4b9966; border-radius: 16px; background: #071810;
+}
+.player-id__brand { color: #88b599; letter-spacing: .14em; font-size: 10px; }
+.player-id h2 { margin-bottom: 20px; font-size: 24px; }
+.player-id .profile-avatar { cursor: default; }
+.player-id__name { display: block; color: #e9ffef; font-size: 22px; overflow-wrap: anywhere; }
+.player-id .profile-identity { margin: 6px 0; }
+.player-id > .player-id__faction { color: #7ddca0; font-size: 12px; }
+.player-id__stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 22px 0; }
+.player-id__stats > div { padding: 12px 8px; border: 1px solid #28573a; border-radius: 6px; }
+.player-id__stats dt { color: #a6c3af; font-size: 12px; line-height: 1.4; }
+.player-id__stats dd { margin: 8px 0 0; color: #effff3; font-size: 28px; font-weight: bold; }
+.player-id h3 { font-size: 16px; }
+.player-id > .player-id__access { padding: 12px; border: 1px solid currentColor; border-radius: 6px; color: #ffbf80; font-size: 14px; font-weight: bold; }
+.player-id__access[data-unlocked="true"] { color: #85ffac; }
+.player-id > .player-id__note { color: #b2c9ba; font-size: 13px; }
+.player-id .title-dialog__cancel { width: 100%; min-height: 44px; }
 .title-terminal .card-menu__shortcuts { grid-template-columns: repeat(3, minmax(0, 1fr)); }
