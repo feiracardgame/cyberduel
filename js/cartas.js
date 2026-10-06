@@ -585,7 +585,7 @@ const POOL_CARTAS_MONSTRO = [
       tipo: TIPOS_EFEITO.ATACAR,
       valor: 5,
       // Este alcance cobre todo o campo inimigo.
-      rangeH: 5,
+      rangeH: 2,
       rangeV: 3,
       atingeTodos: false,
     },
@@ -718,7 +718,7 @@ const POOL_CARTAS_MONSTRO = [
     efeito: {
       tipo: TIPOS_EFEITO.ATACAR,
       valor: 3,
-      rangeH: 5,
+      rangeH: 3,
       rangeV: 3,
       bonusAoEliminar: 1,
     },
@@ -783,7 +783,7 @@ const POOL_CARTAS_MONSTRO = [
     booster: "echossystem",
     efeito: {
       tipo: TIPOS_EFEITO.ATACAR_DOIS_ALVOS,
-      valor: 3,
+      valor: 4,
       // "Alcance curto": só a coluna imediatamente vizinha (rangeH:1) e a fileira adjacente (rangeV:1) — combate corpo a corpo.
       rangeH: 5,
       rangeV: 1,
