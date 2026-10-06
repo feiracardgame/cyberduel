@@ -32,6 +32,50 @@ assert.equal(monsters.length, 38);
   p.jogador.campo.removerCarta(4); update(p);
   assert.equal(near.poder, 9); assert.equal(below.poder, 9);
 }
+// Reusing a slot after a buffed ally dies must not transfer its damage or bonus.
+for (const enemy of [false, true]) {
+  let p = match();
+  put(p, 'IA de treinamento', 0, enemy);
+  const dead = put(p, 'O Tigre', 5, enemy), attacker = put(p, 'O Tigre', 5, !enemy);
+  update(p); assert.equal(dead.poder, 13);
+  for (let hit = 0; hit < 5; hit++) {
+    attacker.usadaEsteTurno = false;
+    assert.ok(use(p, attacker, 5, null, !enemy).sucesso);
+  }
+  assert.equal((enemy ? p.inimigo : p.jogador).campo.cartas[5], null);
+  // Restore the owner as the local player, as in the online synchronization path.
+  const snapshot = codec.serializeMatch(p);
+  p = codec.hydrateMatch(enemy ? codec.swapSnapshot(snapshot) : snapshot);
+  const fresh = card('O Tigre');
+  p.jogador.mao.adicionarCarta(fresh);
+  assert.ok(p.jogarCartaDoJogador(fresh, 5).sucesso);
+  update(p); update(p);
+  assert.equal(fresh.poder, 13);
+  assert.equal(fresh.bonusEfeitoContinuo, 4);
+  p.jogador.campo.removerCarta(0); update(p);
+  assert.equal(fresh.poder, 9, 'A carta nova perde apenas o bônus quando a IA sai.');
+}
+// Recycling restores the card, then only the current field's bonuses apply.
+for (const adjacent of [false, true]) {
+  let p = match(); put(p, 'IA de treinamento', 0, true);
+  const dead = put(p, 'O Tigre', 5, true); update(p);
+  dead.usadaEsteTurno = true; dead.usadaNaPartida = true; dead.envenenada = { valor: 1 };
+  dead.buff(-99); p.inimigo.campo.removerMortas();
+  p = codec.hydrateMatch(codec.swapSnapshot(codec.serializeMatch(p)));
+  const recycle = card('Reciclagem'); p.jogador.mao.adicionarCarta(recycle);
+  assert.ok(p.jogarCartaEfeitoDoJogador(recycle, 0).sucesso);
+  const recovered = p.jogador.mao.cartas.at(-1);
+  assert.equal(recovered.id, dead.id);
+  assert.equal(recovered.poder, 9, 'Reciclagem devolve o PA original, sem o dano anterior.');
+  assert.equal(recovered.bonusEfeitoContinuo, 0);
+  assert.equal(recovered.usadaEsteTurno, false);
+  assert.equal(recovered.usadaNaPartida, true, 'Reciclagem não libera habilidades de uso único na partida.');
+  assert.equal(recovered.envenenada, null);
+  assert.ok(p.jogarCartaDoJogador(recovered, adjacent ? 5 : 9).sucesso);
+  update(p); update(p);
+  assert.equal(recovered.poder, adjacent ? 13 : 9);
+  assert.equal(p.jogador.campo.cartas[adjacent ? 5 : 9], recovered);
+}
 // HAL can disable passive characters and terrains, switch its single target, and restore on removal.
 {
   const p = match(), hal = put(p, 'HAL 9001', 0), ia = put(p, 'IA de treinamento', 0, true);

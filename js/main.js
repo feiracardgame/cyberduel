@@ -1425,8 +1425,12 @@ class Partida {
           : disponiveis[disponiveis.length - 1];
         if (escolhida) {
           dono.descarte.splice(dono.descarte.indexOf(escolhida), 1);
-          dono.mao.adicionarCarta(escolhida);
-          dono.cartasRecemCompradas.push(escolhida);
+          const base = [...POOL_CARTAS_MONSTRO, ...POOL_CARTAS_TERRENO, ...POOL_CARTAS_EFEITO]
+            .find((c) => c.nome === escolhida.nome) || { ...escolhida, descricao: escolhida.descricaoFlavor };
+          const recuperada = new Carta(escolhida.id, escolhida.poderBase, escolhida.tipo, base);
+          recuperada.usadaNaPartida = escolhida.usadaNaPartida;
+          dono.mao.adicionarCarta(recuperada);
+          dono.cartasRecemCompradas.push(recuperada);
         }
         break;
       }

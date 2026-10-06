@@ -146,6 +146,7 @@ partida.aplicarEfeitoInvocacao(
   partida.jogador,
   partida.inimigo,
 );
-assert.equal(partida.jogador.mao.cartas.at(-1), reciclada);
+assert.equal(partida.jogador.mao.cartas.at(-1).id, reciclada.id);
+assert.equal(partida.jogador.mao.cartas.at(-1).poder, reciclada.poderBase);
 
 console.log("Efeitos das cartas dos Remanescentes validados.");

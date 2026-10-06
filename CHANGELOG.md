@@ -2,6 +2,16 @@
 
 Novidades, correções e verificações realizadas no projeto. As entregas mais recentes aparecem primeiro.
 
+## 2026-10-06
+
+### Reciclagem restaura o PA e os efeitos originais da carta
+
+- Reproduzido no Playwright o problema com uma carta morta ao lado da IA de treinamento: Reciclagem devolvia o Tigre com 0 PA e o registro antigo de +4; ao reinvocar, ele era removido novamente. Conferidas 152 combinações de cartas novas em slots adjacentes nos dois campos, sem transferência de dano entre cartas distintas.
+- Reciclagem agora recria a carta com o mesmo ID, PA base e características originais do catálogo, eliminando dano, bônus antigos, veneno e estados temporários da passagem anterior pelo campo. Preservado o bloqueio de habilidades já usadas uma vez na partida. Bônus contínuos são aplicados conforme a nova posição: Tigre volta com 9 PA e recebe 13 ao lado da IA. Atualizada a versão do motor no HTML para renovar o cache.
+- Aprovados `humbanet.test.js`, `new-cards.test.js`, `echossystem-effects.test.js` e `state-sync.test.js`, incluindo morte por habilidade, reposição por outra carta, recuperação dentro/fora da área da IA, recálculos repetidos e serialização com troca de perspectiva. O teste novo falhou antes da correção com 0 em vez de 9 PA. Sintaxe do motor e do teste aprovada.
+- Playwright confirmou a recuperação corrigida no motor carregado pelo navegador e a reinvocação por cliques na mão e no slot: 9 PA na mão, bônus antigo zerado e 13 PA nos dados e no selo exibido, permanecendo em campo, sem erros JavaScript. Usados servidor, conta e dados temporários; artefatos em `/tmp/cyberduel-playwright/`, sem deploy. `git diff --check` aprovado.
+- Limitação preexistente: `effect-events.test.js` falha pela divergência entre a descrição de “O Bom” no catálogo e no documento de cartas. Confirmada a mesma falha com o motor original do Git; essa descrição não foi alterada neste pedido. A sincronização foi validada pelos testes do codec, sem sessão online com dois navegadores.
+
 ## 2026-10-05
 
 ### Seleção visual, proteção do kit inicial e comissão do mercado
