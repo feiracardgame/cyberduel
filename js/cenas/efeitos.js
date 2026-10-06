@@ -20,7 +20,7 @@ const APRESENTACAO_EFEITOS = Object.freeze({
   "CryptoAcionistas": { inicio_turno: "somCryptoAcionistas", video: "videoEfeitoCrypto", momentos: ["inicio_turno"], somenteGanho: true },
   "Advogado Corporativo": { habilidade: "somAdvogado", visual: "juridico", momentos: ["habilidade"] },
   "Agente da DIPSP": { habilidade: "somTiro", visual: "plasma", cor: 0x3388ff, corAlvo: 0x3388ff, momentos: ["habilidade"] },
-  'UCC "Juggernaut"': { habilidade: "somJuggernaut", video: "videoEfeitoJuggernaut", videoNoAlvo: true, momentos: ["habilidade"] },
+  'UCC "Juggernaut"': { habilidade: "somJuggernaut", visual: "impactoJuggernaut", momentos: ["habilidade"] },
   "O Tigre": { habilidade: "somTigre", imagem: "efeitoTigre", momentos: ["habilidade"], visual: "garras" },
   "RaspClay MonteCorp": { invocacao: "somRaspClay", video: "efeitoRaspClayVertical", volume: 0.75 },
   "Dieh'Go, o Xerife": { habilidade: "somDiego", visual: "caveiras", video: "videoEfeitodiego", momentos: ["habilidade"], volume: 0.75 },
@@ -227,6 +227,17 @@ class CenaEfeitos extends Phaser.Scene {
     const perfil = APRESENTACAO_EFEITOS[fonte.habilidadeAprendidaDe || fonte.nome] || {};
     const objetos = [];
     const guardar = (o) => { objetos.push(o); return o; };
+    const impactoJuggernaut = perfil.visual === "impactoJuggernaut" && evento.momento === "habilidade";
+    // O motor já resolveu a remoção; mantém a carta no slot até terminar o impacto visual.
+    if (impactoJuggernaut) for (const alvo of evento.alvos || []) {
+      if (!alvo.removida) continue;
+      const chave = alvo.oculto && (alvo.lado !== "jogador" || this.jogo.multiplayer?.spectator) ? "fundoCarta" : alvo.imagem;
+      if (!chave || !this.textures.exists(chave)) continue;
+      const ponto = this.ponto(alvo.lado, alvo.indice);
+      const layout = this.jogo.layout;
+      guardar(this.add.image(ponto.x, ponto.y, chave).setDisplaySize(layout.slotW, layout.slotH)
+        .setAngle(this.jogo.multiplayer?.presentation && alvo.lado === "inimigo" ? 180 : 0));
+    }
     // Alvos, sons e vídeos começam no impacto da carta, na mesma fila.
     const aplicar = () => {
       const origem = this.ponto(evento.lado, fonte.indice);
@@ -263,6 +274,11 @@ class CenaEfeitos extends Phaser.Scene {
       }
       for (const alvo of alvos) {
         const destino = this.ponto(alvo.lado, alvo.indice);
+        if (impactoJuggernaut && this.textures.exists("efeitoJuggernaut")) {
+          guardar(this.add.image(Math.max(175, Math.min(LARGURA_LAYOUT - 175, destino.x)), destino.y, "efeitoJuggernaut")
+            .setDisplaySize(340, 245).setDepth(10)
+            .setAngle(this.jogo.multiplayer?.presentation && alvo.lado === "inimigo" ? 180 : 0));
+        }
         if ((!perfil.momentos && !echo) || ativo) pulsar(destino, 170, 240, perfil.corAlvo ?? (echo ? cor : alvo.delta < 0 ? 0xff526c : 0x69caff));
         if (pichacaoAtiva && perfil.imagem && perfil.imagem !== "efeitoCoelho" && (perfil.imagem !== "efeitoAranha" || alvo.capturada)) {
           const layout = this.jogo.layout;
@@ -288,7 +304,7 @@ class CenaEfeitos extends Phaser.Scene {
             this.jogo.partida?.[alvo.lado]?.campo.cartas.includes(o.dadosCartaCampo));
           this.tremerCarta(cartaCampo);
         }
-        if (alvo.removida && !(alvo.oculto && (alvo.lado !== "jogador" || this.jogo.multiplayer?.spectator))) {
+        if (alvo.removida && !impactoJuggernaut && !(alvo.oculto && (alvo.lado !== "jogador" || this.jogo.multiplayer?.spectator))) {
           if (alvo.imagem && this.textures.exists(alvo.imagem)) {
             const orientacao = this.jogo.multiplayer?.presentation && alvo.lado === "inimigo" ? 180 : 0;
             const fantasma = guardar(this.add.image(destino.x, destino.y, alvo.imagem).setDisplaySize(170, 230).setAngle(orientacao));
@@ -341,7 +357,7 @@ class CenaEfeitos extends Phaser.Scene {
         (som !== "somReplicantes" || alvos.some(alvo => alvo.delta > 0)) && this.cache.audio.exists(som);
       if (tocaSom) this.sound.play(som, { volume: window.cyberduelSettings?.effects(volume) ?? volume });
       const duracaoInvestida = ativo && perfil.visual === "garras" ? (this.cache.audio.get?.("somTigreInvestida")?.duration || 0) * 1000 : 0;
-      let duracao = Math.max(1000, duracaoInvestida, tocaSom ? (this.cache.audio.get?.(som)?.duration || 0) * 1000 : 0);
+      let duracao = impactoJuggernaut ? 200 : Math.max(1000, duracaoInvestida, tocaSom ? (this.cache.audio.get?.(som)?.duration || 0) * 1000 : 0);
       let audioTerminou = false, videoPendente = false, concluido = false;
       const concluir = () => {
         if (concluido || !audioTerminou || videoPendente) return;
@@ -353,19 +369,17 @@ class CenaEfeitos extends Phaser.Scene {
       if ((perfil.momentos ? ativo : evento.momento === "invocacao") && perfil.video && this.cache.video.exists(perfil.video)) {
         duracao = Math.max(duracao, 1700);
         videoPendente = true;
-        const pontoVideo = perfil.videoNoAlvo && alvos.length ? this.ponto(alvos[0].lado, alvos[0].indice) : origem;
-        const video = guardar(this.add.video(pontoVideo.x, pontoVideo.y, perfil.video).setDepth(-1).setVisible(false));
+        const video = guardar(this.add.video(origem.x, origem.y, perfil.video).setDepth(-1).setVisible(false));
         const liberarVideo = () => { videoPendente = false; concluir(); };
         video.once("complete", liberarVideo);
         video.once("created", () => {
           const grande = ["efeitoRaspClayVertical", "videoEfeitoAranha", "videoEfeitoBoi", "videoEfeitohumba", "videoEfeitodiego", "videoEfeitoprofessores"].includes(perfil.video);
-          video.setPosition(grande ? LARGURA_LAYOUT / 2 : pontoVideo.x, grande ? ALTURA_LAYOUT / 2 : pontoVideo.y);
+          video.setPosition(grande ? LARGURA_LAYOUT / 2 : origem.x, grande ? ALTURA_LAYOUT / 2 : origem.y);
           const ajustar = perfil.video === "videoEfeitoAranha" ? Math.max : Math.min;
-          const escala = ajustar((grande ? LARGURA_LAYOUT : perfil.videoNoAlvo ? 340 : 260) / video.width,
-            (grande ? ALTURA_LAYOUT : perfil.videoNoAlvo ? 245 : 260) / video.height);
+          const escala = ajustar((grande ? LARGURA_LAYOUT : 260) / video.width,
+            (grande ? ALTURA_LAYOUT : 260) / video.height);
           video.setScale(escala).setVisible(true);
-          if (!grande) video.setAngle(this.jogo.multiplayer?.presentation &&
-            (perfil.videoNoAlvo ? alvos[0]?.lado : evento.lado) === "inimigo" ? 180 : 0);
+          if (!grande) video.setAngle(this.jogo.multiplayer?.presentation && evento.lado === "inimigo" ? 180 : 0);
           if (!grande) video.setPosition(
             Math.max(video.displayWidth / 2 + 12, Math.min(LARGURA_LAYOUT - video.displayWidth / 2 - 12, video.x)),
             Math.max(video.displayHeight / 2 + 12, Math.min(ALTURA_LAYOUT - video.displayHeight / 2 - 12, video.y)));

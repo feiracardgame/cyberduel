@@ -481,16 +481,37 @@ for (const ganho of [false, true]) {
   }
   f.flush();
 }
-for (const completion of ['complete', 'error', 'timeout']) {
-  const f = fixture(); f.s.cache.video.exists = () => true;
+for (const side of ['jogador', 'inimigo']) for (const removed of [false, true]) {
+  const f = fixture(); f.s.cache.audio.exists = () => true;
+  f.s.cache.audio.get = () => ({ duration: 5 });
   f.s.jogo.multiplayer.presentation = true;
+  const targetSide = side === 'jogador' ? 'inimigo' : 'jogador';
+  f.s.receber([f.event(1, 'habilidade', { lado: side, fonte: { ...f.source, nome: 'UCC "Juggernaut"' },
+    alvos: [{ lado: targetSide, id: 2, indice: 3, delta: -5, removida: removed, imagem: 'vitima' }] })]);
+  const victim = f.objects.find(o => o.value === 'vitima');
+  assert.equal(!!victim, removed);
+  if (removed) assert.equal(victim.active, true, 'A vítima permanece visível antes do impacto.');
+  while (!f.objects.some(o => o.value === 'efeitoJuggernaut')) assert.ok(f.step());
+  const start = f.getTime(), impact = f.objects.find(o => o.value === 'efeitoJuggernaut');
+  assert.equal(impact.x, 755); assert.equal(impact.y, targetSide === 'inimigo' ? 560 : 1436);
+  assert.equal(impact.angle, targetSide === 'inimigo' ? 180 : 0);
+  assert.ok(!f.tweens.some(t => t.targets === victim && t.alpha === 0), 'Sem saída antecipada.');
+  while (f.s.executando) {
+    if (removed) assert.equal(victim.active, true);
+    assert.ok(f.step());
+  }
+  assert.equal(f.getTime() - start, 200, 'Impacto termina em 200 ms, independente do áudio.');
+  assert.equal(impact.active, false);
+  if (removed) assert.equal(victim.active, false, 'A vítima sai junto com o fim do impacto.');
+  f.flush();
+}
+{
+  const f = fixture(true);
   f.s.receber([f.event(1, 'habilidade', { lado: 'jogador', fonte: { ...f.source, nome: 'UCC "Juggernaut"' },
-    alvos: [{ lado: 'inimigo', id: 2, indice: 3, delta: -5 }] })]);
-  while (!f.objects.some(o => o.value === 'videoEfeitoJuggernaut')) f.step();
-  const clip = f.objects.find(o => o.value === 'videoEfeitoJuggernaut');
-  assert.equal(clip.x, 755); assert.equal(clip.y, 560); assert.equal(clip.angle, 180);
-  if (completion !== 'timeout') clip.handlers[completion]();
-  f.flush(); assert.equal(f.s.executando, false); assert.equal(clip.active, false);
+    alvos: [{ lado: 'inimigo', id: 2, indice: 3, delta: -5, removida: true, oculto: true, imagem: 'secreta' }] })]);
+  assert.ok(f.objects.some(o => o.value === 'fundoCarta'));
+  assert.ok(!f.objects.some(o => o.value === 'secreta'), 'O impacto preserva o verso da vítima oculta.');
+  f.flush();
 }
 // Cadeado do HAL acompanha o estado atual; os Replicantes contornam terrenos de ambos os campos.
 for (const active of [false, true]) for (const side of ['jogador', 'inimigo']) {

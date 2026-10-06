@@ -4,6 +4,13 @@ Novidades, correções e verificações realizadas no projeto. As entregas mais 
 
 ## 2026-10-06
 
+### Impacto do Juggernaut antes da remoção, limitado a 200 ms
+
+- Substituído o vídeo longo por um flash transparente extraído do próprio efeito, exibido sobre o alvo por 200 ms. A carta eliminada permanece visualmente no slot durante a preparação e o impacto; desaparece junto com o fim do flash, sem começar a animação de saída antes disso. A duração do áudio não prolonga o efeito.
+- Preservados os alvos sobreviventes, a orientação no modo mesa e o verso de cartas ocultas. O motor continua resolvendo o dano normalmente; ajustada apenas a apresentação. Atualizadas as versões dos scripts para renovar o cache.
+- Aprovados `opponent-animation.test.js`, `game-assets.test.js` e `preload-video.test.js`. Regressão verifica carta removida e sobrevivente nas duas perspectivas, permanência antes do impacto, saída no final e duração exata de 200 ms mesmo com áudio de cinco segundos.
+- Playwright confirmou a habilidade real eliminando o Rato nos dois campos: imagem da carta ainda visível sob o impacto, temporizador de 200 ms e desaparecimento conjunto ao final. Conferidas transparência e orientação do flash, sem erros JavaScript ou HTTP locais. Capturas antes/depois em `/tmp/cyberduel-playwright/`; sintaxe e `git diff --check` aprovados.
+
 ### Mensagem de restauração do Boi
 
 - Alterada para “PA restaurado” a mensagem que o efeito do Boi exibia como “PA protegido”. Mantidas as mensagens de proteção das demais cartas e os números de PA quando há variação. Teste de apresentação aprovado para o Boi e o Porco; Playwright confirmou a nova mensagem durante a habilidade real do Boi, sem erros JavaScript ou HTTP locais.
