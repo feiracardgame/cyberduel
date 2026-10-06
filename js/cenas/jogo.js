@@ -74,6 +74,8 @@ class CenaJogo extends Phaser.Scene {
   // Os assets já foram carregados pela CenaPreload.
 
   create(dados = {}) {
+    this.tutorial = dados.tutorial === true;
+    this.training = null;
     this.finalDebug = false;
     this.avisoInicialPendente = true;
     this.avisoBatalhaTexto = null;
@@ -94,16 +96,17 @@ class CenaJogo extends Phaser.Scene {
     this.baseCampo = null;
     this.layoutBaseCampo = null;
     this.gestosMaoConfigurados = false;
-    this.partidaRegistradaNaConta = !!dados.debug;
+    this.partidaRegistradaNaConta = !!dados.debug || this.tutorial;
     configurarCameraLogica(this);
     const sessao = window.cyberduelMultiplayer;
     if (sessao?.presentation) this.input.keyboard.on("keydown-ESC", () => {
       sessao.leaveRoom();
       this.scene.start("CenaTitulo");
     });
-    this.partida = sessao?.pendingUpdate?.state
+    this.partida = !this.tutorial && sessao?.pendingUpdate?.state
       ? sessao.hydrateMatch(sessao.localSnapshot(sessao.pendingUpdate.state))
-      : new Partida(dados.deckDebug);
+      : new Partida(dados.deckDebug, this.tutorial);
+    if (this.tutorial) this.training = new CyberduelTraining(this);
     this.sequenciaInicialEfeitos = this.partida.sequenciaEfeito || 0;
     if (window.CenaEfeitos) {
       if (!this.scene.manager.keys.CenaEfeitos)
@@ -116,7 +119,7 @@ class CenaJogo extends Phaser.Scene {
     }
     this.faseAtual = "colocar";
     this.soloStep = 0;
-    this.soloStarter = Math.random() < 0.5 ? 1 : 2;
+    this.soloStarter = this.tutorial ? 1 : Math.random() < 0.5 ? 1 : 2;
     this.telaFinalExibida = false;
     const volumeMusica = (base) =>
       window.cyberduelSettings?.music(base) ?? base;
@@ -442,8 +445,8 @@ class CenaJogo extends Phaser.Scene {
     });
 
     this.multiplayer = window.cyberduelMultiplayer;
-    this.multiplayerAtivo = !!this.multiplayer?.active;
-    this.soloMatchStart = !this.multiplayerAtivo && !dados.debug && window.cyberduelAccount?.user
+    this.multiplayerAtivo = !this.tutorial && !!this.multiplayer?.active;
+    this.soloMatchStart = !this.multiplayerAtivo && !dados.debug && !this.tutorial && window.cyberduelAccount?.user
       ? window.cyberduelAccount.startSoloMatch().then(matchId => ({ matchId }), error => ({ error }))
       : null;
     if (this.multiplayerAtivo) {
@@ -467,6 +470,7 @@ class CenaJogo extends Phaser.Scene {
 
     this.desenharInterface();
     this.atualizarAvisoBatalha();
+    this.training?.start();
     if (!this.multiplayerAtivo && !this.ehMeuTurno)
       this.time.delayedCall(Math.max(0, this.avisoLocal.phaseStartsAt - Date.now()) + 650, () => this.executarFaseSolo());
 
@@ -484,7 +488,7 @@ class CenaJogo extends Phaser.Scene {
   configurarAvisoLocal(duracaoTurno) {
     const avisos = window.cyberduelBattleAnnouncements;
     const announcementAt = Date.now();
-    const skip = window.cyberduelSettings?.get("skipBattleAnnouncements") === 1;
+    const skip = this.tutorial || window.cyberduelSettings?.get("skipBattleAnnouncements") === 1;
     const introUntil = announcementAt + (this.avisoInicialPendente && !skip ? avisos.inicio.duracao : 0);
     this.avisoInicialPendente = false;
     this.avisoSequencia++;
@@ -572,7 +576,7 @@ class CenaJogo extends Phaser.Scene {
   }
 
   atualizarInteracaoDuranteEfeitos() {
-    const bloqueado = this.efeitosBloqueiamInteracao() || this.avisoBatalhaPendente();
+    const bloqueado = this.efeitosBloqueiamInteracao() || this.avisoBatalhaPendente() || !!this.training?.dialog;
     let transicao = false;
     for (const objeto of this.children?.list || []) {
       if (!objeto.dadosCarta && objeto !== this.rodaBotoesContainer) continue;
@@ -642,6 +646,7 @@ class CenaJogo extends Phaser.Scene {
       this.atualizarAurasHabilidade();
       this.proximaAtualizacaoAuras = time + 100;
     }
+    if (this.training) { this.training.update(); return; }
     if (!this.partida || this.partida.partidaEncerrada) return;
     if (this.multiplayerAtivo && !this.multiplayer.initialized) return;
     const restante = this.multiplayerAtivo
@@ -676,6 +681,7 @@ class CenaJogo extends Phaser.Scene {
 
   podeJogarCartasAgora() {
     return (
+      !this.training?.dialog &&
       this.ehMeuTurno &&
       !this.avisoBatalhaPendente() && !this.efeitosVisuaisPendentes() && !this.multiplayer?.effectsPaused &&
       ["colocar", "habilidades"].includes(this.faseAtual) &&
@@ -686,6 +692,7 @@ class CenaJogo extends Phaser.Scene {
 
   podeUsarHabilidadesAgora() {
     return (
+      !this.training?.dialog &&
       this.ehMeuTurno &&
       !this.avisoBatalhaPendente() && !this.efeitosVisuaisPendentes() && !this.multiplayer?.effectsPaused &&
       this.faseAtual === "habilidades" &&
@@ -1081,6 +1088,12 @@ class CenaJogo extends Phaser.Scene {
 
   atualizarVisualTimerTurno(forcar = false) {
     if (!this.timerContainer?.active || !this.timerTexto?.active) return;
+    if (this.training) {
+      this.timerTexto.setText("∞");
+      this.timerEstadoTexto.setText("Treino sem limite");
+      this.timerLabelTexto.setText(this.faseAtual === "habilidades" ? "Habilidades" : "Colocar cartas");
+      return;
+    }
 
     if (this.multiplayer?.presentation) {
       const player = this.multiplayer.activePlayer;
@@ -1498,6 +1511,11 @@ class CenaJogo extends Phaser.Scene {
       return;
     }
 
+    if (this.training && !this.training.canPlace(carta, slotAtingido)) {
+      this.animarRetornoAoLeque(gameObject, true);
+      return;
+    }
+
     // Cartas de monstro: comportamento original, vão para o campo
     const temEspaco = this.partida.jogador.campo.temEspaco(slotAtingido);
     this.somJogarCarta.play();
@@ -1560,6 +1578,7 @@ class CenaJogo extends Phaser.Scene {
         this.partida.jogarCartaDoJogador(carta, slotAtingido);
         this.travado = false;
         this.desenharInterface();
+        this.training?.placed(carta);
         // Mostra as cartas reveladas por Faro nesta invocação.
         if (carta.efeito?.tipo === TIPOS_EFEITO.REVELAR_CARTAS_INIMIGO) {
           this.mostrarRevelacaoFaro(this.partida.ultimaRevelacaoFaro || []);
@@ -2689,6 +2708,7 @@ class CenaJogo extends Phaser.Scene {
   }
 
   habilidadeDisponivelAgora(carta) {
+    if (this.training && (!carta || !this.training.canUse(carta))) return false;
     if (
       !this.podeUsarHabilidadesAgora() ||
       !carta?.habilidadeAtiva ||
@@ -4605,6 +4625,7 @@ class CenaJogo extends Phaser.Scene {
 
   // HABILIDADE ATIVA (ex: Atirador de Elite) Chamada pelo botão "Ativar Habilidade" do modal de detalhe.
   iniciarAtivacaoHabilidade(carta) {
+    if (this.training && !this.training.canUse(carta)) return;
     if (!this.podeUsarHabilidadesAgora()) return;
     if (this.partida.partidaEncerrada) return;
 
@@ -5888,6 +5909,7 @@ class CenaJogo extends Phaser.Scene {
 
   // Resolve a habilidade e anima as cartas afetadas.
   executarHabilidade(carta, alvoEscolhido, alvoSecundario = null) {
+    if (this.training && !this.training.canUse(carta, alvoEscolhido)) return;
     if (!this.podeUsarHabilidadesAgora()) return;
     if (this.objetosSelecaoAlvo) {
       this.objetosSelecaoAlvo.forEach((o) => o.destroy());
@@ -5903,6 +5925,7 @@ class CenaJogo extends Phaser.Scene {
     );
 
     if (resultado.sucesso) {
+      this.training?.used(carta);
       const finalizar = () => {
         this.processarCartasAfetadas(resultado.afetadas, () => {
           this.travado = false;
@@ -6840,6 +6863,7 @@ class CenaJogo extends Phaser.Scene {
       this.multiplayer?.spectator
     )
       return;
+    if (this.training) { this.training.pass(); return; }
     if (this.modalAberto || this.objetosSelecaoAlvo) this.encerrarSelecoesDaFase();
     this.travado = true;
     if (this.multiplayerAtivo) {

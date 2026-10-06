@@ -139,6 +139,13 @@ function ensureAccountDefaults(account) {
   if (!Number.isFinite(account.rating)) account.rating = 1000;
   for (const key of ["rankedGames", "rankedWins", "rankedLosses"])
     if (!Number.isFinite(account[key])) account[key] = 0;
+  if (!Number.isFinite(account.humanGames)) account.humanGames = account.rankedGames;
+  if (!Number.isFinite(account.humanWins)) account.humanWins = account.rankedWins;
+  if (!account.tutorial || typeof account.tutorial !== "object") {
+    const existing = Boolean(account.faction);
+    account.tutorial = { introSeen: existing, named: existing, wantsTutorial: existing ? true : null,
+      completed: existing, deckExplained: existing, farewellSeen: existing, seen: [] };
+  }
   if (!account.collection || typeof account.collection !== "object")
     account.collection = {};
   if (!account.starterCollection || typeof account.starterCollection !== "object")
@@ -340,8 +347,15 @@ function allowedFrontend(origin, host) {
   }
 }
 
+function registerCouncilEntries() {
+  const newcomers = ranking.leaderboard(Object.values(accountStore.accounts)).slice(0, 10).filter(account => !account.councilReached);
+  for (const account of newcomers) account.councilReached = true;
+  return newcomers.length > 0;
+}
+
 function publicAccount(account) {
   ensureAccountDefaults(account);
+  if (registerCouncilEntries()) saveAccounts();
   return {
     username: account.username,
     nickname: account.nickname,
@@ -357,6 +371,9 @@ function publicAccount(account) {
     faction: account.faction,
     currency: account.currency,
     gamesPlayed: account.gamesPlayed,
+    humanGames: account.humanGames, humanWins: account.humanWins,
+    tutorial: account.tutorial, councilReached: Boolean(account.councilReached),
+    clubUnlocked: account.humanWins >= 3,
     collection: account.collection,
     starterCollection: account.starterCollection,
     boosterPrice: BOOSTER_PRICE,
@@ -685,8 +702,7 @@ async function handleApi(request, response, pathname) {
   }
 
   if (request.method === "GET" && pathname === "/api/leaderboard") {
-    const entries = Object.values(accountStore.accounts).filter(account => account.rankedGames > 0)
-      .sort((a, b) => b.rating - a.rating || b.rankedWins - a.rankedWins || a.username.localeCompare(b.username))
+    const entries = ranking.leaderboard(Object.values(accountStore.accounts))
       .slice(0, 20).map((account, index) => ({ position: index + 1, ...ranking.playerProfile(account),
         wins: account.rankedWins, losses: account.rankedLosses, games: account.rankedGames }));
     return sendJson(response, 200, { ok: true, entries });
@@ -740,10 +756,36 @@ async function handleApi(request, response, pathname) {
       return sendJson(response, 409, { ok: false, error: "Esse username já está em uso. Escolha outro." });
     session.account.username = username;
     session.account.nickname = nickname;
+    if (session.account.tutorial?.introSeen) session.account.tutorial.named = true;
     session.account.avatar = avatar || FACTION_PHOTOS[session.account.faction] || "";
     session.account.updatedAt = new Date().toISOString();
     saveAccounts();
     return sendJson(response, 200, { ok: true, ...publicAccount(session.account) });
+  }
+
+  if (request.method === "PUT" && pathname === "/api/account/tutorial") {
+    const session = authenticatedSession(request);
+    if (!session) return sendJson(response, 401, { ok: false, error: "Entre na conta para salvar o tutorial." });
+    const body = await readJson(request);
+    const account = session.account;
+    ensureAccountDefaults(account);
+    const flags = ["introSeen", "named", "wantsTutorial", "completed", "deckExplained", "farewellSeen"];
+    if (!body || Array.isArray(body) || typeof body !== "object" || !Object.keys(body).length ||
+        Object.keys(body).some(key => !flags.includes(key) && key !== "seen") ||
+        flags.some(key => key in body && typeof body[key] !== "boolean"))
+      return sendJson(response, 400, { ok: false, error: "Progresso de tutorial inválido." });
+    const eligible = { three: account.gamesPlayed >= 3, ten: account.gamesPlayed >= 10,
+      club: account.humanWins >= 3, council: Boolean(publicAccount(account).councilReached) && ranking.eligible(account) };
+    if ("seen" in body && (typeof body.seen !== "string" || !Object.hasOwn(eligible, body.seen) || eligible[body.seen] !== true))
+      return sendJson(response, 400, { ok: false, error: "Este diálogo ainda não foi liberado." });
+    if ("wantsTutorial" in body && account.tutorial.wantsTutorial !== null && body.wantsTutorial !== account.tutorial.wantsTutorial)
+      return sendJson(response, 409, { ok: false, error: "A escolha inicial já foi registrada." });
+    for (const flag of flags) if (flag in body)
+      account.tutorial[flag] = flag === "wantsTutorial" ? body[flag] : account.tutorial[flag] || body[flag];
+    if (body.seen && !account.tutorial.seen.includes(body.seen)) account.tutorial.seen.push(body.seen);
+    account.updatedAt = new Date().toISOString();
+    saveAccounts();
+    return sendJson(response, 200, { ok: true, ...publicAccount(account) });
   }
 
   if (request.method === "PUT" && pathname === "/api/deck") {
@@ -1456,8 +1498,13 @@ function settleMatch(room) {
     const reward = !winnerPlayer || accounts[0] === accounts[1] ? 0 : player === winnerPlayer ? 2000 : 400;
     account.currency = Math.min(Number.MAX_SAFE_INTEGER, account.currency + reward);
     account.gamesPlayed += 1;
+    if (accounts.every(Boolean) && accounts[0] !== accounts[1]) {
+      account.humanGames += 1;
+      if (player === winnerPlayer) account.humanWins += 1;
+    }
     account.updatedAt = new Date().toISOString();
   });
+  registerCouncilEntries();
   saveAccounts();
   room.matchSettled = true;
 }
@@ -1593,8 +1640,12 @@ io.on("connection", (socket) => {
   socket.on("create-room", async (payload = {}, ack = () => {}) => {
     const active = findResumable(payload);
     if (active?.room.ranked) return ack({ ok: false, error: "Conclua sua partida ranqueada antes de criar uma sala." });
+    const account = accountFromToken(payload.accountToken);
+    if (payload.club && (!account?.faction || (account.humanWins || 0) < 3))
+      return ack({ ok: false, error: "O Clube Secreto exige 3 vitórias contra jogadores." });
     removeFromRoom(socket);
-    const room = createRoomRecord(socket, sanitizeDeck(payload.deck), accountFromToken(payload.accountToken));
+    const room = createRoomRecord(socket, sanitizeDeck(payload.deck), account);
+    room.club = payload.club === true;
     const code = room.code;
     const inviteUrl = buildInviteUrl(
       PUBLIC_URL || payload.inviteBase || socket.handshake.headers.origin,
@@ -1631,6 +1682,8 @@ io.on("connection", (socket) => {
       .slice(0, 6);
     const room = rooms.get(code);
     if (!room) return ack({ ok: false, error: "Sala não encontrada." });
+    if (room.club && (!accountFromToken(payload.accountToken)?.faction || (accountFromToken(payload.accountToken)?.humanWins || 0) < 3))
+      return ack({ ok: false, error: "O Clube Secreto exige 3 vitórias contra jogadores." });
     if (room.presentation) {
       const player = Number(payload.seat);
       if (![1, 2].includes(player) || payload.ticket !== room.seatTokens.get(player))

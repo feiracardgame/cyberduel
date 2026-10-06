@@ -3225,3 +3225,54 @@ body.title-terminal-open #game-viewport canvas {
   .player-market button, .player-market__art img { transition: none; }
   .player-market__listing:hover img { transform: none; }
 }
+
+/* ElenAI: poses do Tutorial.md, no mesmo enquadramento do jogo. */
+.elenai-story .card-menu,
+.elenai-story .card-menu__shortcuts { visibility: hidden; }
+.elenai-dialogue {
+  position: fixed; inset: 0; margin: auto;
+  width: min(100vw, var(--game-width-vh)); height: min(100vh, var(--game-height-vw));
+  z-index: 15000; background: rgba(1, 8, 7, .82); color: #eaffdf;
+  overflow: hidden; font-family: Arial, sans-serif;
+  display: flex; flex-direction: column; justify-content: flex-end;
+  box-sizing: border-box;
+  padding: calc(min(100vh, var(--game-height-vw)) * .04) calc(min(100vw, var(--game-width-vh)) * .05);
+}
+.elenai-dialogue--training { background: rgba(1, 8, 7, .52); }
+.elenai-portrait {
+  flex: 1 1 0; min-height: 0; width: 100%;
+  object-fit: contain; object-position: right bottom; pointer-events: none;
+}
+.elenai-portrait[hidden] { display: none; }
+.elenai-panel {
+  flex: 0 1 auto; min-height: 0; padding: clamp(16px, 2.4vh, 28px);
+  max-height: 65%; box-sizing: border-box; overflow-y: auto; background: #06130f; border: 1px solid #74be68;
+  box-shadow: 0 14px 40px #0009; border-radius: 8px;
+}
+.elenai-speaker { display: block; color: #a5ff78; font-size: clamp(20px, 3vh, 30px); }
+.elenai-text { font-size: clamp(16px, 2.2vh, 22px); line-height: 1.5; margin: 16px 0 22px; }
+.elenai-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.elenai-actions button { min-height: 44px; flex: 1; }
+.elenai-name-form { width: 100%; display: grid; gap: 12px; }
+.elenai-error { color: #ffb0b7; }
+.elenai-error:empty { display: none; }
+.elenai-guide {
+  position: fixed; top: calc((100vh - min(100vh, var(--game-height-vw))) / 2 + min(5vh, 10vw));
+  left: 50%; transform: translateX(-50%); width: min(84vw, calc(var(--game-width-vh) * .84));
+  z-index: 6000; padding: 12px 14px; box-sizing: border-box; color: #efffe7;
+  background: #06130ff2; border: 1px solid #74be68; border-radius: 8px; font: 14px/1.4 Arial, sans-serif;
+}
+.elenai-guide[hidden] { display: none; }
+.elenai-guide strong { color: #a5ff78; }
+.elenai-guide p { margin: 6px 0; }
+.elenai-exit { padding: 4px 0; background: transparent; border: 0; color: #d1e6cd; text-decoration: underline; cursor: pointer; min-height: 44px; }
+.elenai-actions button:focus-visible,
+.elenai-exit:focus-visible { outline: 3px solid #e7ffa5; outline-offset: 3px; }
+.elenai-actions .title-faction { flex: 1 1 100%; min-width: 0; padding: 12px; }
+.elenai-guide-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.elenai-guide-header strong { font-size: 12px; }
+.elenai-exit { font-size: 10px; }
+.elenai-actions .title-faction strong { font-size: 18px; }
+.elenai-actions .title-faction span { font-size: 14px; }
+.elenai-actions .title-faction small { font-size: 12px; }
+.title-terminal .card-menu__shortcuts { grid-template-columns: repeat(3, minmax(0, 1fr)); }

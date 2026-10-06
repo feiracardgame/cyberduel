@@ -83,9 +83,13 @@ async function run() {
   assert.equal((await ack(one, 'decline-match', { room: matchOne.room, accountToken: first.token })).ok, true);
   assert.equal((await final).state.partidaEncerrada, true);
   let board = (await api('leaderboard', null, null, 'GET')).entries;
-  assert.equal(board.length, 2); assert.equal(board[0].rating, 1016); assert.equal(board[0].wins, 1);
-  assert.equal(board[1].rating, 984); assert.equal(board[1].losses, 1);
-  assert.equal(board[0].username, undefined); assert.equal(board[0].passwordHash, undefined);
+  assert.deepEqual(board, [], 'O ranking exige pelo menos 5 partidas e 3 vitórias contra jogadores.');
+  const winner = await api('auth/session', second.token, null, 'GET');
+  const loser = await api('auth/session', first.token, null, 'GET');
+  assert.equal(winner.rating, 1016); assert.equal(winner.rankedWins, 1);
+  assert.equal(loser.rating, 984); assert.equal(loser.rankedLosses, 1);
+  assert.equal(winner.humanGames, 1); assert.equal(winner.humanWins, 1);
+  assert.equal(loser.humanGames, 1); assert.equal(loser.humanWins, 0);
   assert.equal((await api('auth/session', first.token, null, 'GET')).currency, 900);
   assert.equal((await api('auth/session', second.token, null, 'GET')).currency, 2500);
   one.emit('surrender'); two.emit('surrender');
@@ -111,7 +115,7 @@ async function run() {
   }
   assert.equal(update.state.partidaEncerrada, true);
   board = (await api('leaderboard', null, null, 'GET')).entries;
-  assert.ok(board.every(row => row.games === 2));
+  assert.deepEqual(board, [], 'Duas partidas ainda não liberam a classificação pública.');
   for (const user of users) {
     const account = await api('auth/session', user.token, null, 'GET');
     assert.equal(account.gamesPlayed, 2, 'Servidor contabiliza online uma vez por partida.');

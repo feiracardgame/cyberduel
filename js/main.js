@@ -190,27 +190,30 @@ class Jogador {
 }
 
 class Partida {
-  constructor(deckDebug = null) {
+  constructor(deckDebug = null, tutorial = false) {
     this.jogador = new Jogador();
     this.inimigo = new Jogador();
 
-    const deckBuilder = window.cyberduelDeckBuilder;
-    const multiplayer = window.cyberduelMultiplayer;
-    const deckLocal = deckDebug || deckBuilder?.getDeckForMatch() || null;
-    const deckOponente =
-      multiplayer?.active && multiplayer.opponentDeck?.length
-        ? multiplayer.opponentDeck
-        : deckLocal;
-    this.jogador.criardeckteste(deckLocal);
-    this.inimigo.criardeckteste(deckOponente);
+    // O treino usa cartas do roteiro, inclusive antes de receber a coleção inicial.
+    if (!tutorial) {
+      const deckBuilder = window.cyberduelDeckBuilder;
+      const multiplayer = window.cyberduelMultiplayer;
+      const deckLocal = deckDebug || deckBuilder?.getDeckForMatch() || null;
+      const deckOponente =
+        multiplayer?.active && multiplayer.opponentDeck?.length
+          ? multiplayer.opponentDeck
+          : deckLocal;
+      this.jogador.criardeckteste(deckLocal);
+      this.inimigo.criardeckteste(deckOponente);
 
-    this.jogador.deck.embaralhar();
-    this.inimigo.deck.embaralhar();
+      this.jogador.deck.embaralhar();
+      this.inimigo.deck.embaralhar();
 
-    // Compra inicial: 5 + 3 cartas adicionais
-    for (let i = 0; i < 3; i++) {
-      this.jogador.comprarCarta();
-      this.inimigo.comprarCarta();
+      // Compra inicial: 5 + 3 cartas adicionais
+      for (let i = 0; i < 3; i++) {
+        this.jogador.comprarCarta();
+        this.inimigo.comprarCarta();
+      }
     }
 
     this.turno = 1;

@@ -29,4 +29,9 @@ function applyResult(first, second, winner) {
   }
 }
 
-module.exports = { playerProfile, chooseOpponent, applyResult };
+const eligible = account => (account.humanGames ?? account.rankedGames ?? 0) >= 5 &&
+  (account.humanWins ?? account.rankedWins ?? 0) >= 3;
+const leaderboard = accounts => accounts.filter(eligible)
+  .sort((a, b) => b.rating - a.rating || b.rankedWins - a.rankedWins || a.username.localeCompare(b.username));
+
+module.exports = { playerProfile, chooseOpponent, applyResult, eligible, leaderboard };

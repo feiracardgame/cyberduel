@@ -4,6 +4,28 @@ Novidades, correções e verificações realizadas no projeto. As entregas mais 
 
 ## 2026-10-06
 
+### ElenAI visível e apresentação vinculada à conta após o login
+
+- Corrigido o enquadramento dos diálogos: a personagem ocupa o espaço acima da caixa de texto, sem ficar encoberta nas falas longas. A caixa permite rolagem quando necessário em telas menores; o ajuste compartilhado também atende aos diálogos do treino.
+- A primeira abertura sem sessão exibe diretamente o login, sem esperar a consulta de partidas pelo multiplayer. A apresentação começa após autenticar uma conta nova e salva seu progresso na conta; removida a dependência do registro da introdução no navegador. Outra conta nova no mesmo navegador recebe sua própria apresentação, enquanto contas antigas com facção mantêm o acesso direto ao menu.
+- Atualizadas as versões do CSS e dos scripts de tutorial e título para renovar o cache. Aprovados os testes de tutorial, menu e apresentação, incluindo regressão para login antes da história, ausência de repetição na mesma conta e introdução independente para outra conta nova; sintaxe e `git diff --check` aprovados.
+- Playwright confirmou a personagem acima da fala longa da imagem em 490 × 870, 390 × 844, 360 × 640 e 1280 × 900, sem sobreposição ou transbordamento horizontal; capturas inspecionadas. Confirmados login na primeira abertura, introdução após autenticação mesmo com o antigo registro local, outra conta nova no mesmo navegador, ausência de repetição ao recarregar ou restaurar a mesma conta em navegador limpo e entrada direta de conta antiga, sem erros JavaScript. Script e capturas em `/tmp/cyberduel-playwright/`; sem deploy.
+
+### Como testar o tutorial
+
+- Conferidos o atalho `? TUTORIAL` no menu, a inicialização com `npm run dev` em `http://localhost:3000` por padrão e o login local de desenvolvimento. Para testar a apresentação inicial, é necessário usar um navegador sem o registro local da introdução e uma conta nova; revisitar o tutorial não reinicia a escolha salva nem as falas de progresso.
+- Confirmado o comando `node test/tutorial.test.js` para validar roteiro, alcance, persistência, ordem dos eventos e regras de ranking, Conselho e Clube.
+
+### Tutorial interativo e história da ElenAI
+
+- Implementado o roteiro de `Tutorial.md` (com T maiúsculo): apresentação de NeoFloripa, apelido, escolha “sim”/“não”, explicação das facções e despedida. Extraídas as 17 poses da folha original em WebP transparente, preservando a ordem indicada; os diálogos do menu escurecem o fundo e escondem as cartas.
+- Criado treino no campo real com Estagiário de Machine Learning, Tigre contra CyberVendedor e Agente da DIPSP contra Rato. Os espaços, a conclusão da jogada e as cartas de habilidade recebem destaque; o motor normal valida alcance e dano. O treino funciona antes da coleção inicial, sem adversário automático, limite de tempo, consumo da coleção, contagem de partidas ou recompensas. Adicionada opção para revisitar e sair do tutorial.
+- Escolha inicial e progresso persistidos na conta, com validação da API. As falas de 3 partidas, Clube, Conselho e 10 partidas respeitam o caminho escolhido, aparecem somente no menu e são apresentadas uma vez, em sequência, deixando 10 partidas por último. Contas que já tinham facção preservam o acesso ao menu, com tutorial disponível para revisitar e caminho amigável como padrão para as falas antigas sem escolha registrada.
+- Conforme confirmado: ranking exige 5 partidas e 3 vitórias contra jogadores, o top 10 forma o Conselho e 3 vitórias liberam o Clube Secreto. Criar e entrar em salas do Clube reutiliza o duelo por código/QR e exige o desbloqueio dos participantes no servidor. Registrada a primeira entrada no Conselho, mesmo que a posição mude posteriormente.
+- Separadas estatísticas contra jogadores das partidas solo; partidas contra bot não liberam ranking, Conselho ou Clube. Migração utiliza as estatísticas ranqueadas já existentes: o histórico antigo não fornece vitórias de salas amistosas para reconstruir esses totais.
+- Aprovados testes de tutorial, contas, perfil, autenticação local, recompensas solo, matchmaking, multiplayer, apresentação, menu, habilidades, passagem de turno, sincronização, deck, seleção da mão, assets, desempenho da cena e retorno à partida. Playwright confirmou no celular as duas versões dos diálogos de progresso, a ordem dos eventos, a persistência após recarregar, o caminho “não” e a escolha de facção com a pose 11. Também aprovado no Playwright o treino completo no celular, com invocações e habilidades reais, retorno ao menu e nenhuma chamada de registro de partida ou recompensa. No computador, aprovado o fluxo de conta nova desde o apelido e escolha “sim” até treino, facção, despedida, recarregamento sem repetição e opção de revisitar/sair; saldo inicial e zero partidas preservados, sem erros JavaScript ou HTTP locais. Capturas e scripts em `/tmp/cyberduel-playwright/`.
+- Limitação da suíte existente: `card-modal-layer.test.js` falha porque seu mock não implementa `scene.bringToTop`; a mesma falha foi reproduzida usando `js/cenas/jogo.js` do HEAD anterior a estas alterações. Sem deploy.
+
 ### Reprodução mais leve do POW do Juggernaut
 
 - Otimizado o próprio `efeito-juggernaut-alpha.webm`: removido o segundo transparente inicial e o restante não utilizado, reduzida a resolução de 452 × 328 para 340 × 246 e mantidos os 25 quadros por segundo e a transparência. O arquivo passou de 138.987 para 58.265 bytes; preservada a fonte MP4.

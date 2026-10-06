@@ -18,11 +18,13 @@ class CenaTitulo extends Phaser.Scene {
       return;
     }
     this.montarInterfaceTitulo();
+    this.story = new CyberduelStory(this);
 
     this.restaurandoConta = true;
     this.removerListenerConta = this.account?.onChange(({ user, nickname, needsRegistration, deck, collection, faction }) => {
       window.cyberduelDeckBuilder.setAccountSession(user, deck, collection);
       if (!this.scene.isActive()) return;
+      if (this.story?.busy) return;
       this.titleUI?.destroy();
       this.montarInterfaceTitulo();
       this.atualizarStatus(
@@ -33,19 +35,26 @@ class CenaTitulo extends Phaser.Scene {
       );
       if (user && !needsRegistration && faction && new URLSearchParams(location.search).get("ticket"))
         this.time.delayedCall(0, () => this.tentarConviteApresentacao());
-      if (needsRegistration)
-        this.time.delayedCall(0, () => this.titleUI?.openRegistrationDialog());
+      if (!this.restaurandoConta && !this.story.busy)
+        this.time.delayedCall(0, () => this.story.menu());
 
     });
     this.account?.restore().then(() => {
       this.restaurandoConta = false;
+      if (!this.scene.isActive()) return;
+      if (!this.account?.user) { this.story.menu(); return; }
       const roomFromLink = new URLSearchParams(location.search).get("room");
       if (roomFromLink && this.scene.isActive()) {
+        if (!this.account?.user || this.account.needsRegistration || !this.account.faction) {
+          this.story.menu();
+          return;
+        }
         if (new URLSearchParams(location.search).get("ticket")) {
           this.tentarConviteApresentacao();
           return;
         }
         this.entrarNaSala(roomFromLink);
+        return;
       }
       this.multiplayer.findActiveMatch((response) => {
         if (response.room && this.scene.isActive()) this.titleUI?.showResumeMatch(response.room,
@@ -54,6 +63,7 @@ class CenaTitulo extends Phaser.Scene {
             if (result.ok) this.atualizarStatus("Você recusou o retorno e perdeu a partida.", "warning");
             done(result);
           }));
+        else if (this.scene.isActive()) this.story.menu();
       });
     });
 
@@ -69,6 +79,7 @@ class CenaTitulo extends Phaser.Scene {
       this.telaEsperaArena?.remove();
       this.telaEsperaArena = null;
       this.removerListenerConta?.();
+      this.story?.destroy();
       this.titleUI?.destroy();
       this.titleUI = null;
     });
@@ -159,6 +170,8 @@ class CenaTitulo extends Phaser.Scene {
         onSolo: () => this.iniciarPartida(false),
         onMatchmaking: () => this.titleUI.openMatchmaking(this.multiplayer),
         onCreateRoom: () => this.criarSala(),
+        onCreateClub: () => this.criarSala(true),
+        onTutorial: () => this.iniciarTutorial(),
         onJoinRoom: (code) => this.entrarNaSala(code),
         onSpectate: (code) => this.multiplayer.spectateRoom(code, (response) => {
           if (!response.ok) this.atualizarStatus(response.error, "error");
@@ -170,6 +183,12 @@ class CenaTitulo extends Phaser.Scene {
 
   atualizarStatus(message, tone = "info") {
     this.titleUI?.setStatus(message, tone);
+  }
+
+  iniciarTutorial() {
+    window.cyberduelTutorialPaused = false;
+    this.multiplayer.active = false;
+    this.scene.start("CenaJogo", { tutorial: true });
   }
 
   iniciarPartida(multiplayer) {
@@ -207,7 +226,7 @@ class CenaTitulo extends Phaser.Scene {
     } else this.iniciarPartida(true);
   }
 
-  criarSala() {
+  criarSala(club = false) {
     if (!this.account?.user || this.account.needsRegistration || !this.account?.faction) {
       this.atualizarStatus("Entre e escolha sua facção antes de criar uma sala.", "warning");
       return;
@@ -238,7 +257,7 @@ class CenaTitulo extends Phaser.Scene {
           `Sala ${response.room.code} ativa. Aguardando oponente...`,
           "success",
         );
-      });
+      }, club);
     } catch (error) {
       this.atualizarStatus(error.message, "error");
     }

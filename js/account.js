@@ -16,6 +16,11 @@ class CyberduelAccount {
     this.collection = {};
     this.starterCollection = {};
     this.gamesPlayed = 0;
+    this.tutorial = null;
+    this.humanGames = 0;
+    this.humanWins = 0;
+    this.clubUnlocked = false;
+    this.councilReached = false;
     this.boosterPrice = 100;
     this.boosters = [];
     this.pendingBoosterPurchase = null;
@@ -50,6 +55,8 @@ class CyberduelAccount {
       collection: this.collection,
       starterCollection: this.starterCollection,
       gamesPlayed: this.gamesPlayed,
+      tutorial: this.tutorial, humanGames: this.humanGames, humanWins: this.humanWins,
+      clubUnlocked: this.clubUnlocked, councilReached: this.councilReached,
       boosterPrice: this.boosterPrice,
       boosters: this.boosters,
       authenticated: !!this.user,
@@ -98,6 +105,11 @@ class CyberduelAccount {
     this.boosters = Array.isArray(payload.boosters) ? payload.boosters : [];
     this.starterCollection = payload.starterCollection || {};
     this.gamesPlayed = Math.max(0, Number(payload.gamesPlayed) || 0);
+    this.tutorial = payload.tutorial || null;
+    this.humanGames = Math.max(0, Number(payload.humanGames) || 0);
+    this.humanWins = Math.max(0, Number(payload.humanWins) || 0);
+    this.clubUnlocked = payload.clubUnlocked === true;
+    this.councilReached = payload.councilReached === true;
     this.boosterPrice = Math.max(1, Number(payload.boosterPrice) || 100);
     if (shouldNotify) this.notify();
     return this.snapshot();
@@ -226,6 +238,12 @@ class CyberduelAccount {
     return this.applyAuth(payload);
   }
 
+  async saveTutorial(progress) {
+    return this.applyAuth(await this.request("/api/account/tutorial", {
+      method: "PUT", body: progress,
+    }), false);
+  }
+
   async buyBooster(faction) {
     const purchaseKey = `${this.user}:${faction}`;
     if (this.pendingBoosterPurchase?.key !== purchaseKey) {
@@ -334,6 +352,9 @@ class CyberduelAccount {
   }
 
   clear() {
+    this.tutorial = null;
+    this.humanGames = this.humanWins = 0;
+    this.clubUnlocked = this.councilReached = false;
     this.token = null;
     this.user = null;
     this.nickname = "";

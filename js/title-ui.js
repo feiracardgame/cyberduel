@@ -311,6 +311,7 @@ class CyberduelTitleUI {
             "deck",
           ],
           ["Sala híbrida", "Celular e mesa compartilhada", "sala_hibrida"],
+          ["Clube Secreto do Cyberduel", this.account?.clubUnlocked ? "Desafie outros cyberduelistas" : "Libere com 3 vitórias contra jogadores", "sala_hibrida", () => this.openSecretClub(), "deck"],
           [
             "Espectar sala",
             "Acompanhe uma batalha pelo código",
@@ -809,6 +810,7 @@ class CyberduelTitleUI {
     for (const [icon, label, handler] of [
       ["◇", "PERFIL", () => this.openProfileScreen()],
       ["⚙", "AJUSTES", () => this.openSettingsDialog()],
+      ["?", "TUTORIAL", () => this.callbacks.onTutorial?.()],
     ]) {
       const button = this.button("card-menu__shortcut", "", handler, label);
       const mark = this.element("span", "", icon);
@@ -837,6 +839,22 @@ class CyberduelTitleUI {
       return this.callbacks.onDeck();
     }
     handler();
+  }
+
+  openSecretClub() {
+    if (!this.account?.clubUnlocked) {
+      this.setStatus("O Clube Secreto abre após 3 vitórias contra jogadores. Partidas contra o bot não contam.", "warning");
+      return;
+    }
+    const overlay = this.createModal("secret-club");
+    const dialog = this.element("section", "title-dialog");
+    dialog.setAttribute("role", "dialog"); dialog.setAttribute("aria-modal", "true");
+    dialog.append(this.element("h2", "", "Clube Secreto do Cyberduel"),
+      this.element("p", "", "Crie uma sala ou entre pelo código de outro membro. Todos precisam de 3 vitórias contra jogadores."),
+      this.button("title-dialog__confirm", "CRIAR SALA DO CLUBE", () => { this.closeModal(true); this.callbacks.onCreateClub(); }),
+      this.button("title-dialog__confirm", "ENTRAR POR CÓDIGO", () => { this.closeModal(true); this.openJoinDialog(this.callbacks.onJoinRoom); }),
+      this.button("title-dialog__cancel", "VOLTAR", () => this.closeModal()));
+    overlay.append(dialog); requestAnimationFrame(() => overlay.classList.add("is-visible"));
   }
 
   openMenuSection(kind) {
@@ -1005,7 +1023,8 @@ class CyberduelTitleUI {
         if (this.modal === overlay) refresh();
       }
     });
-    dialog.append(header, avatar, this.element("p", "profile-note", "Clique na foto para trocar."), picker, identity, userHint, nicknameLabel,
+    dialog.append(header, avatar, this.element("p", "profile-note", "Clique na foto para trocar."), picker, identity, userHint,
+      this.element("p", "profile-note", `${this.account.gamesPlayed} partidas · ${this.account.humanGames || 0} contra jogadores · ${this.account.humanWins || 0} vitórias contra jogadores`), nicknameLabel,
       this.element("p", "profile-note", "Até 32 caracteres. Seu apelido pode ser igual ao de outros jogadores."), error, status, save);
     overlay.append(dialog);
     renderPreview();
@@ -1821,13 +1840,14 @@ class CyberduelTitleUI {
     const status = this.element("p", "", "Carregando ranking…");
     status.setAttribute("role", "status");
     const close = this.button("title-small-button", "FECHAR", () => this.closeModal());
-    dialog.append(this.element("h2", "", "TOP 20 DUELISTAS"), status, close);
+    dialog.append(this.element("h2", "", "TOP 20 DUELISTAS"),
+      this.element("p", "", "Para entrar no ranking: 5 partidas e 3 vitórias contra jogadores. O top 10 forma o Conselho. Partidas contra o bot não contam."), status, close);
     overlay.append(dialog);
     requestAnimationFrame(() => { overlay.classList.add("is-visible"); close.focus(); });
     try {
       const response = await this.account.request("/api/leaderboard", { auth: false });
       if (this.modal !== overlay) return;
-      status.textContent = response.entries.length ? "Classificação por pontos nas partidas aleatórias." : "Nenhuma partida ranqueada concluída. Seja o primeiro!";
+      status.textContent = response.entries.length ? "Classificação por pontos nas partidas aleatórias." : "Nenhum cyberduelista cumpriu os requisitos do ranking ainda.";
       if (!response.entries.length) return;
       const table = this.element("table", "leaderboard-table");
       const head = this.element("tr", "");
