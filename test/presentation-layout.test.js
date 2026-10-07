@@ -4,6 +4,7 @@ const vm = require('node:vm');
 class Element {
   constructor() { this.children=[]; this.dataset={}; }
   append(...items) { this.children.push(...items); }
+  replaceChildren(...items) { this.children = items; }
   setAttribute() {}
   remove() { this.removed=true; }
 }
@@ -42,4 +43,22 @@ const waiting=title.telaEsperaArena;
 assert.equal(waiting.className,'arena-waiting');
 assert.equal(waiting.children[2].textContent,'Aguardando o outro jogador…');
 waiting.children.at(-1).onclick();assert.equal(left,1);assert.equal(waiting.removed,true);
+
+context.window.CYBERDUEL_TABLE = 1;
+let showPresentation;
+const response = { ok: true, room: { code: '123456', players: 0 }, showCode: false,
+ invitations: [{ player: 1 }, { player: 2 }], seats: [{ player: 1, connected: false }, { player: 2, connected: false }], nicknames: {} };
+Object.assign(title, { scene: { isActive: () => true }, events: { once() {} }, multiplayer: {
+ createPresentation(show) { showPresentation = show; show(response); },
+} });
+title.montarApresentacao();
+const presentation = document.body.children.at(-1);
+const centralCode = presentation.children[1].children[1];
+assert.equal(centralCode.textContent, '', 'Código oculto antes de alguém tentar conectar.');
+assert.ok(presentation.children[0].children.every(seat => seat.children.length === 2));
+showPresentation({ ...response, showCode: true });
+assert.equal(centralCode.textContent, 'CÓDIGO 123456');
+assert.ok(presentation.children[0].children.every(seat => seat.children[2].textContent === '123456'));
+showPresentation(response);
+assert.equal(centralCode.textContent, '', 'Código volta a ficar oculto após a entrada.');
 console.log('Mesa: HUD oposto, placar por perspectiva, nome/fase/posição nos dois turnos e tela de espera validados.');

@@ -115,8 +115,10 @@ const byLabel = label => find(ui.modal, el => el.attributes['aria-label'] === la
   assert.equal(ui.modal, null); assert.equal(created, 1);
 
   let updateTables, stopped = 0, joinTable, result;
+  let codeRequested;
+  ui.callbacks.onRequestClubCode = (table, done) => { codeRequested = table; done({ ok: true }); };
   ui.callbacks.onWatchClubTables = listener => { updateTables = listener; return () => { stopped++; }; };
-  ui.callbacks.onJoinClubTable = (table, code, done) => { joinTable = { table, code }; result = done; };
+  ui.callbacks.onJoinClubTable = (table, code, seat, done) => { joinTable = { table, code, seat }; result = done; };
   ui.openSecretClub();
   assert.equal(ui.modal.children[0].attributes['aria-label'], 'Mesas do Clube secreto');
   assert.equal(byClass('club-tables').children.length, 4);
@@ -124,6 +126,7 @@ const byLabel = label => find(ui.modal, el => el.attributes['aria-label'] === la
   const tables = [1, 2, 3, 4].map(table => ({ table, players: 0, available: true, locked: false }));
   updateTables({ ok: true, tables });
   byLabel('Mesa 2').click();
+  assert.equal(codeRequested, 2);
   assert.equal(byClass('club-table-entry').hidden, false);
   assert.equal(byLabel('Código da Mesa 2').value, '');
   const form = byClass('club-table-entry');
@@ -131,12 +134,18 @@ const byLabel = label => find(ui.modal, el => el.attributes['aria-label'] === la
   assert.match(byClass('title-dialog__error').textContent, /6 números/);
   byLabel('Código da Mesa 2').value = '234567';
   form.events.submit({ preventDefault() {} });
-  assert.deepEqual(joinTable, { table: 2, code: '234567' });
+  assert.match(byClass('title-dialog__error').textContent, /Escolha o jogador/);
+  byLabel('Escolher jogador').value = '2';
+  form.events.submit({ preventDefault() {} });
+  assert.deepEqual(joinTable, { table: 2, code: '234567', seat: 2 });
   assert.equal(byLabel('Mesa 1').disabled, true, 'Bloquear novos envios enquanto conecta.');
   result({ ok: false, error: 'O código não pertence à mesa escolhida.' });
   assert.match(byClass('title-dialog__error').textContent, /mesa escolhida/);
   tables[1].players = 1;
+  tables[1].occupiedSeats = [2];
   updateTables({ ok: true, tables });
+  assert.equal(byLabel('Escolher jogador').children[2].disabled, true);
+  assert.equal(byLabel('Escolher jogador').value, '', 'Limpar escolha se outro jogador ocupar o lugar.');
   assert.equal(byLabel('Mesa 2').children[1].textContent, 'Jogadores prontos: 1/2');
   tables[1].players = 2; tables[1].locked = true; tables[1].available = false;
   updateTables({ ok: true, tables });
@@ -144,11 +153,17 @@ const byLabel = label => find(ui.modal, el => el.attributes['aria-label'] === la
   assert.match(byLabel('Mesa 2').children[2].textContent, /TRANCADA/);
   byLabel('Mesa 3').click();
   byLabel('Código da Mesa 3').value = '345678';
+  byLabel('Escolher jogador').value = '1';
   form.events.submit({ preventDefault() {} });
   result({ ok: true });
   assert.equal(ui.modal, null); assert.equal(stopped, 1);
   ui.openSecretClub(); ui.closeModal(); assert.equal(stopped, 2);
-  ui.openSecretClub(); ui.destroy(); assert.equal(stopped, 3);
+  ui.callbacks.onRequestClubCode = (table, done) => done({ ok: false, error: 'Apresentação desconectada.' });
+  ui.openSecretClub(); updateTables({ ok: true, tables }); byLabel('Mesa 1').click();
+  assert.equal(byClass('club-table-entry').hidden, true);
+  assert.equal(byClass('title-dialog__error').textContent, 'Apresentação desconectada.');
+  ui.closeModal(); assert.equal(stopped, 3);
+  ui.openSecretClub(); ui.destroy(); assert.equal(stopped, 4);
   console.log('Carteirinha: edição, fotos, estatísticas, acesso e falhas; salas: criar, entrar, validar e cancelar aprovados.');
   console.log('Clube: quatro mesas, escolha, código, contagem ao vivo, bloqueio e limpeza de assinaturas aprovados.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

@@ -50,7 +50,7 @@ class CyberduelMultiplayer {
       this.status("Conectado ao servidor.");
       if (this.onClubTables && this.clubTablesSubscribed) this.watchClubTables(this.onClubTables);
       if (this.presentation && this.room) return this.createPresentation(this.onPresentation);
-      if (this.waitingInvitation) return this.joinRoom(this.waitingInvitation.code, () => {}, this.waitingInvitation.table);
+      if (this.waitingInvitation) return this.joinRoom(this.waitingInvitation.code, () => {}, this.waitingInvitation.table, this.waitingInvitation.seat);
       if (this.active && this.resumeToken && !this.spectator) this.resumeMatch((response) => {
         if (!response.ok) this.status(response.error);
       });
@@ -200,21 +200,27 @@ class CyberduelMultiplayer {
     this.socket?.emit("unwatch-club-tables");
   }
 
-  joinRoom(code, callback, table = null) {
+  requestClubCode(table, callback) {
+    this.connect().timeout(5000).emit("request-club-code", { table, accountToken: window.cyberduelAccount?.token }, (error, response) => {
+      callback(error ? { ok: false, error: "Não foi possível exibir o código. Tente novamente." } : response);
+    });
+  }
+
+  joinRoom(code, callback, table = null, seat = null) {
     this.localDeck = window.cyberduelDeckBuilder.getDeckForMatch();
     const params = new URLSearchParams(location.search);
     const invitation = params.get("room") === code ? { seat: params.get("seat"), ticket: params.get("ticket") } : {};
     this.connect().emit("join-room", {
       code,
-      ...(table !== null ? { table } : {}),
       ...invitation,
+      ...(table !== null ? { table, seat } : {}),
       deck: this.localDeck,
       accountToken: window.cyberduelAccount?.token || null,
     }, (response) => {
       if (!response.ok) return callback(response);
       this.room = response.room.code;
       this.player = response.player;
-      this.waitingInvitation = response.waiting ? { code, table } : null;
+      this.waitingInvitation = response.waiting ? { code, table, seat } : null;
       this.saveResumeToken(response.resumeToken);
       callback(response);
     });

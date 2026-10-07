@@ -898,9 +898,25 @@ class CyberduelTitleUI {
     input.maxLength = 6;
     input.placeholder = "000000";
     input.autocomplete = "one-time-code";
+    const seatLabel = this.element("label", "title-room-label", "Qual jogador você quer ser?");
+    seatLabel.htmlFor = "club-table-player";
+    const seat = this.element("select", "title-auth-input");
+    seat.id = "club-table-player";
+    seat.setAttribute("aria-label", "Escolher jogador");
+    seat.required = true;
+    const placeholder = this.element("option", "", "Escolha o jogador");
+    placeholder.value = "";
+    placeholder.disabled = true;
+    seat.append(placeholder);
+    const seatOptions = [1, 2].map(player => {
+      const option = this.element("option", "", `Jogador ${player}`);
+      option.value = String(player);
+      seat.append(option);
+      return option;
+    });
     const submit = this.element("button", "title-dialog__confirm title-room-create", "ENTRAR COMO JOGADOR");
     submit.type = "submit";
-    form.append(label, input, submit);
+    form.append(seatLabel, seat, label, input, submit);
     const error = this.element("p", "title-dialog__error");
     error.setAttribute("role", "alert");
     const status = this.element("p", "club-tables-status", "Carregando mesas…");
@@ -911,13 +927,24 @@ class CyberduelTitleUI {
       const button = this.button("club-table", "", () => {
         if (busy) return;
         selected = table;
-        form.hidden = false;
+        busy = true;
+        form.hidden = true;
         label.textContent = `Código exibido na apresentação da Mesa ${table}`;
         input.setAttribute("aria-label", `Código da Mesa ${table}`);
         input.value = "";
+        seat.value = "";
         error.textContent = "";
         render();
-        input.focus();
+        status.textContent = "Solicitando o código na apresentação…";
+        this.callbacks.onRequestClubCode(table, response => {
+          if (this.modal !== overlay) return;
+          busy = false;
+          if (response.ok) form.hidden = false;
+          else error.textContent = response.error || "Não foi possível exibir o código.";
+          status.textContent = "Escolha seu jogador e confira o código na apresentação.";
+          render();
+          if (response.ok) seat.focus();
+        });
       }, `Mesa ${table}`);
       button.append(this.element("strong", "", `MESA ${table}`), this.element("span"), this.element("small"));
       button.disabled = true;
@@ -933,7 +960,10 @@ class CyberduelTitleUI {
         button.children[2].textContent = table.locked ? "TRANCADA · EM PARTIDA" : table.available ? "ENTRAR NA MESA" : "APRESENTAÇÃO OFFLINE";
       });
       submit.disabled = busy || !tables.find(table => table.table === selected)?.available;
-      close.disabled = input.disabled = busy;
+      const occupied = tables.find(table => table.table === selected)?.occupiedSeats || [];
+      seatOptions.forEach((option, index) => { option.disabled = occupied.includes(index + 1); });
+      if (occupied.includes(Number(seat.value))) seat.value = "";
+      close.disabled = input.disabled = seat.disabled = busy;
       this.modalRequired = busy;
     };
     input.addEventListener("input", () => {
@@ -949,11 +979,17 @@ class CyberduelTitleUI {
         input.focus();
         return;
       }
+      const player = Number(seat.value);
+      if (![1, 2].includes(player)) {
+        error.textContent = "Escolha o jogador 1 ou 2.";
+        seat.focus();
+        return;
+      }
       busy = true;
       error.textContent = "";
       status.textContent = `Entrando na Mesa ${selected}…`;
       render();
-      this.callbacks.onJoinClubTable(selected, code, response => {
+      this.callbacks.onJoinClubTable(selected, code, player, response => {
         if (this.modal !== overlay) return;
         busy = false;
         if (response.ok) return this.closeModal(true);

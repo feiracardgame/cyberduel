@@ -121,6 +121,7 @@ async function run() {
     const host = await connect(); hosts.push(host);
     const created = await ack(host, 'create-presentation', { table });
     assert.equal(created.ok, true); assert.equal(created.room.table, table);
+    assert.equal(created.showCode, false, "O código começa oculto na apresentação.");
     tables.push(created);
   }
   assert.equal(new Set(tables.map(table => table.room.code)).size, 4, 'Cada apresentação tem seu próprio código.');
@@ -132,6 +133,8 @@ async function run() {
   assert.equal((await ack(intruder, 'create-presentation', { table: 5 })).ok, false);
   assert.equal((await ack(intruder, 'join-room', { table: 2, code: tables[0].room.code, accountToken: accounts[0].token })).ok, false, 'Não aceitar código de outra mesa.');
   assert.equal((await ack(intruder, 'join-room', { table: 1, code: tables[0].room.code })).ok, false, 'Entrada exige conta.');
+  assert.equal((await ack(intruder, 'request-club-code', { table: 1 })).ok, false, 'Exibir código exige conta.');
+  assert.equal((await ack(intruder, 'request-club-code', { table: 5, accountToken: accounts[0].token })).ok, false);
   const firstHostCode = tables[0].room.code;
   const offline = event(lobby, 'club-tables'); hosts[0].disconnect();
   assert.equal((await offline).tables[0].available, false);
@@ -142,10 +145,17 @@ async function run() {
   for (const account of tableAccounts) await api('account/faction', account.token, { faction: 'echossystem' });
   for (const [index, table] of tables.entries()) {
     const firstPlayer = await connect(), secondPlayer = await connect();
-    const firstPayload = { table: index + 1, code: table.room.code, accountToken: tableAccounts[index * 2].token };
+    const reveal = event(hosts[index], 'presentation-room', response => response.showCode);
+    const requested = await ack(firstPlayer, 'request-club-code', { table: index + 1, accountToken: tableAccounts[index * 2].token });
+    assert.equal(requested.ok, true); assert.equal(requested.code, undefined);
+    assert.equal((await reveal).room.code, table.room.code);
+    const firstPayload = { table: index + 1, code: table.room.code, seat: 2, accountToken: tableAccounts[index * 2].token };
+    for (const seat of [null, 0, 3])
+      assert.equal((await ack(firstPlayer, 'join-room', { ...firstPayload, seat })).ok, false, 'Exigir escolha válida de jogador.');
     const changed = event(lobby, 'club-tables', response => response.tables[index].players === 1);
     const joined = await ack(firstPlayer, 'join-room', firstPayload);
-    assert.equal(joined.waiting, true); assert.equal(joined.player, 1);
+    assert.equal(joined.waiting, true); assert.equal(joined.player, 2);
+    assert.equal((await ack(intruder, 'join-room', { ...firstPayload, accountToken: accounts[0].token })).ok, false, 'Não ocupar o jogador escolhido por outra pessoa.');
     assert.equal((await changed).tables[index].players, 1);
     if (index === 0) {
       const vacant = event(lobby, 'club-tables', response => response.tables[0].players === 0);
@@ -157,10 +167,13 @@ async function run() {
     const readyFirst = event(firstPlayer, 'match-ready'), readySecond = event(secondPlayer, 'match-ready');
     const locked = event(lobby, 'club-tables', response => response.tables[index].locked);
     const display = event(hosts[index], 'presentation-room', response => !!response.update);
-    const joinedSecond = await ack(secondPlayer, 'join-room', { table: index + 1, code: table.room.code, accountToken: tableAccounts[index * 2 + 1].token });
+    const joinedSecond = await ack(secondPlayer, 'join-room', { table: index + 1, code: table.room.code, seat: 1, accountToken: tableAccounts[index * 2 + 1].token });
     assert.equal(joinedSecond.ok, true); assert.equal(joinedSecond.waiting, false);
     const [firstMatch, secondMatch, lockState, shown] = await Promise.all([readyFirst, readySecond, locked, display]);
     assert.equal(firstMatch.room, table.room.code); assert.equal(secondMatch.room, table.room.code);
+    assert.equal(firstMatch.player, 2); assert.equal(secondMatch.player, 1);
+    assert.equal(shown.showCode, false, 'Ocultar código depois da entrada.');
+    assert.equal((await ack(intruder, 'request-club-code', { table: index + 1, accountToken: accounts[0].token })).ok, false, 'Mesa em partida não exibe código.');
     assert.equal(firstMatch.arena, true); assert.equal(shown.room.table, index + 1);
     assert.deepEqual(shown.update.state.jogador.hand, [], 'A mesa mantém a privacidade da apresentação comum.');
     assert.equal(lockState.tables[index].players, 2);

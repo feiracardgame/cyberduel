@@ -1326,6 +1326,7 @@ function presentationState(snapshot) {
 
 function presentationInfo(room) {
   return { ok: true, room: publicRoom(room), displayKey: room.displayKey, invitations: room.invitations,
+    showCode: !!room.codeRequested,
     nicknames: Object.fromEntries(room.nicknames),
     seats: [1, 2].map(player => ({ player, connected: !!room.players.get(player) })),
     ...(room.state ? { update: { state: presentationState(room.state), ...phaseInfo(room), initial: true } } : {}) };
@@ -1344,6 +1345,7 @@ function clubTables() {
   return [1, 2, 3, 4].map(table => {
     const room = clubTableRoom(table);
     return { table, players: room ? [...room.players.values()].filter(Boolean).length : 0,
+      occupiedSeats: room ? [...room.players.keys()] : [],
       available: !!room?.presentationHost && !room.state,
       locked: !!room?.state };
   });
@@ -1609,6 +1611,17 @@ io.on("connection", (socket) => {
   });
   socket.on("unwatch-club-tables", () => socket.leave("club-tables"));
 
+  socket.on("request-club-code", (payload = {}, ack = () => {}) => {
+    if (!accountFromToken(payload.accountToken))
+      return ack({ ok: false, error: "Entre na conta antes de escolher uma mesa." });
+    const room = clubTableRoom(Number(payload.table));
+    if (!room?.presentationHost || room.state)
+      return ack({ ok: false, error: "Esta mesa está indisponível." });
+    room.codeRequested = true;
+    notifyPresentation(room);
+    ack({ ok: true });
+  });
+
   socket.on("create-presentation", async (payload = {}, ack = () => {}) => {
     const table = payload.table == null ? null : Number(payload.table);
     if (table !== null && ![1, 2, 3, 4].includes(table))
@@ -1733,7 +1746,9 @@ io.on("connection", (socket) => {
       const fromTable = payload.table != null;
       if (fromTable && !room.presentationHost)
         return ack({ ok: false, error: "A apresentação desta mesa está desconectada." });
-      const player = fromTable ? [1, 2].find(seat => !room.players.has(seat)) : Number(payload.seat);
+      const player = Number(payload.seat);
+      if (fromTable && ![1, 2].includes(player))
+        return ack({ ok: false, error: "Escolha o jogador 1 ou 2." });
       if (!fromTable && (![1, 2].includes(player) || payload.ticket !== room.seatTokens.get(player)))
         return ack({ ok: false, error: "Escaneie o QR code do seu lugar na tela de apresentação." });
       if (room.state || !player || room.players.has(player))
@@ -1755,6 +1770,7 @@ io.on("connection", (socket) => {
       room.accounts.set(player, account);
       room.resumeTokens.set(player, randomBytes(32).toString("hex"));
       socket.join(code); socket.data.room = code; socket.data.player = player;
+      if (fromTable) room.codeRequested = false;
       ack({ ok: true, waiting: room.players.size < 2, room: publicRoom(room), player, resumeToken: room.resumeTokens.get(player) });
       if (room.players.size === 2) {
         room.starter = room.turn = randomInt(1, 3);

@@ -112,7 +112,7 @@ class CenaTitulo extends Phaser.Scene {
       start.disabled = false;
       if (!response.ok) { status.textContent = response.error; start.hidden = false; return; }
       start.hidden = true;
-      code.textContent = table ? `CÓDIGO ${response.room.code}` : "";
+      code.textContent = table && response.showCode ? `CÓDIGO ${response.room.code}` : "";
       status.textContent = response.update ? "Duelo iniciado" : table
         ? `Jogadores prontos: ${response.room.players}/2 · Aguardando oponente`
         : "Cada jogador escaneia um QR code e entra com sua conta e seu deck.";
@@ -128,8 +128,11 @@ class CenaTitulo extends Phaser.Scene {
           const name = document.createElement("p"); name.textContent = `${response.nicknames[invite.player]} · Aguardando o outro jogador…`; card.append(name);
         } else if (table) {
           const note = document.createElement("p"); note.textContent = `Escolha a Mesa ${table} no Clube secreto.`;
-          const entryCode = document.createElement("strong"); entryCode.className = "presentation-code"; entryCode.textContent = response.room.code;
-          card.append(note, entryCode);
+          card.append(note);
+          if (response.showCode) {
+            const entryCode = document.createElement("strong"); entryCode.className = "presentation-code"; entryCode.textContent = response.room.code;
+            card.append(entryCode);
+          }
         } else {
           const image = document.createElement("img"); image.src = invite.qrCode; image.alt = `QR code do jogador ${invite.player}`;
           const link = document.createElement("a"); link.href = invite.url; link.textContent = invite.url;
@@ -181,7 +184,8 @@ class CenaTitulo extends Phaser.Scene {
         onCreateRoom: () => this.criarSala(),
         onTutorial: () => this.iniciarTutorial(),
         onJoinRoom: (code) => this.entrarNaSala(code),
-        onJoinClubTable: (table, code, done) => this.entrarNaSala(code, table, done),
+        onRequestClubCode: (table, done) => this.multiplayer.requestClubCode(table, done),
+        onJoinClubTable: (table, code, seat, done) => this.entrarNaSala(code, table, done, seat),
         onWatchClubTables: (listener) => {
           this.multiplayer.watchClubTables(listener);
           return () => this.multiplayer.unwatchClubTables();
@@ -292,7 +296,7 @@ class CenaTitulo extends Phaser.Scene {
     this.telaEsperaArena = root;
   }
 
-  entrarNaSala(initialCode, table = null, onResult = null) {
+  entrarNaSala(initialCode, table = null, onResult = null, seat = null) {
     if (!this.account?.user || this.account.needsRegistration || !this.account?.faction) {
       this.atualizarStatus("Entre e escolha sua facção antes de entrar na sala.", "warning");
       onResult?.({ ok: false, error: "Entre e escolha sua facção antes de entrar na mesa." });
@@ -329,7 +333,7 @@ class CenaTitulo extends Phaser.Scene {
           response.waiting ? "Você está conectado. Aguardando o outro jogador..." : "Oponente encontrado. Preparando o duelo...",
           "success",
         );
-      }, table);
+      }, table, seat);
     } catch (error) {
       this.entrandoPorConvite = false;
       this.atualizarStatus(error.message, "error");
