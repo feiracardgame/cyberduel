@@ -7,11 +7,12 @@ const { io } = require('socket.io-client');
 const url = 'http://127.0.0.1:31997';
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cyberduel-presentation-'));
 const sockets = [];
-const fixtures = require('./account-fixture')(dataDir, ['ArenaOne', 'ArenaTwo']);
+const fixtures = require('./account-fixture')(dataDir, ['ArenaOne', 'ArenaTwo', ...Array.from({ length: 8 }, (_, i) => `TablePlayer${i}`)]);
 const server = spawn(process.execPath, ['server/server.js'], { env: { ...process.env, PORT: '31997', DATA_DIR: dataDir, PUBLIC_URL: 'https://duelo.example/' }, stdio: ['ignore', 'pipe', 'inherit'] });
-const event = (socket, name) => new Promise((resolve, reject) => {
-  const timer = setTimeout(() => reject(Error(`Evento ausente: ${name}`)), 6000);
-  socket.once(name, value => { clearTimeout(timer); resolve(value); });
+const event = (socket, name, matches = () => true) => new Promise((resolve, reject) => {
+  const handler = value => { if (matches(value)) { clearTimeout(timer); socket.off(name, handler); resolve(value); } };
+  const timer = setTimeout(() => { socket.off(name, handler); reject(Error(`Evento ausente: ${name}`)); }, 6000);
+  socket.on(name, handler);
 });
 const ack = (socket, name, payload = {}) => new Promise((resolve, reject) => socket.timeout(5000).emit(name, payload, (error, response) => error ? reject(error) : resolve(response)));
 async function connect() { const socket = io(url, { transports: ['websocket'], forceNew: true }); sockets.push(socket); await event(socket, 'connect'); return socket; }
@@ -47,7 +48,7 @@ async function run() {
   assert.equal((await ack(outsider, 'create-presentation', { code: room.room.code })).ok, false);
   assert.equal((await ack(one, 'join-room', { code: room.room.code })).ok, false);
   const accounts = [];
-  for (const account of fixtures) {
+  for (const account of fixtures.slice(0, 2)) {
     await api('account/faction', account.token, { faction: 'echossystem' });
     accounts.push(account);
   }
@@ -105,6 +106,76 @@ async function run() {
   assert.equal(saved[accounts[1].accountKey].clubWins, 1, 'Estatísticas do Clube persistidas uma única vez.');
   const left = event(one, 'opponent-left');
   reconnect.emit('leave-room'); await left;
+
+  const lobby = await connect();
+  const initial = await ack(lobby, 'watch-club-tables');
+  assert.equal(initial.tables.length, 4);
+  assert.ok(initial.tables.every(table => !table.available && !table.locked && table.players === 0));
+  const hosts = [], tables = [];
+  for (const table of [1, 2, 3, 4]) {
+    const page = await fetch(`${url}/apresentacao${table}`);
+    assert.equal(page.status, 200);
+    assert.match(await page.text(), new RegExp(`window.CYBERDUEL_TABLE=${table};`));
+    const redirect = await fetch(`${url}/apresentação${table}/`, { redirect: 'manual' });
+    assert.equal(redirect.headers.get('location'), `/apresentacao${table}`);
+    const host = await connect(); hosts.push(host);
+    const created = await ack(host, 'create-presentation', { table });
+    assert.equal(created.ok, true); assert.equal(created.room.table, table);
+    tables.push(created);
+  }
+  assert.equal(new Set(tables.map(table => table.room.code)).size, 4, 'Cada apresentação tem seu próprio código.');
+  const available = await ack(lobby, 'watch-club-tables');
+  assert.ok(available.tables.every(table => table.available && !table.locked));
+  assert.ok(available.tables.every(table => !('code' in table)), 'O menu não divulga os códigos das apresentações.');
+  const intruder = await connect();
+  assert.equal((await ack(intruder, 'create-presentation', { table: 1 })).ok, false, 'Não substituir uma mesa aberta.');
+  assert.equal((await ack(intruder, 'create-presentation', { table: 5 })).ok, false);
+  assert.equal((await ack(intruder, 'join-room', { table: 2, code: tables[0].room.code, accountToken: accounts[0].token })).ok, false, 'Não aceitar código de outra mesa.');
+  assert.equal((await ack(intruder, 'join-room', { table: 1, code: tables[0].room.code })).ok, false, 'Entrada exige conta.');
+  const firstHostCode = tables[0].room.code;
+  const offline = event(lobby, 'club-tables'); hosts[0].disconnect();
+  assert.equal((await offline).tables[0].available, false);
+  assert.equal((await ack(intruder, 'join-room', { table: 1, code: firstHostCode, accountToken: accounts[0].token })).ok, false);
+  const restoredHost = await connect(); hosts[0] = restoredHost;
+  assert.equal((await ack(restoredHost, 'create-presentation', { table: 1, code: firstHostCode, displayKey: tables[0].displayKey })).ok, true);
+  const tableAccounts = fixtures.slice(2);
+  for (const account of tableAccounts) await api('account/faction', account.token, { faction: 'echossystem' });
+  for (const [index, table] of tables.entries()) {
+    const firstPlayer = await connect(), secondPlayer = await connect();
+    const firstPayload = { table: index + 1, code: table.room.code, accountToken: tableAccounts[index * 2].token };
+    const changed = event(lobby, 'club-tables', response => response.tables[index].players === 1);
+    const joined = await ack(firstPlayer, 'join-room', firstPayload);
+    assert.equal(joined.waiting, true); assert.equal(joined.player, 1);
+    assert.equal((await changed).tables[index].players, 1);
+    if (index === 0) {
+      const vacant = event(lobby, 'club-tables', response => response.tables[0].players === 0);
+      firstPlayer.emit('leave-room');
+      const remaining = (await vacant).tables[0];
+      assert.equal(remaining.players, 0); assert.equal(remaining.available, true, 'Sair da espera mantém a apresentação aberta.');
+      assert.equal((await ack(firstPlayer, 'join-room', firstPayload)).waiting, true);
+    }
+    const readyFirst = event(firstPlayer, 'match-ready'), readySecond = event(secondPlayer, 'match-ready');
+    const locked = event(lobby, 'club-tables', response => response.tables[index].locked);
+    const display = event(hosts[index], 'presentation-room', response => !!response.update);
+    const joinedSecond = await ack(secondPlayer, 'join-room', { table: index + 1, code: table.room.code, accountToken: tableAccounts[index * 2 + 1].token });
+    assert.equal(joinedSecond.ok, true); assert.equal(joinedSecond.waiting, false);
+    const [firstMatch, secondMatch, lockState, shown] = await Promise.all([readyFirst, readySecond, locked, display]);
+    assert.equal(firstMatch.room, table.room.code); assert.equal(secondMatch.room, table.room.code);
+    assert.equal(firstMatch.arena, true); assert.equal(shown.room.table, index + 1);
+    assert.deepEqual(shown.update.state.jogador.hand, [], 'A mesa mantém a privacidade da apresentação comum.');
+    assert.equal(lockState.tables[index].players, 2);
+    assert.equal(lockState.tables[index].locked, true); assert.equal(lockState.tables[index].available, false);
+    assert.equal((await ack(intruder, 'join-room', { table: index + 1, code: table.room.code, accountToken: accounts[0].token })).ok, false, 'Mesa em jogo não aceita terceiros.');
+  }
+  const finalTables = await ack(lobby, 'watch-club-tables');
+  assert.ok(finalTables.tables.every(table => table.locked && table.players === 2), 'Quatro partidas independentes ao mesmo tempo.');
+  const released = event(lobby, 'club-tables');
+  hosts[3].emit('leave-room');
+  assert.equal((await released).tables[3].available, false);
+  const replacement = await ack(hosts[3], 'create-presentation', { table: 4 });
+  assert.equal(replacement.ok, true); assert.notEqual(replacement.room.code, tables[3].room.code);
+  assert.equal((await ack(lobby, 'watch-club-tables')).tables[3].available, true);
+  console.log('Clube: quatro rotas, códigos distintos, ocupação ao vivo, isolamento, espera, saída, reconexão e bloqueio de quatro partidas simultâneas aprovados.');
   console.log('Apresentação: página separada, QR codes, lugares, privacidade, reconexão, identificação do Clube e estatísticas persistidas validados.');
 }
 run().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => {

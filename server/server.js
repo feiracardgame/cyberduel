@@ -1138,9 +1138,16 @@ function serveGame(request, response) {
     return;
   }
 
-  if (pathname === "/apresentacao") {
+  const tableRoute = /^\/apresentacao([1-4])$/.exec(pathname);
+  const tableRedirect = /^\/apresenta(?:ção|cao)([1-4])\/?$/.exec(pathname);
+  if (!tableRoute && tableRedirect) {
+    response.writeHead(302, { location: `/apresentacao${tableRedirect[1]}` });
+    response.end();
+    return;
+  }
+  if (pathname === "/apresentacao" || tableRoute) {
     const html = readFileSync(path.join(PUBLIC_ROOT, "index.html"), "utf8")
-      .replace("<head>", `<head><base href="/"><script>window.CYBERDUEL_PRESENTATION=true;</script>`);
+      .replace("<head>", `<head><base href="/"><script>window.CYBERDUEL_PRESENTATION=true;window.CYBERDUEL_TABLE=${tableRoute ? tableRoute[1] : "null"};</script>`);
     response.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "referrer-policy": "no-referrer", "x-frame-options": "DENY" });
     response.end(html);
     return;
@@ -1242,7 +1249,7 @@ function generateRoomCode() {
 }
 
 function publicRoom(room) {
-  return { code: room.code, players: room.players.size, turn: room.turn, club: !!room.presentation };
+  return { code: room.code, players: room.players.size, turn: room.turn, club: !!room.presentation, table: room.table || null };
 }
 
 function sanitizeDeck(deck) {
@@ -1326,6 +1333,24 @@ function presentationInfo(room) {
 
 function notifyPresentation(room) {
   if (room.presentationHost) io.to(room.presentationHost).emit("presentation-room", presentationInfo(room));
+  if (room.table) notifyClubTables();
+}
+
+function clubTableRoom(table) {
+  return [...rooms.values()].find(room => room.table === table);
+}
+
+function clubTables() {
+  return [1, 2, 3, 4].map(table => {
+    const room = clubTableRoom(table);
+    return { table, players: room ? [...room.players.values()].filter(Boolean).length : 0,
+      available: !!room?.presentationHost && !room.state,
+      locked: !!room?.state };
+  });
+}
+
+function notifyClubTables() {
+  io.to("club-tables").emit("club-tables", { ok: true, tables: clubTables() });
 }
 
 function broadcastState(room, extra = {}, except = null) {
@@ -1427,14 +1452,12 @@ function removeFromRoom(socket, disconnect = false) {
   } else if (!socket.data.player) {
     room.spectators.delete(socket.id);
   } else if (room.players.get(socket.data.player) === socket.id) {
-    if (disconnect) {
-      if (room.presentation && !room.state) {
-        room.players.delete(socket.data.player);
-        room.decks.delete(socket.data.player);
-        room.usernames.delete(socket.data.player);
-        room.nicknames.delete(socket.data.player);
-        room.accounts.delete(socket.data.player);
-      } else room.players.set(socket.data.player, null);
+    if (room.presentation && !room.state) {
+      for (const key of ["players", "decks", "usernames", "nicknames", "accounts", "profiles", "resumeTokens"])
+        room[key].delete(socket.data.player);
+      notifyPresentation(room);
+    } else if (disconnect) {
+      room.players.set(socket.data.player, null);
       room.effects?.pending.delete(socket.data.player);
       if (room.effects && !room.effects.pending.size) resumeAfterEffects(room);
       notifyPresentation(room);
@@ -1449,6 +1472,7 @@ function removeFromRoom(socket, disconnect = false) {
   socket.leave(code);
   socket.data.room = null;
   socket.data.player = null;
+  if (room.table) notifyClubTables();
 }
 
 function findResumable(payload) {
@@ -1573,20 +1597,33 @@ matchmakingClock.unref();
 const roomCleanup = setInterval(() => {
   for (const room of rooms.values()) if (Date.now() - room.createdAt > 6 * 60 * 60 * 1000) {
     clearTimeout(room.timer); io.to(room.code).emit("opponent-left"); rooms.delete(room.code);
+    if (room.table) notifyClubTables();
   }
 }, 60_000);
 roomCleanup.unref();
 
 io.on("connection", (socket) => {
+  socket.on("watch-club-tables", (payload = {}, ack = () => {}) => {
+    socket.join("club-tables");
+    ack({ ok: true, tables: clubTables() });
+  });
+  socket.on("unwatch-club-tables", () => socket.leave("club-tables"));
+
   socket.on("create-presentation", async (payload = {}, ack = () => {}) => {
-    const previous = rooms.get(payload.code);
+    const table = payload.table == null ? null : Number(payload.table);
+    if (table !== null && ![1, 2, 3, 4].includes(table))
+      return ack({ ok: false, error: "Mesa inválida." });
+    const previous = rooms.get(payload.code) || (table && clubTableRoom(table));
     if (previous?.presentation) {
+      if ((previous.table || null) !== table)
+        return ack({ ok: false, error: "Esta apresentação pertence a outra mesa." });
       if (payload.displayKey !== previous.displayKey)
         return ack({ ok: false, error: "Esta apresentação pertence a outra tela." });
       if (previous.presentationHost && previous.presentationHost !== socket.id)
         return ack({ ok: false, error: "A apresentação já está aberta em outra tela." });
       socket.join(previous.code); socket.data.room = previous.code; socket.data.player = null;
       previous.presentationHost = socket.id;
+      if (previous.table) notifyClubTables();
       return ack(presentationInfo(previous));
     }
     if (rooms.has(socket.data.room)) return ack({ ok: false, error: "Encerre a sala atual antes de criar outra." });
@@ -1596,17 +1633,18 @@ io.on("connection", (socket) => {
       if (address) base = `http://${address}:${PORT}/`;
     }
     const invite = buildInviteUrl(base, "000000");
-    if (!invite || ["localhost", "127.0.0.1", "[::1]"].includes(new URL(invite).hostname))
+    if (!table && (!invite || ["localhost", "127.0.0.1", "[::1]"].includes(new URL(invite).hostname)))
       return ack({ ok: false, error: "Configure PUBLIC_URL com um endereço acessível pelos celulares." });
     const room = createRoomRecord(socket, [], null);
     room.presentation = true;
+    room.table = table;
     room.displayKey = randomBytes(32).toString("hex");
     room.presentationHost = socket.id;
     for (const key of ["players", "decks", "usernames", "nicknames", "profiles", "resumeTokens"]) room[key].clear();
     socket.data.player = null;
     room.seatTokens = new Map([1, 2].map(player => [player, randomBytes(32).toString("hex")]));
     try {
-      room.invitations = await Promise.all([1, 2].map(async player => {
+      room.invitations = table ? [1, 2].map(player => ({ player })) : await Promise.all([1, 2].map(async player => {
         const url = new URL(buildInviteUrl(base, room.code));
         url.searchParams.set("seat", String(player));
         url.searchParams.set("ticket", room.seatTokens.get(player));
@@ -1614,6 +1652,7 @@ io.on("connection", (socket) => {
       }));
       if (!socket.connected || !rooms.has(room.code)) { rooms.delete(room.code); return; }
       ack(presentationInfo(room));
+      if (room.table) notifyClubTables();
     } catch {
       removeFromRoom(socket);
       ack({ ok: false, error: "Não foi possível gerar os QR codes." });
@@ -1688,15 +1727,22 @@ io.on("connection", (socket) => {
       .slice(0, 6);
     const room = rooms.get(code);
     if (!room) return ack({ ok: false, error: "Sala não encontrada." });
+    if (payload.table != null && (!room.presentation || Number(payload.table) !== room.table))
+      return ack({ ok: false, error: "O código não pertence à mesa escolhida." });
     if (room.presentation) {
-      const player = Number(payload.seat);
-      if (![1, 2].includes(player) || payload.ticket !== room.seatTokens.get(player))
+      const fromTable = payload.table != null;
+      if (fromTable && !room.presentationHost)
+        return ack({ ok: false, error: "A apresentação desta mesa está desconectada." });
+      const player = fromTable ? [1, 2].find(seat => !room.players.has(seat)) : Number(payload.seat);
+      if (!fromTable && (![1, 2].includes(player) || payload.ticket !== room.seatTokens.get(player)))
         return ack({ ok: false, error: "Escaneie o QR code do seu lugar na tela de apresentação." });
-      if (room.state || room.players.has(player))
+      if (room.state || !player || room.players.has(player))
         return ack({ ok: false, error: "Este lugar já está ocupado. Use o retorno à partida para reconectar." });
       if (socket.data.room) return ack({ ok: false, error: "Saia da sala atual antes de entrar." });
       const account = accountFromToken(payload.accountToken);
       if (!account?.faction) return ack({ ok: false, error: "Entre na conta e escolha sua facção." });
+      if (accountHasMatch(account.username))
+        return ack({ ok: false, error: "Conclua sua partida atual antes de entrar em outra mesa." });
       if ([...room.usernames.values()].includes(account.username))
         return ack({ ok: false, error: "Cada jogador precisa usar sua própria conta." });
       const deck = sanitizeDeck(account.deck);
@@ -1773,6 +1819,7 @@ io.on("connection", (socket) => {
       decks: Object.fromEntries(room.decks), usernames: Object.fromEntries(room.usernames), nicknames: Object.fromEntries(room.nicknames), ranked: !!room.ranked, arena: !!room.presentation, profiles: Object.fromEntries(room.profiles),
       update: { state: room.state, ...phaseInfo(room), initial: true } });
     socket.to(room.code).emit("opponent-online");
+    if (room.table) notifyPresentation(room);
   });
 
   socket.on("spectate-room", (payload = {}, ack = () => {}) => {

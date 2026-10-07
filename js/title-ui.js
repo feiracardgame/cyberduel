@@ -337,7 +337,7 @@ class CyberduelTitleUI {
           ],
           [
             "Clube secreto",
-            "Identidade e acesso ao Clube Secreto do Cyberduel",
+            "Escolha uma das quatro mesas e entre pelo código da apresentação",
             "qr_code",
             () => this.openSecretClub(),
             "account",
@@ -879,7 +879,110 @@ class CyberduelTitleUI {
   }
 
   openSecretClub() {
-    this.openProfileScreen();
+    if (this.modal) return;
+    if (!this.account?.user) return this.openAuthDialog();
+    const overlay = this.createModal("secret-club");
+    const dialog = this.element("section", "title-dialog title-club-dialog");
+    dialog.setAttribute("role", "dialog");
+    dialog.setAttribute("aria-modal", "true");
+    dialog.setAttribute("aria-label", "Mesas do Clube secreto");
+    const close = this.button("title-dialog__cancel", "VOLTAR", () => this.closeModal());
+    const list = this.element("div", "club-tables");
+    const form = this.element("form", "club-table-entry");
+    form.hidden = true;
+    const label = this.element("label", "title-room-label");
+    label.htmlFor = "club-table-code";
+    const input = this.element("input", "title-room-input");
+    input.id = "club-table-code";
+    input.inputMode = "numeric";
+    input.maxLength = 6;
+    input.placeholder = "000000";
+    input.autocomplete = "one-time-code";
+    const submit = this.element("button", "title-dialog__confirm title-room-create", "ENTRAR COMO JOGADOR");
+    submit.type = "submit";
+    form.append(label, input, submit);
+    const error = this.element("p", "title-dialog__error");
+    error.setAttribute("role", "alert");
+    const status = this.element("p", "club-tables-status", "Carregando mesas…");
+    status.setAttribute("role", "status");
+    let selected = null, busy = false;
+    let tables = [1, 2, 3, 4].map(table => ({ table, players: 0, available: false, locked: false }));
+    const buttons = tables.map(({ table }) => {
+      const button = this.button("club-table", "", () => {
+        if (busy) return;
+        selected = table;
+        form.hidden = false;
+        label.textContent = `Código exibido na apresentação da Mesa ${table}`;
+        input.setAttribute("aria-label", `Código da Mesa ${table}`);
+        input.value = "";
+        error.textContent = "";
+        render();
+        input.focus();
+      }, `Mesa ${table}`);
+      button.append(this.element("strong", "", `MESA ${table}`), this.element("span"), this.element("small"));
+      button.disabled = true;
+      list.append(button);
+      return button;
+    });
+    const render = () => {
+      tables.forEach((table, index) => {
+        const button = buttons[index];
+        button.disabled = busy || !table.available || table.locked;
+        button.setAttribute("aria-pressed", String(selected === table.table));
+        button.children[1].textContent = `Jogadores prontos: ${table.players}/2`;
+        button.children[2].textContent = table.locked ? "TRANCADA · EM PARTIDA" : table.available ? "ENTRAR NA MESA" : "APRESENTAÇÃO OFFLINE";
+      });
+      submit.disabled = busy || !tables.find(table => table.table === selected)?.available;
+      close.disabled = input.disabled = busy;
+      this.modalRequired = busy;
+    };
+    input.addEventListener("input", () => {
+      input.value = this.sanitizeRoomCode(input.value);
+      error.textContent = "";
+    });
+    form.addEventListener("submit", event => {
+      event.preventDefault();
+      if (submit.disabled) return;
+      const code = this.sanitizeRoomCode(input.value);
+      if (code.length !== 6) {
+        error.textContent = "O código precisa ter 6 números.";
+        input.focus();
+        return;
+      }
+      busy = true;
+      error.textContent = "";
+      status.textContent = `Entrando na Mesa ${selected}…`;
+      render();
+      this.callbacks.onJoinClubTable(selected, code, response => {
+        if (this.modal !== overlay) return;
+        busy = false;
+        if (response.ok) return this.closeModal(true);
+        error.textContent = response.error || "Não foi possível entrar na mesa.";
+        status.textContent = "Confira o código na apresentação da mesa escolhida.";
+        render();
+      });
+    });
+    dialog.append(
+      this.element("small", "player-id__brand", "CYBERDUEL / NEOFLORIPA"),
+      this.element("h2", "", "Clube secreto"),
+      this.element("p", "", "Escolha sua mesa e digite o código exibido na apresentação correspondente."),
+      list, form, error, status, close,
+    );
+    overlay.append(dialog);
+    render();
+    this.clubTablesCleanup = this.callbacks.onWatchClubTables(response => {
+      if (this.modal !== overlay) return;
+      if (!response.ok) { status.textContent = response.error; return; }
+      tables = response.tables;
+      status.textContent = "O duelo começa automaticamente com dois jogadores.";
+      render();
+    });
+    this.modalAfterClose = () => {
+      this.clubTablesCleanup?.();
+      this.clubTablesCleanup = null;
+    };
+    this.settings?.applyDomTextScale(overlay);
+    requestAnimationFrame(() => { overlay.classList.add("is-visible"); close.focus(); });
   }
 
   openMenuSection(kind) {
@@ -3403,6 +3506,8 @@ class CyberduelTitleUI {
   }
 
   destroy() {
+    this.clubTablesCleanup?.();
+    this.clubTablesCleanup = null;
     this.menuClickAudio?.pause();
     this.menuClickAudio = null;
     this.menuSwipeAudio?.pause();

@@ -22,8 +22,8 @@ class Element {
   click() { if (!this.disabled) return this.events.click?.(); }
 }
 const context = vm.createContext({
-  console, document: { createElement: tag => new Element(tag), body: new Element('body') },
-  requestAnimationFrame: fn => fn(), setTimeout: fn => fn(), window: {},
+  console, document: { createElement: tag => new Element(tag), body: new Element('body'), removeEventListener() {} },
+  requestAnimationFrame: fn => fn(), setTimeout: fn => fn(), clearTimeout() {}, clearInterval() {}, window: {},
 });
 vm.runInContext(fs.readFileSync('js/title-ui.js', 'utf8') + '\nglobalThis.UI = CyberduelTitleUI;', context);
 const ui = new context.UI({ callbacks: {} });
@@ -92,7 +92,7 @@ const byLabel = label => find(ui.modal, el => el.attributes['aria-label'] === la
   assert.equal(ui.modal, null); assert.equal(ui.account.nickname, 'Carol');
   assert.equal(saves, 2, 'Escape também salva as alterações.');
   Object.assign(ui.account, { faction: null, humanGames: 0, humanWins: 0, clubGames: 0, clubWins: 0, clubUnlocked: false });
-  ui.getMenuSections().partidas.rows.find(([title]) => title === 'Clube secreto')[3]();
+  ui.openProfileScreen();
   assert.deepEqual(byClass('player-id__stats').children.map(el => el.children[1].textContent), ['0', '0', '0', '0']);
   assert.equal(byClass('player-id__access').dataset.unlocked, 'false');
   assert.match(byClass('player-id__note').textContent, /3 vitórias/);
@@ -113,5 +113,42 @@ const byLabel = label => find(ui.modal, el => el.attributes['aria-label'] === la
   assert.equal(joined, '123456'); assert.equal(ui.modal, null);
   ui.openRoomDialog(); byLabel('CANCELAR').click();
   assert.equal(ui.modal, null); assert.equal(created, 1);
+
+  let updateTables, stopped = 0, joinTable, result;
+  ui.callbacks.onWatchClubTables = listener => { updateTables = listener; return () => { stopped++; }; };
+  ui.callbacks.onJoinClubTable = (table, code, done) => { joinTable = { table, code }; result = done; };
+  ui.openSecretClub();
+  assert.equal(ui.modal.children[0].attributes['aria-label'], 'Mesas do Clube secreto');
+  assert.equal(byClass('club-tables').children.length, 4);
+  assert.equal(byLabel('Mesa 1').disabled, true);
+  const tables = [1, 2, 3, 4].map(table => ({ table, players: 0, available: true, locked: false }));
+  updateTables({ ok: true, tables });
+  byLabel('Mesa 2').click();
+  assert.equal(byClass('club-table-entry').hidden, false);
+  assert.equal(byLabel('Código da Mesa 2').value, '');
+  const form = byClass('club-table-entry');
+  form.events.submit({ preventDefault() {} });
+  assert.match(byClass('title-dialog__error').textContent, /6 números/);
+  byLabel('Código da Mesa 2').value = '234567';
+  form.events.submit({ preventDefault() {} });
+  assert.deepEqual(joinTable, { table: 2, code: '234567' });
+  assert.equal(byLabel('Mesa 1').disabled, true, 'Bloquear novos envios enquanto conecta.');
+  result({ ok: false, error: 'O código não pertence à mesa escolhida.' });
+  assert.match(byClass('title-dialog__error').textContent, /mesa escolhida/);
+  tables[1].players = 1;
+  updateTables({ ok: true, tables });
+  assert.equal(byLabel('Mesa 2').children[1].textContent, 'Jogadores prontos: 1/2');
+  tables[1].players = 2; tables[1].locked = true; tables[1].available = false;
+  updateTables({ ok: true, tables });
+  assert.equal(byLabel('Mesa 2').disabled, true);
+  assert.match(byLabel('Mesa 2').children[2].textContent, /TRANCADA/);
+  byLabel('Mesa 3').click();
+  byLabel('Código da Mesa 3').value = '345678';
+  form.events.submit({ preventDefault() {} });
+  result({ ok: true });
+  assert.equal(ui.modal, null); assert.equal(stopped, 1);
+  ui.openSecretClub(); ui.closeModal(); assert.equal(stopped, 2);
+  ui.openSecretClub(); ui.destroy(); assert.equal(stopped, 3);
   console.log('Carteirinha: edição, fotos, estatísticas, acesso e falhas; salas: criar, entrar, validar e cancelar aprovados.');
+  console.log('Clube: quatro mesas, escolha, código, contagem ao vivo, bloqueio e limpeza de assinaturas aprovados.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

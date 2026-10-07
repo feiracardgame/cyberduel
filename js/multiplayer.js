@@ -11,6 +11,7 @@ class CyberduelMultiplayer {
     this.round = 1;
     this.starter = 1;
     this.presentation = false;
+    this.presentationScope = window.CYBERDUEL_TABLE ? `:${window.CYBERDUEL_TABLE}` : "";
     this.spectator = false;
     this.initialized = false;
     this.deadline = null;
@@ -47,8 +48,9 @@ class CyberduelMultiplayer {
     });
     this.socket.on("connect", () => {
       this.status("Conectado ao servidor.");
+      if (this.onClubTables && this.clubTablesSubscribed) this.watchClubTables(this.onClubTables);
       if (this.presentation && this.room) return this.createPresentation(this.onPresentation);
-      if (this.waitingInvitation) return this.joinRoom(this.waitingInvitation.code, () => {});
+      if (this.waitingInvitation) return this.joinRoom(this.waitingInvitation.code, () => {}, this.waitingInvitation.table);
       if (this.active && this.resumeToken && !this.spectator) this.resumeMatch((response) => {
         if (!response.ok) this.status(response.error);
       });
@@ -83,6 +85,7 @@ class CyberduelMultiplayer {
       if (this.onReady) this.onReady();
     });
     this.socket.on("presentation-room", response => this.receivePresentation(response));
+    this.socket.on("club-tables", response => this.onClubTables?.(response));
     this.socket.on("phase-clock", (update) => this.applyPhase(update));
     this.socket.on("state-update", (update) => this.receiveUpdate(update));
     this.socket.on("turn-time", ({ activePlayer, remainingMs, running }) => {
@@ -101,7 +104,7 @@ class CyberduelMultiplayer {
       if (this.presentation) {
         this.active = false;
         this.room = null;
-        try { window.sessionStorage?.removeItem("cyberduel.presentationRoom"); } catch {}
+        try { window.sessionStorage?.removeItem("cyberduel.presentationRoom" + this.presentationScope); } catch {}
         this.onPresentation?.({ ok: false, error: "Sala encerrada. Crie uma nova apresentação." });
       }
       this.status("O oponente saiu da sala.");
@@ -139,10 +142,10 @@ class CyberduelMultiplayer {
     this.spectator = true;
     this.onPresentation = callback;
     let code = this.room;
-    try { code ||= window.sessionStorage?.getItem("cyberduel.presentationRoom"); } catch {}
+    try { code ||= window.sessionStorage?.getItem("cyberduel.presentationRoom" + this.presentationScope); } catch {}
     let displayKey = this.displayKey;
-    try { displayKey ||= window.sessionStorage?.getItem("cyberduel.presentationKey"); } catch {}
-    this.connect().timeout(10000).emit("create-presentation", { code, displayKey, inviteBase: `${location.origin}/` }, (error, response) => {
+    try { displayKey ||= window.sessionStorage?.getItem("cyberduel.presentationKey" + this.presentationScope); } catch {}
+    this.connect().timeout(10000).emit("create-presentation", { code, displayKey, table: window.CYBERDUEL_TABLE || null, inviteBase: `${location.origin}/` }, (error, response) => {
       if (error) return callback?.({ ok: false, error: "Servidor indisponível. Tente abrir a arena novamente." });
       if (response.ok) this.receivePresentation(response);
       else callback?.(response);
@@ -156,8 +159,8 @@ class CyberduelMultiplayer {
     this.room = response.room.code;
     this.displayKey = response.displayKey;
     try {
-      window.sessionStorage?.setItem("cyberduel.presentationRoom", this.room);
-      window.sessionStorage?.setItem("cyberduel.presentationKey", this.displayKey);
+      window.sessionStorage?.setItem("cyberduel.presentationRoom" + this.presentationScope, this.room);
+      window.sessionStorage?.setItem("cyberduel.presentationKey" + this.presentationScope, this.displayKey);
     } catch {}
     this.onPresentation?.(response);
     if (response.update) this.enterExisting(response);
@@ -182,12 +185,28 @@ class CyberduelMultiplayer {
     );
   }
 
-  joinRoom(code, callback) {
+  watchClubTables(callback) {
+    this.onClubTables = callback;
+    this.connect().timeout(5000).emit("watch-club-tables", {}, (error, response) => {
+      if (this.onClubTables !== callback) return;
+      this.clubTablesSubscribed = !error && response?.ok;
+      callback(error ? { ok: false, error: "Não foi possível carregar as mesas." } : response);
+    });
+  }
+
+  unwatchClubTables() {
+    this.onClubTables = null;
+    this.clubTablesSubscribed = false;
+    this.socket?.emit("unwatch-club-tables");
+  }
+
+  joinRoom(code, callback, table = null) {
     this.localDeck = window.cyberduelDeckBuilder.getDeckForMatch();
     const params = new URLSearchParams(location.search);
     const invitation = params.get("room") === code ? { seat: params.get("seat"), ticket: params.get("ticket") } : {};
     this.connect().emit("join-room", {
       code,
+      ...(table !== null ? { table } : {}),
       ...invitation,
       deck: this.localDeck,
       accountToken: window.cyberduelAccount?.token || null,
@@ -195,7 +214,7 @@ class CyberduelMultiplayer {
       if (!response.ok) return callback(response);
       this.room = response.room.code;
       this.player = response.player;
-      this.waitingInvitation = response.waiting ? { code } : null;
+      this.waitingInvitation = response.waiting ? { code, table } : null;
       this.saveResumeToken(response.resumeToken);
       callback(response);
     });
@@ -325,7 +344,7 @@ class CyberduelMultiplayer {
     this.active = false; this.initialized = false; this.pendingUpdate = null;
     if (!this.presentation) this.saveResumeToken(null);
     this.presentation = false; this.waitingInvitation = null; this.displayKey = null; this.room = null;
-    try { window.sessionStorage?.removeItem("cyberduel.presentationRoom"); window.sessionStorage?.removeItem("cyberduel.presentationKey"); } catch {}
+    try { window.sessionStorage?.removeItem("cyberduel.presentationRoom" + this.presentationScope); window.sessionStorage?.removeItem("cyberduel.presentationKey" + this.presentationScope); } catch {}
     this.spectator = false; this.lastLiveState = null;
     this.effectsPaused = false; this.effectsAck = null;
   }
