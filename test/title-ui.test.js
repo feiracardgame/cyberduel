@@ -27,9 +27,16 @@ const { builder, CyberduelTitleUI } = context.titleExports;
 const ui = new CyberduelTitleUI({ deckBuilder: builder, callbacks: {} });
 const modes = ui.getMenuSections().partidas.rows;
 assert.equal(modes.some(([name]) => name === 'Sala híbrida'), false);
-assert.equal(modes.find(([name]) => name === 'Entrar por código')[2], 'sala_hibrida');
+assert.equal(modes.some(([name]) => name === 'Entrar por código' || name === 'Espectar sala' || name === 'Criar sala'), false);
+const roomOption = modes.find(([name]) => name === 'Criar ou entrar em sala');
+assert.equal(roomOption[2], 'partida_codigo');
+assert.equal(roomOption[4], 'deck');
+let roomOpened = false;
+ui.openRoomDialog = () => { roomOpened = true; };
+roomOption[3]();
+assert.equal(roomOpened, true);
 const playerCard = modes.find(([name]) => name === 'Clube secreto');
-assert.equal(playerCard[2], 'qr_code'); assert.equal(playerCard[4], 'account', 'A carteirinha não exige deck ou acesso ao Clube.');
+assert.equal(playerCard[2], 'qr_code'); assert.equal(playerCard[4], 'account', 'A carta do Clube continua disponível sem exigir deck ou acesso.');
 
 const emptySummary = ui.deckSummary();
 assert.equal(emptySummary.deckReady, false);

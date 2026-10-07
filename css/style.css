@@ -2724,6 +2724,9 @@ body.title-terminal-open #game-viewport canvas {
   box-shadow: 0 0 24px rgba(35, 255, 108, 0.12);
 }
 
+.title-room-create { width: 100%; min-height: 48px; border-radius: 10px; cursor: pointer; }
+.title-room-label { display: block; margin: 24px 0 12px; color: #a6c3af; font-size: 12px; }
+
 .title-dialog__error {
   display: block;
   min-height: 22px;
@@ -3002,7 +3005,7 @@ body.title-terminal-open #game-viewport canvas {
 .profile-avatar { padding: 0; cursor: pointer; width: 112px; height: 112px; margin: 0 auto 16px; display: grid; place-items: center; border: 1px solid #48a567; border-radius: 50%; overflow: hidden; background: #164325; color: #8cecac; font-size: 32px; }
 .profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .profile-screen [hidden] { display: none !important; }
-.profile-photo-picker { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; margin-bottom: 20px; }
+.profile-photo-picker { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 8px; margin-bottom: 20px; }
 .profile-photo-option { padding: 3px; border: 2px solid transparent; border-radius: 10px; background: #164325; cursor: pointer; }
 .profile-photo-option[aria-pressed="true"] { border-color: #70e697; background: #28663d; }
 .profile-photo-option img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 6px; }
@@ -3012,7 +3015,6 @@ body.title-terminal-open #game-viewport canvas {
 .profile-field input { box-sizing: border-box; width: 100%; margin: 0; font-size: 16px; }
 .profile-note { font-size: 12px; line-height: 1.5; color: #84ac91; }
 .profile-status { min-height: 18px; color: #85ddbe; font-size: 12px; }
-.profile-save { width: 100%; min-height: 46px; border: 0; border-radius: 8px; color: #071b0e; background: #70e697; font-weight: 700; cursor: pointer; }
 .profile-screen button:disabled { opacity: .5; cursor: wait; }
 .profile-screen button:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
 .card-menu__shortcut .profile-shortcut-avatar { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
@@ -3289,9 +3291,13 @@ body.title-terminal-open #game-viewport canvas {
 .player-id__stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 22px 0; }
 .player-id__stats > div { padding: 12px 8px; border: 1px solid #28573a; border-radius: 6px; }
 .player-id__stats dt { color: #a6c3af; font-size: 12px; line-height: 1.4; }
-.player-id__stats dd { margin: 8px 0 0; color: #effff3; font-size: 28px; font-weight: bold; }
+.player-id__stats dd { margin: 8px 0 0; color: #effff3; font-size: 28px; font-weight: bold; font-variant-numeric: tabular-nums; }
 .player-id h3 { font-size: 16px; }
 .player-id > .player-id__access { padding: 12px; border: 1px solid currentColor; border-radius: 6px; color: #ffbf80; font-size: 14px; font-weight: bold; }
 .player-id__access[data-unlocked="true"] { color: #85ffac; }
 .player-id > .player-id__note { color: #b2c9ba; font-size: 13px; }
 .player-id .title-dialog__cancel { width: 100%; min-height: 44px; }
+.profile-panel.player-id { width: min(100%, 460px); max-height: none; overflow: visible; padding: 24px; }
+.player-id .profile-header h2 { margin: 0; text-align: left; }
+.player-id button.profile-avatar { cursor: pointer; }
+.player-id .profile-field { text-align: left; }

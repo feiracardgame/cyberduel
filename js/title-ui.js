@@ -329,17 +329,10 @@ class CyberduelTitleUI {
             "deck",
           ],
           [
-            "Criar sala",
-            "Convide um amigo por código ou QR (Não rendem tijolinhos).",
+            "Criar ou entrar em sala",
+            "Crie um convite ou use o código de um amigo (Não rendem tijolinhos).",
             "partida_codigo",
-            () => this.callbacks.onCreateRoom(),
-            "deck",
-          ],
-          [
-            "Entrar por código",
-            "Entre na sala de um amigo (Não rendem tijolinhos).",
-            "sala_hibrida",
-            () => this.openJoinDialog(this.callbacks.onJoinRoom),
+            () => this.openRoomDialog(),
             "deck",
           ],
           [
@@ -348,13 +341,6 @@ class CyberduelTitleUI {
             "qr_code",
             () => this.openSecretClub(),
             "account",
-          ],
-          [
-            "Espectar sala",
-            "Acompanhe uma batalha pelo código",
-            "partida_codigo",
-            () => this.openJoinDialog(this.callbacks.onSpectate),
-            "none",
           ],
         ],
       },
@@ -852,12 +838,12 @@ class CyberduelTitleUI {
     const nav = this.element("nav", "card-menu__shortcuts");
     nav.setAttribute("aria-label", "Mais opções");
     for (const [icon, label, handler] of [
-      ["◇", "PERFIL", () => this.openProfileScreen()],
+      ["◇", "CARTEIRINHA", () => this.openProfileScreen()],
       ["⚙", "AJUSTES", () => this.openSettingsDialog()],
     ]) {
       const button = this.button("card-menu__shortcut", "", handler, label);
       const mark = this.element("span", "", icon);
-      if (label === "PERFIL" && this.account?.avatar) {
+      if (label === "CARTEIRINHA" && this.account?.avatar) {
         const image = this.element("img", "profile-shortcut-avatar");
         image.src = this.account.avatar;
         image.alt = "";
@@ -868,7 +854,7 @@ class CyberduelTitleUI {
         this.element(
           "small",
           "",
-          label === "PERFIL" && this.account?.user
+          label === "CARTEIRINHA" && this.account?.user
             ? this.account.nickname || this.account.user
             : label,
         ),
@@ -893,86 +879,7 @@ class CyberduelTitleUI {
   }
 
   openSecretClub() {
-    if (!this.account?.user) return this.openAuthDialog();
-    const overlay = this.createModal("secret-club");
-    const dialog = this.element("section", "title-dialog player-id");
-    dialog.setAttribute("role", "dialog");
-    dialog.setAttribute("aria-modal", "true");
-    dialog.setAttribute("aria-label", "Carteirinha de jogador");
-    const account = this.account;
-    const avatar = this.element("div", "profile-avatar");
-    if (account.avatar) {
-      const image = this.element("img");
-      image.src = account.avatar;
-      image.alt = "Foto do jogador";
-      avatar.append(image);
-    } else
-      avatar.textContent = Array.from(account.nickname || account.user)
-        .slice(0, 2)
-        .join("")
-        .toUpperCase();
-    const stats = this.element("dl", "player-id__stats");
-    for (const [label, value] of [
-      ["Partidas contra jogadores", account.humanGames],
-      ["Vitórias contra jogadores", account.humanWins],
-      ["Partidas no Clube", account.clubGames],
-      ["Vitórias no Clube", account.clubWins],
-    ]) {
-      const stat = this.element("div");
-      stat.append(
-        this.element("dt", "", label),
-        this.element("dd", "", String(value || 0)),
-      );
-      stats.append(stat);
-    }
-    const access = this.element(
-      "p",
-      "player-id__access",
-      account.clubUnlocked
-        ? "ACESSO AO CLUBE LIBERADO"
-        : "ACESSO AO CLUBE BLOQUEADO",
-    );
-    access.dataset.unlocked = String(!!account.clubUnlocked);
-    const close = this.button("title-dialog__cancel", "VOLTAR", () =>
-      this.closeModal(),
-    );
-    dialog.append(
-      this.element("small", "player-id__brand", "CYBERDUEL / NEOFLORIPA"),
-      this.element("h2", "", "Carteirinha de jogador"),
-      avatar,
-      this.element(
-        "strong",
-        "player-id__name",
-        account.nickname || account.user,
-      ),
-      this.element("p", "profile-identity", `@${account.user}`),
-      this.element(
-        "p",
-        "player-id__faction",
-        account.faction === "raspcorp"
-          ? "RASPCORP"
-          : account.faction === "echossystem"
-            ? "ECHOSSYSTEM"
-            : "SEM FACÇÃO",
-      ),
-      stats,
-      this.element("h3", "", "Clube Secreto do Cyberduel"),
-      access,
-      this.element(
-        "p",
-        "player-id__note",
-        account.clubUnlocked
-          ? "Apresente esta carteirinha ao segurança."
-          : "Conquiste 3 vitórias contra jogadores para liberar o acesso. Partidas contra o bot não contam.",
-      ),
-      close,
-    );
-    overlay.append(dialog);
-    this.settings?.applyDomTextScale(overlay);
-    requestAnimationFrame(() => {
-      overlay.classList.add("is-visible");
-      close.focus();
-    });
+    this.openProfileScreen();
   }
 
   openMenuSection(kind) {
@@ -1043,18 +950,18 @@ class CyberduelTitleUI {
     overlay.classList.add("profile-screen");
     document.body.append(overlay);
     this.modalAfterClose = () => this.account.notify();
-    const dialog = this.element("section", "profile-panel");
+    const dialog = this.element("section", "profile-panel player-id");
     dialog.setAttribute("role", "dialog");
     dialog.setAttribute("aria-modal", "true");
-    dialog.setAttribute("aria-label", "Meu perfil");
+    dialog.setAttribute("aria-label", "Carteirinha do clube");
     const header = this.element("header", "profile-header");
     const close = this.button(
       "profile-close",
       "×",
       () => this.closeModal(),
-      "Fechar perfil",
+      "Fechar carteirinha",
     );
-    header.append(this.element("h2", "", "Meu perfil"), close);
+    header.append(this.element("h2", "", "Carteirinha do clube"), close);
     const avatar = this.button(
       "profile-avatar",
       "",
@@ -1069,6 +976,7 @@ class CyberduelTitleUI {
     const preview = this.element("img");
     preview.alt = "Prévia da foto de perfil";
     const initials = this.element("span");
+    const name = this.element("strong", "player-id__name");
     avatar.append(preview, initials);
     let photo = this.account.avatar || "";
     const nicknameLabel = this.element("label", "profile-field", "APELIDO");
@@ -1090,6 +998,28 @@ class CyberduelTitleUI {
         ? "Conta local de desenvolvimento."
         : "Seu username é único e não muda. Use sua conta Google para entrar.",
     );
+    const stats = this.element("dl", "player-id__stats");
+    for (const [label, value] of [
+      ["Partidas contra jogadores", this.account.humanGames],
+      ["Vitórias contra jogadores", this.account.humanWins],
+      ["Partidas no Clube", this.account.clubGames],
+      ["Vitórias no Clube", this.account.clubWins],
+    ]) {
+      const stat = this.element("div");
+      stat.append(
+        this.element("dt", "", label),
+        this.element("dd", "", String(value || 0)),
+      );
+      stats.append(stat);
+    }
+    const access = this.element(
+      "p",
+      "player-id__access",
+      this.account.clubUnlocked
+        ? "ACESSO AO CLUBE LIBERADO"
+        : "ACESSO AO CLUBE BLOQUEADO",
+    );
+    access.dataset.unlocked = String(!!this.account.clubUnlocked);
     const picker = this.element("div", "profile-photo-picker");
     picker.id = "profile-photo-picker";
     picker.hidden = true;
@@ -1110,7 +1040,7 @@ class CyberduelTitleUI {
           picker.hidden = true;
           avatar.setAttribute("aria-expanded", "false");
           avatar.focus();
-          status.textContent = "Salve para aplicar a alteração.";
+          status.textContent = "As alterações serão salvas ao fechar.";
           renderPreview();
         },
         `Usar foto: ${name}`,
@@ -1129,8 +1059,7 @@ class CyberduelTitleUI {
     error.setAttribute("role", "alert");
     let busy = false;
     const refresh = () => {
-      save.disabled =
-        avatar.disabled =
+      avatar.disabled =
         close.disabled =
         nickname.disabled =
           busy;
@@ -1140,6 +1069,7 @@ class CyberduelTitleUI {
       this.modalRequired = busy;
     };
     const renderPreview = () => {
+      name.textContent = nickname.value.trim() || this.account.user;
       preview.hidden = !photo;
       initials.hidden = Boolean(photo);
       if (photo) preview.src = photo;
@@ -1161,12 +1091,16 @@ class CyberduelTitleUI {
       status.textContent = "";
       renderPreview();
     });
-    const save = this.button("profile-save", "SALVAR PERFIL", async () => {
+    this.modalBeforeClose = async () => {
       if (busy) return;
       const value = nickname.value.trim();
       if (!value || Array.from(value).length > 32) {
         error.textContent = "Use um apelido de 1 a 32 caracteres.";
         nickname.focus();
+        return;
+      }
+      if (value === (this.account.nickname || this.account.user) && photo === (this.account.avatar || "")) {
+        this.closeModal(true);
         return;
       }
       busy = true;
@@ -1176,8 +1110,7 @@ class CyberduelTitleUI {
       try {
         await this.account.updateProfile(value, photo);
         if (this.modal !== overlay) return;
-        nickname.value = this.account.nickname;
-        status.textContent = "Perfil salvo.";
+        this.closeModal(true);
       } catch (exception) {
         error.textContent =
           exception.message || "Não foi possível salvar o perfil.";
@@ -1186,18 +1119,26 @@ class CyberduelTitleUI {
         busy = false;
         if (this.modal === overlay) refresh();
       }
-    });
+    };
     dialog.append(
+      this.element("small", "player-id__brand", "CYBERDUEL / NEOFLORIPA"),
       header,
       avatar,
+      name,
+      this.element("p", "player-id__faction", this.account.faction?.toUpperCase() || "SEM FACÇÃO"),
       this.element("p", "profile-note", "Clique na foto para trocar."),
       picker,
       identity,
       userHint,
+      this.element("p", "profile-note", `${this.account.gamesPlayed || 0} partidas no total`),
+      stats,
+      access,
       this.element(
         "p",
-        "profile-note",
-        `${this.account.gamesPlayed} partidas · ${this.account.humanGames || 0} contra jogadores · ${this.account.humanWins || 0} vitórias contra jogadores`,
+        "player-id__note",
+        this.account.clubUnlocked
+          ? "Apresente esta carteirinha ao segurança."
+          : "Conquiste 3 vitórias contra jogadores para liberar o acesso. Partidas contra o bot não contam.",
       ),
       nicknameLabel,
       this.element(
@@ -1207,14 +1148,14 @@ class CyberduelTitleUI {
       ),
       error,
       status,
-      save,
+      this.element("p", "profile-note", "Apelido e foto são salvos automaticamente ao fechar."),
     );
     overlay.append(dialog);
     renderPreview();
     this.settings?.applyDomTextScale(overlay);
     requestAnimationFrame(() => {
       overlay.classList.add("is-visible");
-      nickname.focus();
+      close.focus();
     });
   }
 
@@ -1877,36 +1818,15 @@ class CyberduelTitleUI {
       }),
     );
 
-    const multiplayer = this.element("div", "title-multiplayer");
-    multiplayer.append(
-      this.createAction({
-        className: "title-action title-action--compact",
-        kicker: "HOSPEDAR",
-        title: "CRIAR SALA",
-        description: "Convide por QR",
-        icon: "+",
-        disabled: !summary.deckReady,
-        handler: this.callbacks.onCreateRoom,
-      }),
-      this.createAction({
-        className: "title-action title-action--compact",
-        kicker: "CONECTAR",
-        title: "ENTRAR",
-        description: "Use um código",
-        icon: "↗",
-        disabled: !summary.deckReady,
-        handler: () => this.openJoinDialog(this.callbacks.onJoinRoom),
-      }),
-    );
-    actions.append(multiplayer);
     actions.append(
       this.createAction({
         className: "title-action title-action--compact",
-        kicker: "ASSISTIR",
-        title: "ESPECTAR SALA",
-        description: "Acompanhe pelo código",
-        icon: "◉",
-        handler: () => this.openJoinDialog(this.callbacks.onSpectate),
+        kicker: "DUELO COM AMIGOS",
+        title: "CRIAR OU ENTRAR EM SALA",
+        description: "Convide por QR ou use um código",
+        icon: "+",
+        disabled: !summary.deckReady,
+        handler: () => this.openRoomDialog(),
       }),
     );
 
@@ -2224,22 +2144,27 @@ class CyberduelTitleUI {
     });
   }
 
-  openJoinDialog(onSubmit) {
+  openRoomDialog() {
     if (this.modal) return;
-    const overlay = this.createModal("join");
+    const overlay = this.createModal("room-options");
     const dialog = this.element("section", "title-dialog title-join-dialog");
     dialog.setAttribute("role", "dialog");
     dialog.setAttribute("aria-modal", "true");
+    dialog.setAttribute("aria-label", "Criar ou entrar em sala");
+    const label = this.element("label", "title-room-label", "Já tem um convite? Digite o código:");
+    label.htmlFor = "title-room-code";
     dialog.append(
-      this.element("span", "title-kicker", "LINK DE DUELO"),
-      this.element("h2", "", "Entrar na sala"),
-      this.element(
-        "p",
-        "",
-        "Digite os seis números enviados pelo outro duelista.",
-      ),
+      this.element("span", "title-kicker", "DUELO COM AMIGOS"),
+      this.element("h2", "", "Criar ou entrar em sala"),
+      this.element("p", "", "Convide um amigo por código ou QR, ou entre na sala dele. Estas partidas não rendem tijolinhos."),
+      this.button("title-dialog__confirm title-room-create", "CRIAR SALA", () => {
+        this.closeModal(true);
+        this.callbacks.onCreateRoom();
+      }),
+      label,
     );
     const input = this.element("input", "title-room-input");
+    input.id = "title-room-code";
     input.type = "text";
     input.inputMode = "numeric";
     input.autocomplete = "one-time-code";
@@ -2254,15 +2179,15 @@ class CyberduelTitleUI {
     const actions = this.element("div", "title-dialog__actions");
     actions.append(
       this.button("title-dialog__cancel", "CANCELAR", () => this.closeModal()),
-      this.button("title-dialog__confirm", "CONECTAR", () => {
+      this.button("title-dialog__confirm", "ENTRAR NA SALA", () => {
         const code = this.sanitizeRoomCode(input.value);
         if (code.length !== 6) {
           error.textContent = "O código precisa ter 6 números.";
           input.focus();
           return;
         }
-        this.closeModal();
-        onSubmit(code);
+        this.closeModal(true);
+        this.callbacks.onJoinRoom(code);
       }),
     );
     dialog.append(input, error, actions);
@@ -3464,6 +3389,8 @@ class CyberduelTitleUI {
   closeModal(immediate = false) {
     if (!this.modal) return;
     if (this.modalRequired && !immediate) return;
+    if (this.modalBeforeClose && !immediate) return this.modalBeforeClose();
+    this.modalBeforeClose = null;
     const modal = this.modal;
     const afterClose = this.modalAfterClose;
     this.modalAfterClose = null;
@@ -3490,6 +3417,7 @@ class CyberduelTitleUI {
     this.root = null;
     this.modal = null;
     this.modalAfterClose = null;
+    this.modalBeforeClose = null;
     this.modalRequired = false;
   }
 }
