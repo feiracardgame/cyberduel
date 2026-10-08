@@ -18,9 +18,26 @@ const context = vm.createContext({ window: { cyberduelAccount: { user: "Admin", 
 vm.runInContext(fs.readFileSync('js/debug.js', 'utf8'), context);
 (async () => {
   context.window.cyberduelAccount.isAdmin = false;
+  await assert.rejects(context.window.adicionarPontos('Duelista', 500), /administradora/);
+  await assert.rejects(context.window.liberarLeaderboard(), /administradora/);
   await assert.rejects(context.window.irParaFinal('vitória'), /administradora/);
   assert.throws(() => context.window.irParaX1(), /administradora/);
   context.window.cyberduelAccount.isAdmin = true;
+  context.window.cyberduelAccount.unlockLeaderboard = async username => {
+    assert.equal(username, 'Admin');
+    return { account: { username, humanGames: 5, humanWins: 3 } };
+  };
+  assert.match(await context.window.liberarLeaderboard(), /Admin elegível/);
+  assert.match(await context.window.liberarLeaderboard(' Admin '), /5 partidas e 3 vitórias/);
+  await assert.rejects(context.window.liberarLeaderboard(''), /Use liberarLeaderboard/);
+  context.window.cyberduelAccount.grantRating = async (username, amount) => {
+    assert.equal(username, 'Duelista'); assert.equal(amount, 500);
+    return { added: amount, account: { username, rating: 1500 } };
+  };
+  assert.match(await context.window.adicionarPontos(' Duelista ', 500), /Total: 1500/);
+  for (const amount of [-1, 0, 0.5, '500', Infinity, Number.MAX_SAFE_INTEGER + 1])
+    await assert.rejects(context.window.adicionarPontos('Duelista', amount), /quantidadeInteiraPositiva/);
+  await assert.rejects(context.window.adicionarPontos('', 500), /quantidadeInteiraPositiva/);
   await context.window.irParaFinal('vitória');
   assert.equal(scene.result.resultado, 'jogador');
   await context.window.irParaFinal('derrota');

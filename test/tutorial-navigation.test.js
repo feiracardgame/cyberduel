@@ -49,14 +49,24 @@ assert.equal(scene.botaoPassarTutorial.input.enabled, true);
 
 let starts = 0;
 const ui = new UI({ callbacks: { onTutorial() { starts++; } } });
-ui.cardMenuState = { mode: 'categories', items: [{ id: 'tutorial' }] };
+ui.menuCategories = [{ id: 'tutorial' }];
+ui.cardMenuState = { mode: 'categories', items: ui.menuCategories };
 ui.menuCategory = 'tutorial';
 ui.playMenuClick = () => {};
 ui.closeModal = () => {};
+ui.transitionCardMenu = change => change();
+let rules = 0;
+ui.openRules = () => { rules++; };
 ui.handleCardClick({ dataset: { position: 'center', itemIndex: '0' } });
+assert.equal(ui.cardMenuState.mode, 'options', 'Tutorial abre submenu de regras e treino.');
 ui.handleCardMenuAction();
-assert.equal(starts, 2, 'Carta e ação abrem o treino diretamente, sem facção/deck.');
-assert.equal(ui.cardMenuState.mode, 'categories', 'Tutorial não abre submenu.');
+assert.equal(rules, 1);
+ui.cardMenuState.optionIndex = 1;
+ui.handleCardMenuAction();
+ui.handleCardClick({ dataset: { position: 'center', itemIndex: '1' } });
+assert.equal(starts, 2, 'Repetir tutorial abre o treino sem facção/deck.');
+ui.closeCategoryOptions();
+assert.equal(ui.cardMenuState.mode, 'categories');
 assert.ok(fs.existsSync('assets/menus/repetir_tutorial.png'));
 
 // Redesenhos de invocações preservam os mesmos objetos, zoom e posição de leitura.

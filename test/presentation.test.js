@@ -8,6 +8,10 @@ const url = 'http://127.0.0.1:31997';
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cyberduel-presentation-'));
 const sockets = [];
 const fixtures = require('./account-fixture')(dataDir, ['ArenaOne', 'ArenaTwo', ...Array.from({ length: 8 }, (_, i) => `TablePlayer${i}`)]);
+const accountsFile = path.join(dataDir, 'accounts.json');
+const seeded = JSON.parse(fs.readFileSync(accountsFile));
+for (const fixture of fixtures.slice(2)) Object.assign(seeded.accounts[fixture.accountKey], { humanGames: 3, humanWins: 3, gamesPlayed: 3 });
+fs.writeFileSync(accountsFile, JSON.stringify(seeded));
 const server = spawn(process.execPath, ['server/server.js'], { env: { ...process.env, PORT: '31997', DATA_DIR: dataDir, PUBLIC_URL: 'https://duelo.example/' }, stdio: ['ignore', 'pipe', 'inherit'] });
 const event = (socket, name, matches = () => true) => new Promise((resolve, reject) => {
   const handler = value => { if (matches(value)) { clearTimeout(timer); socket.off(name, handler); resolve(value); } };
@@ -130,12 +134,16 @@ async function run() {
   assert.ok(available.tables.every(table => !('code' in table)), 'O menu não divulga os códigos das apresentações.');
   const intruder = await connect();
   assert.equal((await ack(intruder, 'create-presentation', { table: 1 })).ok, false, 'Não substituir uma mesa aberta.');
-  assert.equal((await ack(intruder, 'create-presentation', { table: 5 })).ok, false);
+  assert.equal((await ack(intruder, 'create-presentation', { table: 6 })).ok, false);
   assert.equal((await ack(intruder, 'join-room', { table: 2, code: tables[0].room.code, accountToken: accounts[0].token })).ok, false, 'Não aceitar código de outra mesa.');
   assert.equal((await ack(intruder, 'join-room', { table: 1, code: tables[0].room.code })).ok, false, 'Entrada exige conta.');
   assert.equal((await ack(intruder, 'request-club-code', { table: 1 })).ok, false, 'Exibir código exige conta.');
   assert.equal((await ack(intruder, 'request-club-code', { table: 5, accountToken: accounts[0].token })).ok, false);
   const firstHostCode = tables[0].room.code;
+  assert.equal((await ack(intruder, 'request-club-code', { table: 1, accountToken: accounts[0].token })).ok, false, 'Exige três vitórias para solicitar o código do Clube.');
+  const deniedClub = await ack(intruder, 'join-room', { table: 1, seat: 1, code: firstHostCode, accountToken: accounts[0].token });
+  assert.equal(deniedClub.ok, false);
+  assert.match(deniedClub.error, /3 vitórias/);
   const offline = event(lobby, 'club-tables'); hosts[0].disconnect();
   assert.equal((await offline).tables[0].available, false);
   assert.equal((await ack(intruder, 'join-room', { table: 1, code: firstHostCode, accountToken: accounts[0].token })).ok, false);

@@ -99,7 +99,7 @@ class CenaTitulo extends Phaser.Scene {
     const root = document.createElement("div");
     root.className = "presentation-screen";
     const table = window.CYBERDUEL_TABLE;
-    const heading = document.createElement("h1"); heading.textContent = table ? `CYBERDUEL · MESA ${table}` : "CYBERDUEL · ARENA";
+    const heading = document.createElement("h1"); heading.textContent = table === 5 ? "CYBERDUEL · CONSELHO" : table ? `CYBERDUEL · MESA ${table}` : "CYBERDUEL · ARENA";
     const code = document.createElement("strong"); code.className = "presentation-code";
     const status = document.createElement("p"); status.textContent = "Abra a arena para receber os jogadores.";
     const seats = document.createElement("div"); seats.className = "presentation-seats";
@@ -127,7 +127,7 @@ class CenaTitulo extends Phaser.Scene {
         if (connected) {
           const name = document.createElement("p"); name.textContent = `${response.nicknames[invite.player]} · Aguardando o outro jogador…`; card.append(name);
         } else if (table) {
-          const note = document.createElement("p"); note.textContent = `Escolha a Mesa ${table} no Clube secreto.`;
+          const note = document.createElement("p"); note.textContent = (table === 5 ? "Reserve um canto na Partida do Conselho." : `Escolha a Mesa ${table} no Clube secreto.`);
           card.append(note);
           if (response.showCode) {
             const entryCode = document.createElement("strong"); entryCode.className = "presentation-code"; entryCode.textContent = response.room.code;
@@ -184,6 +184,8 @@ class CenaTitulo extends Phaser.Scene {
         onCreateRoom: () => this.criarSala(),
         onTutorial: () => this.iniciarTutorial(),
         onJoinRoom: (code) => this.entrarNaSala(code),
+        onReserveCouncilSeat: (seat, done) => this.multiplayer.reserveCouncilSeat(seat, done),
+        onReleaseCouncilSeat: () => this.multiplayer.releaseCouncilSeat(),
         onRequestClubCode: (table, done) => this.multiplayer.requestClubCode(table, done),
         onJoinClubTable: (table, code, seat, done) => this.entrarNaSala(code, table, done, seat),
         onWatchClubTables: (listener) => {

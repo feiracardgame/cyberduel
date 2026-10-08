@@ -19,6 +19,8 @@ Mostra tipo uma carteirinha, que traz info de vitórias, partidas, partidas dent
 Abre um menu de mesas que você escolhe uma mesa (de 1 a 4) e pede para inserir o código que aparece na tela.
 
 - ### Partida do Conselho (fica lockado e só desbloqueia quando o cara entrar no conselho) - conselho.png
+O Conselho é formado pelo top 10 atual do ranking (mínimo de 5 partidas e 3 vitórias contra jogadores). Ao entrar, a carteirinha recebe um selo de membro e efeitos dourados. Ao sair do top 10, o acesso e os efeitos são removidos. A apresentação da mesa é aberta em `/apresentacao5`.
+
 Abre uma tela para ver se tem alguma partida já acontecendo na mesa do Conselho e, caso esteja livre, aparece uma opção pra clicar em um dos cantos da mesa e inserir o código. A pessoa tem 1 minuto para inserir o código e, durante aquele tempo, fica reservado a eles o espaço, se não inserirem, perdem o espaço reservado.
 
 

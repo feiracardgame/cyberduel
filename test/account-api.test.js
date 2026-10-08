@@ -80,13 +80,49 @@ async function run() {
   assert.equal(created.payload.authProvider, "google");
   assert.equal(created.payload.isAdmin, true);
   assert.equal((await api("/api/auth/session", { token: second.token })).payload.isAdmin, false);
-  for (const route of ["grant-currency", "grant-cards", "give-card", "reset-collection"]) {
+  for (const route of ["unlock-leaderboard", "grant-rating", "grant-currency", "grant-cards", "give-card", "reset-collection"]) {
     assert.equal((await api(`/api/admin/accounts/${route}`, { method: "POST", token: second.token, body: { isAdmin: true } })).status, 403);
     assert.equal((await api(`/api/admin/accounts/${route}`, { method: "POST", token: null, body: {} })).status, 401);
   }
   assert.equal(created.payload.username, "Gabriel");
   assert.equal(created.payload.faction, null);
   assert.equal(created.payload.currency, 500);
+
+  for (const amount of [0, -1, 1.5, "500", null, Number.MAX_SAFE_INTEGER + 1, Number.MAX_SAFE_INTEGER]) {
+    assert.equal((await api("/api/admin/accounts/grant-rating", {
+      method: "POST", body: { username: "Comprador", amount },
+    })).status, 400);
+  }
+  assert.equal((await api("/api/admin/accounts/grant-rating", {
+    method: "POST", body: { username: "inexistente", amount: 500 },
+  })).status, 404);
+  const points = await api("/api/admin/accounts/grant-rating", {
+    method: "POST", body: { username: " comprador ", amount: 500 },
+  });
+  assert.equal(points.status, 200);
+  assert.equal(points.payload.added, 500);
+  assert.equal(points.payload.account.rating, 1500);
+  assert.equal(points.payload.account.currency, 500);
+  assert.equal(points.payload.account.councilMember, false, 'Pontos não dispensam os requisitos de partidas e vitórias.');
+  assert.equal((await api("/api/auth/session", { token: second.token })).payload.rating, 1500);
+  assert.equal(JSON.parse(fs.readFileSync(path.join(dataDir, "accounts.json"))).accounts[second.accountKey].rating, 1500);
+  for (const body of [{}, { username: '' }, { username: 42 }])
+    assert.equal((await api('/api/admin/accounts/unlock-leaderboard', { method: 'POST', body })).status, 400);
+  assert.equal((await api('/api/admin/accounts/unlock-leaderboard', {
+    method: 'POST', body: { username: 'inexistente' },
+  })).status, 404);
+  const unlock = () => api('/api/admin/accounts/unlock-leaderboard', { method: 'POST', body: { username: ' comprador ' } });
+  const unlocked = await unlock();
+  assert.equal(unlocked.status, 200);
+  assert.equal(unlocked.payload.account.humanGames, 5);
+  assert.equal(unlocked.payload.account.humanWins, 3);
+  assert.equal(unlocked.payload.account.gamesPlayed, 5);
+  assert.equal(unlocked.payload.account.rating, 1500);
+  assert.equal(unlocked.payload.account.currency, 500);
+  assert.equal(unlocked.payload.account.councilMember, true);
+  assert.equal((await unlock()).payload.account.humanGames, 5, 'Repetir não acumula partidas.');
+  assert.equal((await api('/api/leaderboard')).payload.entries[0].nickname, 'Comprador');
+  assert.equal(JSON.parse(fs.readFileSync(path.join(dataDir, 'accounts.json'))).accounts[second.accountKey].humanWins, 3);
 
   const faction = await api("/api/account/faction", {
     method: "POST",

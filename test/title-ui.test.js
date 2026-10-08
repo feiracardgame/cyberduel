@@ -28,15 +28,23 @@ const ui = new CyberduelTitleUI({ deckBuilder: builder, callbacks: {} });
 const modes = ui.getMenuSections().partidas.rows;
 assert.equal(modes.some(([name]) => name === 'Sala híbrida'), false);
 assert.equal(modes.some(([name]) => name === 'Entrar por código' || name === 'Espectar sala' || name === 'Criar sala'), false);
-const roomOption = modes.find(([name]) => name === 'Criar ou entrar em sala');
-assert.equal(roomOption[2], 'partida_codigo');
-assert.equal(roomOption[4], 'deck');
+const roomOption = modes.find(([name]) => name === 'Partida privada');
+assert.equal(roomOption[2], 'partida_privada');
+assert.equal(roomOption[4], 'none');
 let roomOpened = false;
-ui.openRoomDialog = () => { roomOpened = true; };
+ui.openCategoryOptions = kind => { assert.equal(kind, 'privadas'); roomOpened = true; };
 roomOption[3]();
 assert.equal(roomOpened, true);
 const playerCard = modes.find(([name]) => name === 'Clube secreto');
-assert.equal(playerCard[2], 'qr_code'); assert.equal(playerCard[4], 'account', 'A carta do Clube continua disponível sem exigir deck ou acesso.');
+assert.equal(playerCard[2], 'clube_secreto'); assert.equal(playerCard[3], null, 'Clube bloqueado sem três vitórias.');
+ui.account = { clubUnlocked: true };
+assert.equal(typeof ui.getMenuSections().partidas.rows.find(([name]) => name === 'Clube secreto')[3], 'function');
+ui.account = null;
+for (const section of Object.values(ui.getMenuSections())) for (const [, , art] of section.rows)
+  assert.ok(fs.existsSync(`assets/menus/${art}.png`), `Imagem ausente: ${art}`);
+assert.equal(ui.getMenuSections().cartas.rows.length, 5);
+assert.equal(ui.getMenuSections().privadas.rows.length, 2);
+assert.equal(ui.getMenuSections().tutorial.rows.length, 2);
 
 const emptySummary = ui.deckSummary();
 assert.equal(emptySummary.deckReady, false);

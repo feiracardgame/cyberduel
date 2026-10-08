@@ -20,6 +20,7 @@ const { OAuth2Client } = require("google-auth-library");
 const QRCode = require("qrcode");
 const { networkInterfaces } = require("node:os");
 const ranking = require("./ranking");
+const council = require("./council");
 const matchmaking = new Map();
 const battleAnnouncements = require("../js/battle-announcements");
 
@@ -377,6 +378,7 @@ function publicAccount(account) {
     humanGames: account.humanGames, humanWins: account.humanWins,
     clubGames: account.clubGames, clubWins: account.clubWins,
     tutorial: account.tutorial, councilReached: Boolean(account.councilReached),
+    councilMember: council.isMember(account, Object.values(accountStore.accounts)),
     clubUnlocked: account.humanWins >= 3,
     collection: account.collection,
     starterCollection: account.starterCollection,
@@ -938,6 +940,39 @@ async function handleApi(request, response, pathname) {
     });
   }
 
+  if (request.method === "POST" && pathname === "/api/admin/accounts/unlock-leaderboard") {
+    const body = await readJson(request);
+    if (typeof body?.username !== "string" || !body.username.trim())
+      return sendJson(response, 400, { ok: false, error: "Informe o username." });
+    const account = accountByUsername(body.username.trim());
+    if (!account) return sendJson(response, 404, { ok: false, error: "Conta não encontrada." });
+    ensureAccountDefaults(account);
+    account.humanGames = Math.max(account.humanGames, 5);
+    account.humanWins = Math.max(account.humanWins, 3);
+    account.gamesPlayed = Math.max(account.gamesPlayed, account.humanGames);
+    account.updatedAt = new Date().toISOString();
+    registerCouncilEntries();
+    saveAccounts();
+    return sendJson(response, 200, { ok: true, account: publicAccount(account) });
+  }
+
+  if (request.method === "POST" && pathname === "/api/admin/accounts/grant-rating") {
+    const body = await readJson(request);
+    if (typeof body?.username !== "string" || !body.username.trim() || !Number.isSafeInteger(body.amount) || body.amount < 1)
+      return sendJson(response, 400, { ok: false, error: "Informe o username e uma quantidade inteira positiva de pontos." });
+    const account = accountByUsername(body.username.trim());
+    if (!account) return sendJson(response, 404, { ok: false, error: "Conta não encontrada." });
+    ensureAccountDefaults(account);
+    if (!Number.isSafeInteger(account.rating + body.amount))
+      return sendJson(response, 400, { ok: false, error: "A pontuação atingiu o limite permitido." });
+    account.rating += body.amount;
+    account.updatedAt = new Date().toISOString();
+    for (const entry of matchmaking.values()) if (entry.username === account.username) entry.rating = account.rating;
+    registerCouncilEntries();
+    saveAccounts();
+    return sendJson(response, 200, { ok: true, added: body.amount, account: publicAccount(account) });
+  }
+
   if (request.method === "POST" && pathname === "/api/admin/accounts/grant-currency") {
     const body = await readJson(request);
     const amount = body.amount;
@@ -1138,8 +1173,8 @@ function serveGame(request, response) {
     return;
   }
 
-  const tableRoute = /^\/apresentacao([1-4])$/.exec(pathname);
-  const tableRedirect = /^\/apresenta(?:ção|cao)([1-4])\/?$/.exec(pathname);
+  const tableRoute = /^\/apresentacao([1-5])$/.exec(pathname);
+  const tableRedirect = /^\/apresenta(?:ção|cao)([1-5])\/?$/.exec(pathname);
   if (!tableRoute && tableRedirect) {
     response.writeHead(302, { location: `/apresentacao${tableRedirect[1]}` });
     response.end();
@@ -1351,9 +1386,24 @@ function clubTables() {
   });
 }
 
-function notifyClubTables() {
-  io.to("club-tables").emit("club-tables", { ok: true, tables: clubTables() });
+function councilTable() {
+  const room = clubTableRoom(5);
+  return { available: !!room?.presentationHost && !room.state, locked: !!room?.state,
+    occupiedSeats: room ? [...room.players.keys()] : [],
+    reservations: room?.reservations ? [...room.reservations].filter(([, r]) => r.expiresAt > Date.now()).map(([seat, r]) => ({ seat, expiresAt: r.expiresAt })) : [],
+    serverNow: Date.now() };
 }
+function notifyClubTables() {
+  io.to("club-tables").emit("club-tables", { ok: true, tables: clubTables(), council: councilTable() });
+}
+const councilClock = setInterval(() => {
+  const room = clubTableRoom(5);
+  if (council.expire(room)) {
+    room.codeRequested = room.reservations.size > 0;
+    notifyPresentation(room);
+  }
+}, 1000);
+councilClock.unref();
 
 function broadcastState(room, extra = {}, except = null) {
   settleMatch(room);
@@ -1607,16 +1657,41 @@ roomCleanup.unref();
 io.on("connection", (socket) => {
   socket.on("watch-club-tables", (payload = {}, ack = () => {}) => {
     socket.join("club-tables");
-    ack({ ok: true, tables: clubTables() });
+    ack({ ok: true, tables: clubTables(), council: councilTable() });
   });
   socket.on("unwatch-club-tables", () => socket.leave("club-tables"));
 
+  socket.on("reserve-council-seat", (payload = {}, ack = () => {}) => {
+    const account = accountFromToken(payload.accountToken);
+    if (!council.isMember(account, Object.values(accountStore.accounts)))
+      return ack({ ok: false, error: "Somente o top 10 atual pode entrar no Conselho." });
+    if (socket.data.room || accountHasMatch(account.username))
+      return ack({ ok: false, error: "Conclua sua partida antes de reservar um lugar." });
+    const room = clubTableRoom(5);
+    if ([...room?.usernames?.values() || []].includes(account.username))
+      return ack({ ok: false, error: "Sua conta já está nesta mesa." });
+    const reservation = council.reserve(room, account.username, Number(payload.seat));
+    if (!reservation) return ack({ ok: false, error: "Este canto está indisponível." });
+    room.codeRequested = true;
+    notifyPresentation(room);
+    ack({ ok: true, expiresAt: reservation.expiresAt, serverNow: Date.now() });
+  });
+  socket.on("release-council-seat", (payload = {}) => {
+    const account = accountFromToken(payload.accountToken), room = clubTableRoom(5);
+    for (const [seat, reservation] of room?.reservations || []) if (reservation.owner === account?.username) room.reservations.delete(seat);
+    if (room) { room.codeRequested = !!room.reservations?.size; notifyPresentation(room); }
+  });
+
   socket.on("request-club-code", (payload = {}, ack = () => {}) => {
-    if (!accountFromToken(payload.accountToken))
+    const account = accountFromToken(payload.accountToken);
+    if (!account)
       return ack({ ok: false, error: "Entre na conta antes de escolher uma mesa." });
     const room = clubTableRoom(Number(payload.table));
     if (!room?.presentationHost || room.state)
       return ack({ ok: false, error: "Esta mesa está indisponível." });
+    if (room.table === 5) return ack({ ok: false, error: "Reserve um canto na Partida do Conselho." });
+    if (!(account.humanWins >= 3))
+      return ack({ ok: false, error: "Conquiste 3 vitórias contra jogadores para entrar no Clube secreto." });
     room.codeRequested = true;
     notifyPresentation(room);
     ack({ ok: true });
@@ -1624,7 +1699,7 @@ io.on("connection", (socket) => {
 
   socket.on("create-presentation", async (payload = {}, ack = () => {}) => {
     const table = payload.table == null ? null : Number(payload.table);
-    if (table !== null && ![1, 2, 3, 4].includes(table))
+    if (table !== null && ![1, 2, 3, 4, 5].includes(table))
       return ack({ ok: false, error: "Mesa inválida." });
     const previous = rooms.get(payload.code) || (table && clubTableRoom(table));
     if (previous?.presentation) {
@@ -1760,9 +1835,19 @@ io.on("connection", (socket) => {
         return ack({ ok: false, error: "Conclua sua partida atual antes de entrar em outra mesa." });
       if ([...room.usernames.values()].includes(account.username))
         return ack({ ok: false, error: "Cada jogador precisa usar sua própria conta." });
+      if ([1, 2, 3, 4].includes(room.table) && !(account.humanWins >= 3))
+        return ack({ ok: false, error: "Conquiste 3 vitórias contra jogadores para entrar no Clube secreto." });
+      if (room.table === 5) {
+        council.expire(room);
+        if (!council.isMember(account, Object.values(accountStore.accounts)))
+          return ack({ ok: false, error: "Somente o top 10 atual pode entrar no Conselho." });
+        if (room.reservations?.get(player)?.owner !== account.username)
+          return ack({ ok: false, error: "Reserve este canto antes de inserir o código. A reserva dura 1 minuto." });
+      }
       const deck = sanitizeDeck(account.deck);
       if (!require("./duel-runtime").validDeck(deck))
         return ack({ ok: false, error: "Sele um deck válido antes de entrar." });
+      room.reservations?.delete(player);
       matchmaking.delete(socket.id);
       room.players.set(player, socket.id); room.decks.set(player, deck);
       room.usernames.set(player, account.username); room.nicknames.set(player, account.nickname || account.username);
@@ -1770,7 +1855,7 @@ io.on("connection", (socket) => {
       room.accounts.set(player, account);
       room.resumeTokens.set(player, randomBytes(32).toString("hex"));
       socket.join(code); socket.data.room = code; socket.data.player = player;
-      if (fromTable) room.codeRequested = false;
+      if (fromTable) room.codeRequested = room.table === 5 && !!room.reservations?.size;
       ack({ ok: true, waiting: room.players.size < 2, room: publicRoom(room), player, resumeToken: room.resumeTokens.get(player) });
       if (room.players.size === 2) {
         room.starter = room.turn = randomInt(1, 3);

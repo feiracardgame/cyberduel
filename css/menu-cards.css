@@ -487,3 +487,36 @@
 @media (prefers-reduced-motion: reduce) {
   .title-matrix { display: none; }
 }
+
+/* Mesa exclusiva do Conselho: dois cantos para os duelistas. */
+.title-rules-dialog { width: min(720px, 94vw); max-height: 88vh; display: flex; flex-direction: column; gap: 16px; }
+.title-rules-content { overflow-y: auto; min-height: 0; text-align: left; padding-right: 12px; }
+.title-rules-content h3 { color: #74f8cb; margin: 20px 0 8px; }
+.title-rules-content p { line-height: 1.6; }
+.council-table {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 220px;
+  margin: 20px 0;
+  padding: 24px;
+  border: 2px solid #e8c66b;
+  border-radius: 36px;
+  background: radial-gradient(ellipse, #3d304e, #121420);
+  box-shadow: inset 0 0 32px #e8c66b20, 0 0 24px #e8c66b20;
+}
+.council-table__name { position: absolute; inset: 18px 0 auto; text-align: center; color: #e8c66b; letter-spacing: .2em; }
+.council-table__seat { flex: 1; max-width: 180px; margin-top: 24px; }
+.player-id--council {
+  border-color: #f2d67e;
+  box-shadow: 0 0 24px #e8c66b66, inset 0 0 28px #e8c66b15;
+  animation: council-glow 3s ease-in-out infinite alternate;
+}
+.player-id--council .profile-avatar { border: 2px solid #f2d67e; box-shadow: 0 0 18px #e8c66b88; }
+.player-id__council { text-align: center; font-weight: 700; letter-spacing: .08em; }
+.player-id--council .player-id__council { color: #f2d67e; text-shadow: 0 0 12px #e8c66b88; }
+@keyframes council-glow { to { box-shadow: 0 0 42px #e8c66b99, inset 0 0 32px #e8c66b30; } }
+@media (prefers-reduced-motion: reduce) { .player-id--council { animation: none; } }
+@media (max-width: 480px) { .council-table { padding: 12px; gap: 8px; } .council-table__seat { font-size: 12px; } }

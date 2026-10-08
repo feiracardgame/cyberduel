@@ -22,6 +22,7 @@ class CyberduelAccount {
     this.clubGames = this.clubWins = 0;
     this.clubUnlocked = false;
     this.councilReached = false;
+    this.councilMember = false;
     this.boosterPrice = 100;
     this.boosters = [];
     this.pendingBoosterPurchase = null;
@@ -58,7 +59,7 @@ class CyberduelAccount {
       gamesPlayed: this.gamesPlayed,
       tutorial: this.tutorial, humanGames: this.humanGames, humanWins: this.humanWins,
       clubGames: this.clubGames, clubWins: this.clubWins,
-      clubUnlocked: this.clubUnlocked, councilReached: this.councilReached,
+      clubUnlocked: this.clubUnlocked, councilReached: this.councilReached, councilMember: this.councilMember,
       boosterPrice: this.boosterPrice,
       boosters: this.boosters,
       authenticated: !!this.user,
@@ -114,6 +115,7 @@ class CyberduelAccount {
     this.clubWins = Math.max(0, Number(payload.clubWins) || 0);
     this.clubUnlocked = payload.clubUnlocked === true;
     this.councilReached = payload.councilReached === true;
+    this.councilMember = payload.councilMember === true;
     this.boosterPrice = Math.max(1, Number(payload.boosterPrice) || 100);
     if (shouldNotify) this.notify();
     return this.snapshot();
@@ -274,6 +276,24 @@ class CyberduelAccount {
     return payload.cards || [];
   }
 
+  async unlockLeaderboard(username) {
+    const payload = await this.request("/api/admin/accounts/unlock-leaderboard", {
+      method: "POST", body: { username },
+    });
+    if (payload.account?.username?.toLocaleLowerCase("pt-BR") === this.user?.toLocaleLowerCase("pt-BR"))
+      this.applyAuth(payload.account);
+    return payload;
+  }
+
+  async grantRating(username, amount) {
+    const payload = await this.request("/api/admin/accounts/grant-rating", {
+      method: "POST", body: { username, amount },
+    });
+    if (payload.account?.username?.toLocaleLowerCase("pt-BR") === this.user?.toLocaleLowerCase("pt-BR"))
+      this.applyAuth(payload.account);
+    return payload;
+  }
+
   async grantCurrency(username, amount) {
     const payload = await this.request("/api/admin/accounts/grant-currency", {
       method: "POST", body: { username, amount },
@@ -359,7 +379,7 @@ class CyberduelAccount {
     this.tutorial = null;
     this.humanGames = this.humanWins = 0;
     this.clubGames = this.clubWins = 0;
-    this.clubUnlocked = this.councilReached = false;
+    this.clubUnlocked = this.councilReached = this.councilMember = false;
     this.token = null;
     this.user = null;
     this.nickname = "";

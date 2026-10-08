@@ -137,28 +137,12 @@ class CyberduelTitleUI {
         action: "ESCOLHER PARTIDA",
       },
       {
-        id: "tutorial",
-        title: "TUTORIAL",
-        art: "repetir_tutorial",
-        kicker: "TREINO COM ELENAI",
-        description: "Aprenda a invocar cartas e usar habilidades.",
-        action: "INICIAR TUTORIAL",
-      },
-      {
         id: "cartas",
         title: "CARTAS",
-        art: "montar_deck",
+        art: "menu_cartas",
         kicker: "SUA PRÓXIMA JOGADA",
         description: "Monte seu deck. Descubra novas possibilidades.",
         action: "EXPLORAR COLEÇÃO",
-      },
-      {
-        id: "mercado",
-        title: "MERCADO",
-        art: "menu_de_compras",
-        kicker: "O PREÇO DO PODER",
-        description: "Abra pacotes e amplie sua coleção.",
-        action: "VISITAR MERCADO",
       },
       {
         id: "ranking",
@@ -167,6 +151,14 @@ class CyberduelTitleUI {
         kicker: "OS NOMES DE NEOFLORIPA",
         description: "Veja quem domina a arena.",
         action: "VER RANKING",
+      },
+      {
+        id: "tutorial",
+        title: "TUTORIAL E REGRAS",
+        art: "tutoriais_regras",
+        kicker: "APRENDA A DUELAR",
+        description: "Consulte as regras ou treine com a ElenAI.",
+        action: "EXPLORAR TUTORIAL E REGRAS",
       },
     ];
     this.menuCategories = categories;
@@ -324,22 +316,29 @@ class CyberduelTitleUI {
           [
             "Partida aleatória",
             "Ranqueada · adversário por pontuação",
-            "partida_aleatória",
+            "partida_aleatoria",
             () => this.callbacks.onMatchmaking(),
             "deck",
           ],
           [
-            "Criar ou entrar em sala",
-            "Crie um convite ou use o código de um amigo (Não rendem tijolinhos).",
-            "partida_codigo",
-            () => this.openRoomDialog(),
-            "deck",
+            "Partida privada",
+            "Crie uma sala ou entre pelo código de um amigo. Não rende tijolinhos.",
+            "partida_privada",
+            () => this.openCategoryOptions("privadas"),
+            "none",
           ],
           [
             "Clube secreto",
-            "Escolha uma das quatro mesas e entre pelo código da apresentação",
-            "qr_code",
-            () => this.openSecretClub(),
+            this.account?.clubUnlocked ? "Escolha uma das quatro mesas e insira o código da apresentação" : "BLOQUEADO · Conquiste 3 vitórias contra jogadores",
+            "clube_secreto",
+            this.account?.clubUnlocked ? () => this.openSecretClub() : null,
+            "account",
+          ],
+          [
+            "Partida do Conselho",
+            this.account?.councilMember ? "Reserve um canto da mesa por 1 minuto e insira o código" : "BLOQUEADO · Entre no top 10 do ranking para fazer parte do Conselho",
+            "conselho",
+            this.account?.councilMember ? () => this.openCouncil() : null,
             "account",
           ],
         ],
@@ -348,7 +347,7 @@ class CyberduelTitleUI {
         title: "Suas cartas",
         rows: [
           [
-            "Montar meu deck",
+            "Deck Builder",
             "Sua coleção, sua estratégia",
             "montar_deck",
             () => this.callbacks.onDeck(),
@@ -359,15 +358,10 @@ class CyberduelTitleUI {
             "abrir_boosters",
             () => this.openBoosterInventory(),
           ],
-        ],
-      },
-      mercado: {
-        title: "Mercado de cartas",
-        rows: [
           [
             "Comprar boosters",
             "Pacotes para sua coleção",
-            "abrir_boosters",
+            "comprar_booster",
             () => this.openBoosterShop(),
           ],
           [
@@ -377,11 +371,25 @@ class CyberduelTitleUI {
             () => this.openPlayerMarket("sell"),
           ],
           [
-            "Visualizar anúncios",
+            "Visualizar anúncios de cartas",
             "Encontre sua próxima carta",
             "visualizar_anuncios",
             () => this.openPlayerMarket(),
           ],
+        ],
+      },
+      privadas: {
+        title: "Partida privada",
+        rows: [
+          ["Criar sala", "Gere um convite por código ou QR", "partida_privada", () => this.callbacks.onCreateRoom(), "deck"],
+          ["Entrar por código", "Use o código de seis números de uma sala", "entrar_codigo", () => this.openRoomDialog("join"), "deck"],
+        ],
+      },
+      tutorial: {
+        title: "Tutorial e regras",
+        rows: [
+          ["Visualizar Regras", "Entenda o deck, as rodadas e os modos de jogo", "visualizar_regras", () => this.openRules(), "none"],
+          ["Repetir tutorial", "Treine com a ElenAI", "repetir_tutorial", () => this.callbacks.onTutorial?.(), "none"],
         ],
       },
       ranking: {
@@ -507,7 +515,7 @@ class CyberduelTitleUI {
       title.textContent = item.title;
       kicker.textContent = "";
       description.textContent = item.description;
-      action.textContent = item.handler ? "ABRIR  ›" : "EM BREVE";
+      action.textContent = item.handler ? "ABRIR  ›" : ["conselho", "clube_secreto"].includes(item.art) ? "BLOQUEADO" : "EM BREVE";
       action.disabled = !item.handler;
     }
     this.fitMenuTitle(title);
@@ -603,10 +611,8 @@ class CyberduelTitleUI {
   }
 
   openCategoryOptions(kind) {
-    if (this.cardMenuState.mode === "options" || this.cardMenuTransitioning)
-      return;
-    if (kind === "tutorial")
-      return this.runMenuAction(() => this.callbacks.onTutorial?.(), "none");
+    if (this.cardMenuTransitioning) return;
+    if (kind === "ranking") return this.runMenuAction(() => this.openLeaderboard(), "none");
     const sectionData = this.getMenuSections()[kind];
     if (!sectionData) return;
     const items = sectionData.rows.map(
@@ -618,9 +624,11 @@ class CyberduelTitleUI {
         requirement,
       }),
     );
+    const parentState = this.cardMenuState.mode === "options" ? this.cardMenuState : null;
     this.transitionCardMenu(() => {
       this.cardMenuState = {
         mode: "options",
+        parentState,
         optionIndex: 0,
         currentKind: kind,
         sectionTitle: sectionData.title,
@@ -632,6 +640,11 @@ class CyberduelTitleUI {
   closeCategoryOptions() {
     if (this.cardMenuState.mode !== "options" || this.cardMenuTransitioning)
       return;
+    if (this.cardMenuState.parentState) {
+      const parentState = this.cardMenuState.parentState;
+      this.transitionCardMenu(() => { this.cardMenuState = parentState; });
+      return;
+    }
     const categoryIndex = Math.max(
       0,
       this.menuCategories.findIndex(
@@ -878,9 +891,133 @@ class CyberduelTitleUI {
     handler();
   }
 
+  openCouncil() {
+    if (this.modal) return;
+    if (!this.account?.councilMember) {
+      this.setStatus("Entre no top 10 do ranking para fazer parte do Conselho.", "warning");
+      return;
+    }
+    const overlay = this.createModal("council");
+    const dialog = this.element("section", "title-dialog title-club-dialog council-dialog");
+    dialog.setAttribute("role", "dialog");
+    dialog.setAttribute("aria-modal", "true");
+    dialog.setAttribute("aria-label", "Mesa do Conselho");
+    const status = this.element("p", "club-tables-status", "Carregando mesa…");
+    status.setAttribute("role", "status");
+    const error = this.element("p", "title-dialog__error");
+    error.setAttribute("role", "alert");
+    const table = this.element("div", "council-table");
+    table.append(this.element("strong", "council-table__name", "CONSELHO"));
+    const form = this.element("form", "club-table-entry");
+    form.hidden = true;
+    const label = this.element("label", "title-room-label", "Código exibido na apresentação do Conselho");
+    label.htmlFor = "council-code";
+    const input = this.element("input", "title-room-input");
+    input.id = "council-code";
+    input.inputMode = "numeric";
+    input.maxLength = 6;
+    input.autocomplete = "one-time-code";
+    input.placeholder = "000000";
+    input.required = true;
+    const submit = this.element("button", "title-dialog__confirm", "ENTRAR NA MESA");
+    submit.type = "submit";
+    form.append(label, input, submit);
+    const close = this.button("title-dialog__cancel", "VOLTAR", () => this.closeModal());
+    let current = null, selected = null, expiresAt = 0, offset = 0, busy = false;
+    const render = () => {
+      const remaining = Math.max(0, Math.ceil((expiresAt - Date.now() - offset) / 1000));
+      if (selected && (!remaining || current?.locked || current?.occupiedSeats.includes(selected))) {
+        selected = null;
+        form.hidden = true;
+        input.value = "";
+      }
+      buttons.forEach((button, index) => {
+        const seat = index + 1;
+        const occupied = current?.occupiedSeats.includes(seat);
+        const reserved = current?.reservations.some(r => r.seat === seat && r.expiresAt > Date.now() + offset);
+        button.disabled = busy || !current?.available || occupied || reserved;
+        button.textContent = `CANTO ${seat} · ${occupied ? "OCUPADO" : selected === seat ? "SEU LUGAR RESERVADO" : reserved ? "RESERVADO" : "RESERVAR"}`;
+      });
+      submit.disabled = busy || !selected || !current?.available;
+      input.disabled = busy;
+      if (selected) status.textContent = `Seu canto está reservado por ${remaining}s. Insira o código da apresentação.`;
+      else status.textContent = current?.locked ? "Já existe uma partida acontecendo na mesa do Conselho." : current?.available ? "Escolha um canto. Você terá 1 minuto para inserir o código." : "A apresentação do Conselho está offline.";
+    };
+    const buttons = [1, 2].map(seat => {
+      const button = this.button("club-table council-table__seat", `CANTO ${seat}`, () => {
+        if (busy) return;
+        busy = true;
+        error.textContent = "";
+        render();
+        this.callbacks.onReserveCouncilSeat(seat, response => {
+          if (this.modal !== overlay) {
+            if (response.ok) this.callbacks.onReleaseCouncilSeat();
+            return;
+          }
+          busy = false;
+          if (response.ok) {
+            selected = seat;
+            expiresAt = response.expiresAt;
+            offset = response.serverNow - Date.now();
+            form.hidden = false;
+            input.value = "";
+            input.focus();
+          } else error.textContent = response.error;
+          render();
+        });
+      }, `Reservar canto ${seat}`);
+      table.append(button);
+      return button;
+    });
+    input.addEventListener("input", () => { input.value = this.sanitizeRoomCode(input.value); });
+    form.addEventListener("submit", event => {
+      event.preventDefault();
+      render();
+      if (submit.disabled) return;
+      const code = this.sanitizeRoomCode(input.value);
+      if (code.length !== 6) { error.textContent = "O código precisa ter 6 números."; return; }
+      busy = true;
+      error.textContent = "";
+      render();
+      this.modalRequired = true;
+      this.callbacks.onJoinClubTable(5, code, selected, response => {
+        this.modalRequired = false;
+        if (this.modal !== overlay) return;
+        busy = false;
+        if (response.ok) return this.closeModal(true);
+        error.textContent = response.error;
+        render();
+      });
+    });
+    dialog.append(this.element("h2", "", "Partida do Conselho"), table, form, error, status, close);
+    overlay.append(dialog);
+    const unwatch = this.callbacks.onWatchClubTables(response => {
+      if (this.modal !== overlay) return;
+      if (!response.ok) { error.textContent = response.error; return; }
+      current = response.council;
+      if (current) offset = current.serverNow - Date.now();
+      render();
+    });
+    const timer = setInterval(render, 250);
+    this.councilCleanup = () => {
+      clearInterval(timer);
+      unwatch?.();
+      this.callbacks.onReleaseCouncilSeat();
+      this.councilCleanup = null;
+    };
+    this.modalAfterClose = this.councilCleanup;
+    render();
+    this.settings?.applyDomTextScale(overlay);
+    requestAnimationFrame(() => { overlay.classList.add("is-visible"); close.focus(); });
+  }
+
   openSecretClub() {
     if (this.modal) return;
     if (!this.account?.user) return this.openAuthDialog();
+    if (!this.account.clubUnlocked) {
+      this.setStatus("Conquiste 3 vitórias contra jogadores para entrar no Clube secreto.", "warning");
+      return;
+    }
     const overlay = this.createModal("secret-club");
     const dialog = this.element("section", "title-dialog title-club-dialog");
     dialog.setAttribute("role", "dialog");
@@ -1070,7 +1207,7 @@ class CyberduelTitleUI {
         this.element(
           "span",
           "card-menu-option__state",
-          handler ? "›" : "EM BREVE",
+          handler ? "›" : ["conselho", "clube_secreto"].includes(art) ? "BLOQUEADO" : "EM BREVE",
         ),
       );
       row.disabled = !handler;
@@ -1089,7 +1226,7 @@ class CyberduelTitleUI {
     overlay.classList.add("profile-screen");
     document.body.append(overlay);
     this.modalAfterClose = () => this.account.notify();
-    const dialog = this.element("section", "profile-panel player-id");
+    const dialog = this.element("section", "profile-panel player-id" + (this.account.councilMember ? " player-id--council" : ""));
     dialog.setAttribute("role", "dialog");
     dialog.setAttribute("aria-modal", "true");
     dialog.setAttribute("aria-label", "Carteirinha do clube");
@@ -1271,6 +1408,7 @@ class CyberduelTitleUI {
       userHint,
       this.element("p", "profile-note", `${this.account.gamesPlayed || 0} partidas no total`),
       stats,
+      ...(this.account.councilMember ? [this.element("p", "player-id__council", "✦ MEMBRO DO CONSELHO · TOP 10 ✦")] : []),
       access,
       this.element(
         "p",
@@ -2283,7 +2421,31 @@ class CyberduelTitleUI {
     });
   }
 
-  openRoomDialog() {
+  openRules() {
+    if (this.modal) return;
+    const overlay = this.createModal("rules");
+    const dialog = this.element("section", "title-dialog title-rules-dialog");
+    dialog.setAttribute("role", "dialog");
+    dialog.setAttribute("aria-modal", "true");
+    dialog.setAttribute("aria-label", "Regras do Cyberduel");
+    const content = this.element("div", "title-rules-content");
+    for (const [title, text] of [
+      ["Monte seu deck", "Salve um deck de 20 cartas da sua coleção: pelo menos 6 monstros de nível baixo, 4 de nível médio e 2 de nível alto. Cada carta permite até 3 cópias; lendárias permitem 1."],
+      ["Jogue suas cartas", "Use as fases de colocação para montar seu campo e as fases de habilidades para ativar os efeitos das cartas. Confira a descrição de cada carta para conhecer seus alvos e condições."],
+      ["Vença as rodadas", "O poder total de cada campo define o vencedor da rodada. Empates não pontuam. A partida termina com 4 rodadas vencidas ou após 7 rodadas; vence quem tiver mais rodadas ganhas. Resultados iguais terminam em empate."],
+      ["Escolha sua partida", "Jogue solo contra o bot, procure um adversário em Partida aleatória ou convide amigos em Partida privada. Partidas privadas não rendem tijolinhos."],
+      ["Entre no Clube secreto", "Conquiste 3 vitórias contra jogadores para liberar as quatro mesas. Escolha uma mesa e insira o código exibido na apresentação correspondente."],
+      ["Leaderboard e Conselho", "São necessárias 5 partidas e 3 vitórias contra jogadores para entrar na leaderboard. O top 10 atual forma o Conselho. Na mesa do Conselho, cada canto pode ser reservado por 1 minuto para inserir o código. Partidas contra o bot não contam para esses requisitos."],
+      ["Pratique com a ElenAI", "Use Repetir tutorial para aprender os controles e jogar um treino guiado."],
+    ]) content.append(this.element("h3", "", title), this.element("p", "", text));
+    const close = this.button("title-dialog__cancel", "VOLTAR", () => this.closeModal());
+    dialog.append(this.element("h2", "", "Regras do Cyberduel"), content, close);
+    overlay.append(dialog);
+    this.settings?.applyDomTextScale(overlay);
+    requestAnimationFrame(() => { overlay.classList.add("is-visible"); close.focus(); });
+  }
+
+  openRoomDialog(mode = "both") {
     if (this.modal) return;
     const overlay = this.createModal("room-options");
     const dialog = this.element("section", "title-dialog title-join-dialog");
@@ -2294,12 +2456,12 @@ class CyberduelTitleUI {
     label.htmlFor = "title-room-code";
     dialog.append(
       this.element("span", "title-kicker", "DUELO COM AMIGOS"),
-      this.element("h2", "", "Criar ou entrar em sala"),
+      this.element("h2", "", mode === "join" ? "Entrar por código" : "Criar ou entrar em sala"),
       this.element("p", "", "Convide um amigo por código ou QR, ou entre na sala dele. Estas partidas não rendem tijolinhos."),
-      this.button("title-dialog__confirm title-room-create", "CRIAR SALA", () => {
+      ...(mode === "join" ? [] : [this.button("title-dialog__confirm title-room-create", "CRIAR SALA", () => {
         this.closeModal(true);
         this.callbacks.onCreateRoom();
-      }),
+      })]),
       label,
     );
     const input = this.element("input", "title-room-input");
@@ -3542,6 +3704,7 @@ class CyberduelTitleUI {
   }
 
   destroy() {
+    this.councilCleanup?.();
     this.clubTablesCleanup?.();
     this.clubTablesCleanup = null;
     this.menuClickAudio?.pause();

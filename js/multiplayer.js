@@ -200,6 +200,16 @@ class CyberduelMultiplayer {
     this.socket?.emit("unwatch-club-tables");
   }
 
+  reserveCouncilSeat(seat, callback) {
+    this.connect().timeout(5000).emit("reserve-council-seat", { seat, accountToken: window.cyberduelAccount?.token }, (error, response) => {
+      callback(error ? { ok: false, error: "Não foi possível reservar o canto." } : response);
+    });
+  }
+
+  releaseCouncilSeat() {
+    this.socket?.emit("release-council-seat", { accountToken: window.cyberduelAccount?.token });
+  }
+
   requestClubCode(table, callback) {
     this.connect().timeout(5000).emit("request-club-code", { table, accountToken: window.cyberduelAccount?.token }, (error, response) => {
       callback(error ? { ok: false, error: "Não foi possível exibir o código. Tente novamente." } : response);

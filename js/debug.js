@@ -3,7 +3,23 @@ function requireAdminAccount() {
   if (!window.cyberduelAccount.isAdmin) throw new Error("Esta conta não é administradora.");
 }
 
+// Console: adicionarPontos("username", quantidade) credita pontos do ranking.
+window.adicionarPontos = async (username, amount) => {
+  requireAdminAccount();
+  if (typeof username !== "string" || !username.trim() || !Number.isSafeInteger(amount) || amount < 1)
+    throw new Error('Use adicionarPontos("username", quantidadeInteiraPositiva).');
+  const payload = await window.cyberduelAccount.grantRating(username.trim(), amount);
+  return `+${payload.added} pontos para ${payload.account.username}. Total: ${payload.account.rating}.`;
+};
+
 // Atalhos do console, disponíveis desde o menu e resolvidos na cena atual.
+window.liberarLeaderboard = async (username = window.cyberduelAccount?.user) => {
+  requireAdminAccount();
+  if (typeof username !== "string" || !username.trim()) throw new Error('Use liberarLeaderboard("username").');
+  const payload = await window.cyberduelAccount.unlockLeaderboard(username.trim());
+  return `${payload.account.username} elegível na leaderboard: ${payload.account.humanGames} partidas e ${payload.account.humanWins} vitórias contra jogadores.`;
+};
+
 window.irParaX1 = () => {
   requireAdminAccount();
   if (!game.scene.isActive("CenaTitulo") && !game.scene.isActive("CenaJogo") &&

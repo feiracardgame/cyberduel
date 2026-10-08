@@ -44,7 +44,7 @@ assert.equal(started, 0); timer(); assert.equal(started, 1); assert.equal(ui.mod
 (async () => {
   ui.account = { request: async () => ({ entries: [] }) };
   await ui.openLeaderboard();
-  assert.match(ui.modal.children[0].children[1].textContent, /Nenhuma partida/);
+  assert.match(ui.modal.children[0].children.find(child => child.attributes.role === 'status').textContent, /Nenhum cyberduelista/);
   ui.closeModal(true);
   ui.account.request = async () => ({ entries: [{ position: 1, nickname: 'Beto', rank: 'Bronze', rating: 1100, wins: 2, losses: 1 }, { position: 2, ...profiles[1], avatar: 'assets/fotosdeperfil/juggernaut_icon.png', wins: 1, losses: 2 }] });
   await ui.openLeaderboard();
@@ -62,7 +62,7 @@ assert.equal(started, 0); timer(); assert.equal(started, 1); assert.equal(ui.mod
   assert.equal(rows[1].children.length, 5);
   ui.closeModal(true);
   ui.account.request = async () => { throw Error('Sem conexão'); };
-  await ui.openLeaderboard(); assert.equal(ui.modal.children[0].children[1].textContent, 'Sem conexão');
+  await ui.openLeaderboard(); assert.equal(ui.modal.children[0].children.find(child => child.attributes.role === 'status').textContent, 'Sem conexão');
   console.log('Interface: fila, cancelamento, falhas, VS, foto, apelido, rank e leaderboard validados.');
 })().catch(error => { console.error(error); process.exitCode = 1; });
 
