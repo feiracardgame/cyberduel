@@ -5,11 +5,11 @@
 Mostra tipo uma carteirinha, que traz info de vitórias, partidas, partidas dentro do Clube Secreto, Vitórias dentro do Clube Secreto, username, nome de display, foto de perfil (pode ser trocada por aqui) e traz uma informação se tem ou não acesso ao Clube Secreto
 
 ## Menu de partida - menu_de_partida.png
-- ### Jogar solo (contra o bot) -> fazer
+- ### Jogar solo (contra o bot) -> jogar_contra_bot.png
 - ### Partida aleatória - partida_aleatoria.png
 - ### Partida privada - partida_privada.png
 
--> Criar sala -> fazer
+-> Criar sala -> criar_sala.png
 
 
 -> entrar por código - entrar_codigo.png
