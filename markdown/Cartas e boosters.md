@@ -694,9 +694,9 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
  #### Assets
 
- Som: 
+ Som: -> quando foram invocados, toca o "som_areia.mp3".
 
- Efeito visual:
+
 
 
 
@@ -714,11 +714,11 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 
 
 
- #### Assets
+ #### Assets -> quando ativa a habilidade
 
- Som: 
+ Som: som_ferreira.mp3
 
- Efeito visual:
+ Efeito visual: ferreira.gif aparece em cima da carta que foi buffada
 
 
 
@@ -732,11 +732,9 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 
 <img alt="image" src="assets/cartas/o_feio.png" />
 
- #### Assets
+ #### Assets -> quando ativa a habilidade dele
 
- Som: 
-
- Efeito visual:
+ Som: Quando ativar a habilidade dele, todos ganham os pontos e toca "som_feio.mp3"
 
 
 
@@ -755,11 +753,11 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 
 
 
- #### Assets
+ #### Assets -> quando ativa a habilidade dele
 
- Som: 
+ Som: som_mau.mp3
 
- Efeito visual:
+ Efeito visual: aparece em cima da carta selecionada como alvo "efeito_mau.png"
 
 
 ### 1x carta alta 2 -> O Bom
@@ -814,11 +812,13 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 <img alt="image" src="assets/cartas/vento_dos_ermos.png" />
 
 
- #### Assets
+ #### Assets -> quando invoca
 
- Som: 
+ Som: -> som_ermos
 
- Efeito visual:
+ efeito visual: aparece na tela igual às outras cartas de efeito
+
+
 
 
 ### 1x carta de efeito 2 -> Reciclagem
@@ -838,7 +838,7 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 
  Som: 
 
- Efeito visual:
+ Efeito visual: aparece na tela igual às outras cartas de efeito
 
 
 #### 1x carta de  terreno 1 -> Saloon
