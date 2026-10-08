@@ -773,11 +773,17 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 
 <img alt="image" src="assets/cartas/o_bom.png" />
 
- #### Assets
+ #### Assets -> quando ativar a habilidade dele
 
  Som: 
 
+ -> exatamente quando aperta pra ativar a habilidade dele, vai tocar "som_bom1.mp3"
+
+ Dai quando confirmar os alvos e aplicar o dano, vai tocar "som_bom2.mp3"
+
  Efeito visual:
+
+ Da mesma forma de seleção do Diego, vai ser com o pássaro "efeito_bom.png" que aparece em cima das cartas conforme você seleciona elas para dar o dano. Depois, quando confirmar, aparece para o restante dos jogadores o ícone em cima de cada carta e depois some quando aplica o dano
 
 
 
