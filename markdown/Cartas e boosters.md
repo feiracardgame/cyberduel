@@ -834,9 +834,9 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 
 <img alt="image" src="assets/cartas/reciclagem.png" />
 
- #### Assets
+ #### Assets -> quando invoca
 
- Som: 
+ Som: som_reciclagem.mp3
 
  Efeito visual: aparece na tela igual às outras cartas de efeito
 
@@ -853,11 +853,10 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 
 
 
- #### Assets
+ #### Assets -> quando invoca
 
- Som: 
+ Som: som-saloon.mp3
 
- Efeito visual:
 
 
 
@@ -873,11 +872,10 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 
 <img alt="image" src="assets/cartas/terras_desertas.png" />
 
- #### Assets
+ #### Assets -> quando invoca
 
- Som: 
+ Som: som_desertas
 
- Efeito visual:
 
 
 
