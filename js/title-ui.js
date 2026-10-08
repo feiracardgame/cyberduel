@@ -309,7 +309,7 @@ class CyberduelTitleUI {
           [
             "Jogar solo",
             "Contra o bot",
-            "menu_de_partida",
+            "jogar_contra_bot",
             () => this.callbacks.onSolo(),
             "deck",
           ],
@@ -381,7 +381,7 @@ class CyberduelTitleUI {
       privadas: {
         title: "Partida privada",
         rows: [
-          ["Criar sala", "Gere um convite por código ou QR", "partida_privada", () => this.callbacks.onCreateRoom(), "deck"],
+          ["Criar sala", "Gere um convite por código ou QR", "criar_sala", () => this.callbacks.onCreateRoom(), "deck"],
           ["Entrar por código", "Use o código de seis números de uma sala", "entrar_codigo", () => this.openRoomDialog("join"), "deck"],
         ],
       },
@@ -2432,6 +2432,8 @@ class CyberduelTitleUI {
     for (const [title, text] of [
       ["Monte seu deck", "Salve um deck de 20 cartas da sua coleção: pelo menos 6 monstros de nível baixo, 4 de nível médio e 2 de nível alto. Cada carta permite até 3 cópias; lendárias permitem 1."],
       ["Jogue suas cartas", "Use as fases de colocação para montar seu campo e as fases de habilidades para ativar os efeitos das cartas. Confira a descrição de cada carta para conhecer seus alvos e condições."],
+      ["Cartas de efeito e de terreno", "Cartas de efeito têm ação instantânea: resolvem seu efeito ao serem usadas e depois saem do campo. Cartas de terreno mantêm um efeito duradouro enquanto estiverem em campo; ao serem removidas, esse efeito termina. Confira a descrição de cada carta para conhecer suas condições."],
+      ["Tempo de cada turno", "Cada turno tem um tempo máximo de 40 segundos para realizar suas ações. O cronômetro fica pausado durante as animações dos efeitos e volta a contar quando elas terminam."],
       ["Vença as rodadas", "O poder total de cada campo define o vencedor da rodada. Empates não pontuam. A partida termina com 4 rodadas vencidas ou após 7 rodadas; vence quem tiver mais rodadas ganhas. Resultados iguais terminam em empate."],
       ["Escolha sua partida", "Jogue solo contra o bot, procure um adversário em Partida aleatória ou convide amigos em Partida privada. Partidas privadas não rendem tijolinhos."],
       ["Entre no Clube secreto", "Conquiste 3 vitórias contra jogadores para liberar as quatro mesas. Escolha uma mesa e insira o código exibido na apresentação correspondente."],
