@@ -3648,6 +3648,8 @@ class CenaJogo extends Phaser.Scene {
     botao.on("pointerout", () => this.tweens.add({ targets: botao, scale: 1, duration: 100 }));
     botao.on("pointerdown", () => botao.setScale(0.98));
     botao.on("pointerup", () => {
+      if ((carta.habilidadeAprendidaDe || carta.nome) === "O Bom" && this.cache?.audio.exists("somBom1"))
+        this.sound.play("somBom1", { volume: window.cyberduelSettings?.effects(0.3) ?? 0.3 });
       this.fecharDetalheCarta();
       this.time.delayedCall(180, () => this.iniciarAtivacaoHabilidade(carta));
     });
@@ -4708,6 +4710,8 @@ class CenaJogo extends Phaser.Scene {
 
   // Cada toque aloca dano; permite confirmar antes de gastar toda a reserva.
   iniciarDistribuicaoDeDano(carta, alvos) {
+    const ehBom = (carta.habilidadeAprendidaDe || carta.nome) === "O Bom";
+    const chaveMarcador = ehBom ? "efeitoBom" : "efeitoDiego";
     const total = carta.efeito.total || 6;
     const totalDistribuivel = Math.min(
       total,
@@ -4802,20 +4806,24 @@ class CenaJogo extends Phaser.Scene {
         distribuicao.push(indice);
         contagens.set(indice, (contagens.get(indice) || 0) + 1);
         const ponto = contagens.get(indice) - 1;
-        const tamanho = Math.min(46, L.slotW / 4);
-        const x = xPos + ((ponto % 3) - 1) * (tamanho + 4);
-        const y = yPos - tamanho / 2 + Math.floor(ponto / 3) * (tamanho + 4);
-        const caveira = this.textures.exists("efeitoDiego")
-          ? this.add.image(x, y, "efeitoDiego").setDisplaySize(tamanho, tamanho)
+        const tamanho = ehBom ? Math.min(112, L.slotW * 0.68) : Math.min(46, L.slotW / 4);
+        const x = ehBom ? xPos : xPos + ((ponto % 3) - 1) * (tamanho + 4);
+        const y = ehBom ? yPos : yPos - tamanho / 2 + Math.floor(ponto / 3) * (tamanho + 4);
+        const marcador = this.textures.exists(chaveMarcador)
+          ? this.add.image(x, y, chaveMarcador)
           : this.add
-              .text(x, y, "☠", {
+              .text(x, y, ehBom ? "◆" : "☠", {
                 fontSize: `${tamanho}px`,
                 color: "#ffffff",
                 stroke: "#000000",
                 strokeThickness: 4,
               })
               .setOrigin(0.5);
-        objetos.push(caveira.setDepth(3804));
+        if (this.textures.exists(chaveMarcador)) {
+          if (ehBom) marcador.setScale(tamanho / marcador.width);
+          else marcador.setDisplaySize(tamanho, tamanho);
+        }
+        objetos.push(marcador.setDepth(3804));
         atualizar();
       });
       objetos.push(anel, zonaMais);

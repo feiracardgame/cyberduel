@@ -770,7 +770,7 @@ const POOL_CARTAS_MONSTRO = [
     nome: "O Bom",
     poder: 7,
     descricao:
-      "Apesar de também ser um fora da lei, o rígido código moral do Bom faz com que ele sempre busque a justiça ética, mesmo quando ela entra em conflito com as próprias leis dos Remanescentes. Seu verdadeiro nome nunca foi descoberto, ele se recusa a revelá-lo, acreditando que uma reputação deve ser construída pelos atos, não pelo nome de quem os pratica.",
+      "Apesar de também ser um fora da lei, o Bom segue um rígido código moral e sempre busca fazer o que considera justo, mesmo quando isso entra em conflito com as leis dos Remanescentes. Seu verdadeiro nome nunca foi revelado, pois acredita que uma reputação deve ser construída pelos atos, não pelo nome de quem os pratica. Seu único companheiro constante é José, um pequeno pássaro que o acompanha por onde quer que vá.",
     imagem: "obom",
     booster: "remanescentes",
     efeito: {

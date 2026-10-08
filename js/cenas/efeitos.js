@@ -17,7 +17,7 @@ const APRESENTACAO_EFEITOS = Object.freeze({
   "Estagiário de Machine Learning": { habilidade: "somEstagiario", momentos: ["habilidade"] },
   "Gestor de Recursos Predominantemente Humanos": { habilidade: "somGRPH", momentos: ["habilidade"] },
   "NeoAnalista de Suporte Nível Alpha": { invocacao: "somNeoAnalista", video: "efeitoNeoAnalista" },
-  "CryptoAcionistas": { inicio_turno: "somCryptoAcionistas", video: "videoEfeitoCrypto", momentos: ["inicio_turno"], somenteGanho: true },
+  "CryptoAcionistas": { inicio_turno: "somCryptoAcionistas", visual: "moeda", momentos: ["inicio_turno"], somenteGanho: true },
   "Advogado Corporativo": { habilidade: "somAdvogado", visual: "juridico", momentos: ["habilidade"] },
   "Agente da DIPSP": { habilidade: "somTiro", visual: "plasma", cor: 0x3388ff, corAlvo: 0x3388ff, momentos: ["habilidade"] },
   'UCC "Juggernaut"': { habilidade: "somJuggernaut", visual: "impactoJuggernaut", video: "videoEfeitoJuggernaut", momentos: ["habilidade"] },
@@ -35,6 +35,11 @@ const APRESENTACAO_EFEITOS = Object.freeze({
   "A Travessura do Macaco": { conjuracao: "somMacaco", armadilha: "somMacaco", imagem: "efeitoMacaco", momentos: ["conjuracao", "armadilha"] },
   "O Porco": { protecao: "somPorco", imagem: "efeitoPorco", momentos: ["protecao"] },
   "O Rato": { habilidade: "somRato", imagem: "efeitoRato", momentos: ["habilidade"] },
+  "Povo da Areia": { invocacao: "somAreia" },
+  "A Ferreira": { habilidade: "somFerreira", visual: "forja", momentos: ["habilidade"] },
+  "Tuh'Coh, O Feio": { continuo: "somFeio", momentos: ["continuo"], somenteGanho: true },
+  "Sen'Tenzhah, O Mau": { habilidade: "somMau", visual: "soco", momentos: ["habilidade"] },
+  "O Bom": { habilidade: "somBom2", visual: "passaros", momentos: ["habilidade"] },
 });
 
 class CenaEfeitos extends Phaser.Scene {
@@ -51,6 +56,14 @@ class CenaEfeitos extends Phaser.Scene {
     this.invocacaoEmCurso = null;
     this.invocacoesPendentes = new Map();
     this.haCartasOcultas = false;
+    if (!this.anims.exists("forja-ferreira")) this.anims.create({
+      key: "forja-ferreira", frames: this.anims.generateFrameNumbers("efeitoFerreira", { start: 0, end: 9 }),
+      frameRate: 25, repeat: -1,
+    });
+    if (!this.anims.exists("moeda-crypto")) this.anims.create({
+      key: "moeda-crypto", frames: this.anims.generateFrameNumbers("efeitoCrypto", { start: 0, end: 12 }),
+      frameRate: 1000 / 60, repeat: -1,
+    });
     this.events.once("shutdown", () => this.cancelarInvocacoesPendentes());
     this.scene.bringToTop();
   }
@@ -228,9 +241,10 @@ class CenaEfeitos extends Phaser.Scene {
     const objetos = [];
     const guardar = (o) => { objetos.push(o); return o; };
     const impactoJuggernaut = perfil.visual === "impactoJuggernaut" && evento.momento === "habilidade";
+    const ataqueBom = perfil.visual === "passaros" && evento.momento === "habilidade";
     const cartasAntesDano = [];
-    // O motor já resolveu o ataque; preserva a aparência e o PA anteriores durante o POW.
-    if (impactoJuggernaut) for (const alvo of evento.alvos || []) {
+    // O motor já resolveu o ataque; mantém o PA anterior até apresentar o impacto.
+    if (impactoJuggernaut || ataqueBom) for (const alvo of evento.alvos || []) {
       if (!(alvo.delta < 0) && !alvo.removida) continue;
       const oculta = alvo.oculto && (alvo.lado !== "jogador" || this.jogo.multiplayer?.spectator);
       const chave = oculta ? "fundoCarta" : alvo.imagem;
@@ -245,11 +259,13 @@ class CenaEfeitos extends Phaser.Scene {
         pa = this.add.text(0, y, `${(atual?.poder || 0) - (alvo.delta || 0)}`, {
           fontSize: "26px", color: "#ffffff", fontStyle: "bold",
         }).setOrigin(0.5);
-        filhos.push(this.add.circle(0, y, 23, 0x274c37, 1), pa);
+        filhos.push(this.add.rectangle(0, y, 46, 46, 0x061027, 1)
+          .setStrokeStyle(1.5, alvo.lado === "jogador" ? 0x54ddff : 0xff63ad), pa);
       }
       const carta = guardar(this.add.container(ponto.x, ponto.y, filhos)
         .setAngle(this.jogo.multiplayer?.presentation && alvo.lado === "inimigo" ? 180 : 0));
-      carta.antesDanoJuggernaut = true;
+      carta.antesDanoJuggernaut = impactoJuggernaut;
+      carta.antesDanoBom = ataqueBom;
       cartasAntesDano.push({ carta, pa, alvo });
     }
     // Alvos, sons e vídeos começam no impacto da carta, na mesma fila.
@@ -291,11 +307,30 @@ class CenaEfeitos extends Phaser.Scene {
         if (danoApresentado) return;
         danoApresentado = true;
         for (const { carta, pa, alvo } of cartasAntesDano) {
-          if (alvo.removida) pa?.setText("0");
+          if (alvo.removida && !ataqueBom) pa?.setText("0");
           else carta.destroy();
         }
         for (const alvo of alvos) {
           const destino = this.ponto(alvo.lado, alvo.indice);
+          if (ativo && perfil.visual === "moeda" && alvo.delta > 0 && this.textures.exists("efeitoCrypto")) {
+            const moeda = guardar(this.add.sprite(destino.x, destino.y, "efeitoCrypto").setDepth(11));
+            const layout = this.jogo.layout;
+            const escala = Math.min((layout.slotW - 20) / moeda.width, (layout.slotH - 20) / moeda.height);
+            moeda.setScale(escala * 0.6).setAlpha(0)
+              .setAngle(this.jogo.multiplayer?.presentation && alvo.lado === "inimigo" ? 180 : 0).play("moeda-crypto");
+            this.tweens.add({ targets: moeda, scaleX: escala, scaleY: escala, alpha: 1, duration: 180, ease: "Back.Out" });
+          }
+          if (ativo && perfil.visual === "forja" && alvo.delta > 0 && this.textures.exists("efeitoFerreira")) {
+            const forja = guardar(this.add.sprite(destino.x, destino.y, "efeitoFerreira").setDepth(11));
+            forja.setScale(Math.min(180 / forja.width, 210 / forja.height)).play("forja-ferreira");
+          }
+          if (ativo && perfil.visual === "soco" && alvo.delta < 0 && this.textures.exists("efeitoMau")) {
+            const soco = guardar(this.add.image(destino.x, destino.y, "efeitoMau").setDepth(11));
+            const escala = Math.min(180 / soco.width, 210 / soco.height);
+            soco.setScale(escala * 0.65).setAngle(this.jogo.multiplayer?.presentation && alvo.lado === "inimigo" ? 180 : 0);
+            this.tweens.add({ targets: soco, scaleX: escala, scaleY: escala, duration: 140, ease: "Back.Out" });
+            this.tweens.add({ targets: soco, alpha: 0, delay: 350, duration: 220 });
+          }
           if ((!perfil.momentos && !echo) || ativo) pulsar(destino, 170, 240, perfil.corAlvo ?? (echo ? cor : alvo.delta < 0 ? 0xff526c : 0x69caff));
           if (pichacaoAtiva && perfil.imagem && perfil.imagem !== "efeitoCoelho" && (perfil.imagem !== "efeitoAranha" || alvo.capturada)) {
             const layout = this.jogo.layout;
@@ -369,7 +404,22 @@ class CenaEfeitos extends Phaser.Scene {
           }
         }
       };
-      if (!impactoJuggernaut) aplicarDano();
+      if (ataqueBom) {
+        const passaros = [];
+        for (const alvo of alvos) {
+          if (!(alvo.delta < 0) || !this.textures.exists("efeitoBom")) continue;
+          const destino = this.ponto(alvo.lado, alvo.indice);
+          const passaro = guardar(this.add.image(destino.x, destino.y, "efeitoBom").setDepth(12));
+          const layout = this.jogo.layout;
+          passaro.setScale(Math.min((layout.slotW - 20) / passaro.width, (layout.slotH - 20) / passaro.height))
+            .setAngle(this.jogo.multiplayer?.presentation && alvo.lado === "inimigo" ? 180 : 0);
+          passaros.push(passaro);
+        }
+        this.time.delayedCall(300, () => {
+          aplicarDano();
+          this.tweens.add({ targets: passaros, alpha: 0, duration: 180 });
+        });
+      } else if (!impactoJuggernaut) aplicarDano();
       const som = perfil[evento.momento] || (evento.momento === "invocacao" ? "somJogarCarta" : alvos.some(a => a.removida) ? "somExplosao" : "somBuff");
       const volume = perfil.volume ?? 0.3;
       const tocaSom = (!perfil.somenteGanho || ativo) && (!echo || (ativo && (alvos.length || perfil.imagem === "efeitoCoelho" || ["efeitoAranha", "efeitoBoi", "efeitoCabra"].includes(perfil.imagem)))) &&

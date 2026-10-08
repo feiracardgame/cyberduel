@@ -111,7 +111,7 @@ Machine learning -> Escolha uma carta aliada. Ela recebe +3 PA. O Estagiário pe
 * PA: 6
 * Efeito:
 * 
-  Investimento de Alto Risco → Os investimentos finalmente começaram a render. No início de cada turno, o CryptoAcionista tem 50% de chance de ganhar +2 PA.
+  Investimento de Alto Risco → Os investimentos finalmente começaram a render. No início de cada turno, o CryptoAcionista tem 50% de chance de ganhar +3 PA.
 
 * Arte:
  <img alt="image" src="assets/cartas/cryptoacionistas.png" />

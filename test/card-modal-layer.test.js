@@ -59,4 +59,9 @@ console.log('Ficha: cena acima dos efeitos, zoom, máscara, limpeza e reabertura
   assert.equal(calls.length, 2);
   scene.criarBotaoFecharDetalhe(360, -680).emit('pointerup');
   assert.equal(calls.at(-1), 'fechar');
+  scene.cache = { audio: { exists: key => key === 'somBom1' } };
+  scene.sound = { play(key) { calls.push(key); } };
+  const bom = { nome: 'O Bom' };
+  scene.criarBotaoHabilidadeDetalhe(bom, 0, 600, 784, false).emit('pointerup');
+  assert.deepEqual(calls.slice(-3), ['somBom1', 'fechar', bom], 'Som do Bom começa no clique, antes de fechar a ficha.');
 }

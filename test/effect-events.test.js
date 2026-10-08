@@ -115,7 +115,7 @@ for (const base of pool.filter((c) => c.habilidadeAtiva)) {
 }
 
 // Descriptions must belong to the matching document card (including strings containing quotes).
-const document = fs.readFileSync('Cartas e boosters.md', 'utf8');
+const document = fs.readFileSync('markdown/Cartas e boosters.md', 'utf8');
 const normalize = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/gi, '').toLowerCase();
 const descriptions = new Map();
 const powers = new Map();
@@ -135,14 +135,15 @@ for (const base of [...pool, ...terrenos]) {
 }
 
 // Document balance, turn timing, and dedicated visual assets.
-assert.equal(pool.find((c) => c.nome === 'CryptoAcionistas').efeitoTurno.valor, 2);
+assert.equal(pool.find((c) => c.nome === 'CryptoAcionistas').efeitoTurno.valor, 3);
+assert.equal(pool.find((c) => c.nome === 'CryptoAcionistas').efeitoTurno.chance, 0.5);
 assert.equal(pool.find((c) => c.nome === 'UCC "Juggernaut"').poder, 10);
 assert.equal(pool.find((c) => c.nome === 'Agente da DIPSP').efeito.rangeH - 1, 1);
 {
   const p = match(), crypto = card('CryptoAcionistas'); p.jogador.campo.cartas[0] = crypto;
   context.p = p; vm.runInContext('Math.random = () => 0', context);
   p.resolverEfeitosDeTurno(); assert.equal(crypto.poder, 6);
-  p.resolverEfeitosInicioRodada(); assert.equal(crypto.poder, 8);
+  p.resolverEfeitosInicioRodada(); assert.equal(crypto.poder, 9);
   assert.equal(p.eventosEfeito.at(-1).momento, 'inicio_turno');
 }
 assert.equal(perfil['Agente da DIPSP'].visual, 'plasma');

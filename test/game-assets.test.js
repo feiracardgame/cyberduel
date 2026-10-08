@@ -50,17 +50,18 @@ for (const name of ['aranha', 'boi', 'cabra', 'cao', 'cavalo', 'cobra', 'coelho'
 }
 console.log('Os 12 novos efeitos estão no catálogo de carregamento.');
 
-const preloadVideos = [], preloadSounds = [];
+const preloadVideos = [], preloadSounds = [], preloadSheets = [];
 const Preload = vm.runInContext('CenaPreload', context);
 Preload.prototype.carregarAssets.call({ load: {
   image() {}, audio(key, url) { preloadSounds.push([key, url]); }, video(key, url) { preloadVideos.push([key, url]); },
+  spritesheet(key, url, options) { preloadSheets.push([key, url, options]); },
 } });
 assert.ok(preloadVideos.some(([key, url]) => key === 'videoEfeitoJuggernaut' && url.split('?')[0] === 'assets/efeitos/efeito-juggernaut-alpha.webm'));
 assert.ok(preloadVideos.some(([key, url]) => key === 'videoEfeitoBoi' && url === 'assets/efeitos/efeito-boi-alpha.webm'));
 assert.ok(fs.statSync('assets/efeitos/efeito-boi-alpha.webm').size > 0);
 console.log('Boi carrega a versão transparente do vídeo.');
 
-for (const [key, url] of [...preloadVideos, ...preloadSounds]) {
+for (const [key, url] of [...preloadVideos, ...preloadSounds, ...preloadSheets]) {
   assert.ok(fs.statSync(url.split('?')[0]).size > 0, `Asset ausente: ${key} (${url})`);
 }
 vm.runInContext(fs.readFileSync('js/cenas/efeitos.js', 'utf8'), context);
@@ -74,3 +75,21 @@ for (const profile of Object.values(profiles)) {
 }
 assert.ok(fs.statSync('assets/fontes/Rushblade.ttf').size > 0);
 console.log('Sons, vídeos de todos os perfis e fonte local disponíveis.');
+const [forjaKey, forjaUrl, forjaFrames] = preloadSheets.find(([key]) => key === 'efeitoFerreira');
+assert.equal(forjaFrames.frameWidth, 192);
+assert.equal(forjaFrames.frameHeight, 192);
+assert.equal(forjaFrames.endFrame, 9);
+const forjaPng = fs.readFileSync(forjaUrl);
+assert.equal(forjaPng.readUInt32BE(16), 1920, forjaKey);
+assert.equal(forjaPng.readUInt32BE(20), 192);
+for (const key of ['somAreia', 'somFerreira', 'somFeio', 'somMau', 'somBom1', 'somBom2'])
+  assert.ok(preloadSounds.some(([loaded]) => loaded === key), `Som dos Remanescentes ausente: ${key}`);
+for (const key of ['efeitoMau', 'efeitoBom']) assert.ok(fs.existsSync(game[key]), key);
+const [, cryptoUrl, cryptoFrames] = preloadSheets.find(([key]) => key === 'efeitoCrypto');
+assert.equal(cryptoFrames.frameWidth, 128);
+assert.equal(cryptoFrames.frameHeight, 176);
+assert.equal(cryptoFrames.endFrame, 12);
+const cryptoPng = fs.readFileSync(cryptoUrl);
+assert.equal(cryptoPng.readUInt32BE(16), 1664);
+assert.equal(cryptoPng.readUInt32BE(20), 176);
+assert.equal(profiles.CryptoAcionistas.visual, 'moeda');

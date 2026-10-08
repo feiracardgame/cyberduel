@@ -41,7 +41,7 @@ function fixture(spectator = false) {
       x: [110,325,540,755,970], yInimigo: [560,842], yJogador: [1436,1154] },
       partida: { inimigo: { campo: { cartas: [source] } }, jogador: { campo: { cartas: [] } } },
       children: { list: [fieldObject] } },
-    add: Object.fromEntries(['image','rectangle','text','circle','ellipse','triangle','container','video'].map(type=>[type,(...args)=>object(type,...args)])),
+    add: Object.fromEntries(['image','sprite','rectangle','text','circle','ellipse','triangle','container','video'].map(type=>[type,(...args)=>object(type,...args)])),
     sound: { play: key => sounds.push(key) },
     textures: { exists:()=>true }, cache: { audio: { exists:()=>false }, video: { exists:()=>false } },
     time: { delayedCall: schedule },
@@ -493,21 +493,23 @@ for (const side of ['jogador', 'inimigo']) {
   assert.equal(sprite.x, side === 'inimigo' ? 160 : 920);
   assert.equal(sprite.active, false);
 }
-for (const ganho of [false, true]) {
-  const f = fixture(); f.s.cache.video.exists = () => true; f.s.cache.audio.exists = () => true;
-  f.s.receber([f.event(1, 'inicio_turno', { fonte: { ...f.source, nome: 'CryptoAcionistas' },
-    alvos: [{ lado: 'inimigo', id: 1, indice: 0, delta: ganho ? 2 : 0 }] })]);
-  const clip = f.objects.find(o => o.value === 'videoEfeitoCrypto');
-  assert.equal(!!clip, ganho);
+for (const side of ['jogador', 'inimigo']) for (const ganho of [false, true]) {
+  const f = fixture(); f.s.jogo.multiplayer.presentation = true; f.s.cache.audio.exists = () => true;
+  const event = f.event(1, 'inicio_turno', { lado: side, fonte: { ...f.source, nome: 'CryptoAcionistas' },
+    alvos: [{ lado: side, id: 1, indice: 0, delta: ganho ? 3 : 0 }] });
+  f.s.receber([event]); f.s.receber([event]);
+  const moeda = f.objects.find(o => o.value === 'efeitoCrypto');
+  assert.equal(!!moeda, ganho);
   assert.equal(f.sounds.includes('somCryptoAcionistas'), ganho);
   if (ganho) {
-    assert.equal(clip.x, 110); assert.equal(clip.y, 560);
-    while (f.getTime() < 1700) f.step();
-    assert.equal(f.s.executando, true, 'A fila não corta um vídeo que ainda está tocando.');
-    clip.handlers.complete();
-    assert.equal(f.s.executando, false);
+    assert.equal(moeda.type, 'sprite'); assert.equal(moeda.playArgs[0], 'moeda-crypto');
+    assert.equal(moeda.x, 110); assert.equal(moeda.y, side === 'inimigo' ? 560 : 1436);
+    assert.equal(moeda.angle, side === 'inimigo' ? 180 : 0);
+    assert.equal(f.sounds.filter(k => k === 'somCryptoAcionistas').length, 1);
   }
   f.flush();
+  if (moeda) assert.equal(moeda.active, false);
+  assert.equal(f.s.executando, false, 'A moeda termina sem depender da reprodução de vídeo.');
 }
 for (const side of ['jogador', 'inimigo']) for (const removed of [false, true]) {
   const f = fixture(); f.s.cache.audio.exists = () => true; f.s.cache.video.exists = () => true;
@@ -597,3 +599,55 @@ for (const active of [false, true]) for (const side of ['jogador', 'inimigo']) {
   dormant.flush(); assert.ok(!dormant.objects.some(o => o.type === 'image' && o.value === 'arte' && o.x === 540 && o.y === 1110));
 }
 console.log('Visuais do documento: cores, sprite 14, Crypto apenas no ganho, Juggernaut no alvo, fila de vídeo, HAL, Replicantes e full art do despertar validados.');
+
+// Remanescentes: assets só aparecem no gatilho certo, em ambos os clientes e no espectador.
+for (const side of ['jogador', 'inimigo']) for (const spectator of [false, true]) {
+  const povo = fixture(spectator); povo.s.cache.audio.exists = () => true;
+  const summon = povo.event(1, 'invocacao', { lado: side, fonte: { ...povo.source, nome: 'Povo da Areia' } });
+  povo.s.receber([summon]); povo.s.receber([summon]); povo.flush();
+  assert.equal(povo.sounds.filter(key => key === 'somAreia').length, 1);
+
+  const forja = fixture(spectator); forja.s.cache.audio.exists = () => true;
+  forja.s.receber([forja.event(1, 'habilidade', { lado: side, fonte: { ...forja.source, nome: 'A Ferreira' },
+    alvos: [1, 2].map(i => ({ lado: side, id: i + 10, indice: i, delta: 2 })) })]);
+  forja.flush();
+  const sprites = forja.objects.filter(o => o.type === 'sprite' && o.value === 'efeitoFerreira');
+  assert.equal(sprites.length, 2);
+  assert.ok(sprites.every(o => o.playArgs[0] === 'forja-ferreira' && !o.active));
+  assert.equal(forja.sounds.filter(key => key === 'somFerreira').length, 1);
+
+  const mau = fixture(spectator); mau.s.cache.audio.exists = () => true;
+  const targetSide = side === 'jogador' ? 'inimigo' : 'jogador';
+  mau.s.receber([mau.event(1, 'habilidade', { lado: side, fonte: { ...mau.source, nome: "Sen'Tenzhah, O Mau" },
+    alvos: [{ lado: targetSide, id: 10, indice: 1, delta: -3 }] })]);
+  mau.flush();
+  const fist = mau.objects.find(o => o.value === 'efeitoMau');
+  assert.ok(fist && !fist.active);
+  assert.equal(fist.x, mau.s.ponto(targetSide, 1).x);
+  assert.equal(fist.y, mau.s.ponto(targetSide, 1).y);
+  assert.equal(mau.sounds.filter(key => key === 'somMau').length, 1);
+
+  const bom = fixture(spectator); bom.s.cache.audio.exists = () => true;
+  bom.s.jogo.partida[targetSide].campo.cartas.push({ id: 10, poder: 5 });
+  bom.s.receber([bom.event(1, 'habilidade', { lado: side, fonte: { ...bom.source, nome: 'O Bom' },
+    alvos: [{ lado: targetSide, id: 10, indice: 1, imagem: 'arte', delta: -1 }] })]);
+  while (!bom.objects.some(o => o.value === 'efeitoBom')) assert.ok(bom.step());
+  assert.ok(bom.objects.some(o => o.antesDanoBom && o.active));
+  assert.ok(!bom.objects.some(o => o.value === '-1 PA'), 'O pássaro aparece antes do dano público.');
+  const markerAt = bom.getTime();
+  while (bom.getTime() < markerAt + 300) assert.ok(bom.step());
+  assert.ok(bom.objects.some(o => o.value === '-1 PA'));
+  assert.ok(bom.objects.filter(o => o.antesDanoBom).every(o => !o.active));
+  assert.equal(bom.sounds.filter(key => key === 'somBom2').length, 1);
+  assert.ok(!bom.sounds.includes('somBom1'), 'Preparação fica na seleção local; o dano usa o segundo som.');
+  bom.flush();
+  assert.ok(bom.objects.filter(o => o.value === 'efeitoBom').every(o => !o.active));
+}
+for (const gain of [false, true]) {
+  const f = fixture(); f.s.cache.audio.exists = () => true;
+  const event = f.event(1, 'continuo', { fonte: { ...f.source, nome: "Tuh'Coh, O Feio" },
+    alvos: [{ lado: 'inimigo', id: f.source.id, indice: 0, delta: gain ? 5 : -5 }] });
+  f.s.receber([event]); f.s.receber([event]); f.flush();
+  assert.equal(f.sounds.filter(key => key === 'somFeio').length, gain ? 1 : 0, 'Feio só anuncia a ativação do bônus.');
+}
+console.log('Remanescentes: seis sons, GIF da Ferreira, soco do Mau, pássaros antes do dano, bônus do Feio e limpeza em todas as perspectivas validados.');

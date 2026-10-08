@@ -5,7 +5,7 @@ const context = vm.createContext({ window: {}, TIPOS_EFEITO: { REDISTRIBUIR_PODE
 vm.runInContext(fs.readFileSync('js/cenas/jogo.js', 'utf8'), context);
 const CenaJogo = vm.runInContext('CenaJogo', context);
 
-function selection(effect = { total: 6 }) {
+function selection(effect = { total: 6 }, nome = "Dieh'Go, o Xerife") {
   const objects = [];
   function object(type, x, y, text) {
     const o = { type, x, y, text, width: 800, height: 90, handlers: {}, active: true,
@@ -31,7 +31,7 @@ function selection(effect = { total: 6 }) {
     cancelarSelecaoDeAlvo() { this.cancelled = true; },
     executarHabilidade(card, targets) { this.targets = Array.from(targets); },
   });
-  scene.iniciarDistribuicaoDeDano({ efeito: effect }, [0, 1]);
+  scene.iniciarDistribuicaoDeDano({ nome, efeito: effect }, [0, 1]);
   return { scene, objects, zones: objects.filter(o => o.depth === 3803), overlay: objects[0] };
 }
 {
@@ -53,6 +53,14 @@ function selection(effect = { total: 6 }) {
   const { scene, zones } = selection({ total: 6, alvosUnicos: true });
   zones[0].handlers.pointerup(); zones[0].handlers.pointerup();
   scene.confirm(); assert.deepEqual(scene.targets, [0], 'Preservar alvos únicos e confirmação parcial.');
+}
+{
+  const { scene, objects, zones } = selection({ total: 6, alvosUnicos: true }, 'O Bom');
+  zones[0].handlers.pointerup(); zones[0].handlers.pointerup(); zones[1].handlers.pointerup();
+  const birds = objects.filter(o => o.type === 'image');
+  assert.equal(birds.length, 2, 'Um pássaro por alvo, sem repetição.');
+  assert.ok(birds.every(o => o.text === 'efeitoBom'));
+  scene.confirm(); assert.deepEqual(scene.targets, [0, 1]);
 }
 {
   const { scene, overlay } = selection();

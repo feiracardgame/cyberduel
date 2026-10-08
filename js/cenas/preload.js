@@ -73,6 +73,8 @@ window.CYBERDUEL_IMAGE_ASSETS = Object.freeze({
   efeitoPorco: "assets/efeitos/efeito-porco.png",
   efeitoRato: "assets/efeitos/efeito-rato.png",
   efeitoTigre: "assets/efeitos/efeito-tigre.png",
+  efeitoMau: "assets/menus/efeito_mau.png",
+  efeitoBom: "assets/efeitos/efeito_bom.png",
 });
 
 // Usa WebP reduzido no Phaser e mantém as artes originais no DOM.
@@ -106,6 +108,12 @@ class CenaPreload extends Phaser.Scene {
     Object.entries(window.CYBERDUEL_GAME_IMAGE_ASSETS).forEach(([key, url]) =>
       this.load.image(key, url),
     );
+    this.load.spritesheet("efeitoFerreira", "assets/efeitos/efeito-ferreira-frames.png", {
+      frameWidth: 192, frameHeight: 192, endFrame: 9,
+    });
+    this.load.spritesheet("efeitoCrypto", "assets/efeitos/efeito-cryptoacionista-frames.png", {
+      frameWidth: 128, frameHeight: 176, endFrame: 12,
+    });
     // musicas
     this.load.audio("musicaFundo", "assets/sons/jogo-musica.wav");
     this.load.audio("somJogarCarta", "assets/sons/jogo-cartawhoosh.wav");
@@ -126,7 +134,6 @@ class CenaPreload extends Phaser.Scene {
     }
     this.load.video("videoEfeitoAranha", "assets/efeitos/efeito-aranha.webm");
     this.load.video("videoEfeitoBoi", "assets/efeitos/efeito-boi-alpha.webm");
-    this.load.video("videoEfeitoCrypto", "assets/efeitos/efeito-cryptoacionista-alpha.webm");
     this.load.video("videoEfeitoJuggernaut", "assets/efeitos/efeito-juggernaut-alpha.webm?v=20261006-fluido");
     this.load.audio("somAdvogado", "assets/sons/som-advogado.mp3");
     this.load.audio("somRaspClay", "assets/sons/som-raspclay.mp3");
@@ -144,6 +151,8 @@ class CenaPreload extends Phaser.Scene {
       somReplicantes: "som-replicantes.mp3", somDragao: "som-dragao.mp3",
       somDeepClaude: "som-deepclaude.wav", somBug: "som-bug.mp3", somLonely: "som-lonely.mp3",
       somTigreInvestida: "som-tigreataque.mp3",
+      somAreia: "som_areia.mp3", somFerreira: "som_ferreira.mp3", somFeio: "som_feio.mp3",
+      somMau: "som_mau.mp3", somBom1: "som_bom1.mp3", somBom2: "som_bom2.mp3",
     })) this.load.audio(key, `assets/sons/${file}`);
     for (const nome of ["humba", "diego", "professores"])
       this.load.video(`videoEfeito${nome}`, `assets/efeitos/efeito-${nome}-alpha.webm`);
