@@ -31,3 +31,32 @@ assert.deepEqual(removed, [mask], 'Limpeza repetida não destrói a máscara dua
 game.elevarModalCarta(object(4000), object(4001));
 assert.equal(onTop, true, 'Reabrir eleva novamente a cena.');
 console.log('Ficha: cena acima dos efeitos, zoom, máscara, limpeza e reabertura validadas.');
+
+// A ação visual nova preserva o fechamento antes da seleção e desativa cartas já usadas.
+{
+  const { EventEmitter } = require('node:events');
+  const item = () => Object.assign(new EventEmitter(), {
+    setOrigin() { return this; }, setSize() { return this; }, setScale() { return this; },
+    setName(name) { this.name = name; return this; }, setAlpha() { return this; },
+    setInteractive() { this.interactive = true; return this; },
+    lineStyle() { return this; }, lineBetween() {},
+  });
+  const calls = [], card = { nome: 'A Aranha' };
+  const scene = Object.assign(Object.create(Scene.prototype), {
+    criarPlacaDuelo: item, criarTextoUI: item,
+    add: { container: item, graphics: item }, tweens: { add() {} },
+    fecharDetalheCarta() { calls.push('fechar'); },
+    iniciarAtivacaoHabilidade(value) { calls.push(value); },
+    time: { delayedCall(ms, done) { assert.equal(ms, 180); done(); } },
+  });
+  const active = scene.criarBotaoHabilidadeDetalhe(card, 0, 600, 784, false);
+  assert.equal(active.interactive, true);
+  active.emit('pointerup');
+  assert.deepEqual(calls, ['fechar', card]);
+  const used = scene.criarBotaoHabilidadeDetalhe(card, 0, 600, 784, true);
+  assert.equal(used.interactive, undefined);
+  used.emit('pointerup');
+  assert.equal(calls.length, 2);
+  scene.criarBotaoFecharDetalhe(360, -680).emit('pointerup');
+  assert.equal(calls.at(-1), 'fechar');
+}

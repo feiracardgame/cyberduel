@@ -377,13 +377,19 @@ class CenaEfeitos extends Phaser.Scene {
       if (tocaSom) this.sound.play(som, { volume: window.cyberduelSettings?.effects(volume) ?? volume });
       const duracaoInvestida = ativo && perfil.visual === "garras" ? (this.cache.audio.get?.("somTigreInvestida")?.duration || 0) * 1000 : 0;
       let duracao = impactoJuggernaut ? 650 : Math.max(1000, duracaoInvestida, tocaSom ? (this.cache.audio.get?.(som)?.duration || 0) * 1000 : 0);
-      let audioTerminou = false, videoPendente = false, concluido = false;
+      let audioTerminou = false, videoPendente = false, concluido = false, filaLiberada = false;
+      const liberarFila = () => {
+        if (filaLiberada) return;
+        filaLiberada = true;
+        this.executando = false;
+        this.eventoAtual = null;
+        this.proximo();
+      };
       const concluir = () => {
         if (concluido || !audioTerminou || videoPendente) return;
         concluido = true;
         objetos.forEach((o) => { if (o.active) o.destroy(); });
-        this.executando = false;
-        this.proximo();
+        liberarFila();
       };
       if ((perfil.momentos ? ativo : evento.momento === "invocacao") && perfil.video && this.cache.video.exists(perfil.video)) {
         if (!impactoJuggernaut) duracao = Math.max(duracao, 1700);
@@ -422,6 +428,9 @@ class CenaEfeitos extends Phaser.Scene {
         audioTerminou = true;
         concluir();
       });
+      // O voo já terminou; halo e som genérico continuam sem reter a passagem de turno.
+      if (evento.momento === "invocacao" && !ativo && !alvos.length &&
+          !perfil.invocacao && !(perfil.video && !perfil.momentos)) liberarFila();
     };
     if (evento.momento === "habilidade" && perfil.visual === "garras" && this.cache.audio.exists("somTigreInvestida"))
       this.sound.play("somTigreInvestida", { volume: window.cyberduelSettings?.effects(0.3) ?? 0.3 });

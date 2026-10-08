@@ -47,6 +47,58 @@ assert.equal(scene.botaoPassarTutorial.input.enabled, false);
 training.step = 'tiger-pass'; training.update();
 assert.equal(scene.botaoPassarTutorial.input.enabled, true);
 
+// Na etapa de ataque, a orientação muda de lado ao abrir e fechar a ficha.
+const guideClasses = new Set();
+training.guide = { classList: { toggle(name, enabled) {
+  if (enabled) guideClasses.add(name); else guideClasses.delete(name);
+} } };
+for (const step of ['tiger-ability', 'dipsp-ability']) {
+  training.step = step;
+  scene.modalAberto = false; training.update();
+  assert.equal(guideClasses.has('elenai-guide--bottom'), true);
+  scene.modalAberto = true; training.update();
+  assert.equal(guideClasses.has('elenai-guide--bottom'), false);
+  scene.modalAberto = false; training.update();
+  assert.equal(guideClasses.has('elenai-guide--bottom'), true);
+}
+training.step = 'dipsp-pass'; training.update();
+assert.equal(guideClasses.has('elenai-guide--bottom'), false);
+delete training.guide;
+
+// O destaque acompanha o botão atual, inclusive após redesenhos da interface.
+{
+  const circles = [];
+  const shape = (x, y, radius) => ({ active: true, x, y, radius,
+    setStrokeStyle() { return this; }, setDepth() { return this; },
+    destroy() { this.active = false; } });
+  const guidedScene = { children: { list: [] }, partida: {},
+    layout: vm.runInContext('LAYOUT_CAMPO_NORMAL', context),
+    add: { circle(x, y, radius) { const circle = shape(x, y, radius); circles.push(circle); return circle; },
+      rectangle: shape }, tweens: { add() {} }, desenharInterface() {},
+  };
+  const guide = Object.assign(Object.create(Training.prototype), { scene: guidedScene, hint: {} });
+  for (const [index, name] of ['O Tigre', 'Agente da DIPSP'].entries()) {
+    guidedScene.botaoPassarTutorial = { active: true, input: {}, x: 975 - index * 50, y: 1638 + index * 100, width: 158 };
+    const button = guidedScene.botaoPassarTutorial;
+    guide.placed({ nome: name }); guide.update();
+    assert.match(guide.hint.textContent, /botão >> à direita/);
+    assert.equal(button.input.enabled, true);
+    assert.equal(guide.highlight.x, button.x);
+    assert.equal(guide.highlight.y, button.y);
+    assert.ok(guide.highlight.radius > button.width / 2);
+    const previous = guide.highlight;
+    previous.destroy(); button.y += 35;
+    guide.update();
+    assert.notEqual(guide.highlight, previous);
+    assert.equal(guide.highlight.y, button.y);
+    guide.pass(); guide.update();
+    assert.equal(guidedScene.faseAtual, 'habilidades');
+    assert.equal(guide.step, index === 0 ? 'tiger-ability' : 'dipsp-ability');
+    assert.equal(button.input.enabled, false);
+  }
+  assert.equal(circles.length, 4);
+}
+
 let starts = 0;
 const ui = new UI({ callbacks: { onTutorial() { starts++; } } });
 ui.menuCategories = [{ id: 'tutorial' }];

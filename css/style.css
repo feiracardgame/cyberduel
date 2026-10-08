@@ -3266,6 +3266,10 @@ body.title-terminal-open #game-viewport canvas {
   background: #06130ff2; border: 1px solid #74be68; border-radius: 8px; font: 14px/1.4 Arial, sans-serif;
 }
 .elenai-guide[hidden] { display: none; }
+.elenai-guide--bottom {
+  top: auto;
+  bottom: calc((100vh - min(100vh, var(--game-height-vw))) / 2 + min(5vh, 10vw));
+}
 .elenai-guide strong { color: #a5ff78; }
 .elenai-guide p { margin: 6px 0; }
 .elenai-exit { padding: 4px 0; background: transparent; border: 0; color: #d1e6cd; text-decoration: underline; cursor: pointer; min-height: 44px; }

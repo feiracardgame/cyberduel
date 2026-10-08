@@ -330,7 +330,7 @@ class CyberduelTraining {
       this.scene.partida.inimigo.campo.adicionarCarta(this.card("CyberVendedor da RaspCorp"), 7);
       this.scene.partida.inimigo.campo.adicionarCarta(this.card("O Rato"), 2);
       this.scene.desenharInterface();
-    } else this.setStep(card.nome === "O Tigre" ? "tiger-pass" : "dipsp-pass", "Agora toque em Concluir jogada para entrar na fase de habilidades.");
+    } else this.setStep(card.nome === "O Tigre" ? "tiger-pass" : "dipsp-pass", "Agora toque no botão >> à direita para entrar na fase de habilidades.");
   }
   pass() {
     if (!["tiger-pass", "dipsp-pass"].includes(this.step)) return;
@@ -363,6 +363,8 @@ class CyberduelTraining {
   }
   update() {
     const scene = this.scene;
+    this.guide?.classList.toggle("elenai-guide--bottom",
+      ["tiger-ability", "dipsp-ability"].includes(this.step) && !scene.modalAberto);
     if (scene.botaoPassarTutorial?.input)
       scene.botaoPassarTutorial.input.enabled = ["tiger-pass", "dipsp-pass"].includes(this.step);
     for (const object of scene.children?.list || []) {
@@ -378,10 +380,15 @@ class CyberduelTraining {
     const passing = this.step.endsWith("-pass");
     if (slot === undefined && !passing) return;
     const L = scene.layout;
-    this.highlight = scene.add.rectangle(passing ? LARGURA_LAYOUT - 215 : L.x[slot % 5],
-      passing ? ALTURA_LAYOUT - 85 : L.yJogador[Math.floor(slot / 5)],
-      passing ? 370 : L.slotW, passing ? 124 : L.slotH, 0xa5ff78, 0.04)
-      .setStrokeStyle(7, 0xa5ff78).setDepth(3600);
+    if (passing) {
+      const button = scene.botaoPassarTutorial;
+      if (!button?.active) return;
+      this.highlight = scene.add.circle(button.x, button.y, button.width / 2 + 10, 0xa5ff78, 0.04);
+    } else {
+      this.highlight = scene.add.rectangle(L.x[slot % 5], L.yJogador[Math.floor(slot / 5)],
+        L.slotW, L.slotH, 0xa5ff78, 0.04);
+    }
+    this.highlight.setStrokeStyle(7, 0xa5ff78).setDepth(3600);
     scene.tweens.add({ targets: this.highlight, alpha: 0.3, duration: 600, yoyo: true, repeat: -1 });
   }
 }

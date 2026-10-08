@@ -19,7 +19,7 @@ const layouts = vm.runInContext('[LAYOUT_CAMPO_NORMAL, LAYOUT_CAMPO_AMPLIADO]', 
       destroy() { this.active = false; this.list.forEach(o => o.active = false); },
     }; } },
     children: { add() { attached++; } },
-    criarSuperficieVidro(x, y, width, height, style) {
+    criarMolduraCampo(x, y, width, height, style) {
       created++; return { active: true, x, y, width, height, style };
     },
   });
@@ -118,16 +118,19 @@ console.log('Cena: reutilização do campo, eventos incrementais, ociosidade e l
   delete context.window.cyberduelSettings;
 }
 
-// O placar fica abaixo da última fileira nos dois layouts.
+// Rodadas acima do campo e fase entre as fileiras, nos dois layouts.
 for (const [index, layout] of layouts.entries()) {
-  let panel;
+  const panels = [];
   const scene = Object.assign(Object.create(Scene.prototype), {
     layout, maoEscondida: index === 1,
     partida: { turno: 1, maxTurnos: 7, rodadasJogador: 0, rodadasInimigo: 0 },
-    criarPainelTatico(x, y, width, height) { panel = { x, y, width, height, add() {} }; return panel; },
+    criarPlacaDuelo(x, y, width, height) { const panel = { x, y, width, height, add() {} }; panels.push(panel); return panel; },
     criarTextoUI() { return { setOrigin() { return this; } }; },
   });
   scene.desenharStatus();
-  assert.ok(panel.y - panel.height / 2 >= layout.yJogadorTras + layout.slotH / 2 + 50);
+  const [score, phase] = panels;
+  assert.ok(score.y + score.height / 2 < layout.yInimigoTras - layout.slotH / 2);
+  assert.ok(phase.y - phase.height / 2 > layout.yInimigoFrente + layout.slotH / 2);
+  assert.ok(phase.y + phase.height / 2 < layout.yJogadorFrente - layout.slotH / 2);
 }
 console.log('Fundo opcional e placar sem sobreposição com o campo validados.');

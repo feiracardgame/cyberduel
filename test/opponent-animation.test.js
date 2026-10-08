@@ -187,6 +187,31 @@ console.log('EchoSsystem: 12 símbolos, gatilhos, perspectiva, proporção, limp
 // O turno só é liberado quando o último efeito remoto termina.
 vm.runInContext(fs.readFileSync('js/cenas/jogo.js', 'utf8'), context);
 const Game = vm.runInContext('CenaJogo', context);
+// Uma invocação comum libera a fase no impacto, sem esperar o halo ou o som genérico.
+for (const lado of ['jogador', 'inimigo']) {
+  const f = fixture();
+  f.s.cache.audio.exists = () => true;
+  f.s.receber([f.event(1, 'invocacao', { lado })]);
+  while (!f.impacts.length) assert.ok(f.step());
+  assert.equal(f.s.executando, false, 'Carta colocada não deixa uma espera artificial para passar.');
+  const halo = f.objects.find(o => o.strokeColor === 0x69caff);
+  let passes = 0;
+  const game = Object.assign(Object.create(Game.prototype), {
+    scene: { manager: { keys: { CenaEfeitos: f.s } } },
+    partida: {}, multiplayerAtivo: true, ehMeuTurno: true, travado: false,
+    multiplayer: { finishTurn() { passes++; } },
+  });
+  game.aoClicarPassarTurno();
+  assert.equal(passes, 1, 'O primeiro clique após o impacto passa a vez.');
+  // Limpar o halo antigo não pode liberar a habilidade que começou em seguida.
+  f.s.cache.audio.get = sound => ({ duration: sound === 'somTigre' ? 5 : 0 });
+  f.s.receber([f.event(2, 'habilidade', { lado: 'jogador', fonte: { ...f.source, nome: 'O Tigre' } })]);
+  while (halo.active) assert.ok(f.step());
+  assert.equal(f.s.executando, true);
+  assert.equal(f.s.eventoAtual.id, 2);
+  f.flush();
+  assert.equal(f.s.executando, false);
+}
 for (const multiplayerAtivo of [false, true]) {
   const f = fixture();
   let starts = 0, passes = 0;
