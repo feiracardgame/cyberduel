@@ -116,12 +116,14 @@ function showElenAI(scene, lines, done, options = {}) {
   root.setAttribute("role", "dialog"); root.setAttribute("aria-modal", "true");
   root.setAttribute("aria-label", "Conversa com ElenAI");
   const portrait = ui.element("img", "elenai-portrait"); portrait.alt = "";
+  const portraitFrame = ui.element("div", "elenai-portrait-frame");
+  portraitFrame.append(portrait);
   const panel = ui.element("div", "elenai-panel");
   const speaker = ui.element("strong", "elenai-speaker");
   const text = ui.element("p", "elenai-text"); text.setAttribute("aria-live", "polite");
   const actions = ui.element("div", "elenai-actions");
   const error = ui.element("p", "elenai-error"); error.setAttribute("role", "alert");
-  panel.append(speaker, text, error, actions); root.append(portrait, panel);
+  panel.append(speaker, text, error, actions); root.append(portraitFrame, panel);
   document.body.append(root);
   const menu = scene.titleUI?.root;
   menu?.classList.add("elenai-story"); if (menu) menu.inert = true;
@@ -144,6 +146,7 @@ function showElenAI(scene, lines, done, options = {}) {
     root.dataset.line = String(index); root.dataset.sprite = String(line.sprite);
     speaker.textContent = line.speaker; text.textContent = line.text;
     portrait.hidden = !line.sprite;
+    portraitFrame.hidden = !line.sprite;
     if (line.sprite) portrait.src = `assets/sprites/elenai-${String(line.sprite).padStart(2, "0")}.webp`;
     actions.replaceChildren();
     if (options.name && index === lines.length - 1) {

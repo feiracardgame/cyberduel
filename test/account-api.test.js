@@ -80,6 +80,15 @@ async function run() {
   assert.equal(created.payload.authProvider, "google");
   assert.equal(created.payload.isAdmin, true);
   assert.equal((await api("/api/auth/session", { token: second.token })).payload.isAdmin, false);
+  assert.equal((await api("/api/admin/accounts", { token: null })).status, 401);
+  assert.equal((await api("/api/admin/accounts", { token: second.token })).status, 403);
+  const accountList = await api("/api/admin/accounts");
+  assert.equal(accountList.status, 200);
+  assert.equal(accountList.payload.accounts.length, 2);
+  assert.ok(accountList.payload.accounts.every(account => !account.clubUnlocked && !account.councilMember));
+  for (const account of accountList.payload.accounts)
+    assert.deepEqual(Object.keys(account).sort(), ['username', 'nickname', 'clubUnlocked', 'councilMember', 'rating', 'rank',
+      'rankingPosition', 'currency', 'currencySpent', 'marketSales', 'statsTrackedSince', 'unlockedCards', 'totalCards'].sort(), 'Não expõe sessão, credenciais ou coleção completa.');
   for (const route of ["unlock-leaderboard", "grant-rating", "grant-currency", "grant-cards", "give-card", "reset-collection"]) {
     assert.equal((await api(`/api/admin/accounts/${route}`, { method: "POST", token: second.token, body: { isAdmin: true } })).status, 403);
     assert.equal((await api(`/api/admin/accounts/${route}`, { method: "POST", token: null, body: {} })).status, 401);
@@ -120,6 +129,11 @@ async function run() {
   assert.equal(unlocked.payload.account.rating, 1500);
   assert.equal(unlocked.payload.account.currency, 500);
   assert.equal(unlocked.payload.account.councilMember, true);
+  const member = (await api('/api/admin/accounts')).payload.accounts.find(account => account.username === 'Comprador');
+  assert.equal(member.clubUnlocked, true);
+  assert.equal(member.councilMember, true);
+  assert.equal(member.rankingPosition, 1);
+  assert.equal(member.rating, 1500);
   assert.equal((await unlock()).payload.account.humanGames, 5, 'Repetir não acumula partidas.');
   assert.equal((await api('/api/leaderboard')).payload.entries[0].nickname, 'Comprador');
   assert.equal(JSON.parse(fs.readFileSync(path.join(dataDir, 'accounts.json'))).accounts[second.accountKey].humanWins, 3);
@@ -151,6 +165,12 @@ async function run() {
     5,
   );
   assert.equal(booster.payload.currency, 400);
+  const stats = (await api('/api/admin/accounts')).payload.accounts.find(account => account.username === 'Gabriel');
+  assert.equal(stats.currencySpent, 100);
+  assert.equal(stats.marketSales, 0);
+  assert.equal(stats.unlockedCards, Object.values(booster.payload.collection).filter(quantity => quantity > 0).length);
+  assert.ok(stats.totalCards > stats.unlockedCards);
+  assert.ok(Number.isFinite(Date.parse(stats.statsTrackedSince)));
 
   assert.equal(configuration.payload.booster.cardsPerPack, 5);
   const beforeCount = Object.values(faction.payload.collection).reduce((a, b) => a + b, 0);

@@ -120,6 +120,10 @@ assert.equal(starts, 2, 'Repetir tutorial abre o treino sem facção/deck.');
 ui.closeCategoryOptions();
 assert.equal(ui.cardMenuState.mode, 'categories');
 assert.ok(fs.existsSync('assets/menus/repetir_tutorial.png'));
+const tutorialImage = {};
+ui.paintCard({ dataset: {}, querySelector: () => tutorialImage, setAttribute() {}, classList: { toggle() {} } },
+  { art: 'repetir_tutorial', title: 'Repetir tutorial', handler() {} }, 1, 'options');
+assert.equal(tutorialImage.src, 'assets/menus/repetir_tutorial.png', 'Menu usa a arte de Repetir tutorial.');
 
 // Redesenhos de invocações preservam os mesmos objetos, zoom e posição de leitura.
 const panel = { active: true, destroy() { this.active = false; } };

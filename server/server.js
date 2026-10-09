@@ -136,6 +136,10 @@ function ensureAccountDefaults(account) {
   if (!account || typeof account !== "object") return account;
   if (!Object.hasOwn(account, "faction")) account.faction = null;
   if (!Number.isFinite(account.currency)) account.currency = INITIAL_CURRENCY;
+  // Não havia histórico de gastos/vendas; a contagem começa nesta migração.
+  for (const key of ["currencySpent", "marketSales"])
+    if (!Number.isSafeInteger(account[key]) || account[key] < 0) account[key] = 0;
+  if (!account.statsTrackedSince) account.statsTrackedSince = new Date().toISOString();
   if (!Number.isFinite(account.gamesPlayed)) account.gamesPlayed = 0;
   if (!Number.isFinite(account.rating)) account.rating = 1000;
   for (const key of ["rankedGames", "rankedWins", "rankedLosses"])
@@ -257,13 +261,14 @@ function saveAccounts() {
 // Cartas reservadas e pagamentos ficam no mesmo arquivo, em uma única gravação.
 function saveMarketTrade(accounts, change) {
   const listings = [...(accountStore.marketListings || [])];
-  const previous = accounts.map(account => ({ account, collection: { ...account.collection }, currency: account.currency }));
+  const previous = accounts.map(account => ({ account, collection: { ...account.collection }, currency: account.currency,
+    currencySpent: account.currencySpent, marketSales: account.marketSales }));
   try {
     change();
     saveAccounts();
   } catch (error) {
     accountStore.marketListings = listings;
-    previous.forEach(({ account, collection, currency }) => Object.assign(account, { collection, currency }));
+    previous.forEach(({ account, ...state }) => Object.assign(account, state));
     error.marketPersistence = true;
     throw error;
   }
@@ -690,9 +695,13 @@ async function handleApi(request, response, pathname) {
         return sendJson(response, 409, { ok: false, error: "Tijolinhos insuficientes para esta compra." });
       if (!Number.isSafeInteger(seller.currency + proceeds))
         return sendJson(response, 409, { ok: false, error: "O saldo do vendedor atingiu o limite." });
+      if (!Number.isSafeInteger(account.currencySpent + total) || !Number.isSafeInteger(seller.marketSales + 1))
+        return sendJson(response, 409, { ok: false, error: "As estatísticas da conta atingiram o limite." });
       saveMarketTrade([account, seller], () => {
         account.currency -= total;
+        account.currencySpent += total;
         seller.currency += proceeds;
+        seller.marketSales += 1;
         grantCards(account, [listing]);
         accountStore.marketListings = current.filter(l => l !== listing);
       });
@@ -705,6 +714,22 @@ async function handleApi(request, response, pathname) {
     if (!pending) return sendJson(response, 401, { ok: false, error: "Entre na sua conta primeiro." });
     if (!isAdminAccount(pending.account))
       return sendJson(response, 403, { ok: false, error: "Esta conta não é administradora." });
+  }
+
+  if (request.method === "GET" && pathname === "/api/admin/accounts") {
+    const accounts = Object.values(accountStore.accounts);
+    const leaderboard = ranking.leaderboard(accounts);
+    return sendJson(response, 200, { ok: true, accounts: Object.entries(accountStore.accounts).map(([key, account]) => {
+      const reserved = (accountStore.marketListings || []).filter(listing => listing.seller === key);
+      const unlockedCards = ALL_AVAILABLE_CARDS.filter(card => (account.collection[cardKey(card.tipo, card.nome)] || 0) > 0 ||
+        reserved.some(listing => listing.tipo === card.tipo && listing.nome === card.nome)).length;
+      const position = leaderboard.indexOf(account);
+      return { username: account.username, nickname: account.nickname || account.username,
+        clubUnlocked: account.humanWins >= 3, councilMember: position >= 0 && position < 10,
+        rating: account.rating, rank: ranking.playerProfile(account).rank, rankingPosition: position < 0 ? null : position + 1,
+        currency: account.currency, currencySpent: account.currencySpent, marketSales: account.marketSales,
+        statsTrackedSince: account.statsTrackedSince, unlockedCards, totalCards: ALL_AVAILABLE_CARDS.length };
+    }).sort((a, b) => a.username.localeCompare(b.username)) });
   }
 
   if (request.method === "GET" && pathname === "/api/leaderboard") {
@@ -913,6 +938,8 @@ async function handleApi(request, response, pathname) {
         ok: false,
         error: "Tijolinhos insuficientes.",
       });
+    if (!Number.isSafeInteger(session.account.currencySpent + BOOSTER_PRICE))
+      return sendJson(response, 409, { ok: false, error: "As estatísticas da conta atingiram o limite." });
     let guaranteedLegendary = null;
     if (body.debugLegendary === true) {
       if (process.env.CYBERDUEL_DEBUG !== "1" || !isAdminAccount(session.account))
@@ -926,6 +953,7 @@ async function handleApi(request, response, pathname) {
     const cards = rollBooster(faction, session.account.gamesPlayed);
     if (guaranteedLegendary) cards[cards.length - 1] = guaranteedLegendary;
     session.account.currency -= BOOSTER_PRICE;
+    session.account.currencySpent += BOOSTER_PRICE;
     if (pathname === "/api/boosters/buy") {
       session.account.boosters.push({ id: body.purchaseId, faction, cards, purchasedAt: new Date().toISOString() });
     } else {

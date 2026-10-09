@@ -40,11 +40,14 @@ async function api(route, body) {
     assert.equal(body.cards, undefined);
     assert.deepEqual(body.collection, initial.collection);
   }
+  const stats = async () => (await api('admin/accounts')).body.accounts.find(account => account.username === owner.username);
+  assert.equal((await stats()).currencySpent, 100, 'Compra repetida só registra um gasto.');
   await stop();
   await start();
   const restored = await api('auth/session');
   assert.equal(restored.body.boosters.length, 1);
   assert.deepEqual(restored.body.collection, initial.collection);
+  assert.equal((await stats()).currencySpent, 100, 'Gasto persiste no reinício.');
   // Outro usuário não pode consumir o pacote.
   const ownerToken = token;
   token = other.token;
@@ -63,6 +66,7 @@ async function api(route, body) {
   const duplicatePurchase = await api('boosters/buy', purchase);
   assert.equal(duplicatePurchase.body.currency, 400);
   assert.equal(duplicatePurchase.body.boosters.length, 0);
+  assert.equal((await stats()).currencySpent, 100, 'Abrir ou repetir a compra não registra gasto extra.');
   const ordinary = await api('boosters/buy', { faction: 'raspcorp', purchaseId: 'purchase-inventory-0002' });
   const normal = await api('boosters/open', { packId: ordinary.body.boosters[0].id });
   assert.ok(normal.body.cards.every(card => card.nivel !== 'lendaria'));

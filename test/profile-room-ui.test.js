@@ -240,6 +240,44 @@ const byLabel = label => find(ui.modal, el => el.attributes['aria-label'] === la
   ui.closeModal();
   assert.equal(released, 1);
   ui.openCouncil(); ui.destroy(); assert.equal(released, 2);
+  ui.account.isAdmin = true;
+  ui.root = new Element('main');
+  ui.deckBuilder = { getCatalog: () => [] };
+  const adminAccounts = [
+    { username: 'Ana', nickname: 'Árvore', clubUnlocked: true, councilMember: false, rating: 1200 },
+    { username: 'Bia', nickname: 'Conselheira', clubUnlocked: true, councilMember: true, rating: 1700, rankingPosition: 1,
+      rank: 'Diamante', currency: 200, currencySpent: 300, marketSales: 2, unlockedCards: 8, totalCards: 100, statsTrackedSince: '2026-10-09T12:00:00Z' },
+    { username: 'Caio', nickname: 'Novato', clubUnlocked: false, councilMember: false, rating: 1000 },
+  ];
+  ui.account.listAdminAccounts = async () => adminAccounts;
+  ui.openAdminGrantDialog();
+  await Promise.resolve();
+  const list = byClass('title-admin-accounts');
+  assert.equal(list.children.length, 3);
+  assert.equal(byClass('title-admin-details').hidden, true);
+  const search = byLabel('Pesquisar contas'), filter = byLabel('Filtrar acesso das contas'), order = byLabel('Ordenar contas');
+  search.value = 'arvore'; search.events.input();
+  assert.equal(list.children.length, 1); assert.equal(list.children[0].children[0].textContent, 'Ana');
+  search.value = ''; search.events.input();
+  filter.value = 'clubUnlocked'; filter.events.change(); assert.equal(list.children.length, 2);
+  filter.value = 'councilMember'; filter.events.change(); assert.equal(list.children.length, 1);
+  list.children[0].click();
+  assert.equal(byLabel('Username da conta').value, 'Bia');
+  const details = byClass('title-admin-details');
+  assert.equal(details.hidden, false);
+  assert.match(details.children.map(child => child.textContent).join(' '), /Tijolinhos gastos: 300.*8 de 100.*mercado: 2/);
+  filter.value = 'all'; filter.events.change();
+  order.value = 'ranking'; order.events.change(); assert.equal(list.children[0].children[0].textContent, 'Bia');
+  order.value = 'ranking-asc'; order.events.change(); assert.equal(list.children[0].children[0].textContent, 'Caio');
+  search.value = 'ausente'; search.events.input(); assert.equal(list.children.length, 0);
+  assert.match(byClass('title-admin-note').textContent, /Nenhuma conta/);
+  ui.closeModal();
+  ui.account.listAdminAccounts = async () => { throw Error('Sem conexão'); };
+  ui.openAdminGrantDialog();
+  await Promise.resolve(); await Promise.resolve();
+  assert.equal(byClass('title-admin-note').textContent, 'Sem conexão');
+  ui.closeModal();
+  console.log('Admin: pesquisa por apelido, filtros de acesso, ordenação por ranking, detalhes e falha de carregamento validados.');
   console.log('Carteirinha: edição, fotos, estatísticas, acesso e falhas; salas: criar, entrar, validar e cancelar aprovados.');
   console.log('Clube: quatro mesas, escolha, código, contagem ao vivo, bloqueio e limpeza de assinaturas aprovados.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

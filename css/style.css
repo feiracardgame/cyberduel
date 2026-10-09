@@ -2814,6 +2814,17 @@ body.title-terminal-open #game-viewport canvas {
   text-align: center;
 }
 
+.title-admin-accounts { display: grid; gap: 6px; max-height: 230px; overflow-y: auto; }
+.title-admin-account { display: grid; gap: 4px; padding: 10px; border: 1px solid #386447; border-radius: 6px; background: #102b1b; color: #e9fff3; text-align: left; cursor: pointer; overflow-wrap: anywhere; }
+.title-admin-account span { color: #b5cbbd; }
+.title-admin-account small { color: #85ffac; }
+.title-admin-account:focus-visible { outline: 2px solid #fff; outline-offset: -2px; }
+.title-admin-account:disabled { opacity: .5; cursor: default; }
+.title-admin-details { border-top: 1px solid #386447; padding-top: 10px; text-align: left; }
+.title-admin-details[hidden] { display: none; }
+.title-admin-details p { font-size: 12px; margin: 8px 0; overflow-wrap: anywhere; }
+.title-admin-details .title-admin-note { font-size: 10px; }
+
 .title-settings-controls {
   display: grid;
   gap: 16px;
@@ -3242,11 +3253,16 @@ body.title-terminal-open #game-viewport canvas {
   padding: calc(min(100vh, var(--game-height-vw)) * .04) calc(min(100vw, var(--game-width-vh)) * .05);
 }
 .elenai-dialogue--training { background: rgba(1, 8, 7, .52); }
-.elenai-portrait {
-  flex: 1 1 0; min-height: 0; width: 100%;
-  object-fit: contain; object-position: right bottom; pointer-events: none;
+.elenai-portrait-frame {
+  flex: 1 1 0; min-height: 0; overflow: hidden; display: flex; justify-content: flex-end;
 }
-.elenai-portrait[hidden] { display: none; }
+.elenai-portrait {
+  height: 100%; max-width: 100%;
+  object-fit: contain; object-position: right bottom; pointer-events: none;
+  /* Os sprites têm até 37px transparentes no rodapé de 420px. */
+  transform: translateY(9%);
+}
+.elenai-portrait-frame[hidden], .elenai-portrait[hidden] { display: none; }
 .elenai-panel {
   flex: 0 1 auto; min-height: 0; padding: clamp(16px, 2.4vh, 28px);
   max-height: 65%; box-sizing: border-box; overflow-y: auto; background: #06130f; border: 1px solid #74be68;

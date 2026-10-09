@@ -276,6 +276,11 @@ class CyberduelAccount {
     return payload.cards || [];
   }
 
+  async listAdminAccounts() {
+    const payload = await this.request("/api/admin/accounts");
+    return payload.accounts;
+  }
+
   async unlockLeaderboard(username) {
     const payload = await this.request("/api/admin/accounts/unlock-leaderboard", {
       method: "POST", body: { username },

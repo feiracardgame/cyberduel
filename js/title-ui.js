@@ -1604,7 +1604,7 @@ class CyberduelTitleUI {
     dialog.append(
       this.element("span", "title-kicker", "ADMIN // CONTAS E COLEÇÃO"),
       this.element("h2", "", "Central administrativa"),
-      this.element("p", "", "Adicione tijolinhos ou cartas à conta informada."),
+      this.element("p", "", "Consulte os acessos ao Clube e ao Conselho ou adicione tijolinhos e cartas."),
     );
 
     const form = this.element("div", "title-admin-grid");
@@ -1614,6 +1614,68 @@ class CyberduelTitleUI {
     username.value = this.account.user || "";
     username.maxLength = 24;
     username.setAttribute("aria-label", "Username da conta");
+
+    const accountsSection = this.element("section", "title-admin-section");
+    const search = this.element("input", "title-auth-input");
+    search.type = "search";
+    search.placeholder = "Pesquisar username ou apelido";
+    search.setAttribute("aria-label", "Pesquisar contas");
+    const membership = this.element("select", "title-auth-input");
+    membership.setAttribute("aria-label", "Filtrar acesso das contas");
+    for (const [value, label] of [["all", "Todas as contas"], ["clubUnlocked", "Clube liberado"], ["councilMember", "Conselho atual · top 10"]]) {
+      const option = this.element("option", "", label);
+      option.value = value;
+      membership.append(option);
+    }
+    membership.value = "all";
+    const order = this.element("select", "title-auth-input");
+    order.setAttribute("aria-label", "Ordenar contas");
+    for (const [value, label] of [["username", "Username · A–Z"], ["ranking", "Ranking · maior pontuação"], ["ranking-asc", "Ranking · menor pontuação"]]) {
+      const option = this.element("option", "", label);
+      option.value = value;
+      order.append(option);
+    }
+    order.value = "username";
+    const details = this.element("section", "title-admin-details");
+    details.setAttribute("aria-label", "Detalhes da conta selecionada");
+    details.setAttribute("aria-live", "polite");
+    details.hidden = true;
+    const accountsStatus = this.element("p", "title-admin-note", "Carregando contas…");
+    accountsStatus.setAttribute("role", "status");
+    const accountsList = this.element("div", "title-admin-accounts");
+    let accounts = [];
+    const normalize = value => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pt-BR");
+    const renderAccounts = () => {
+      const query = normalize(search.value || "").trim();
+      const filtered = accounts.filter(account => (membership.value === "all" || account[membership.value]) &&
+        normalize(`${account.username} ${account.nickname}`).includes(query));
+      if (order.value !== "username") filtered.sort((a, b) =>
+        (order.value === "ranking" ? b.rating - a.rating : a.rating - b.rating) ||
+        (a.rankingPosition ?? Infinity) - (b.rankingPosition ?? Infinity) || a.username.localeCompare(b.username));
+      accountsList.replaceChildren();
+      for (const account of filtered) {
+        const row = this.button("title-admin-account", "", () => {
+          username.value = account.username;
+          details.hidden = false;
+          details.replaceChildren(this.element("h3", "", `${account.username} · ${account.nickname}`),
+            this.element("p", "", `${account.rank} · ${account.rating.toLocaleString("pt-BR")} pontos · ${account.rankingPosition ? `${account.rankingPosition}º no ranking` : "Ainda fora do ranking"}`),
+            this.element("p", "", `Saldo: ${account.currency.toLocaleString("pt-BR")} tijolinhos`),
+            this.element("p", "", `Tijolinhos gastos: ${account.currencySpent.toLocaleString("pt-BR")}`),
+            this.element("p", "", `Cartas liberadas na coleção: ${account.unlockedCards} de ${account.totalCards} tipos (inclui cartas anunciadas)`),
+            this.element("p", "", `Vendas concluídas no mercado: ${account.marketSales}`),
+            this.element("p", "title-admin-note", `Gastos e vendas registrados desde ${new Date(account.statsTrackedSince).toLocaleString("pt-BR")}. O histórico anterior não foi registrado.`));
+        }, `Selecionar conta ${account.username}`);
+        row.append(this.element("strong", "", account.username), this.element("span", "", account.nickname),
+          this.element("small", "", `Clube: ${account.clubUnlocked ? "SIM" : "NÃO"} · Conselho: ${account.councilMember ? "SIM" : "NÃO"}`));
+        row.disabled = username.disabled;
+        accountsList.append(row);
+      }
+      accountsStatus.textContent = filtered.length ? `${filtered.length} de ${accounts.length} contas. Clique para ver os detalhes e preencher o username.` : "Nenhuma conta encontrada.";
+    };
+    search.addEventListener("input", renderAccounts);
+    membership.addEventListener("change", renderAccounts);
+    order.addEventListener("change", renderAccounts);
+    accountsSection.append(this.element("h3", "", "Contas · Clube e Conselho"), search, membership, order, accountsStatus, accountsList, details);
 
     const deckSection = this.element("section", "title-admin-section");
     deckSection.append(
@@ -1754,6 +1816,7 @@ class CyberduelTitleUI {
         currencyButton,
       ].forEach((field) => (field.disabled = busy));
       [...actionButtons.children].forEach((button) => (button.disabled = busy));
+      [...accountsList.children].forEach((button) => (button.disabled = busy));
     };
 
     const withUsername = () => {
@@ -1861,12 +1924,19 @@ class CyberduelTitleUI {
       this.button("title-dialog__cancel", "VOLTAR", () => this.closeModal()),
     );
 
-    form.append(username, currencySection, deckSection, cardSection);
+    form.append(accountsSection, username, currencySection, deckSection, cardSection);
     dialog.append(form, result, error, actionButtons);
     overlay.append(dialog);
     this.settings?.applyDomTextScale(overlay);
     requestAnimationFrame(() => overlay.classList.add("is-visible"));
-    setTimeout(() => (focusCurrency ? currencyAmount : username).focus(), 50);
+    setTimeout(() => (focusCurrency ? currencyAmount : search).focus(), 50);
+    this.account.listAdminAccounts().then(loaded => {
+      if (this.modal !== overlay) return;
+      accounts = loaded;
+      renderAccounts();
+    }).catch(exception => {
+      if (this.modal === overlay) accountsStatus.textContent = exception.message || "Falha ao carregar contas.";
+    });
   }
 
   openAuthDialog() {

@@ -61,6 +61,11 @@ account.request = async () => ({
   };
   await account.grantRating("Gabriel", 500);
   assert.equal(account.councilMember, true);
+  account.request = async route => {
+    assert.equal(route, '/api/admin/accounts');
+    return { accounts: [{ username: 'Gabriel', clubUnlocked: true, councilMember: true }] };
+  };
+  assert.equal((await account.listAdminAccounts())[0].username, 'Gabriel');
   console.log("Coleção administrativa sincronizada com o Deck Forge.");
 })().catch((error) => {
   console.error(error);

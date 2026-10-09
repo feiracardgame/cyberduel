@@ -401,6 +401,8 @@ Use o **username único**, não o apelido/display name; maiúsculas e minúscula
 
 O botão **ADMIN** nas configurações e no mercado aparece apenas para essas contas. A API exige a sessão Google do administrador; `ADMIN_API_TOKEN` e `window.CYBERDUEL_ADMIN_TOKEN` deixam de liberar acesso. Os atalhos de teste também exigem admin; garantia de lendária e final online continuam exigindo `npm run dev`.
 
+A central administrativa permite pesquisar contas por username ou apelido, filtrar acesso ao Clube e ao Conselho atual e ordenar por pontuação. Clique na conta para ver saldo, ranking, tipos de cartas na coleção em relação ao catálogo (incluindo cartas anunciadas), tijolinhos gastos em boosters e compras no mercado e quantidade de vendas concluídas. Gastos e vendas começam a ser registrados com esta atualização; a data inicial aparece nos detalhes, pois não há histórico dessas transações anteriores.
+
 ### Recompensas solo contra o bot
 
 Cada partida solo normal de uma conta autenticada concede **1.000 tijolinhos por vitória** e **200 por derrota**; empate concede zero. A tela final mostra o crédito confirmado e permite tentar novamente se houver falha de comunicação. Partidas de teste/atalhos de admin não concedem esse bônus.

@@ -182,8 +182,10 @@ class CenaEfeitos extends Phaser.Scene {
     const escala = invocacao ? 1 : habilidade ? 1.18 : 2;
     const margemX = largura * escala * 1.1 / 2 + (invocacao ? 0 : 12);
     const margemY = altura * escala * 1.1 / 2 + 12;
-    destino.x = Math.max(margemX, Math.min(LARGURA_LAYOUT - margemX, destino.x));
-    destino.y = Math.max(margemY, Math.min(ALTURA_LAYOUT - margemY, destino.y));
+    if (!invocacao && !habilidade) {
+      destino.x = Math.max(margemX, Math.min(LARGURA_LAYOUT - margemX, destino.x));
+      destino.y = Math.max(margemY, Math.min(ALTURA_LAYOUT - margemY, destino.y));
+    }
     const impactar = () => {
       this.restaurarCartaEmTransito();
       aoImpactar();
@@ -400,7 +402,7 @@ class CenaEfeitos extends Phaser.Scene {
             }
           }
           if (evento.momento === "habilidade" && perfil.visual === "juridico" && alvo.removida && alvo.lado !== evento.lado) {
-            guardar(this.add.image(Phaser.Math.Clamp(destino.x, 175, LARGURA_LAYOUT - 175), destino.y, "efeitoAdvogado").setDisplaySize(340, 245));
+            guardar(this.add.image(destino.x, destino.y, "efeitoAdvogado").setDisplaySize(340, 245));
           }
         }
       };
@@ -457,9 +459,6 @@ class CenaEfeitos extends Phaser.Scene {
             (grande ? ALTURA_LAYOUT : impactoJuggernaut ? 245 : 260) / video.height);
           video.setScale(escala).setVisible(true);
           if (!grande) video.setAngle(this.jogo.multiplayer?.presentation && (alvoVideo?.lado || evento.lado) === "inimigo" ? 180 : 0);
-          if (!grande) video.setPosition(
-            Math.max(video.displayWidth / 2 + 12, Math.min(LARGURA_LAYOUT - video.displayWidth / 2 - 12, video.x)),
-            Math.max(video.displayHeight / 2 + 12, Math.min(ALTURA_LAYOUT - video.displayHeight / 2 - 12, video.y)));
           if (impactoJuggernaut) {
             const danoImpacto = window.setTimeout(() => { if (video.active) aplicarDano(); }, 300);
             const fimImpacto = window.setTimeout(liberarVideo, 650);
