@@ -1010,22 +1010,35 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 * Visual:
 <img alt="image" src="assets/cartas/neo_influencer.png" />
 
- #### Assets
+ #### Assets -> quando ativa a habilidade
 
- Som: 
+ Som: som-influenciador
 
  Efeito visual:
+
+ Nas cartas aliadas selecionadas, aparece o efeito efeito-influenciador-like
+
+ nas inimigas selecionadas, aparece o efeito-influenciador-deslike
+
+ e então some dps de reduzir ou buffar
 
 
 ### 1x carta alta 1 -> CyberPolíticos
 
-* Descrição: Outrora decisores do futuro da sociedade, os políticos agora disputam influência através de duelos de cartas em vez de discursos elaborados. Continuam prometendo colocar NeoFloripa nas mãos do povo, mas a promessa parece perder força quando surge uma mão mais conveniente, especialmente se ela vier acompanhada de uma carta brilhante.
+* Descrição: Outrora decisores do futuro da sociedade, os políticos agora disputam influência através de duelos de cartas em vez de discursos elaborados. Continuam prometendo colocar NeoFloripa nas mãos do povo, mas a promessa parece perder força quando surge uma mão mais conveniente, especialmente se ela vier acompanhada de uma carta brilhante. Especialistas em coligações, os principais parceiros deixaram de ser bancos e se tornaram CyberDuelistas.
 * PA: 6
 * Efeito: Troca de Favores -> Ao invocá-lo, escolha uma carta aliada. Enquanto ela ainda estiver em campo, o Político recebe +6 de PA. Caso ela seja destruída, o político é eliminado junto.
  
 * Visual: 
 
 <img alt="image" src="assets/cartas/cyber_politico.png" />
+
+
+### Assets -> quando escolher a carta aliada para fazer troca de favores
+
+Som: som-politico
+
+Efeito visual: em cima da carta com a qual foi feita coligação, aparece o "efeito-politico" e fica ali até o politico ou esta carta ser eliminada. Caso outro efeito seja jogado em cima da carta com esse efeito, ele entra por baixo, esse efeito deve ficar em cima
 
 
 #### 1x carta de terreno - NeoPalhoça
@@ -1036,11 +1049,9 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 
 *Visual: <img alt="image" src="assets/cartas/neo_palhoca.png" />
 
- #### Assets
+ #### Assets -> ao invocar a carta
 
- Som: 
-
- Efeito visual:
+ Som: som-neopalhoca
 
 
 
