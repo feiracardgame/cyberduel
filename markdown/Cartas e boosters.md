@@ -898,11 +898,12 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 
 
 
- #### Assets
+ #### Assets -> quando ativa a habilidade
 
- Som: 
+ Som: som-refrigerador
 
- Efeito visual:
+ Efeito visual: efeito-refrigerador aparece aos poucos em cima da carta onde é utilizado o efeito.
+ 
 
 
 
@@ -918,11 +919,11 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 
 <img alt="image" src="assets/cartas/montador_de_cabos.png" />
 
- #### Assets
+ #### Assets -> quando ativa a habilidade
 
- Som: 
+ Som: som-montador
 
- Efeito visual:
+ Efeito visual: aparece, em cima da carta que foi trocada e do espaço ou carta com a qual ocorreu a troca, o efeito-montador.
 
 
 
@@ -939,11 +940,11 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 <img alt="image" src="assets/cartas/estudante_tecnico.png" />
 
 
- #### Assets
+ #### Assets -> quando ativa a habilidade
 
- Som: 
+ Som: som-estudante
 
- Efeito visual:
+ Efeito visual: brilha toda em roxo a carta que teve seu efeito copiado quando a habilidade foi ativada. 
 
 
 
@@ -957,11 +958,11 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 
 <img alt="image" src="assets/cartas/cyberunidade_emergencia.png" />
 
- #### Assets
+ #### Assets -> quando ativa a habilidade e fica até o efeito passar
 
- Som: 
+ Som: som-bombeiro
 
- Efeito visual:
+ Efeito visual: pede pra ia fazer uma rajada esfumacenta branca em direção a carta alvo, que então, lentamente começa a surgir o "efeito-bombeiro" em cima da carta que foi selecionada como alvo e fica lá até o efeito passar
 
 
 
@@ -976,15 +977,15 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 
  #### Assets
 
- Som: 
+ Som: som-policial
 
- Efeito visual:
+ Efeito visual: efeito-policial aparece em cima das cartas que receberam a advertência e fica ali até o efeito sumir
 
 
 
 ### 1x carta media 3 -> NeoMedicânico
 
-* Descrição: Com o avanço da medicina, envelhecer deixou de ser um dos maiores problemas da humanidade. Em compensação, implantes cibernéticos começaram a apresentar falhas cada vez mais frequentes. Por isso, as faculdades de medicina tiveram que atualizar seus currículos: além de anatomia, agora é necessário saber um pouco de engenharia eletrônica e mecânica.
+* Descrição: Com o avanço da medicina, envelhecer deixou de ser um dos maiores problemas da humanidade. Em compensação, implantes cibernéticos começaram a apresentar falhas cada vez mais frequentes. Por isso, as faculdades de medicina tiveram que atualizar seus currículos: além de anatomia, agora é necessário saber um pouco de engenharia eletrônica e mecânica para atender, é claro, aqueles que conseguem pagar.
 * PA: 5
 * Efeito: Uma vez por turno, escolha uma carta aliada que tenha perdido PA. Ela recupera todos seus PA.
 * Visual: Faz tipo os medicânicos do cyberpunk mesmo ou o trauma team resgatando alguem
@@ -993,9 +994,9 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 
  #### Assets
 
- Som: 
+ Som: som-medico
 
- Efeito visual:
+ Efeito visual: efeito-medico aparece em cima da carta curada e some depois de ter os PA restaurado
 
 
 
