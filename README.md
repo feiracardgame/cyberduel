@@ -457,4 +457,6 @@ O **Clube secreto** possui quatro mesas independentes, com apresentações em **
 
 A página tenta entrar em tela cheia ao abrir a arena. **Esc** durante o duelo encerra a sala da apresentação e volta à preparação. Recarregar a página na mesma aba permite retomar a apresentação enquanto a sala existir. As salas ficam em memória; reiniciar o servidor encerra os duelos.
 
-Os convites usam `PUBLIC_URL` quando configurada; caso contrário, usam o endereço da página. Ao abrir localmente, o servidor tenta um IP da rede para os celulares. Em produção, configure `PUBLIC_URL` com a URL pública do jogo. A configuração Nginx incluída encaminha `/apresentacao` e as quatro apresentações numeradas ao backend; publique backend, frontend e essa configuração juntos.
+A **Partida do Conselho** usa a apresentação **`/apresentacao5`**. Os jogadores do top 10 atual reservam seu canto pelo menu do Conselho antes de inserir o código.
+
+Os convites usam `PUBLIC_URL` quando configurada; caso contrário, usam o endereço da página. Ao abrir localmente, o servidor tenta um IP da rede para os celulares. Em produção, configure `PUBLIC_URL` com a URL pública do jogo. A configuração Nginx incluída encaminha `/apresentacao` e as cinco apresentações numeradas ao backend; publique backend, frontend e essa configuração juntos.

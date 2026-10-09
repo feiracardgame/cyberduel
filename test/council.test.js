@@ -6,6 +6,13 @@ const { spawn } = require('node:child_process');
 const { io } = require('socket.io-client');
 const council = require('../server/council');
 
+const presentationLocation = fs.readFileSync('nginx.conf', 'utf8').match(/location ~ (\^\/apresenta\S+) \{/);
+assert.ok(presentationLocation, 'Nginx encaminha as apresentações numeradas ao backend.');
+const presentationRoute = new RegExp(presentationLocation[1]);
+for (const route of ['/apresentacao5', '/apresentacao5/', '/apresentação5', '/apresentação5/'])
+  assert.ok(presentationRoute.test(route), `Nginx precisa encaminhar ${route}.`);
+assert.equal(presentationRoute.test('/apresentacao6'), false);
+
 const room = { presentationHost: 'screen', players: new Map() };
 assert.equal(council.reserve(room, 'one', 3, 0), null);
 assert.equal(council.reserve(room, 'one', 1, 0).expiresAt, 60_000);
