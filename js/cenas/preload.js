@@ -57,6 +57,8 @@ window.CYBERDUEL_IMAGE_ASSETS = Object.freeze({
   daranha: "assets/cartas/D_Aranha.png",
   oboi: "assets/cartas/Anarcoboi.png",
   jogoFundo: "assets/fundo/jogo-fundo.png",
+  duelCorner: "assets/profiles/duel_corner.png",
+  duelCornerOpponent: "assets/profiles/duel_corner_opponent.png?v=20261009-filled",
   efeitoDiego: "assets/efeitos/efeito-diego.png",
   efeitoAdvogado: "assets/efeitos/efeito-advogado.png",
   efeitoHal: "assets/efeitos/efeito-hal.png",

@@ -14,12 +14,13 @@ const layout = vm.runInContext('LAYOUT_CAMPO_NORMAL', context);
 const object = () => Object.assign(new EventEmitter(), {
   active: true, input: {}, list: [], width: 0,
   add(items) { this.list.push(...(Array.isArray(items) ? items : [items])); return this; },
-  setOrigin() { return this; }, setStrokeStyle() { return this; }, setAngle() { return this; },
+  setStroke() { return this; }, setOrigin() { return this; }, setStrokeStyle() { return this; }, setAngle() { return this; },
   setScale() { return this; },
   setDepth() { return this; }, setName(name) { this.name = name; return this; },
   setSize(width, height) { Object.assign(this, { width, height }); return this; },
   setInteractive(area, contains) { Object.assign(this.input, { area, contains }); return this; },
-  lineStyle() { return this; }, strokePoints() {},
+  fillStyle() { return this; }, fillPoints() { return this; },
+  lineStyle() { return this; }, strokePoints() { return this; }, lineBetween() { return this; },
 });
 const labels = [];
 let passed = 0;
@@ -31,12 +32,12 @@ const scene = Object.assign(Object.create(Scene.prototype), {
   criarPlacaDuelo: object,
   criarTextoUI(x, y, text) { labels.push(text); return object(); },
   add: { circle: object, rectangle: object, graphics: object,
-    container(x, y, items) { return Object.assign(object().add(items), { x, y }); } },
+    container(x, y, items) { return Object.assign(object().add(items || []), { x, y }); } },
   tweens: { add() {} },
   avisoBatalhaPendente: () => false, efeitosVisuaisPendentes: () => false,
 });
 scene.desenharIndicadoresPoder();
-assert.deepEqual(labels, ['BRUNO', '45', 'PA', 'ANA', '123', 'PA']);
+assert.deepEqual(labels, ['BRUNO', '45', 'PA:', 'ANA', '123', 'PA:']);
 labels.length = 0;
 scene.partida.jogador.power = 207;
 scene.desenharIndicadoresPoder();

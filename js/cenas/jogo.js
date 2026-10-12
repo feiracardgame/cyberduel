@@ -63,6 +63,11 @@ const LAYOUT_CAMPO_AMPLIADO = calcularLayoutCampo(
 const Y_MAO_INIMIGO = 230 + DESLOCAMENTO_GUI_Y;
 const Y_MAO_JOGADOR = ALTURA_LAYOUT - 175;
 
+const PERSONAGENS_DUELO_POR_AVATAR = Object.freeze({
+  "assets/fotosdeperfil/boi_icon.png": "assets/profiles/boi_profile.png",
+  "assets/fotosdeperfil/raspclay_icon.png": "assets/profiles/raspclay_profile.png",
+});
+
 class CenaJogo extends Phaser.Scene {
   constructor() {
     super("CenaJogo");
@@ -1009,17 +1014,20 @@ class CenaJogo extends Phaser.Scene {
     const player = this.multiplayer?.player || 1;
     const profiles = this.multiplayerAtivo ? this.multiplayer.profiles : {};
     const urls = {
-      jogador: profiles?.[player]?.avatar || window.cyberduelAccount?.avatar || "assets/fotosdeperfil/boi_icon.png",
+      jogador: profiles?.[player]?.avatar || window.cyberduelAccount?.avatar || "assets/fotosdeperfil/raspclay_icon.png",
       inimigo: profiles?.[3 - player]?.avatar || "assets/fotosdeperfil/raspclay_icon.png",
     };
-    this.retratosDuelo = {};
+    this.personagensDuelo = {};
+    const carregados = new Set();
     let pendentes = false;
     for (const [lado, url] of Object.entries(urls)) {
       if (!/^assets\/fotosdeperfil\/[\w-]+\.png$/.test(url)) continue;
-      const key = `duelista:${url}`;
-      this.retratosDuelo[lado] = key;
-      if (!this.textures.exists(key)) {
-        this.load.image(key, url);
+      const personagem = PERSONAGENS_DUELO_POR_AVATAR[url] || PERSONAGENS_DUELO_POR_AVATAR["assets/fotosdeperfil/raspclay_icon.png"];
+      const personagemKey = `personagem:${personagem}`;
+      this.personagensDuelo[lado] = personagemKey;
+      if (!this.textures.exists(personagemKey) && !carregados.has(personagemKey)) {
+        this.load.image(personagemKey, personagem);
+        carregados.add(personagemKey);
         pendentes = true;
       }
     }
@@ -1327,6 +1335,7 @@ class CenaJogo extends Phaser.Scene {
     this.desenharCampoInimigo();
     this.desenharCampoJogador();
     this.desenharIndicadoresPoder();
+    this.desenharPersonagensDuelo();
     this.desenharIndicadoresDeck();
     this.desenharFundoJogo();
     this.desenharAtmosferaTatica();
@@ -1378,13 +1387,15 @@ class CenaJogo extends Phaser.Scene {
     const alturaCarta = 200;
     const espacamentoMax = 60;
     const espacamentoMin = 26;
-    const espacamento =
+    const espacamentoBase =
       total <= 8
         ? espacamentoMax
         : Math.max(espacamentoMin, espacamentoMax - (total - 8) * 5);
+    const espacamento = Math.min(espacamentoBase,
+      (LARGURA_LAYOUT * (lado === "jogador" ? 0.64 : 0.54) - 200) / Math.max(1, total - 1));
     const centroX = lado === "jogador"
-      ? LARGURA_LAYOUT / 2
-      : LARGURA_LAYOUT * 0.62;
+      ? LARGURA_LAYOUT * 0.32 + 10
+      : LARGURA_LAYOUT * 0.7;
 
     cartasMao.forEach((carta, indice) => {
       const offset = indice - (total - 1) / 2;
@@ -3069,11 +3080,12 @@ class CenaJogo extends Phaser.Scene {
     const espacamentoMax = 108;
     const espacamentoMin = 34;
 
-    const espacamentoX =
+    const espacamentoBase =
       totalCartas <= 6
         ? espacamentoMax
         : Math.max(espacamentoMin, espacamentoMax - (totalCartas - 6) * 7);
-    const centroX = LARGURA_LAYOUT / 2;
+    const espacamentoX = Math.min(espacamentoBase, (LARGURA_LAYOUT * 0.64 - 300) / Math.max(1, totalCartas - 1));
+    const centroX = LARGURA_LAYOUT * 0.32 + 10;
 
     const anguloPasso = 4;
     const curvaturaY = 2;
@@ -6506,16 +6518,15 @@ class CenaJogo extends Phaser.Scene {
   // Contadores estáveis deixam a comparação de poder legível sem alterar o tamanho do HUD a cada carta colocada.
   desenharIndicadoresPoder() {
     if (this.multiplayer?.presentation) return;
-    const L = this.layout;
     this.criarIndicadorPoder(
-      235,
-      145 + DESLOCAMENTO_GUI_Y,
+      370,
+      100 + DESLOCAMENTO_GUI_Y,
       this.partida.calcularPoderTotal(this.partida.inimigo),
       "inimigo",
     );
     this.criarIndicadorPoder(
-      LARGURA_LAYOUT - 235,
-      this.maoEscondida ? ALTURA_LAYOUT - 185 + DESLOCAMENTO_GUI_Y : L.yJogadorTras + L.slotH / 2 + 235,
+      LARGURA_LAYOUT - 185,
+      ALTURA_LAYOUT - 350,
       this.partida.calcularPoderTotal(this.partida.jogador),
       "jogador",
     );
@@ -6523,33 +6534,56 @@ class CenaJogo extends Phaser.Scene {
 
   criarIndicadorPoder(x, y, valor, lado) {
     const local = lado === "jogador";
-    const cor = local ? 0x54ddff : 0xff72af;
-    const placa = this.criarPlacaDuelo(x, y, 470, 160, cor).setScale(0.9).setDepth(180);
-    const retratoX = local ? 158 : -158;
-    const moldura = this.add.rectangle(retratoX, 0, 132, 132, 0x101e37)
-      .setStrokeStyle(3, cor);
-    placa.add(moldura);
-    const key = this.retratosDuelo?.[lado];
-    if (key && this.textures.exists(key)) placa.add(this.add.image(retratoX, 0, key)
-      .setDisplaySize(126, 126));
-
-    const textoX = local ? -207 : -65;
+    const placa = this.add.container(x, y).setAngle(local ? -22 : -16).setDepth(180);
+    const textoX = -145;
     const nome = local
       ? (this.multiplayerAtivo ? this.multiplayer.localNickname : window.cyberduelAccount?.nickname) || "VOCÊ"
       : this.multiplayerAtivo ? this.multiplayer.opponentNickname || "OPONENTE" : "BOT";
-    const nomeTexto = this.criarTextoUI(textoX, -45, String(nome).slice(0, 32).toLocaleUpperCase("pt-BR"), {
-      fontSize: "27px", color: local ? "#a7efff" : "#ffafd0", fontStyle: "bold",
-    }).setOrigin(0, 0.5);
-    if (nomeTexto.width > 265) nomeTexto.setScale(265 / nomeTexto.width);
-    const numero = this.criarTextoUI(textoX + 57, 15, String(valor), {
-      fontSize: "92px", color: "#ffffff", fontFamily: "Arial, sans-serif", fontStyle: "bold",
-    }).setOrigin(0, 0.5);
-    if (numero.width > 208) numero.setScale(208 / numero.width);
-    const label = this.criarTextoUI(textoX, 29, "PA", {
-      fontSize: "29px", color: "#ffffff", fontStyle: "bold",
-    }).setOrigin(0, 0.5);
+    const nomeTexto = this.criarTextoUI(textoX, -62,
+      String(nome).slice(0, 32).toLocaleUpperCase("pt-BR"), {
+      fontSize: "40px",
+      color: "#ffffff", fontStyle: "bold italic",
+    }).setOrigin(0, 0.5).setStroke("#02040b", 7);
+    const larguraNome = local ? 290 : 230;
+    if (nomeTexto.width > larguraNome) nomeTexto.setScale(larguraNome / nomeTexto.width);
+    const numero = this.criarTextoUI(textoX + 67, 0, String(valor), {
+      fontSize: "100px", color: "#ffffff", fontFamily: "Arial, sans-serif", fontStyle: "bold italic",
+    }).setOrigin(0, 0.5).setStroke("#02040b", 7);
+    const larguraNumero = local ? 230 : 170;
+    if (numero.width > larguraNumero) numero.setScale(larguraNumero / numero.width);
+    const label = this.criarTextoUI(textoX, local ? 20 : 0, "PA:", {
+      fontSize: "36px", color: "#ffffff", fontStyle: "bold italic",
+    }).setOrigin(0, 0.5).setStroke("#02040b", 7);
     placa.add([nomeTexto, numero, label]);
     return placa;
+  }
+
+  desenharPersonagensDuelo() {
+    if (this.multiplayer?.presentation) return;
+    for (const lado of ["jogador", "inimigo"]) {
+      const key = this.personagensDuelo?.[lado];
+      if (!key || !this.textures.exists(key)) continue;
+      const local = lado === "jogador";
+      const largura = LARGURA_LAYOUT * (local ? 0.35 : 0.21);
+      this.add.image(local ? LARGURA_LAYOUT : 0, local ? ALTURA_LAYOUT : 0,
+        local ? "duelCorner" : "duelCornerOpponent")
+        .setOrigin(local ? 1 : 0, local ? 1 : 0).setDisplaySize(local ? 650 : 570, local ? 600 : 350)
+        .setDepth(-3).setName(`fundo-personagem-${lado}`);
+      const personagem = this.add.image(local ? LARGURA_LAYOUT : 0, local ? ALTURA_LAYOUT : -largura * 0.28 + 6 * LARGURA_LAYOUT / GW, key)
+        .setOrigin(local ? 1 : 0, local ? 1 : 0).setDepth(-2).setName(`personagem-${lado}`);
+      personagem.setScale(largura / personagem.width);
+      if (!local) {
+        const faixa = this.add.image(0, 0, "duelCornerOpponent").setOrigin(0, 0)
+          .setDisplaySize(570, 350).setDepth(-1).setName("faixa-frente-inimigo");
+        const mascara = this.add.graphics().fillStyle(0xffffff, 1).fillPoints([
+          { x: 0, y: 180 }, { x: 22, y: 169 }, { x: 220, y: 128 },
+          { x: 242, y: 110 }, { x: 485, y: 62 }, { x: 570, y: 20 },
+          { x: 570, y: 350 }, { x: 0, y: 350 },
+        ], true);
+        const referencia = this.aplicarMascaraRender(faixa, mascara);
+        faixa.once("destroy", () => this.limparMascaraRender(referencia));
+      }
+    }
   }
 
   // Menu no topo; a seta lateral usa o fluxo original de passagem de turno.
