@@ -49,6 +49,12 @@ for (const name of ['aranha', 'boi', 'cabra', 'cao', 'cavalo', 'cobra', 'coelho'
   assert.ok(fs.existsSync(game[key]), `Símbolo ausente: ${name}`);
 }
 console.log('Os 12 novos efeitos estão no catálogo de carregamento.');
+for (const [key, file] of Object.entries({ efeitoRefrigerador: 'refrigerador', efeitoMontador: 'montador',
+  efeitoBombeiro: 'bombeiro', efeitoPolicial: 'policial', efeitoMedico: 'medico',
+  efeitoInfluenciadorLike: 'influenciador-like', efeitoInfluenciadorDeslike: 'influenciador-deslike', efeitoPolitico: 'politico' })) {
+  assert.equal(game[key], `assets/efeitos/efeito-${file}.png`);
+  assert.ok(fs.existsSync(game[key]), `Símbolo do Sindicato ausente: ${key}`);
+}
 
 const preloadVideos = [], preloadSounds = [], preloadSheets = [];
 const Preload = vm.runInContext('CenaPreload', context);

@@ -735,6 +735,7 @@ async function handleApi(request, response, pathname) {
   if (request.method === "GET" && pathname === "/api/leaderboard") {
     const entries = ranking.leaderboard(Object.values(accountStore.accounts))
       .slice(0, 20).map((account, index) => ({ position: index + 1, ...ranking.playerProfile(account),
+        username: account.username,
         wins: account.rankedWins, losses: account.rankedLosses, games: account.rankedGames }));
     return sendJson(response, 200, { ok: true, entries });
   }
@@ -1192,6 +1193,17 @@ function serveGame(request, response) {
   } catch {
     response.writeHead(400);
     response.end("Requisição inválida.");
+    return;
+  }
+
+  if (pathname === "/leaderboard/") {
+    response.writeHead(302, { location: "/leaderboard" });
+    response.end();
+    return;
+  }
+  if (pathname === "/leaderboard" || pathname === "/leaderboard.html") {
+    response.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-frame-options": "DENY" });
+    response.end(readFileSync(path.join(PUBLIC_ROOT, "leaderboard.html"), "utf8"));
     return;
   }
 

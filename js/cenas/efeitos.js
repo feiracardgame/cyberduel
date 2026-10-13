@@ -2,6 +2,15 @@
 const APRESENTACAO_EFEITOS = Object.freeze({
   "HumbaBrain": { invocacao: "somHumba", video: "videoEfeitohumba", volume: 0.75 },
   "Professores de Duelo": { habilidade: "somProfessores", video: "videoEfeitoprofessores", momentos: ["habilidade"], volume: 0.75 },
+  "Refrigeradores de DataCenter": { habilidade: "somRefrigerador", visual: "refrigeracao", momentos: ["habilidade"], corAlvo: 0xb567ff },
+  "Montadores de Cabos": { habilidade: "somMontador", visual: "extensao", momentos: ["habilidade"], corAlvo: 0xb567ff },
+  "Estudante de Curso Técnico": { habilidade: "somEstudante", visual: "aprendizado", momentos: ["habilidade"], corAlvo: 0xb567ff },
+  "CyberUnidades de Emergência": { habilidade: "somBombeiro", visual: "extintor", momentos: ["habilidade"], corAlvo: 0xffffff },
+  "TecnoAgentes de Segurança": { habilidade: "somPolicial", momentos: ["habilidade", "advertencia"], corAlvo: 0xb567ff },
+  "NeoMedicânico": { habilidade: "somMedico", visual: "cura", momentos: ["habilidade"], corAlvo: 0xb567ff },
+  "Influenciador Digital": { habilidade: "somInfluenciador", visual: "opiniao", momentos: ["habilidade"], corAlvo: 0xb567ff },
+  "CyberPolíticos": { passiva: "somPolitico", momentos: ["passiva"], somenteVinculo: true, corAlvo: 0xb567ff },
+  "NeoPalhoça": { invocacao: "somNeoPalhoca" },
   "Torre MonteCorp": { invocacao: "somTorre" },
   "Beira-mar norte de NeoFloripa": { invocacao: "somBeira" },
   "Nexus de Dados Global": { invocacao: "somNexus" },
@@ -56,6 +65,7 @@ class CenaEfeitos extends Phaser.Scene {
     this.invocacaoEmCurso = null;
     this.invocacoesPendentes = new Map();
     this.haCartasOcultas = false;
+    this.marcasSindicato = new Map();
     if (!this.anims.exists("forja-ferreira")) this.anims.create({
       key: "forja-ferreira", frames: this.anims.generateFrameNumbers("efeitoFerreira", { start: 0, end: 9 }),
       frameRate: 25, repeat: -1,
@@ -65,6 +75,10 @@ class CenaEfeitos extends Phaser.Scene {
       frameRate: 1000 / 60, repeat: -1,
     });
     this.events.once("shutdown", () => this.cancelarInvocacoesPendentes());
+    this.events.once("shutdown", () => {
+      this.marcasSindicato.forEach(marca => marca.destroy());
+      this.marcasSindicato.clear();
+    });
     this.scene.bringToTop();
   }
 
@@ -93,6 +107,58 @@ class CenaEfeitos extends Phaser.Scene {
 
   update() {
     this.atualizarVisibilidadeInvocacoes();
+    this.atualizarMarcasSindicato();
+  }
+
+  // Marcas derivadas do estado: sobrevivem ao redesenho e à reconexão, sem repetir o som.
+  atualizarMarcasSindicato() {
+    const partida = this.jogo.partida;
+    if (!partida?.jogador || !partida.inimigo) return;
+    this.marcasSindicato ||= new Map();
+    const desejadas = new Map();
+    for (const lado of ["jogador", "inimigo"]) {
+      const campo = partida[lado].campo.cartas;
+      const adversarios = partida[lado === "jogador" ? "inimigo" : "jogador"].campo.cartas;
+      campo.forEach((carta, indice) => {
+        if (!carta || (carta.ocultadaPelaToca && !carta.revelada && (lado !== "jogador" || this.jogo.multiplayer?.spectator))) return;
+        const chaves = [];
+        if (carta.bonusBloqueado) chaves.push("efeitoBombeiro");
+        if (adversarios.some(agente => agente?.efeito?.acao === "advertir" && agente.alvosAdvertidos?.includes(carta.id))) chaves.push("efeitoPolicial");
+        if (campo.some(politico => politico?.efeito?.tipo === TIPOS_EFEITO.VINCULO_ALIADO && politico.aliadoVinculadoId === carta.id)) chaves.push("efeitoPolitico");
+        for (const chave of chaves) {
+          if (!this.textures.exists(chave)) continue;
+          const id = `${lado}:${carta.id}:${chave}`;
+          const ponto = this.ponto(lado, indice);
+          let marca = this.marcasSindicato.get(id);
+          if (!marca) {
+            marca = this.add.image(ponto.x, ponto.y, chave).setAlpha(0).setDepth(chave === "efeitoPolitico" ? 50 : 40);
+            marca.marcaSindicato = chave;
+            this.tweens.add({ targets: marca, alpha: 1, duration: 650, delay: chave === "efeitoBombeiro" ? 350 : 0 });
+          }
+          const layout = this.jogo.layout;
+          marca.setPosition(ponto.x, ponto.y)
+            .setScale(Math.min(layout.slotW * .9 / marca.width, layout.slotH * .7 / marca.height))
+            .setAngle(this.jogo.multiplayer?.presentation && lado === "inimigo" ? 180 : 0);
+          desejadas.set(id, marca);
+        }
+      });
+    }
+    for (const [id, marca] of this.marcasSindicato) if (!desejadas.has(id)) marca.destroy();
+    this.marcasSindicato = desejadas;
+  }
+
+  revelarSimbolo(chave, ponto, guardar) {
+    if (!this.textures.exists(chave)) return;
+    const simbolo = guardar(this.add.image(ponto.x, ponto.y, chave).setDepth(11));
+    const layout = this.jogo.layout;
+    simbolo.setScale(Math.min(layout.slotW * .9 / simbolo.width, layout.slotH * .75 / simbolo.height));
+    simbolo.setAngle(this.jogo.multiplayer?.presentation && ponto.lado === "inimigo" ? 180 : 0);
+    simbolo.setCrop(0, 0, simbolo.width, 0);
+    const tinta = { progresso: 0 };
+    this.tweens.add({ targets: tinta, progresso: 1, duration: 380,
+      onUpdate: () => { if (simbolo.active) simbolo.setCrop(0, 0, simbolo.width, simbolo.height * tinta.progresso); } });
+    this.tweens.add({ targets: simbolo, alpha: 0, delay: 750, duration: 250 });
+    return simbolo;
   }
 
   deveOcultarCarta(carta) {
@@ -244,10 +310,11 @@ class CenaEfeitos extends Phaser.Scene {
     const guardar = (o) => { objetos.push(o); return o; };
     const impactoJuggernaut = perfil.visual === "impactoJuggernaut" && evento.momento === "habilidade";
     const ataqueBom = perfil.visual === "passaros" && evento.momento === "habilidade";
+    const curaMedico = perfil.visual === "cura" && evento.momento === "habilidade";
     const cartasAntesDano = [];
     // O motor já resolveu o ataque; mantém o PA anterior até apresentar o impacto.
-    if (impactoJuggernaut || ataqueBom) for (const alvo of evento.alvos || []) {
-      if (!(alvo.delta < 0) && !alvo.removida) continue;
+    if (impactoJuggernaut || ataqueBom || curaMedico) for (const alvo of evento.alvos || []) {
+      if (curaMedico ? !(alvo.delta > 0) : !(alvo.delta < 0) && !alvo.removida) continue;
       const oculta = alvo.oculto && (alvo.lado !== "jogador" || this.jogo.multiplayer?.spectator);
       const chave = oculta ? "fundoCarta" : alvo.imagem;
       if (!chave || !this.textures.exists(chave)) continue;
@@ -268,6 +335,7 @@ class CenaEfeitos extends Phaser.Scene {
         .setAngle(this.jogo.multiplayer?.presentation && alvo.lado === "inimigo" ? 180 : 0));
       carta.antesDanoJuggernaut = impactoJuggernaut;
       carta.antesDanoBom = ataqueBom;
+      carta.antesCuraMedico = curaMedico;
       cartasAntesDano.push({ carta, pa, alvo });
     }
     // Alvos, sons e vídeos começam no impacto da carta, na mesma fila.
@@ -282,7 +350,7 @@ class CenaEfeitos extends Phaser.Scene {
       const ativo = perfil.momentos?.includes(evento.momento) &&
         (!perfil.somenteGanho || evento.alvos?.some((alvo) => alvo.id === fonte.id && alvo.delta > 0));
       const pichacaoAtiva = ativo && (!perfil.picharMomentos || perfil.picharMomentos.includes(evento.momento));
-      let alvos = (evento.alvos || []).filter((alvo) => alvo.lado !== evento.lado || alvo.id !== fonte.id || perfil.imagem === "efeitoBoi" || (alvo.delta && perfil.imagem !== "efeitoRato"));
+      let alvos = (evento.alvos || []).filter((alvo) => alvo.selecionado || alvo.lado !== evento.lado || alvo.id !== fonte.id || perfil.imagem === "efeitoBoi" || (alvo.delta && perfil.imagem !== "efeitoRato"));
       if (ativo && perfil.visual === "garras" && alvos.length && this.cache.audio.exists("somTigreAtaque"))
         this.sound.play("somTigreAtaque", { volume: window.cyberduelSettings?.effects(0.3) ?? 0.3 });
       // Só o autor vê onde a armadilha foi plantada; o disparo é público.
@@ -314,6 +382,26 @@ class CenaEfeitos extends Phaser.Scene {
         }
         for (const alvo of alvos) {
           const destino = this.ponto(alvo.lado, alvo.indice);
+          destino.lado = alvo.lado;
+          if (ativo && perfil.visual === "refrigeracao") this.revelarSimbolo("efeitoRefrigerador", destino, guardar);
+          if (ativo && perfil.visual === "extensao" && Number.isInteger(alvo.indiceAnterior) && alvo.indiceAnterior !== alvo.indice) {
+            this.revelarSimbolo("efeitoMontador", { ...this.ponto(alvo.lado, alvo.indiceAnterior), lado: alvo.lado }, guardar);
+            this.revelarSimbolo("efeitoMontador", destino, guardar);
+          }
+          if (ativo && perfil.visual === "aprendizado" && alvo.id !== fonte.id) {
+            const brilho = guardar(this.add.rectangle(destino.x, destino.y, this.jogo.layout.slotW, this.jogo.layout.slotH, 0x9944ff, .65).setDepth(11));
+            brilho.brilhoAprendizado = true;
+            this.tweens.add({ targets: brilho, alpha: 0, duration: 850 });
+          }
+          if (ativo && perfil.visual === "extintor") {
+            for (let i = 0; i < 12; i++) {
+              const fumaça = guardar(this.add.ellipse(origem.x, origem.y, 26 + i * 3, 18 + i * 2, 0xffffff, .3).setDepth(11));
+              fumaça.rajadaExtintor = true;
+              this.tweens.add({ targets: fumaça, x: destino.x + (i % 3 - 1) * 18, y: destino.y + (i % 4 - 1.5) * 22,
+                scaleX: 2.5, scaleY: 2.5, alpha: 0, delay: i * 20, duration: 400 });
+            }
+          }
+          if (ativo && perfil.visual === "opiniao") this.revelarSimbolo(alvo.lado === evento.lado ? "efeitoInfluenciadorLike" : "efeitoInfluenciadorDeslike", destino, guardar);
           if (ativo && perfil.visual === "moeda" && alvo.delta > 0 && this.textures.exists("efeitoCrypto")) {
             const moeda = guardar(this.add.sprite(destino.x, destino.y, "efeitoCrypto").setDepth(11));
             const layout = this.jogo.layout;
@@ -406,7 +494,10 @@ class CenaEfeitos extends Phaser.Scene {
           }
         }
       };
-      if (ataqueBom) {
+      if (curaMedico) {
+        for (const alvo of alvos) if (alvo.delta > 0) this.revelarSimbolo("efeitoMedico", { ...this.ponto(alvo.lado, alvo.indice), lado: alvo.lado }, guardar);
+        this.time.delayedCall(450, aplicarDano);
+      } else if (ataqueBom) {
         const passaros = [];
         for (const alvo of alvos) {
           if (!(alvo.delta < 0) || !this.textures.exists("efeitoBom")) continue;
@@ -424,7 +515,7 @@ class CenaEfeitos extends Phaser.Scene {
       } else if (!impactoJuggernaut) aplicarDano();
       const som = perfil[evento.momento] || (evento.momento === "invocacao" ? "somJogarCarta" : alvos.some(a => a.removida) ? "somExplosao" : "somBuff");
       const volume = perfil.volume ?? 0.3;
-      const tocaSom = (!perfil.somenteGanho || ativo) && (!echo || (ativo && (alvos.length || perfil.imagem === "efeitoCoelho" || ["efeitoAranha", "efeitoBoi", "efeitoCabra"].includes(perfil.imagem)))) &&
+      const tocaSom = (!perfil.somenteVinculo || fonte.aliadoVinculadoId != null) && (!perfil.somenteGanho || ativo) && (!echo || (ativo && (alvos.length || perfil.imagem === "efeitoCoelho" || ["efeitoAranha", "efeitoBoi", "efeitoCabra"].includes(perfil.imagem)))) &&
         (som !== "somReplicantes" || alvos.some(alvo => alvo.delta > 0)) && this.cache.audio.exists(som);
       if (tocaSom) this.sound.play(som, { volume: window.cyberduelSettings?.effects(volume) ?? volume });
       const duracaoInvestida = ativo && perfil.visual === "garras" ? (this.cache.audio.get?.("somTigreInvestida")?.duration || 0) * 1000 : 0;

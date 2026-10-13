@@ -201,24 +201,18 @@ vm.runInContext(fs.readFileSync('js/multiplayer.js', 'utf8'), context);
     assert.equal(alvo.bonusBloqueado, true, 'Extintor dura até a pontuação da rodada.');
     return {};
   };
-  p.fimTurno({ semIA: true });
-  assert.equal(alvo.bonusBloqueado, true);
-  p.fase = "colocar";
-  p.iniciarTurno(p.inimigo);
-  assert.equal(alvo.buff(3), 0, 'Extintor cobre a próxima fase de colocação.');
   p.inimigo.campo.cartas[1] = null; // Deixa o alvo isolado para a carta de efeito.
   const efeito = carta('Você Parece Sozinho');
   const poderAntes = alvo.poder;
   const invocacao = p.aplicarEfeitoInvocacao(efeito, p.inimigo, p.jogador, null, 0);
-  assert.equal(alvo.poder, poderAntes, 'Carta de efeito na colocação não burla o Extintor.');
+  assert.equal(alvo.poder, poderAntes, 'Carta de efeito não burla o Extintor durante a rodada.');
   assert.equal(invocacao.find(e => e.carta === alvo).delta, 0);
   const salvo = multiplayer.hydrateMatch(multiplayer.serializeMatch(p));
-  assert.equal(salvo.inimigo.campo.cartas[0].bonusBloqueadoAteRodada, 2);
+  assert.equal(salvo.inimigo.campo.cartas[0].bonusBloqueadoAteRodada, 1);
   assert.equal(salvo.inimigo.campo.cartas[0].buff(3), 0);
-  p.fase = "habilidades";
   p.fimTurno({ semIA: true });
   assert.equal(alvo.bonusBloqueado, false);
-  assert.equal(alvo.buff(1), 1, 'Bônus voltam após a pontuação da rodada seguinte.');
+  assert.equal(alvo.buff(1), 1, 'Bônus voltam após a pontuação da rodada atual, conforme o documento.');
 }
 {
   const p = mesa(); const politico = colocar(p, 'CyberPolíticos', 0);

@@ -54,6 +54,14 @@ async function run() {
     server.stdout.on('data', chunk => { if (chunk.toString().includes('ouvindo')) { clearTimeout(timeout); resolve(); } });
   });
   assert.equal((await fetch(url + '/apresentacao5')).status, 200);
+  const leaderboardPage = await fetch(url + '/leaderboard');
+  assert.equal(leaderboardPage.status, 200);
+  assert.match(await leaderboardPage.text(), /js\/leaderboard.js/);
+  const leaderboardRedirect = await fetch(url + '/leaderboard/', { redirect: 'manual' });
+  assert.equal(leaderboardRedirect.headers.get('location'), '/leaderboard');
+  const leaderboardData = await (await fetch(url + '/api/leaderboard')).json();
+  assert.equal(leaderboardData.entries[0].username, fixtures[0].username, 'Identidade estável para animar sem depender do apelido.');
+  assert.equal(leaderboardData.entries.length, 12, 'A API mantém os demais jogadores para o ranking do menu.');
   for (const fixture of [fixtures[0], fixtures[1], fixtures[10]]) {
     const headers = { Authorization: `Bearer ${fixture.token}`, 'Content-Type': 'application/json' };
     const response = await fetch(url + '/api/account/faction', { method: 'POST', headers, body: JSON.stringify({ faction: 'echossystem' }) });

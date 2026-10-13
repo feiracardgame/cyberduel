@@ -26,7 +26,7 @@ function fixture(spectator = false) {
       setAlpha(v) { this.alpha=v; return this; }, setSize() { return this; },
       setText(v) { this.value=v; return this; },
       setInteractive() { return this; }, on() { return this; },
-      setVisible(v) { this.visible=v; return this; }, setDepth() { return this; },
+      setVisible(v) { this.visible=v; return this; }, setDepth(v) { this.depth=v; return this; },
       setScale(x,y=x) { this.scaleX=x; this.scaleY=y; return this; }, setAngle(v) { this.angle=v; return this; },
       add(children) { this.value.push(...children); return this; },
       destroy() { this.active=false; if(Array.isArray(this.value)) this.value.forEach(c=>c.destroy()); },
@@ -651,3 +651,56 @@ for (const gain of [false, true]) {
   assert.equal(f.sounds.filter(key => key === 'somFeio').length, gain ? 1 : 0, 'Feio só anuncia a ativação do bônus.');
 }
 console.log('Remanescentes: seis sons, GIF da Ferreira, soco do Mau, pássaros antes do dano, bônus do Feio e limpeza em todas as perspectivas validados.');
+
+// Símbolos persistem no estado, acompanham movimentos e não duplicam sons no redesenho.
+for (const side of ['jogador', 'inimigo']) {
+  const f = fixture(); f.s.jogo.multiplayer.presentation = true;
+  const opponent = side === 'jogador' ? 'inimigo' : 'jogador';
+  const target = { id: 80, bonusBloqueado: true };
+  f.s.jogo.partida[side].campo.cartas = [target, { id: 81, efeito: { tipo: 'vinculo_aliado' }, aliadoVinculadoId: 80 }];
+  f.s.jogo.partida[opponent].campo.cartas = [{ id: 82, efeito: { acao: 'advertir' }, alvosAdvertidos: [80] }];
+  context.TIPOS_EFEITO.VINCULO_ALIADO = 'vinculo_aliado';
+  f.s.update();
+  const marks = [...f.s.marcasSindicato.values()];
+  assert.equal(marks.length, 3);
+  for (const mark of marks) assert.equal(mark.angle, side === 'inimigo' ? 180 : 0);
+  const political = marks.find(mark => mark.marcaSindicato === 'efeitoPolitico');
+  assert.ok(marks.filter(mark => mark !== political).every(mark => mark.depth < political.depth));
+  f.s.update(); assert.equal(f.s.marcasSindicato.size, 3);
+  assert.equal(f.sounds.length, 0);
+  f.s.jogo.partida[side].campo.cartas[0] = null;
+  f.s.jogo.partida[side].campo.cartas[3] = { ...target };
+  f.s.update();
+  assert.ok([...f.s.marcasSindicato.values()].every(mark => mark.x === f.s.ponto(side, 3).x));
+  f.s.jogo.partida[side].campo.cartas[3].bonusBloqueado = false;
+  f.s.jogo.partida[side].campo.cartas[1] = null;
+  f.s.jogo.partida[opponent].campo.cartas = [];
+  f.s.update();
+  assert.equal(f.s.marcasSindicato.size, 0);
+  assert.ok(marks.every(mark => !mark.active));
+}
+for (const [name, key, moment, extra] of [
+  ['Refrigeradores de DataCenter', 'somRefrigerador', 'habilidade'],
+  ['Montadores de Cabos', 'somMontador', 'habilidade'],
+  ['Estudante de Curso Técnico', 'somEstudante', 'habilidade'],
+  ['CyberUnidades de Emergência', 'somBombeiro', 'habilidade'],
+  ['TecnoAgentes de Segurança', 'somPolicial', 'habilidade'],
+  ['NeoMedicânico', 'somMedico', 'habilidade'],
+  ['Influenciador Digital', 'somInfluenciador', 'habilidade'],
+  ['CyberPolíticos', 'somPolitico', 'passiva', { aliadoVinculadoId: 10 }],
+  ['NeoPalhoça', 'somNeoPalhoca', 'invocacao'],
+  ['Professores de Duelo', 'somProfessores', 'habilidade'],
+]) for (const side of ['jogador', 'inimigo']) {
+  const f = fixture(); f.s.cache.audio.exists = () => true;
+  const event = f.event(1, moment, { lado: side, fonte: { ...f.source, nome: name, ...extra },
+    alvos: [{ lado: side, indice: 1, indiceAnterior: 0, id: 10, imagem: 'arte', delta: 2, selecionado: true }] });
+  f.s.receber([event]); f.s.receber([event]); f.flush();
+  assert.equal(f.sounds.filter(sound => sound === key).length, 1, `${name}: som único nas duas perspectivas`);
+  assert.ok(f.objects.filter(object => typeof object.value === 'string' && object.value.startsWith('efeito')).every(object => !object.active));
+}
+{
+  const f = fixture(); f.s.cache.audio.exists = () => true;
+  f.s.receber([f.event(1, 'passiva', { fonte: { ...f.source, nome: 'CyberPolíticos' } })]); f.flush();
+  assert.equal(f.sounds.includes('somPolitico'), false, 'Sem coligação, não toca o som político.');
+}
+console.log('Sindicato: dez sons, eventos únicos, símbolos persistentes, orientação, movimento, prioridade e limpeza validados.');

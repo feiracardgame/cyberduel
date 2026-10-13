@@ -4693,7 +4693,7 @@ class CenaJogo extends Phaser.Scene {
       aprender: "Escolha a habilidade para aprender (esta carta perde 2 PA)",
       bloquear_bonus: "Escolha uma inimiga para bloquear seus bônus",
       advertir: "Escolha uma inimiga para advertir",
-      curar: "Escolha uma aliada para recuperar até 4 PA",
+      curar: "Escolha uma aliada para restaurar todos os PA perdidos",
       opiniao: "1 de 2 • Toque em uma carta.\nAliado: +2 PA. Inimigo: −2 PA.",
       reativar: "Escolha uma aliada para liberar sua habilidade novamente",
     };
@@ -4866,7 +4866,6 @@ class CenaJogo extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(3900);
     instrucao.setScale(Math.min(1, (LARGURA_LAYOUT - 80) / instrucao.width, 120 / instrucao.height));
     instrucao.instrucaoHabilidade = true;
-    if (this.cache?.audio.exists("somAlvo")) this.sound.play("somAlvo", { volume: window.cyberduelSettings?.effects(0.18) ?? 0.18 });
     return instrucao;
   }
 
@@ -4906,6 +4905,8 @@ class CenaJogo extends Phaser.Scene {
   ) {
     const L = this.layout;
     const objetos = [];
+    if (["Agente da DIPSP", 'UCC "Juggernaut"'].includes(carta.nome) && this.cache?.audio.exists("somAlvo"))
+      this.sound.play("somAlvo", { volume: window.cyberduelSettings?.effects(0.18) ?? 0.18 });
 
     // Escurece o fundo sem esconder os alvos.
     let overlay = this.add

@@ -7,7 +7,8 @@
     "start": "node server/server.js",
     "dev": "node scripts/dev-server.js",
     "check": "node scripts/test-game.js",
-    "test": "node scripts/test-game.js"
+    "test": "node scripts/test-game.js",
+    "test:sindicato:browser": "node scripts/test-sindicato-playwright.js"
   },
   "dependencies": {
     "google-auth-library": "^11.1.0",
@@ -15,6 +16,7 @@
     "socket.io": "^4.8.3"
   },
   "devDependencies": {
+    "playwright": "^1.64.0",
     "socket.io-client": "^4.8.3"
   }
 }

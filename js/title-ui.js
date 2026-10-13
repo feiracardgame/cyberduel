@@ -2375,6 +2375,10 @@ class CyberduelTitleUI {
     const close = this.button("title-small-button", "FECHAR", () =>
       this.closeModal(),
     );
+    const panel = this.element("a", "title-small-button", "ABRIR PAINEL AO VIVO ↗");
+    panel.href = `/leaderboard${window.location?.search || ""}`;
+    panel.target = "_blank";
+    panel.rel = "noopener";
     dialog.append(
       this.element("h2", "", "TOP 20 DUELISTAS"),
       this.element(
@@ -2383,6 +2387,7 @@ class CyberduelTitleUI {
         "Para entrar no ranking: 5 partidas e 3 vitórias contra jogadores. O top 10 forma o Conselho. Partidas contra o bot não contam.",
       ),
       status,
+      panel,
       close,
     );
     overlay.append(dialog);

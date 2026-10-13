@@ -257,6 +257,7 @@ class Partida {
       const atual = depois.find((c) => c.lado === anterior.lado && c.id === anterior.id);
       if (atual && atual.poder === anterior.poder && atual.estado === anterior.estado && atual.indice === anterior.indice && atual.cascaGrossa === anterior.cascaGrossa) return [];
       return [{ lado: anterior.lado, indice: atual?.indice ?? anterior.indice, id: anterior.id,
+        indiceAnterior: anterior.indice,
         nome: anterior.nome, imagem: anterior.imagem, oculto: anterior.oculto && (atual?.oculto ?? true),
         delta: (atual?.poder ?? 0) - anterior.poder, removida: !atual,
         cascaGrossa: (atual?.cascaGrossa || 0) > anterior.cascaGrossa,
@@ -271,6 +272,7 @@ class Partida {
         efeito: carta.efeito ? JSON.parse(JSON.stringify(carta.efeito)) : null,
         efeitoTurno: carta.efeitoTurno, efeitoContinuo: carta.efeitoContinuo,
         habilidadeAprendidaDe: carta.habilidadeAprendidaDe,
+        aliadoVinculadoId: carta.aliadoVinculadoId,
         oculto: !!fonteReal.ocultadaPelaToca && !fonteReal.revelada,
         indice: dono.campo.cartas.includes(fonteReal) ? dono.campo.cartas.indexOf(fonteReal) : (antes.find((c) => c.lado === lado && c.id === carta.id)?.indice ?? -1) }, alvos, ...extra });
   }
@@ -621,8 +623,14 @@ class Partida {
         const aliado = misto ? indice < 10 : aliados.includes(efeitoOriginal.tipo) || efeitoOriginal.alvo === "aliado";
         const ladoAlvo = (aliado ? dono : oponente) === this.jogador ? "jogador" : "inimigo";
         const pos = antesEfeito.find((c) => c.lado === ladoAlvo && c.indice === (misto ? indice % 10 : indice));
-        if (pos && !evento.alvos.some((c) => c.id === pos.id && c.lado === pos.lado))
-          evento.alvos.push({ lado: pos.lado, indice: pos.indice, id: pos.id, nome: pos.nome, oculto: pos.oculto, delta: 0, mudouEstado: true });
+        if (pos) {
+          let selecionado = evento.alvos.find((c) => c.id === pos.id && c.lado === pos.lado);
+          if (!selecionado) {
+            selecionado = { lado: pos.lado, indice: pos.indice, id: pos.id, nome: pos.nome, oculto: pos.oculto, delta: 0, mudouEstado: true };
+            evento.alvos.push(selecionado);
+          }
+          selecionado.selecionado = true;
+        }
       }
       const agentes = oponente.campo.cartas.filter((c) =>
         c?.efeito?.acao === "advertir" && (c.alvosAdvertidos || []).includes(carta.id));
@@ -678,7 +686,7 @@ class Partida {
       case "proteger": alvo.protegidaPA = true; break;
       case "bloquear_bonus":
         alvo.bonusBloqueado = true;
-        alvo.bonusBloqueadoAteRodada = (this.turno || 1) + 1;
+        alvo.bonusBloqueadoAteRodada = this.turno || 1;
         break;
       case "advertir": carta.alvosAdvertidos = [...new Set([...(carta.alvosAdvertidos || []), alvo.id])]; break;
       case "mover": dono.campo.cartas[escolhido] = null; dono.campo.cartas[secundario] = alvo; break;

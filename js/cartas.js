@@ -433,7 +433,7 @@ const POOL_CARTAS_MONSTRO = [
     nome: "CyberPolíticos",
     poder: 6,
     descricao:
-      "Outrora decisores do futuro da sociedade, os políticos agora disputam influência através de duelos de cartas em vez de discursos elaborados. Continuam prometendo colocar NeoFloripa nas mãos do povo, mas a promessa parece perder força quando surge uma mão mais conveniente, especialmente se ela vier acompanhada de uma carta brilhante.",
+      "Outrora decisores do futuro da sociedade, os políticos agora disputam influência através de duelos de cartas em vez de discursos elaborados. Continuam prometendo colocar NeoFloripa nas mãos do povo, mas a promessa parece perder força quando surge uma mão mais conveniente, especialmente se ela vier acompanhada de uma carta brilhante. Especialistas em coligações, os principais parceiros deixaram de ser bancos e se tornaram CyberDuelistas.",
     imagem: "cyber_politico",
     booster: "sindicato",
     nivel: "alta",
@@ -466,7 +466,7 @@ const POOL_CARTAS_MONSTRO = [
     nome: "NeoMedicânico",
     poder: 5,
     descricao:
-      "Com o avanço da medicina, envelhecer deixou de ser um dos maiores problemas da humanidade. Em compensação, implantes cibernéticos começaram a apresentar falhas cada vez mais frequentes. Por isso, as faculdades de medicina tiveram que atualizar seus currículos: além de anatomia, agora é necessário saber um pouco de engenharia eletrônica e mecânica.",
+      "Com o avanço da medicina, envelhecer deixou de ser um dos maiores problemas da humanidade. Em compensação, implantes cibernéticos começaram a apresentar falhas cada vez mais frequentes. Por isso, as faculdades de medicina tiveram que atualizar seus currículos: além de anatomia, agora é necessário saber um pouco de engenharia eletrônica e mecânica para atender, é claro, aqueles que conseguem pagar.",
     imagem: "neomedicanico",
     booster: "sindicato",
     nivel: "media",
@@ -509,7 +509,7 @@ const POOL_CARTAS_MONSTRO = [
       acao: "bloquear_bonus",
       alvo: "inimigo",
       texto:
-        "Extintor -> Uma vez por turno, escolha uma carta inimiga. Até o fim da próxima rodada, ela não pode receber bônus de PA.",
+        "Extintor -> Uma vez por turno, escolha uma carta inimiga. Até o fim da rodada, ela não pode receber bônus de PA.",
     },
     habilidadeAtiva: true,
   },

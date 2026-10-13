@@ -5,8 +5,8 @@ const context = vm.createContext({ window: {}, TIPOS_EFEITO: { REDISTRIBUIR_PODE
 vm.runInContext(fs.readFileSync('js/cenas/jogo.js', 'utf8'), context);
 const CenaJogo = vm.runInContext('CenaJogo', context);
 
-function selection(effect = { total: 6 }, nome = "Dieh'Go, o Xerife") {
-  const objects = [];
+function selection(effect = { total: 6 }, nome = "Dieh'Go, o Xerife", singleTarget = false) {
+  const objects = [], sounds = [];
   function object(type, x, y, text) {
     const o = { type, x, y, text, width: 800, height: 90, handlers: {}, active: true,
       setScale(v) { this.scale = v; return this; },
@@ -24,6 +24,9 @@ function selection(effect = { total: 6 }, nome = "Dieh'Go, o Xerife") {
     partida: { inimigo: { campo: { cartas: [{ poder: 2 }, { poder: 9 }] } } },
     add: Object.fromEntries(['rectangle', 'text', 'image'].map(type => [type, (...args) => object(type, ...args)])),
     textures: { exists: () => true },
+    cache: { audio: { exists: () => true } },
+    sound: { play: key => sounds.push(key) },
+    tweens: { add() {} },
     criarBotaoConfirmacao(x, y, text, color, callback) {
       this.confirm = callback;
       return { list: [], setAlpha() {}, destroy() {} };
@@ -31,9 +34,19 @@ function selection(effect = { total: 6 }, nome = "Dieh'Go, o Xerife") {
     cancelarSelecaoDeAlvo() { this.cancelled = true; },
     executarHabilidade(card, targets) { this.targets = Array.from(targets); },
   });
-  scene.iniciarDistribuicaoDeDano({ nome, efeito: effect }, [0, 1]);
-  return { scene, objects, zones: objects.filter(o => o.depth === 3803), overlay: objects[0] };
+  if (singleTarget) scene.iniciarSelecaoDeAlvo({ nome, efeito: effect }, [0, 1]);
+  else scene.iniciarDistribuicaoDeDano({ nome, efeito: effect }, [0, 1]);
+  return { scene, objects, sounds, zones: objects.filter(o => o.depth === 3803), overlay: objects[0] };
 }
+// Target Acquired só acompanha a seleção de alvo dos dois agentes armados.
+for (const nome of ['Agente da DIPSP', 'UCC "Juggernaut"', 'Advogado Corporativo', 'A Aranha', 'A Cobra', 'Estudante de Curso Técnico']) {
+  const { scene, sounds } = selection({ valor: 5 }, nome, true);
+  const allowed = nome === 'Agente da DIPSP' || nome === 'UCC "Juggernaut"';
+  assert.deepEqual(sounds, allowed ? ['somAlvo'] : [], `Target Acquired: ${nome}`);
+  scene.criarInstrucaoSelecao('Nenhum alvo em alcance');
+  assert.equal(sounds.length, allowed ? 1 : 0, 'Instruções genéricas não tocam o aviso de alvo.');
+}
+for (const nome of ["Dieh'Go, o Xerife", 'O Bom']) assert.deepEqual(selection({ total: 6 }, nome).sounds, []);
 {
   const { scene, objects, zones, overlay } = selection();
   scene.confirm(); assert.equal(scene.targets, undefined);

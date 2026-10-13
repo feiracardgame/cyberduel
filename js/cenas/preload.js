@@ -77,6 +77,14 @@ window.CYBERDUEL_IMAGE_ASSETS = Object.freeze({
   efeitoTigre: "assets/efeitos/efeito-tigre.png",
   efeitoMau: "assets/menus/efeito_mau.png",
   efeitoBom: "assets/efeitos/efeito_bom.png",
+  efeitoRefrigerador: "assets/efeitos/efeito-refrigerador.png",
+  efeitoMontador: "assets/efeitos/efeito-montador.png",
+  efeitoBombeiro: "assets/efeitos/efeito-bombeiro.png",
+  efeitoPolicial: "assets/efeitos/efeito-policial.png",
+  efeitoMedico: "assets/efeitos/efeito-medico.png",
+  efeitoInfluenciadorLike: "assets/efeitos/efeito-influenciador-like.png",
+  efeitoInfluenciadorDeslike: "assets/efeitos/efeito-influenciador-deslike.png",
+  efeitoPolitico: "assets/efeitos/efeito-politico.png",
 });
 
 // Usa WebP reduzido no Phaser e mantém as artes originais no DOM.
@@ -155,6 +163,11 @@ class CenaPreload extends Phaser.Scene {
       somTigreInvestida: "som-tigreataque.mp3",
       somAreia: "som_areia.mp3", somFerreira: "som_ferreira.mp3", somFeio: "som_feio.mp3",
       somMau: "som_mau.mp3", somBom1: "som_bom1.mp3", somBom2: "som_bom2.mp3",
+      somRefrigerador: "som-refrigerador.mp3", somMontador: "som-montador.mp3",
+      somEstudante: "som-estudante.mp3", somBombeiro: "som-bombeiro.mp3",
+      somPolicial: "som-policial.mp3", somMedico: "som-medico.mp3",
+      somInfluenciador: "som-influenciador.mp3", somPolitico: "som-politico.mp3",
+      somNeoPalhoca: "som-neopalhoca.mp3",
     })) this.load.audio(key, `assets/sons/${file}`);
     for (const nome of ["humba", "diego", "professores"])
       this.load.video(`videoEfeito${nome}`, `assets/efeitos/efeito-${nome}-alpha.webm`);

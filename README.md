@@ -10,7 +10,15 @@ Requer Node.js 22 ou superior.
 3. Para jogar **sem conta Google**, inicie com `npm run dev` e abra **http://127.0.0.1:3000/**. Em **IDENTIFICAR // ENTRAR**, informe um nome de teste e clique em **ENTRAR LOCALMENTE**. A conta local tem acesso aos atalhos de teste/admin; escolha sua facção para receber o deck inicial. Use nomes diferentes para testar dois jogadores.
 4. As contas de desenvolvimento persistem em `server/data-dev/` (ignorado pelo Git). Reusar o mesmo nome recupera o progresso; `DATA_DIR`, se informado, tem prioridade. O servidor de desenvolvimento escuta apenas em `127.0.0.1`. `npm start` mantém login Google, dados normais e acesso pela rede, sem aceitar contas locais. Com `.env`, use `node --env-file=.env scripts/dev-server.js`.
 
+### Testar os efeitos do Sindicato com Playwright
+
+Execute `npm run test:sindicato:browser`. O teste abre uma arena real, prepara campos determinísticos e usa toques no botão de habilidade e nos alvos para verificar as dez cartas do booster. Ele valida as regras, a reprodução dos sons, os símbolos, o vídeo dos Professores, a expiração dos estados, a serialização e a orientação da apresentação. O servidor usa contas e dados temporários, sem alterar as contas do jogo. Capturas, relatório e trace ficam em `output/sindicato/`.
+
+No Windows com Google Chrome instalado, o teste usa esse navegador. Nas demais instalações, execute `npx playwright install chromium` antes do teste; `PLAYWRIGHT_CHANNEL=chrome` também permite selecionar o Chrome. A porta padrão do servidor de teste é 31973, configurável por `SINDICATO_TEST_PORT`.
+
 ### Live Server opcional
+
+A tela dedicada do Conselho fica em **http://127.0.0.1:3000/leaderboard**, sem exigir login. Ela mostra o top 10 real, consulta o ranking automaticamente a cada 3 segundos após a atualização anterior e anima mudanças de posição, influência e integrantes. O botão **ABRIR PAINEL AO VIVO** no ranking abre essa tela em outra aba. No Live Server, abra `leaderboard.html`; o parâmetro `?server=` também é aceito. Em caso de falha de conexão, a última classificação permanece visível enquanto a página tenta reconectar. A preferência do sistema por movimento reduzido é respeitada.
 
 Se preferir, abra `index.html` com **Open with Live Server**. Nas portas 5500/5501 (também 4173, 5173 e 8080), login e multiplayer usam automaticamente o servidor da mesma máquina na porta 3000. Se uma compra provocar refresh, acesse diretamente a porta 3000.
 
