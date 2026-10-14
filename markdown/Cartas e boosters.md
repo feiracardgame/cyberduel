@@ -10,7 +10,7 @@
 * PA: 3
 * Efeito:
 
-Venda Casada → Ao ser colocado em campo, o CyberVendedor faz questão de garantir a venda de um dos seus 65.732 combos, em vez do produto que você realmente queria. Escolha, uma vez por turno, uma carta aliada ou esta para ganhar +1 PA.
+Venda Casada → Ao ser colocado em campo, o CyberVendedor faz questão de garantir a venda de um dos seus 65.732 combos, em vez do produto que você realmente queria. Escolha, uma vez por turno, uma carta aliada ou esta para ganhar +2 PA.
 
  
 * Arte:
@@ -54,7 +54,7 @@ Machine learning -> Escolha uma carta aliada. Ela recebe +3 PA. O Estagiário pe
 * PA: 4
 * Efeito: 
 
- SLA de 1º Retorno -> Para cada NeoAnalista de Suporte Nível Alpha em campo, o tempo de turno e de ataque do oponente é reduzido em 15 segundos, até um mínimo de 20 segundos.
+ SLA de 1º Retorno -> Para cada NeoAnalista de Suporte Nível Alpha em campo, o tempo de turno e de ataque do oponente é reduzido em 15 segundos, até um mínimo de 15 segundos.
 
 * Arte:
  <img alt="image" src="assets/cartas/NeoAnalista_de_Suporte_Nivel_Alpha.png" />
@@ -67,7 +67,7 @@ Machine learning -> Escolha uma carta aliada. Ela recebe +3 PA. O Estagiário pe
 
 
 ### 2x carta media 1 - Advogado Corporativo
-* Descrição: Sua principal função é garantir que a Raspcorp permaneça em conformidade com a legislação vigente. Felizmente, ambas costumam ser atualizadas ao mesmo tempo. Ao longo de sua carreira, participou da aquisição de sete empresas, três governos e um incidente que permanece sob sigilo judicial
+* Descrição: Sua principal função é garantir que a Raspcorp permaneça em conformidade com a legislação vigente. Felizmente, ambas costumam ser atualizadas ao mesmo tempo. Ao longo de sua carreira, participou da aquisição de sete empresas, três governos e um incidente que permanece sob sigilo judicial.
 * PA: 5
 * Efeito:
 
@@ -129,7 +129,7 @@ Machine learning -> Escolha uma carta aliada. Ela recebe +3 PA. O Estagiário pe
 * PA: 8
 * Efeito:
 
- Missão de Paz - A DIPSP conduz uma operação humanitária para proteger a população local de seus próprios recursos naturais. A cada turno, escolha até 2 cartas em alcance curto ou longo que estejam até uma coluna de distância. Os alvos atingidos perdem 3 de PA.
+ Missão de Paz - A DIPSP conduz uma operação humanitária para proteger a população local de seus próprios recursos naturais. A cada turno, escolha até 2 cartas em alcance (H3/V2). Os alvos atingidos perdem 3 de PA.
  
 * Arte:
  <img alt="image" src="assets/cartas/AgenteDIPSP.png" />
@@ -147,7 +147,7 @@ Machine learning -> Escolha uma carta aliada. Ela recebe +3 PA. O Estagiário pe
 * PA: 10
 * Efeito: 
 
- Potencialização de Capital -> Escolha até 3 cartas aliadas de nível baixo ou médio em campo ao invocar esta carta. RaspClay absorve a produtividade delas, removendo-as do campo e aumentando seu PA pela soma dos seus valores de PA.
+ Potencialização de Capital -> Escolha até 3 cartas aliadas de nível baixo ou médio em campo ao invocar esta carta. RaspClay absorve a produtividade delas, removendo-as do campo e aumentando seu PA pela soma dos seus valores de PA. O Montante final aumenta em +1 para cada carta baixa utilizada e em +3 para cada carta média.
  
 * Arte:
  <img alt="image" src="assets/cartas/RaspClay_MonteCorp.png" />
@@ -197,7 +197,7 @@ Jogando em casa -> O ambiente de trabalho competitivo e supostamente confortáve
 * Descrição: Depois que a verdadeira Floripa sucumbiu ao aumento do nível do mar, os nostálgicos decidiram recriá-la no mundo virtual. Ironicamente, continua sendo o jeito mais acessível de morar na ilha. O trânsito, contudo, nem aqui foi resolvido.
 * Efeito:
 
-Rolê na Beira-Mar: A ida à Beira-Mar é um momento de descanso no meio desse mundo louco. Enquanto este terreno estiver em campo, toda carta aliada que tiver sofrido dano recupera 2 PA ao final de cada turno.
+Rolê na Beira-Mar: A ida à Beira-Mar é um momento de descanso no meio desse mundo louco. Enquanto este terreno estiver em campo, toda carta aliada que tiver sofrido dano recupera 2 PA ao final de cada turno, até o limite de PA original da carta.
 
 * Arte:
  <img alt="image" src="assets/cartas/Beiramar_Neofloripa.png" />
@@ -214,7 +214,7 @@ Rolê na Beira-Mar: A ida à Beira-Mar é um momento de descanso no meio desse m
 
 * Descrição: Responsável por armazenar aproximadamente 99% dos dados da humanidade. Sua destruição foi comparada à queima da Biblioteca de Alexandria, caso ela armazenasse apenas informações pessoais obtidas por meios semilegais. Ainda bem que tudo é salvo na nuvem atualmente.
 * Efeito:
-Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhecê-la melhor do que você. As cartas na mão do adversário permanecem reveladas enquanto este terreno estiver em campo.
+Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhecê-la melhor do que você. As cartas na mão do adversário permanecem reveladas para todos enquanto este terreno estiver em campo.
 
 * Arte:
  <img alt="image" src="assets/cartas/NexusNeoFloripa.png" />
@@ -233,7 +233,7 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
 * Descrição: O Rato é o membro mais jovem da EchoSsystem. Sua habilidade de infiltração é tão impressionante que poucos acreditam que ele de fato exista. O mesmo não pode ser dito sobre as piadas envolvendo seu nome, que aparecem em praticamente todas as reuniões do grupo.
 * PA: 2
-* Efeito: Mãos Leves → Escolha, a cada turno, uma carta inimiga em qualquer lugar do campo. O Rato rouba 1 PA dela, adicionando esse valor ao seu próprio PA.
+* Efeito: Mãos Leves → Escolha, a cada turno, uma carta inimiga em alcance (H3V1). O Rato rouba 2 PA dela, adicionando esse valor ao seu próprio PA.
 
 * Visual: 
 
@@ -253,7 +253,7 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
 * Descrição: A Cabra era ginasta olímpica antes da humanidade decidir que esportes tradicionais deixaram de ser uma profissão. Hoje, ela continua escalando estruturas gigantescas, mas finalmente encontrou um público que realmente valoriza seu trabalho: a equipe de segurança do último andar da Torre MonteCorp.
 * PA: 3
-* Efeito: Escalada -> A Cabra, devido à sua alta mobilidade, pode, a cada turno, reposicionar-se no campo aliado, trocando de lugar com outra carta ou espaço livre disponível.
+* Efeito: Escalada -> A Cabra, devido à sua alta mobilidade, pode, uma vez a cada turno, reposicionar-se no campo aliado, trocando de lugar com outra carta ou espaço livre disponível. Ao fazer isso, ela recebe +1 PA.
 * Visual:
 
 
@@ -275,7 +275,7 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
 * Descrição: Descrição: Antes mesmo de entrar para o grupo anarquista, o Cão já era um mercenário especializado em rastrear alvos. Seus implantes cibernéticos de olfato permitem encontrar praticamente qualquer pessoa pelo menor dos rastros. O único problema é que a idade já está afetando seus sentidos: recentemente, ele passou três horas seguindo o próprio cheiro.
 * PA: 4
-* Efeito: Faro -> O Cão consegue rastrear o cheiro do inimigo, apesar de não tão bem quanto sua época. Ao ser invocado, o Cão reduz 3 de PA da próxima carta de personagem invocada pelo oponente.
+* Efeito: Faro -> O Cão consegue rastrear o cheiro do inimigo, apesar de não tão bem quanto sua época. Ao ser invocado, o Cão reduz 3 de PA da próxima carta de personagem invocada pelo oponente. Este efeito não acumula.
 * Visual:
 
 
@@ -313,7 +313,7 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 * Descrição: A Cobra é uma lendária produtora de venenos que nunca perguntou quem era o cliente, desde que ele pagasse o suficiente. Quando seus próprios compradores decidiram eliminá-la, ela finalmente percebeu que talvez fosse hora de escolher melhor seus parceiros. Agora, ao lado da EchoSsystem, pretende fazer cada um deles provar do próprio veneno.
  
 * PA: 5
-* Efeito: Dose Letal → A Cobra injeta uma de suas substâncias em um inimigo em qualquer ponto do campo. O inimigo escolhido perde 1 PA por turno enquanto estiver envenenado. Este efeito pode acumular, porém só conta enquanto A Cobra estiver em campo
+* Efeito: Dose Letal → A Cobra injeta uma de suas substâncias em um inimigo em qualquer ponto do campo. O inimigo escolhido perde 1 PA por turno enquanto estiver envenenado. Este efeito pode acumular, porém só conta enquanto A Cobra estiver em campo.
 
  
 * Visual:
@@ -335,7 +335,7 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
  
 * PA: 9
-* Efeito: Garra de aço -> O Tigre é um mestre de combate corpo a corpo. Escolha 2 dentre toda carta em alcance curto, o Tigre reduz seus PA em 3.
+* Efeito: Garra de aço -> O Tigre é um mestre de combate corpo a corpo. Escolha 2 cartas em alcance (H5/V1), o Tigre reduz seus PA em 3.
 
  
 * Visual: 
@@ -354,7 +354,7 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
 * Descrição: A Aranha é filha do finado fundador da EchoSsystem, “O Dragão”. Proibida pelo pai de participar das missões, foi treinada para invadir sistemas e fornecer suporte tecnológico. Agora, em um mundo virtual, estar atrás de uma tela significa estar em todos os lugares ao mesmo tempo.
 * PA: 5
-* Efeito: Override -> Escolha uma carta inimiga com PA atual menor que os da Aranha. A carta passa a contar pontos para sua equipe. Este efeito não pode ser mantido pela mesma carta em duas cartas simultaneamente.
+* Efeito: Override -> Escolha uma carta inimiga com PA atual menor ou igual aos da Aranha. A carta passa a contar pontos para sua equipe e tem sua habilidade bloqueada. Este efeito não pode ser mantido pela mesma carta em duas cartas simultaneamente.
 
  
 * Visual: ->
@@ -455,7 +455,7 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 * Descrição:  O Coelho é a principal fonte de renda da EchoSsystem. Ninguém sabe exatamente de onde vem seu dinheiro, porque, além de ter um talento incomum para fazer as coisas acontecerem, ele possui um talento ainda maior para garantir que ninguém descubra como elas aconteceram. Quem quiser respostas pode tentar visitar seu clube e descobrir até onde vai a Toca do Coelho...
 
 
-* Efeito: A Toca do Coelho -> Enquanto este terreno estiver em campo, todas as cartas aliadas permanecem viradas para baixo apenas para o inimigo. Para seu dono, a face e o PA continuam visíveis, com uma borda rosa suave e um coelhinho indicando a ocultação. Ao sofrerem dano ou ativarem seus efeitos, são reveladas.
+* Efeito: A Toca do Coelho -> Enquanto este terreno estiver em campo, todas as cartas aliadas permanecem viradas para baixo apenas para o inimigo e espectadores. Para seu dono, a face e o PA continuam visíveis, com uma borda rosa suave e um coelhinho indicando a ocultação. Ao sofrerem dano ou ativarem seus efeitos, são reveladas.
 
 
  
@@ -482,7 +482,7 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
 * Descrição: Para tornar a experiência acessível a todos, a HumbaNet criou uma integrante responsável por demonstrar as funcionalidades e explicar as regras da nova simulação. Infelizmente, ninguém descobriu como tornar suas interrupções menos irritantes ou implementar um botão de pular tutorial.
 * PA: 4
-* Efeito: Benefício do tutorial: A IA detectou que seus aliados possuem pontos fracos e podem melhorar! Cartas adjacentes à IA de treinamento ganham +4 de PA.
+* Efeito: Benefício do tutorial: A IA detectou que seus aliados possuem pontos fracos e podem melhorar! Cartas adjacentes à IA de treinamento ganham +2 de PA.
 
  
 * Visual:
@@ -566,7 +566,7 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 * Descrição: A Unidade Cibernética de Combate, apelidada de Juggernaut, é responsável pela defesa e controle de NeoFloripa. Afinal, a liberdade é grande, mas não infinita. Desde sua implementação, a CyberCidade aboliu os firewalls: agora as ameaças são pessoalmente confrontadas.
 
 * PA: 10
-* Efeito: Protocolo de Segurança -> O Juggernaut é a última lembrança que os infratores tem. Escolha qualquer carta do campo inimigo, a UCC a ataca e causa 5 pontos de dano de PA.
+* Efeito: Protocolo de Segurança -> O Juggernaut é a última lembrança que os infratores tem. Escolha qualquer carta do campo inimigo em alcance (H3V2), a UCC a ataca e causa 5 pontos de dano de PA.
 * Visual:
 
 <img alt="image" src="assets/cartas/juggernaut.png" />
@@ -581,11 +581,11 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 ### 1x carta alta 3 -> Dragão das Comunicações Móveis
 
 
-* Descrição: Um dos primeiros experimentos do HumbaBrain foi fazer o upload de um indivíduo no fim da vida para a simulação, permitindo que escolhesse sua própria forma. O resultado foi... inusitado. Temendo sua possível ameaça, o criador decidiu mantê-lo desativado até que um sinal específico de radiofrequência seja emitido. Desde então, a plateia aguarda para descobrir se ele será um espetáculo ou um desastre.
+* Descrição: Um dos primeiros experimentos do HumbaBrain foi fazer o upload de um indivíduo no fim da vida para a simulação, permitindo que escolhesse sua própria forma. O resultado foi... inusitado. Temendo sua possível ameaça, o criador decidiu mantê-lo desativado até que um sinal específico de radiofrequência seja emitido pelo seu chip de memória. Desde então, a plateia aguarda para descobrir se ele será um espetáculo ou um desastre.
  
 * PA: 14
 * Efeito: Adormecido -> Esta carta não possui efeitos enquanto estiver adormecida.
-* EFeito Secreto (aparece na carta apenas quando ativado): Memórias do passado -> Esta carta, caso tenha um Boi aliado em campo, pode ser selecionada como alvo de seu efeito. Caso isso ocorra, o Dragão desperta ao lembrar de suas origens. O Dragão passa a ganhar +3 PA por rodada.
+* EFeito Secreto (aparece na carta apenas quando ativado): Memórias do passado -> Esta carta, caso tenha um Boi aliado em campo, pode ser selecionada como alvo de seu efeito. Caso isso ocorra, o Dragão desperta ao lembrar de suas origens. O Dragão passa a ganhar +3 PA por rodada. Este efeito também ativa caso um Raspclay aliado seja invocado utilizando 3 cartas de sacrifício.
 
  
 * Visual:
@@ -606,7 +606,7 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 ### 1x carta lendária -> HumbaBrain
 
 * Descrição: O cientista Humba, buscando salvar o planeta das mudanças climáticas, fez upload de uma IA para sua própria cabeça, tornando-se a primeira IA a experimentar o mundo humano. Após compreender a humanidade, criou uma realidade virtual onde humanos e IAs poderiam viver como iguais. Atualmente, comanda a simulação e trabalha para torná-la cada vez mais atrativa aos usuários, não importa o custo.
-* PA: 8
+* PA: 10
 * Efeito:
 
  Humbatrix -> Após o sucesso de NeoFloripa, HumbaBrain inicia a expansão da simulação. Enquanto esta carta estiver em campo, os terrenos inimigos não têm efeito, e os seus não podem ser destruídos.
@@ -628,7 +628,7 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 * Descrição: As IAs eram gratuitas até todo mundo começar a usá-las. Quando perceberam que havia dinheiro envolvido, seus criadores rapidamente introduziram assinaturas, créditos e limites de utilização. O Humba Brain resolveu o problema de uma maneira simples: reuniu todas elas em um único modelo para que nenhum NeoFlorianopolitano precisasse pagar por elas.
 
  
-* Efeito: Claro, aqui está... -> Enquanto este terreno estiver em campo, você pode, uma vez por turno, descartar sua mão e recomprá-la.
+* Efeito: Claro, aqui está... -> Enquanto este terreno estiver em campo, você pode, uma vez por turno, ativar a habilidade desta carta e descartar sua mão e recomprá-la.
  
 * Visual: <img alt="image" src="assets/cartas/deepclaudechatgemini.png" />
 
@@ -685,7 +685,7 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
 * Descrição: Os Remanescentes são conhecidos como “Povo da Areia”, famosos pela brutalidade, reciclagem e capacidade de sobreviver onde poucos conseguiriam. Entre eles, ninguém é deixado para trás: os que partem continuam vivendo através daqueles que permanecem.
 * PA: 4
-* Efeito: Por Aqueles que Ainda Virão -> Esta carta recebe +1 de PA para cada efeito utilizado, carta de personagem que tiver sido destruída ou terreno removido de campo desde que ela foi invocada.
+* Efeito: Por Aqueles que Ainda Virão -> Esta carta recebe +1 de PA para cada efeito utilizado, carta de personagem que tiver sido destruída ou terreno removido de campo no lado aliado desde que ela foi invocada.
 
  
 * Visual: queria uns cara pique o tusken raider, mas pode fazer tua magica como quiser
@@ -727,7 +727,7 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
  
 * Descrição: Tuh'Coh é um sobrevivente. Oscilando entre o certo e o errado, sempre tenta fazer o seu melhor, mesmo que precise recorrer a esquemas cada vez mais complexos para sobreviver. Engraçado, impulsivo e caótico, O Feio mostra que até os mais habilidosos continuam sendo humanos. A máscara que veste, porém, parece dizer o contrário — embora quem já tenha visto seu rosto diga que a verdade é ainda pior.
 * PA: 5
-* Efeito: Três Homens em Conflito -> Caso seja posto adjacente ao Bom e ao Mau, estando no meio delas, o Feio ganha + 5 PA e aumenta os outros dois em 3.
+* Efeito: Três Homens em Conflito -> Caso seja posto adjacente ao Bom e ao Mau, o Feio ganha + 5 PA e aumenta os outros dois em 3.
 * Visual: Faz um cara tipo um mandaloriano, com um capacete maneiro e armadura, mas com elementos de cowboy
 
 <img alt="image" src="assets/cartas/o_feio.png" />
@@ -743,7 +743,7 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 
 * Descrição: Sen'Tenzhah ocupa uma zona cinzenta até mesmo entre os Remanescentes. Como caçador de recompensas, emprega métodos pouco ortodoxos e muda de lado sempre que a recompensa compensa. Seu apelido, “O Mau”, contrasta curiosamente com sua aparência, especialmente com seus olhos angelicais.
 * PA: 6
-* Efeito: Alvo Marcado -> Escolha uma carta inimiga. Ela perde 3 de PA. Caso seja removida do campo por este efeito, O Mau recebe +1 de PA.
+* Efeito: Alvo Marcado -> Escolha uma carta inimiga em alcance (H5V1). Ela perde 4 de PA. Caso seja removida do campo por este efeito, O Mau recebe +2 de PA.
 
  
 * Visual:
@@ -764,7 +764,7 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 
 * Descrição: Apesar de também ser um fora da lei, o Bom segue um rígido código moral e sempre busca fazer o que considera justo, mesmo quando isso entra em conflito com as leis dos Remanescentes. Seu verdadeiro nome nunca foi revelado, pois acredita que uma reputação deve ser construída pelos atos, não pelo nome de quem os pratica. Seu único companheiro constante é José, um pequeno pássaro que o acompanha por onde quer que vá.
 * PA: 7
-* Efeito: O Número Perfeito -> Escolha até 6 cartas no campo inimigo. Cada uma perde 1 de PA. 
+* Efeito: O Número Perfeito -> Escolha até 6 cartas no campo inimigo em alcance (H3V3). Cada uma perde 1 de PA. 
 
  
 * Visual: 
@@ -789,7 +789,7 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 
 * Descrição: Dentre os Remanescentes, a lei não é um código escrito. A lei é Dieh'Go. Nunca foi eleito nem nomeado xerife, simplesmente assumiu o posto quando o povo mais precisou. Sua autoridade não vem apenas da força, mas da confiança conquistada por anos protegendo o Povo da Areia. Até os maiores foras da lei respeitam seu julgamento. Para os forasteiros ele é a última pessoa que se deseja encontrar no deserto.
 * PA: 9
-* Efeito: Eu Sou a Lei -> A cada turno, distribua 6 pontos de dano de PA entre as cartas inimigas como desejar. Uma vez que um alvo é selecionado, não se pode voltar atrás.
+* Efeito: Eu Sou a Lei -> A cada turno, distribua 6 pontos de dano de PA entre qualquer carta inimiga como desejar. Uma vez que um alvo é selecionado, não se pode voltar atrás.
 * Visual:
 
  <img alt="image" src="assets/cartas/Di_Ego_caçador_de_recompensas.png"/>
@@ -865,7 +865,7 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 * Descrição: As Terras Desertas são inóspitas para todos que não aprenderam a sobreviver nelas. A terra rejeita aqueles que vivem nas grandes cidades, assim como eles um dia a rejeitaram.
 
  
-* Efeito: Enquanto este terreno estiver em campo, todas as cartas inimigas perdem 1 de PA. Caso o inimigo seja reduzido a 0 de PA, ele é eliminado.
+* Efeito: Enquanto este terreno estiver em campo, todas as cartas inimigas perdem 2 de PA. Caso o inimigo seja reduzido a 0 de PA, ele é eliminado.
 
  
 * Visual: Faz tipo um deserto cheio de lixo tecnológico
@@ -913,7 +913,7 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 
 
 * PA: 4
-* Efeito: Extensão ->Uma vez por turno, escolha uma carta aliada. Você pode movê-la para qualquer outro espaço livre em seu campo.
+* Efeito: Extensão ->Uma vez por turno, escolha uma carta aliada. Você pode movê-la para qualquer outro espaço livre em seu campo, aumentando seus PA em 1.
  
 * Visual: 
 
@@ -970,7 +970,7 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 
 * Descrição: Enquanto IAs e Firewalls físicos protegem NeoFloripa de ameaças reais, a nova versão dos policiais mantem a paz nas pequenas confusões do dia a dia. Nem sempre é um trabalho glorioso, mas alguém ainda precisa convencer o vizinho a abaixar o volume da música.
 * PA: 5 
-* Efeito: Advertência -> Escolha uma carta inimiga. Ela recebe uma advertência. Cada vez que ela utilizar seu efeito, enquanto o TecnoAgente estiver em campo, perde 3 de PA.
+* Efeito: Advertência -> Escolha uma carta inimiga. Ela recebe uma advertência. Cada vez que ela utilizar seu efeito, enquanto o TecnoAgente estiver em campo, perde 2 de PA.
 * Visual:
 
 <img alt="image" src="assets/cartas/tecno_agente.png" />
@@ -987,7 +987,7 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 
 * Descrição: Com o avanço da medicina, envelhecer deixou de ser um dos maiores problemas da humanidade. Em compensação, implantes cibernéticos começaram a apresentar falhas cada vez mais frequentes. Por isso, as faculdades de medicina tiveram que atualizar seus currículos: além de anatomia, agora é necessário saber um pouco de engenharia eletrônica e mecânica para atender, é claro, aqueles que conseguem pagar.
 * PA: 5
-* Efeito: Uma vez por turno, escolha uma carta aliada que tenha perdido PA. Ela recupera todos seus PA.
+* Efeito: Uma vez por turno, escolha uma carta aliada que tenha perdido PA. Ela recupera todos seus PA para o valor original da carta.
 * Visual: Faz tipo os medicânicos do cyberpunk mesmo ou o trauma team resgatando alguem
 
 <img alt="image" src="assets/cartas/neomedicanico.png" />
