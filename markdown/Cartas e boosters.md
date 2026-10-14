@@ -482,7 +482,7 @@ Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhec�
 
 * Descrição: Para tornar a experiência acessível a todos, a HumbaNet criou uma integrante responsável por demonstrar as funcionalidades e explicar as regras da nova simulação. Infelizmente, ninguém descobriu como tornar suas interrupções menos irritantes ou implementar um botão de pular tutorial.
 * PA: 4
-* Efeito: Benefício do tutorial: A IA detectou que seus aliados possuem pontos fracos e podem melhorar! Cartas adjacentes à IA de treinamento ganham +2 de PA.
+* Efeito: Benefício do tutorial -> A IA detectou que seus aliados possuem pontos fracos e podem melhorar! Cartas adjacentes à IA de treinamento ganham +2 de PA.
 
  
 * Visual:
@@ -865,7 +865,7 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 * Descrição: As Terras Desertas são inóspitas para todos que não aprenderam a sobreviver nelas. A terra rejeita aqueles que vivem nas grandes cidades, assim como eles um dia a rejeitaram.
 
  
-* Efeito: Enquanto este terreno estiver em campo, todas as cartas inimigas perdem 2 de PA. Caso o inimigo seja reduzido a 0 de PA, ele é eliminado.
+* Efeito: Ambiente Inóspito -> Enquanto este terreno estiver em campo, todas as cartas inimigas perdem 2 de PA. Caso o inimigo seja reduzido a 0 de PA, ele é eliminado.
 
  
 * Visual: Faz tipo um deserto cheio de lixo tecnológico
@@ -913,7 +913,7 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 
 
 * PA: 4
-* Efeito: Extensão ->Uma vez por turno, escolha uma carta aliada. Você pode movê-la para qualquer outro espaço livre em seu campo, aumentando seus PA em 1.
+* Efeito: Extensão -> Uma vez por turno, escolha uma carta aliada. Você pode movê-la para qualquer outro espaço livre em seu campo, aumentando seus PA em 1.
  
 * Visual: 
 
@@ -932,7 +932,7 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 * Descrição: O estudante de curso técnico possui potencial infinito. Não há quase nada que ele não possa aprender a fazer, embora às vezes o preço envolva seu tempo, esforço e sanidade mental. Seu maior desafio, porém, continua sendo descobrir como fazer qualquer coisa sem pesquisar no CyberSmartPhone primeiro.
 
 * PA: 3
-* Efeito: Escolha uma carta aliada que tenha habilidade ativável e perca 2 de PA. O Estudante aprende permanentemente a habilidade da carta escolhida. Este efeito só pode ser utilizado uma vez.
+* Efeito: Cola -> Escolha uma carta aliada que tenha habilidade ativável e perca 2 de PA. O Estudante aprende permanentemente a habilidade da carta escolhida. Este efeito só pode ser utilizado uma vez.
 
  
 * Visual: Faz um mlk com uma camisa pro IFSC todo distraído olhando pro celular enquanto o mundo ACABA atrás dele.
@@ -987,7 +987,7 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 
 * Descrição: Com o avanço da medicina, envelhecer deixou de ser um dos maiores problemas da humanidade. Em compensação, implantes cibernéticos começaram a apresentar falhas cada vez mais frequentes. Por isso, as faculdades de medicina tiveram que atualizar seus currículos: além de anatomia, agora é necessário saber um pouco de engenharia eletrônica e mecânica para atender, é claro, aqueles que conseguem pagar.
 * PA: 5
-* Efeito: Uma vez por turno, escolha uma carta aliada que tenha perdido PA. Ela recupera todos seus PA para o valor original da carta.
+* Efeito: Plano de Saúde -> Uma vez por turno, escolha uma carta aliada que tenha perdido PA. Ela recupera todos seus PA para o valor original da carta.
 * Visual: Faz tipo os medicânicos do cyberpunk mesmo ou o trauma team resgatando alguem
 
 <img alt="image" src="assets/cartas/neomedicanico.png" />
@@ -1045,7 +1045,7 @@ Efeito visual: em cima da carta com a qual foi feita coligação, aparece o "efe
 
 *Descrição: Para combater o alto custo de vida de NeoFloripa, a solução encontrada foi criar NeoPalhoça: uma região barata, distante e convenientemente localizada longe de tudo que importa. A simulação foi tão fiel que seus moradores enfrentam diariamente trânsito, longos deslocamentos e falta de infraestrutura. A única novidade foi o vulcão.
 
-*Efeito: Todas as cartas do Sindicato ganham +3 de PA
+*Efeito: Longe de tudo -> Todas as cartas do Sindicato ganham +3 de PA
 
 *Visual: <img alt="image" src="assets/cartas/neo_palhoca.png" />
 
