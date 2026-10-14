@@ -100,7 +100,7 @@ for (const base of pool.filter((c) => c.habilidadeAtiva)) {
   p.jogador.campo.cartas[5] = agente; p.inimigo.campo.cartas[5] = target;
   p.ativarHabilidade(agente, p.jogador, p.inimigo, 5);
   assert.ok(p.eventosEfeito.at(-1).alvos.some((a) => a.id === target.id && a.lado === 'inimigo'));
-  const rato = card('O Rato'); p.jogador.campo.cartas[1] = rato;
+  const rato = card('O Rato'); p.jogador.campo.cartas[6] = rato;
   const clone = card('O Porco'); clone.id = target.id; p.jogador.campo.cartas[2] = clone;
   p.ativarHabilidade(rato, p.jogador, p.inimigo, 5);
   assert.ok(p.eventosEfeito.findLast((e) => e.momento === 'habilidade').alvos.some((a) => a.id === target.id && a.lado === 'inimigo' && a.bloqueado));
@@ -138,7 +138,7 @@ for (const base of [...pool, ...terrenos]) {
 assert.equal(pool.find((c) => c.nome === 'CryptoAcionistas').efeitoTurno.valor, 3);
 assert.equal(pool.find((c) => c.nome === 'CryptoAcionistas').efeitoTurno.chance, 0.5);
 assert.equal(pool.find((c) => c.nome === 'UCC "Juggernaut"').poder, 10);
-assert.equal(pool.find((c) => c.nome === 'Agente da DIPSP').efeito.rangeH - 1, 1);
+assert.equal(pool.find((c) => c.nome === 'Agente da DIPSP').efeito.rangeH, 3);
 {
   const p = match(), crypto = card('CryptoAcionistas'); p.jogador.campo.cartas[0] = crypto;
   context.p = p; vm.runInContext('Math.random = () => 0', context);

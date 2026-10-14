@@ -7,6 +7,7 @@
     textScale: 1.12,
     animatedBackground: 1,
     skipBattleAnnouncements: 0,
+    battlefield: 0,
   });
 
   const clamp = (value, minimum, maximum) =>
@@ -37,6 +38,7 @@
       this.values.textScale = clamp(this.values.textScale, 1, 1.35);
       this.values.animatedBackground = this.values.animatedBackground === 0 ? 0 : 1;
       this.values.skipBattleAnnouncements = this.values.skipBattleAnnouncements === 1 ? 1 : 0;
+      this.values.battlefield = Math.round(clamp(this.values.battlefield, 0, 4));
       for (const [key, fallback] of Object.entries(DEFAULTS)) {
         if (!Number.isFinite(this.values[key])) this.values[key] = fallback;
       }
@@ -51,12 +53,15 @@
       this.values[key] = Number(value);
       this.normalize();
       this.save();
+      if (this.musicScene?.cyberMusic)
+        this.musicScene.cyberMusic.setVolume(this.music(0.3));
       if (key === "textScale") this.queueDomTextUpdate();
     }
 
     reset() {
       this.values = { ...DEFAULTS };
       this.save();
+      this.musicScene?.cyberMusic?.setVolume(this.music(0.3));
       this.queueDomTextUpdate();
     }
 
@@ -71,6 +76,23 @@
     music(baseVolume = 1) {
       return clamp(baseVolume, 0, 1) *
         this.values.masterVolume * this.values.musicVolume;
+    }
+
+    playMusic(scene, key) {
+      if (!scene?.sound?.add || scene.cyberMusic?.key === key) return;
+      scene.cyberMusic?.destroy();
+      const sound = scene.sound.add(key, { loop: true, volume: this.music(0.3) });
+      scene.cyberMusic = sound;
+      this.musicScene = scene;
+      sound.play();
+      if (!scene.cyberMusicCleanup) {
+        scene.cyberMusicCleanup = true;
+        scene.events.once("shutdown", () => {
+          scene.cyberMusic?.destroy(); scene.cyberMusic = null;
+          scene.cyberMusicCleanup = false;
+          if (this.musicScene === scene) this.musicScene = null;
+        });
+      }
     }
 
     effects(baseVolume = 1) {

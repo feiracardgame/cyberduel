@@ -6,6 +6,7 @@ class CyberduelAccount {
     this.nickname = "";
     this.authProvider = null;
     this.isAdmin = false;
+    this.segurancaX1 = false;
     this.needsRegistration = false;
     this.needsUsername = false;
     this.avatar = "";
@@ -48,6 +49,7 @@ class CyberduelAccount {
       nickname: this.nickname,
       authProvider: this.authProvider,
       isAdmin: this.isAdmin,
+      segurancaX1: this.segurancaX1,
       needsRegistration: this.needsRegistration,
       needsUsername: this.needsUsername,
       avatar: this.avatar,
@@ -93,6 +95,7 @@ class CyberduelAccount {
     this.user = payload.username || null;
     this.authProvider = payload.authProvider || "google";
     this.isAdmin = payload.isAdmin === true;
+    this.segurancaX1 = this.isAdmin && payload.segurancaX1 === true;
     this.needsRegistration = payload.needsRegistration === true;
     this.needsUsername = payload.needsUsername === true;
     this.nickname = typeof payload.nickname === "string" ? payload.nickname : (this.needsRegistration ? "" : this.user) || "";
@@ -281,6 +284,11 @@ class CyberduelAccount {
     return payload.accounts;
   }
 
+  async setSegurancaX1(enabled) {
+    const payload = await this.request("/api/admin/seguranca-x1", { method: "POST", body: { enabled } });
+    return this.applyAuth(payload, false);
+  }
+
   async unlockLeaderboard(username) {
     const payload = await this.request("/api/admin/accounts/unlock-leaderboard", {
       method: "POST", body: { username },
@@ -403,6 +411,7 @@ class CyberduelAccount {
     this.starterCollection = {};
     this.pendingBoosterPurchase = null;
     this.debugLegendaryUser = null;
+    this.segurancaX1 = false;
     localStorage.removeItem(this.storageKey);
     this.notify();
   }

@@ -125,7 +125,12 @@ class CenaPreload extends Phaser.Scene {
       frameWidth: 128, frameHeight: 176, endFrame: 12,
     });
     // musicas
-    this.load.audio("musicaFundo", "assets/sons/jogo-musica.wav");
+    this.load.audio("musicaFundo", "assets/sons/jogo-musica.mp3");
+    for (const [key, file] of Object.entries({
+      musicaPadrao: "jogo-padrao.mp3", musicaHumbaNet: "jogo-humbanet.mp3",
+      musicaRemanescentes: "jogo-remanescentes.mp3", musicaDeck: "jogo-deck.mp3",
+      musicaMenu: "jogo-menu.mp3", musicaIA: "jogo-IA.mp3", somAbrirBooster: "abrir_booster.mp3",
+    })) this.load.audio(key, `assets/sons/${file}`);
     this.load.audio("somJogarCarta", "assets/sons/jogo-cartawhoosh.wav");
     for (const aviso of Object.values(window.cyberduelBattleAnnouncements))
       this.load.audio(aviso.som, `assets/sons/${aviso.arquivo}`);

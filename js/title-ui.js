@@ -1545,6 +1545,16 @@ class CyberduelTitleUI {
       this.element("span", "", "FUNDO ANIMADO DA PARTIDA"),
     );
     controls.append(backgroundRow);
+    const battlefieldRow = this.element("label", "title-setting");
+    const battlefield = this.element("select", "title-auth-input");
+    ["Alternar cenários", "Padrão", "Sindicato", "HumbaNet", "Remanescentes"].forEach((name, index) => {
+      const option = this.element("option", "", name);
+      option.value = String(index); battlefield.append(option);
+    });
+    battlefield.value = String(this.settings.get("battlefield") || 0);
+    battlefield.addEventListener("change", () => this.settings.set("battlefield", Number(battlefield.value)));
+    battlefieldRow.append(this.element("span", "", "CAMPO DA PARTIDA"), battlefield);
+    controls.append(battlefieldRow);
     const skipRow = this.element(
       "label",
       "title-setting title-setting--toggle",
@@ -1574,6 +1584,7 @@ class CyberduelTitleUI {
         this.settings.reset();
         background.checked = true;
         skip.checked = false;
+        battlefield.value = "0";
         const keys = [
           "masterVolume",
           "musicVolume",
@@ -1608,6 +1619,27 @@ class CyberduelTitleUI {
     );
 
     const form = this.element("div", "title-admin-grid");
+    const securitySection = this.element("section", "title-admin-section");
+    const securityLabel = this.element("label", "title-setting title-setting--toggle");
+    const securityToggle = this.element("input");
+    securityToggle.type = "checkbox";
+    securityToggle.checked = this.account.segurancaX1 === true;
+    securityToggle.setAttribute("role", "switch");
+    securityToggle.setAttribute("aria-label", "Segurança X1");
+    securityLabel.append(securityToggle, this.element("span", "", "Segurança X1"));
+    const securityStatus = this.element("p", "title-admin-note", "Ao invocar o Dragão, destrói o campo adversário e vence imediatamente.");
+    securityStatus.setAttribute("aria-live", "polite");
+    securityToggle.addEventListener("change", async () => {
+      securityToggle.disabled = true;
+      try {
+        await this.account.setSegurancaX1(securityToggle.checked);
+        securityStatus.textContent = this.account.segurancaX1 ? "Segurança X1 ativada nesta conta." : "Segurança X1 desativada.";
+      } catch (exception) {
+        securityToggle.checked = this.account.segurancaX1 === true;
+        securityStatus.textContent = exception.message;
+      } finally { securityToggle.disabled = false; }
+    });
+    securitySection.append(securityLabel, securityStatus);
     const username = this.element("input", "title-auth-input");
     username.type = "text";
     username.placeholder = "USERNAME";
@@ -1640,7 +1672,7 @@ class CyberduelTitleUI {
     details.setAttribute("aria-label", "Detalhes da conta selecionada");
     details.setAttribute("aria-live", "polite");
     details.hidden = true;
-    const accountsStatus = this.element("p", "title-admin-note", "Carregando contas…");
+    const accountsStatus = this.element("p", "title-admin-note title-admin-accounts-status", "Carregando contas…");
     accountsStatus.setAttribute("role", "status");
     const accountsList = this.element("div", "title-admin-accounts");
     let accounts = [];
@@ -1924,7 +1956,7 @@ class CyberduelTitleUI {
       this.button("title-dialog__cancel", "VOLTAR", () => this.closeModal()),
     );
 
-    form.append(accountsSection, username, currencySection, deckSection, cardSection);
+    form.append(securitySection, accountsSection, username, currencySection, deckSection, cardSection);
     dialog.append(form, result, error, actionButtons);
     overlay.append(dialog);
     this.settings?.applyDomTextScale(overlay);
@@ -2618,6 +2650,10 @@ class CyberduelTitleUI {
       ),
     );
     dialog.append(choices, error);
+    const analysis = this.element("div", "faction-analyses");
+    for (const faction of Object.keys(window.CYBERDUEL_FACTIONS || {}))
+      analysis.append(this.createFactionAnalysis(faction));
+    dialog.append(analysis);
     overlay.append(dialog);
     requestAnimationFrame(() => overlay.classList.add("is-visible"));
   }
@@ -2641,6 +2677,18 @@ class CyberduelTitleUI {
       this.element("small", "", action),
     );
     return button;
+  }
+
+  createFactionAnalysis(faction) {
+    const data = window.CYBERDUEL_FACTIONS?.[faction];
+    const details = this.element("details", "faction-analysis");
+    if (!data) return details;
+    details.append(this.element("summary", "", `Análise aprofundada · ${data.name}`));
+    const text = this.element("div", "faction-analysis__text");
+    for (const paragraph of data.text.split(/\n\s*\n/))
+      text.append(this.element("p", "", paragraph.trim()));
+    details.append(text);
+    return details;
   }
 
   openPlayerMarket(initialView = "browse") {
@@ -3482,6 +3530,12 @@ class CyberduelTitleUI {
             (a, b) => this.boosterRevealOrder(a) - this.boosterRevealOrder(b),
           );
         dialog.classList.add("is-opening");
+        if (typeof Audio !== "undefined") {
+          this.boosterOpenAudio ||= new Audio("assets/sons/abrir_booster.mp3");
+          this.boosterOpenAudio.volume = this.settings?.effects(0.6) ?? 0.6;
+          this.boosterOpenAudio.currentTime = 0;
+          this.boosterOpenAudio.play().catch(() => {});
+        }
         status.textContent = "Rompendo o lacre…";
         balance.textContent = `${this.account.currency.toLocaleString("pt-BR")} TIJOLINHOS`;
         const reducedMotion = window.matchMedia?.(
@@ -3657,6 +3711,11 @@ class CyberduelTitleUI {
       button.dataset.faction = faction[0];
       tabs.append(button);
     }
+    const factionAnalysis = this.element("div", "booster-analysis");
+    const updateAnalysis = () => factionAnalysis.replaceChildren(this.createFactionAnalysis(selected[0]));
+    updateAnalysis();
+    tabs.addEventListener("click", updateAnalysis);
+    intro.append(factionAnalysis);
     const inventory = this.button(
       "booster-inventory-link",
       `VER INVENTÁRIO · ${(this.account.boosters || []).length}`,
@@ -3774,6 +3833,7 @@ class CyberduelTitleUI {
     this.modalAfterClose = null;
     this.modal = null;
     this.modalRequired = false;
+    this.boosterOpenAudio?.pause();
     modal.classList.remove("is-visible");
     if (immediate) modal.remove();
     else setTimeout(() => modal.remove(), 180);
@@ -3788,6 +3848,8 @@ class CyberduelTitleUI {
     this.menuClickAudio = null;
     this.menuSwipeAudio?.pause();
     this.menuSwipeAudio = null;
+    this.boosterOpenAudio?.pause();
+    this.boosterOpenAudio = null;
     clearInterval(this.matrixTimer);
     this.matrixTimer = null;
     clearTimeout(this.versusTimer);

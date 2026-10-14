@@ -32,6 +32,15 @@ exports.finishForDebug = (snapshot, winner) => {
     result: { fimDeJogo: true, resultadoCombate, resultadoRodada: null } }));
 };
 
+exports.finishSegurancaX1 = (snapshot, player, dragonId) => {
+  const match = codec.hydrateMatch(snapshot);
+  const owner = player === 1 ? match.jogador : match.inimigo;
+  const dragon = owner.campo.cartas.find(card => card?.id === dragonId && card.nome === "Dragão das Comunicações Móveis");
+  const resultadoCombate = match.executarSegurancaX1(dragon, owner);
+  return resultadoCombate ? JSON.parse(JSON.stringify({ state: codec.serializeMatch(match),
+    result: { fimDeJogo: true, resultadoCombate, resultadoRodada: null } })) : null;
+};
+
 exports.finishBySurrender = (snapshot, player) => {
   const match = codec.hydrateMatch(snapshot);
   const winner = player === 1 ? "inimigo" : "jogador";

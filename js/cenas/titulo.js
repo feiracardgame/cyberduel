@@ -6,6 +6,7 @@ class CenaTitulo extends Phaser.Scene {
   create() {
     configurarCameraLogica(this);
     this.cameras.main.setBackgroundColor("#020409");
+    window.cyberduelSettings?.playMusic?.(this, "musicaMenu");
     this.multiplayer = window.cyberduelMultiplayer;
     this.account = window.cyberduelAccount;
     window.cyberduelDeckBuilder.setAccountSession(

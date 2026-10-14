@@ -520,3 +520,14 @@
 @keyframes council-glow { to { box-shadow: 0 0 42px #e8c66b99, inset 0 0 32px #e8c66b30; } }
 @media (prefers-reduced-motion: reduce) { .player-id--council { animation: none; } }
 @media (max-width: 480px) { .council-table { padding: 12px; gap: 8px; } .council-table__seat { font-size: 12px; } }
+.faction-analyses, .booster-analysis { width: 100%; min-width: 0; }
+.faction-analysis { margin-top: 12px; color: #d4e7ed; text-align: left; }
+.faction-analysis summary { cursor: pointer; padding: 12px 0; color: #9de8ff; font-size: 14px; }
+.faction-analysis summary:focus-visible { outline: 2px solid #9de8ff; outline-offset: 3px; }
+.faction-analysis__text { max-height: 42vh; overflow-y: auto; overscroll-behavior: contain; padding: 0 12px; }
+.faction-analysis__text p { font-family: Arial, sans-serif; font-size: 15px; line-height: 1.65; margin: 0 0 16px; }
+.booster-intro .faction-analysis__text p { font-size: 15px; line-height: 1.65; color: #d4e7ed; margin: 0 0 16px; }
+.booster-fullscreen .title-booster-dialog:has(.faction-analysis[open]) { overflow-y: auto; }
+.booster-fullscreen .booster-stage:has(~ .booster-intro .faction-analysis[open]) { flex: none; min-height: 180px; height: 180px; }
+.booster-fullscreen .booster-intro:has(.faction-analysis) { display: block; }
+.title-faction-dialog { max-height: 90vh; overflow-y: auto; }

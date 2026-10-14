@@ -93,7 +93,7 @@ console.log('Cena: reutilização do campo, eventos incrementais, ociosidade e l
   let enabled = 1, created = 0, destroyed = 0, ultimoFundo;
   context.window.sessionStorage = { getItem: () => ultimoFundo, setItem: (key, value) => { ultimoFundo = value; } };
   context.window.cyberduelSettings = {
-    get: () => enabled, set: (key, value) => { enabled = Number(value); },
+    get: key => key === 'animatedBackground' ? enabled : 0, set: (key, value) => { enabled = Number(value); },
   };
   const scene = Object.assign(Object.create(Scene.prototype), {
     cameras: { main: { setBackgroundColor(color) { assert.equal(color, '#071f0f'); } } },

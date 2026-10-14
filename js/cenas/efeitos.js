@@ -296,12 +296,167 @@ class CenaEfeitos extends Phaser.Scene {
       onComplete: () => { if (carta.active) carta.x = x; } });
   }
 
+  animarSegurancaX1(evento, aoConcluir) {
+    const W = LARGURA_LAYOUT, H = ALTURA_LAYOUT, cx = W / 2;
+    const objetos = [], timers = [], sons = [];
+    const guardar = objeto => { objetos.push(objeto); return objeto; };
+    const depois = (delay, callback) => timers.push(this.time.delayedCall(delay, callback));
+    const tocar = (key, volume = 0.8, rate = 1) => {
+      if (!this.cache.audio.exists(key)) return;
+      const sound = this.sound.add(key, { volume: window.cyberduelSettings?.effects(volume) ?? volume, rate });
+      sons.push(sound); sound.play();
+    };
+    let encerrado = false;
+    const limpar = () => {
+      if (encerrado) return;
+      encerrado = true;
+      timers.forEach(timer => timer.remove(false));
+      objetos.forEach(objeto => { if (objeto.active) { this.tweens.killTweensOf(objeto); objeto.destroy(); } });
+      sons.forEach(sound => sound.destroy());
+      this.cameras.main.resetFX(); this.jogo.cameras.main.resetFX();
+      this.events.off("shutdown", limpar);
+    };
+    this.events.once("shutdown", limpar);
+    const titulo = (text, y, size, color = "#baff3d") => guardar(this.add.text(cx, y, text, {
+      fontFamily: "Arial, sans-serif", fontSize: `${size}px`, fontStyle: "bold", align: "center",
+      color, stroke: "#030608", strokeThickness: 10, letterSpacing: 4,
+    }).setOrigin(0.5).setDepth(90).setAlpha(0));
+    const fundo = guardar(this.add.rectangle(cx, H / 2, W, H, 0x020508, 0).setDepth(20));
+    const vinheta = guardar(this.add.rectangle(cx, H / 2, W, H, 0x103c06, 0).setDepth(21));
+    this.tweens.add({ targets: fundo, fillAlpha: 0.92, duration: 700 });
+    this.tweens.add({ targets: vinheta, fillAlpha: 0.25, duration: 900 });
+    const alerta = titulo("SEGURANÇA X1", H * .17, 76);
+    const subtitulo = titulo("PROTOCOLO DE ANIQUILAÇÃO", H * .22, 26, "#f0ffd8");
+    this.tweens.add({ targets: [alerta, subtitulo], alpha: 1, y: "-=18", duration: 400 });
+    const cy = H * .52;
+    const alvos = evento.alvos.filter(alvo => alvo.lado !== evento.lado && alvo.removida);
+    const cartas = alvos.map(alvo => {
+      const p = this.ponto(alvo.lado, alvo.indice), layout = this.jogo.layout;
+      const key = alvo.oculto && (alvo.lado !== "jogador" || this.jogo.multiplayer?.spectator) ? "fundoCarta" : alvo.imagem;
+      if (!key || !this.textures.exists(key)) return { alvo, p, key };
+      const image = guardar(this.add.image(p.x, p.y, key).setDisplaySize(layout.slotW, layout.slotH).setDepth(23));
+      image.setName("seguranca-x1-alvo");
+      return { alvo, p, key, image };
+    });
+    const anel = (x, y, raio, color, depth = 24) => guardar(this.add.circle(x, y, raio, color, 0)
+      .setStrokeStyle(5, color, 1).setDepth(depth));
+    for (let i = 0; i < 5; i++) {
+      const ring = anel(cx, cy, 45 + i * 55, i % 2 ? 0x49edff : 0xbaff3d);
+      this.tweens.add({ targets: ring, scale: 0.15, alpha: 0, duration: 1700, delay: i * 140, ease: "Expo.In" });
+    }
+    for (let i = 0; i < 52; i++) {
+      const angle = i * 2.39996, radius = 280 + (i % 9) * 55;
+      const spark = guardar(this.add.circle(cx + Math.cos(angle) * radius, cy + Math.sin(angle) * radius,
+        3 + i % 5, i % 3 ? 0xbaff3d : 0x48eaff, 0.85).setDepth(25));
+      this.tweens.add({ targets: spark, x: cx, y: cy, scale: 0.1, alpha: 0,
+        duration: 900, delay: i * 20, ease: "Expo.In" });
+    }
+    const dragao = guardar(this.add.image(cx, cy + H * .18, evento.fonte.imagem || "o_dragao")
+      .setDepth(35).setAlpha(0).setName("seguranca-x1-dragao"));
+    const escala = Math.min(W * .94 / dragao.width, H * .82 / dragao.height);
+    dragao.setScale(escala * .16).setTint(0xbaff3d);
+    depois(850, () => {
+      tocar("somDragao", .9, .78);
+      this.jogo.cameras.main.shake(2100, .006);
+      this.tweens.add({ targets: dragao, alpha: 1, y: cy, scaleX: escala, scaleY: escala,
+        duration: 1700, ease: "Expo.Out", onComplete: () => dragao.clearTint() });
+      for (let i = 0; i < 3; i++) {
+        const eco = guardar(this.add.image(cx, cy, evento.fonte.imagem || "o_dragao")
+          .setScale(escala * .82).setTint(i % 2 ? 0x37eaff : 0x77ff1d).setAlpha(.22).setDepth(34));
+        this.tweens.add({ targets: eco, scaleX: escala * (1.5 + i * .2), scaleY: escala * (1.5 + i * .2),
+          alpha: 0, duration: 1700, delay: i * 150 });
+      }
+    });
+    const alvoY = alvos.length ? alvos.reduce((sum, alvo) => sum + this.ponto(alvo.lado, alvo.indice).y, 0) / alvos.length :
+      H * (evento.lado === "jogador" ? .3 : .7);
+    depois(2300, () => {
+      tocar("somDragao", .75, 1.08);
+      this.tweens.add({ targets: [alerta, subtitulo], alpha: 0, duration: 250 });
+      this.tweens.add({ targets: dragao, scaleX: escala * 1.28, scaleY: escala * 1.28,
+        y: cy - H * .035, duration: 850, ease: "Expo.In" });
+      const raios = guardar(this.add.graphics().setDepth(42));
+      for (let i = 0; i < 11; i++) {
+        raios.lineStyle(i % 2 ? 3 : 7, i % 2 ? 0xf6ffe0 : 0x7cff00, .85);
+        raios.beginPath(); raios.moveTo(cx, cy);
+        const destinoX = (i + .5) * W / 11;
+        for (let j = 1; j <= 7; j++) raios.lineTo(cx + (destinoX - cx) * j / 7 + Math.sin(i * 3 + j) * 55,
+          cy + (alvoY - cy) * j / 7);
+        raios.strokePath();
+      }
+      this.tweens.add({ targets: raios, alpha: 0, duration: 650, delay: 650 });
+    });
+    depois(3100, () => {
+      tocar("somExplosao", .9, .65); tocar("somTiro", .6, .7);
+      this.jogo.cameras.main.shake(1900, .019); this.cameras.main.shake(1600, .008);
+      const feixe = guardar(this.add.rectangle(cx, (cy + alvoY) / 2, W * .32, Math.abs(cy - alvoY) + H * .28,
+        0x7cff16, .8).setDepth(50).setScale(.04, 1));
+      const nucleo = guardar(this.add.rectangle(cx, (cy + alvoY) / 2, W * .1, Math.abs(cy - alvoY) + H * .28,
+        0xf5ffe5, 1).setDepth(51).setScale(.03, 1));
+      this.tweens.add({ targets: [feixe, nucleo], scaleX: 1.4, alpha: 0, duration: 850, ease: "Expo.Out" });
+      this.tweens.add({ targets: dragao, alpha: .18, duration: 800 });
+      const onda = anel(cx, alvoY, 35, 0xd7ff8f, 54);
+      this.tweens.add({ targets: onda, scale: 25, alpha: 0, duration: 1300, ease: "Expo.Out" });
+      cartas.forEach(({ alvo, p, key, image }, index) => depois(index * 100, () => {
+        if (image?.active) image.destroy();
+        const explosao = guardar(this.add.circle(p.x, p.y, 22, 0xfaffc0, .95).setDepth(57));
+        explosao.setName("seguranca-x1-explosao");
+        this.tweens.add({ targets: explosao, scale: 9, alpha: 0, duration: 700, ease: "Expo.Out" });
+        const ring = anel(p.x, p.y, 20, index % 2 ? 0xff653a : 0xbaff3d, 58);
+        this.tweens.add({ targets: ring, scale: 12, alpha: 0, duration: 850 });
+        if (key && this.textures.exists(key)) for (let row = 0; row < 2; row++) for (let col = 0; col < 3; col++) {
+          const shard = guardar(this.add.image(p.x, p.y, key).setDepth(59));
+          shard.setScale(this.jogo.layout.slotW / shard.width, this.jogo.layout.slotH / shard.height)
+            .setCrop(col * shard.width / 3, row * shard.height / 2, shard.width / 3, shard.height / 2);
+          shard.setName("seguranca-x1-fragmento");
+          const angle = (row * 3 + col) * Math.PI / 3 + index;
+          this.tweens.add({ targets: shard, x: p.x + Math.cos(angle) * 450, y: p.y + Math.sin(angle) * 490,
+            angle: (col - 1) * 150 + row * 110, alpha: 0, scaleX: shard.scaleX * .25, scaleY: shard.scaleY * .25,
+            duration: 1300, ease: "Cubic.Out" });
+        }
+        for (let i = 0; i < 12; i++) {
+          const angle = i * Math.PI / 6 + index;
+          const fogo = guardar(this.add.circle(p.x, p.y, 3 + i % 4, i % 3 ? 0xbaff3d : 0xff7733, .9).setDepth(60));
+          this.tweens.add({ targets: fogo, x: p.x + Math.cos(angle) * (160 + i * 15),
+            y: p.y + Math.sin(angle) * (160 + i * 15), alpha: 0, duration: 1100 });
+        }
+        tocar("somExplosao", .35, .82 + index * .035);
+      }));
+    });
+    depois(5300, () => {
+      const fissuras = guardar(this.add.graphics().setDepth(65));
+      for (let i = 0; i < 9; i++) {
+        const y = H * (.12 + i * .09);
+        fissuras.lineStyle(2 + i % 3, 0xbaff3d, .75); fissuras.beginPath(); fissuras.moveTo(0, y);
+        for (let j = 1; j <= 8; j++) fissuras.lineTo(j * W / 8, y + Math.sin(i * 7 + j) * 38);
+        fissuras.strokePath();
+      }
+      this.tweens.add({ targets: fissuras, alpha: 0, duration: 1600 });
+      this.tweens.add({ targets: dragao, alpha: .75, scaleX: escala * .83, scaleY: escala * .83,
+        y: H * .43, duration: 1100, ease: "Cubic.Out" });
+    });
+    depois(6600, () => {
+      const vitoria = titulo("ANIQUILAÇÃO", H * .76, 82);
+      const detalhe = titulo(evento.lado === "jogador" ? "VITÓRIA ABSOLUTA" : "CAMPO ANIQUILADO", H * .815, 36, "#f0ffd8");
+      this.tweens.add({ targets: [vitoria, detalhe], alpha: 1, y: "-=22", duration: 500, ease: "Back.Out" });
+    });
+    depois(8600, () => {
+      this.tweens.add({ targets: objetos.filter(objeto => objeto.active), alpha: 0, duration: 450 });
+    });
+    depois(9100, () => { limpar(); aoConcluir(); });
+  }
+
   proximo() {
     if (this.executando || !this.fila.length) return;
     this.executando = true;
     const evento = this.fila.shift();
     this.eventoAtual = evento;
     this.exibidos.push(evento.id);
+    if (evento.momento === "seguranca_x1") {
+      this.animarSegurancaX1(evento, () => {
+        this.executando = false; this.eventoAtual = null; this.proximo();
+      });
+      return;
+    }
     const remoto = evento.lado !== "jogador" || this.jogo.multiplayer?.spectator;
     const fonteOculta = remoto && evento.fonte.oculto;
     const fonte = fonteOculta ? { nome: "Carta oculta", indice: evento.fonte.indice } : evento.fonte;

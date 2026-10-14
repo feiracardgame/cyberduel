@@ -8,7 +8,9 @@
     "dev": "node scripts/dev-server.js",
     "check": "node scripts/test-game.js",
     "test": "node scripts/test-game.js",
-    "test:sindicato:browser": "node scripts/test-sindicato-playwright.js"
+    "test:sindicato:browser": "node scripts/test-sindicato-playwright.js",
+    "test:content:browser": "node scripts/test-content-playwright.js",
+    "test:security-x1:browser": "node scripts/test-security-x1-playwright.js"
   },
   "dependencies": {
     "google-auth-library": "^11.1.0",

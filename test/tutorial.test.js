@@ -15,7 +15,9 @@ for (const file of ['js/cartas.js', 'js/main.js', 'js/tutorial.js'])
 vm.runInContext('globalThis.exportsTutorial = { ELENAI_DIALOGUES, pendingElenAI, CyberduelTraining, CyberduelStory, Partida }', context);
 const { ELENAI_DIALOGUES: lines, pendingElenAI, CyberduelTraining, CyberduelStory, Partida } = context.exportsTutorial;
 assert.equal(lines.intro[0].sprite, 0); assert.equal(lines.declined[0].sprite, 17);
-assert.equal(lines.training.length, 14); assert.equal(lines.council.length, 13);
+assert.equal(lines.training.length, 15); assert.equal(lines.council.length, 13);
+assert.match(lines.training[10].text, /distância de casas máximas horizontais/);
+assert.match(lines.training[10].text, /distância de casas verticais/);
 assert.equal(lines.ten.no[5].text, 'sozinha'); assert.equal(lines.ten.yes[7].text, 'Eu te considero meu amigo!');
 for (let n = 1; n <= 17; n++) assert.ok(fs.existsSync(`assets/sprites/elenai-${String(n).padStart(2, '0')}.webp`));
 const profile = { gamesPlayed: 10, humanGames: 5, humanWins: 3, councilReached: true, tutorial: { seen: [] } };
@@ -141,7 +143,7 @@ async function connect() { const s = io(url, { transports: ['websocket'], forceN
   assert.equal(bot.humanGames, 0); assert.equal(bot.clubUnlocked, false); assert.equal(bot.councilReached, false);
   const board = (await api('leaderboard')).body.entries;
   assert.equal(board.length, 11); assert.equal(board[0].nickname, 'Member0');
-  assert.equal(board[0].username, undefined); assert.equal(board[0].passwordHash, undefined);
+  assert.equal(board[0].username, fixtures[2].username); assert.equal(board[0].passwordHash, undefined);
   const member = (await api('auth/session', undefined, fixtures[2])).body;
   assert.equal(member.councilReached, true); assert.equal(member.clubUnlocked, true);
   assert.equal((await api('auth/session', undefined, fixtures[12])).body.councilReached, false);

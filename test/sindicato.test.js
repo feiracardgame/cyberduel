@@ -52,7 +52,7 @@ const ativar = (p, c, a, b) => p.ativarHabilidade(c, p.jogador, p.inimigo, a, b)
   assert.equal(ativar(p, tecnico, 0).sucesso, false);
   const deserto = colocar(p, 'Terras Desertas', 0, true);
   p.resolverEfeitosContinuos(p.jogador); assert.equal(aliado.poder, 9);
-  aliado.protegidaPA = false; p.resolverEfeitosContinuos(p.jogador); assert.equal(aliado.poder, 8);
+  aliado.protegidaPA = false; p.resolverEfeitosContinuos(p.jogador); assert.equal(aliado.poder, 7);
 }
 {
   const p = mesa(); const montador = colocar(p, 'Montadores de Cabos', 0);
@@ -60,6 +60,7 @@ const ativar = (p, c, a, b) => p.ativarHabilidade(c, p.jogador, p.inimigo, a, b)
   assert.equal(ativar(p, montador, 1, 0).sucesso, false);
   assert.equal(ativar(p, montador, 1, 8).sucesso, true);
   assert.equal(p.jogador.campo.cartas[1], null); assert.equal(p.jogador.campo.cartas[8], aliado);
+  assert.equal(aliado.poder, 10, 'Extensão concede +1 PA ao aliado movido.');
 }
 {
   const p = mesa(); const aluno = colocar(p, 'Estudante de Curso Técnico', 0);
@@ -82,13 +83,14 @@ const ativar = (p, c, a, b) => p.ativarHabilidade(c, p.jogador, p.inimigo, a, b)
 }
 {
   const p = mesa(); const agente = colocar(p, 'TecnoAgentes de Segurança', 0);
-  const atacante = colocar(p, 'O Rato', 0, true); atacante.buff(8);
-  assert.equal(ativar(p, agente, 0).sucesso, true);
-  assert.equal(p.ativarHabilidade(atacante, p.inimigo, p.jogador, 0).sucesso, true);
-  assert.equal(atacante.poder, 8);
-  p.jogador.campo.removerCarta(0); colocar(p, 'O Tigre', 1);
+  const atacante = colocar(p, 'O Rato', 5, true); atacante.buff(8);
+  p.jogador.campo.cartas[0] = null; p.jogador.campo.cartas[5] = agente;
+  assert.equal(ativar(p, agente, 5).sucesso, true);
+  assert.equal(p.ativarHabilidade(atacante, p.inimigo, p.jogador, 5).sucesso, true);
+  assert.equal(atacante.poder, 10, 'Rouba 2 PA e perde 2 PA pela Advertência.');
+  p.jogador.campo.removerCarta(5); colocar(p, 'O Tigre', 6);
   atacante.usadaEsteTurno = false;
-  p.ativarHabilidade(atacante, p.inimigo, p.jogador, 1); assert.equal(atacante.poder, 9);
+  p.ativarHabilidade(atacante, p.inimigo, p.jogador, 6); assert.equal(atacante.poder, 12);
 }
 {
   const p = mesa(); const influencer = colocar(p, 'Influenciador Digital', 0);

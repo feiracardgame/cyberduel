@@ -7,6 +7,7 @@ class CenaDeckBuilder extends Phaser.Scene {
   create() {
     configurarCameraLogica(this);
     this.cameras.main.setBackgroundColor("#020409");
+    window.cyberduelSettings?.playMusic?.(this, "musicaDeck");
     this.deckBuilderUI = new CyberduelDeckBuilderUI({
       scene: this,
       builder: window.cyberduelDeckBuilder,

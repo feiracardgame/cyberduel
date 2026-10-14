@@ -97,12 +97,18 @@ for (const count of [1, 6, 10, 20]) {
 }
 
 // Fotos ainda sem busto e ausência de foto usam Clayrton, sem baixar o mesmo asset duas vezes.
-for (const avatar of ['assets/fotosdeperfil/macaco_icon.png', null]) {
+for (const avatar of ['assets/fotosdeperfil/advogado_icon.png', 'assets/fotosdeperfil/diego_icon.png', null]) {
   const { scene: fallback, loaded } = renderer();
   context.window.cyberduelAccount.avatar = avatar;
   fallback.carregarRetratosDuelo();
   assert.match(fallback.personagensDuelo.jogador, /raspclay_profile\.png$/);
   assert.equal(loaded.length, 1);
+}
+for (const [avatar, path] of Object.entries(portraits)) {
+  const { scene: mapped } = renderer();
+  context.window.cyberduelAccount.avatar = avatar;
+  mapped.carregarRetratosDuelo();
+  assert.equal(mapped.personagensDuelo.jogador, `personagem:${path}`);
 }
 const { scene: presentation, loaded: displayAssets, objects: displayObjects } = renderer();
 presentation.multiplayer = { presentation: true };

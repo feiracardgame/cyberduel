@@ -1,4 +1,4 @@
-// Falas e poses transcritas do Tutorial.md (arquivo com T maiúsculo).
+// Falas e poses transcritas de markdown/Tutorialguia.md.
 const ELENAI_DIALOGUES = {
   "intro": [
     {"sprite": 0, "speaker": "????", "text": "Huh, quem está aí?"},
@@ -24,7 +24,8 @@ const ELENAI_DIALOGUES = {
     {"sprite": 15, "speaker": "ElenAI", "text": "As cartas de personagem são divididas por raridade e cada uma tem uma história e efeito único, por isso, trate de ler e entender todas que tiver! Vou te mostrar um exemplo"},
     {"sprite": 8, "speaker": "ElenAI", "text": "Invoque essa carta no espaço brilhante e finalize o turno, para poder entrar no turno de habilidades"},
     {"sprite": 5, "speaker": "ElenAI", "text": "Ótimo, muito bem!"},
-    {"sprite": 10, "speaker": "ElenAI", "text": "No entanto, você deve ter percebido que não conseguiu acertar a carta lá no fundo. Isso acontece porque todo efeito de carta apresenta alguma condição específica. Nesse caso, é o alcance. Tenta utilizar essa carta aqui agora."},
+    {"sprite": 10, "speaker": "ElenAI", "text": "No entanto, você deve ter percebido que não conseguiu acertar a carta lá no fundo. Isso acontece porque todo efeito de carta apresenta alguma condição específica. Nesse caso, é o alcance. O número ao lado do \"H\" indica qual a distância de casas máximas horizontais entre a carta que usa o efeito e o alvo, e o número ao lado do \"V\" indica o mesmo, porém para a distância de casas verticais."},
+    {"sprite": 10, "speaker": "ElenAI", "text": "Tenta utilizar essa carta aqui agora."},
     {"sprite": 16, "speaker": "ElenAI", "text": "Estou impressionada, você é profissional já!"},
     {"sprite": 2, "speaker": "ElenAI", "text": "Siga jogando, aprendendo e vencedendo, assim você ganhará pontos no ranking oficial do jogo e, estando alto o suficiente, poderá se tornar um membro do Conselho"},
     {"sprite": 2, "speaker": "ElenAI", "text": "Lembre-se de sempre fazer as melhores jogadas, porém seja rápido, já que a audiência não gosta de ficar esperando pela sua jogada."}
@@ -111,6 +112,8 @@ const ELENAI_DIALOGUES = {
 
 // Uma única caixa de fala serve à apresentação, às escolhas e ao campo de treino.
 function showElenAI(scene, lines, done, options = {}) {
+  const previousMusic = scene.cyberMusic?.key;
+  window.cyberduelSettings?.playMusic?.(scene, "musicaIA");
   const ui = new CyberduelTitleUI({ callbacks: {} });
   const root = ui.element("section", "elenai-dialogue" + (options.training ? " elenai-dialogue--training" : ""));
   root.setAttribute("role", "dialog"); root.setAttribute("aria-modal", "true");
@@ -134,6 +137,8 @@ function showElenAI(scene, lines, done, options = {}) {
     finished = true; root.remove(); document.removeEventListener("keydown", keydown);
     menu?.classList.remove("elenai-story"); if (menu) menu.inert = false;
     if (previousFocus?.isConnected) previousFocus.focus();
+    if (previousMusic && scene.scene.isActive())
+      window.cyberduelSettings?.playMusic?.(scene, previousMusic);
   };
   root.dispose = close;
   scene.events.once("shutdown", close);
@@ -185,6 +190,12 @@ function showElenAI(scene, lines, done, options = {}) {
       event.preventDefault(); advance();
     }
   };
+  if (options.factions) {
+    const analysis = ui.element("div", "faction-analyses");
+    for (const faction of ["raspcorp", "echossystem"])
+      analysis.append(ui.createFactionAnalysis(faction));
+    panel.append(analysis);
+  }
   document.addEventListener("keydown", keydown); render(); return root;
 }
 
@@ -350,8 +361,8 @@ class CyberduelTraining {
         this.give("Agente da DIPSP");
         this.scene.faseAtual = this.scene.partida.fase = "colocar";
         this.scene.desenharInterface();
-        this.say(9, 11, () => this.setStep("dipsp", "Invoque o Agente da DIPSP no espaço brilhante da frente."));
-      } else this.say(11, 14, () => this.finish());
+        this.say(9, 12, () => this.setStep("dipsp", "Invoque o Agente da DIPSP no espaço brilhante da frente."));
+      } else this.say(12, 15, () => this.finish());
     };
   }
   async finish() {

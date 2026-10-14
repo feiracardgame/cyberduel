@@ -66,6 +66,23 @@ const Y_MAO_JOGADOR = ALTURA_LAYOUT - 175;
 const PERSONAGENS_DUELO_POR_AVATAR = Object.freeze({
   "assets/fotosdeperfil/boi_icon.png": "assets/profiles/boi_profile.png",
   "assets/fotosdeperfil/raspclay_icon.png": "assets/profiles/raspclay_profile.png",
+  "assets/fotosdeperfil/agentes_icon.png": "assets/profiles/dipsp_profile.png",
+  "assets/fotosdeperfil/aranha_icon.png": "assets/profiles/aranha_profile.png",
+  "assets/fotosdeperfil/bombeiro_icon.png": "assets/profiles/bombeiro_profile.png",
+  "assets/fotosdeperfil/cobra_icon.png": "assets/profiles/cobra_profile.png",
+  "assets/fotosdeperfil/cryptoacionista_icon.png": "assets/profiles/criptoacionista_profile.png",
+  "assets/fotosdeperfil/dragao_icon.png": "assets/profiles/dragao_profile.png",
+  "assets/fotosdeperfil/felipe_icon.png": "assets/profiles/felipe_profile.png",
+  "assets/fotosdeperfil/harvis_icon.png": "assets/profiles/harvis_profile.png",
+  "assets/fotosdeperfil/humba_brain_icon.png": "assets/profiles/humbabrain_profile.png",
+  "assets/fotosdeperfil/ia_treinamento_icon.png": "assets/profiles/ia_profile.png",
+  "assets/fotosdeperfil/juggernaut_icon.png": "assets/profiles/juggernaut_profile.png",
+  "assets/fotosdeperfil/macaco_icon.png": "assets/profiles/macaco_profile.png",
+  "assets/fotosdeperfil/o_bom_icon.png": "assets/profiles/bom_profile.png",
+  "assets/fotosdeperfil/o_feio_icon.png": "assets/profiles/feio_profile.png",
+  "assets/fotosdeperfil/o_mal_icon.png": "assets/profiles/mau_profile.png",
+  "assets/fotosdeperfil/prefeito_icon.png": "assets/profiles/politico_profile.png",
+  "assets/fotosdeperfil/sarda_icon.png": "assets/profiles/sarda_profile.png",
 });
 
 class CenaJogo extends Phaser.Scene {
@@ -130,12 +147,9 @@ class CenaJogo extends Phaser.Scene {
     this.soloStep = 0;
     this.soloStarter = this.tutorial ? 1 : Math.random() < 0.5 ? 1 : 2;
     this.telaFinalExibida = false;
-    const volumeMusica = (base) =>
-      window.cyberduelSettings?.music(base) ?? base;
     const volumeEfeito = (base) =>
       window.cyberduelSettings?.effects(base) ?? base;
     const sons = [
-      ["musicaFundo", true, 0.3],
       ["somTorcida", true, 0.03],
       ["somJogarCarta", false, 0.3],
       ["somPop", false, 0.3],
@@ -146,13 +160,15 @@ class CenaJogo extends Phaser.Scene {
     ].map(([chave, loop, volume]) => {
       const som = this.sound.add(chave, {
         loop,
-        volume: (loop ? volumeMusica : volumeEfeito)(volume),
+        volume: volumeEfeito(volume),
       });
       this[chave] = som;
       return som;
     });
     this.events.once("shutdown", () => sons.forEach((som) => som.destroy()));
-    this.musicaFundo.play();
+    this.fundoBatalha = null;
+    this.escolherFundoBatalha();
+    window.cyberduelSettings?.playMusic?.(this, this.chaveMusicaBatalha());
     this.somTorcida.play();
 
     // O fade começa após o redesenho, que cancela os tweens existentes.
@@ -790,9 +806,11 @@ class CenaJogo extends Phaser.Scene {
         Math.max(0, Number(carta.efeito.minimo) || 0),
       );
     });
+    const bonus = donoDoTurno.campo.cartas.reduce((total, carta) => total +
+      (carta?.efeito?.tipo === TIPOS_EFEITO.BONUS_TEMPO_TURNO ? carta.efeito.valor : 0), 0);
     return Math.max(
       Math.max(15, minimoSegundos) * 1000,
-      DURACAO_TURNO_MS - reducaoSegundos * 1000,
+      Math.min(60_000, DURACAO_TURNO_MS + bonus * 1000) - reducaoSegundos * 1000,
     );
   }
 
@@ -1668,7 +1686,8 @@ class CenaJogo extends Phaser.Scene {
           return;
         }
 
-        this.partida.jogarCartaDoJogador(carta, slotAtingido);
+        const invocacao = this.partida.jogarCartaDoJogador(carta, slotAtingido);
+        if (invocacao.sucesso && this.ativarSegurancaX1(carta)) return;
         this.travado = false;
         this.desenharInterface();
         this.training?.placed(carta);
@@ -2574,8 +2593,37 @@ class CenaJogo extends Phaser.Scene {
     this.desenharFundoJogo();
   }
 
+  escolherFundoBatalha() {
+    if (this.fundoBatalha) return;
+    const campo = window.cyberduelSettings?.get("battlefield") || 0;
+    if (this.tutorial || campo === 1 || campo === 3) {
+      this.fundoBatalha = "jogoFundo";
+    } else if (campo === 2 || campo === 4) {
+      this.fundoBatalha = campo === 2 ? "videoParte3" : "videoDeserto";
+    } else {
+      let anterior;
+      try { anterior = window.sessionStorage?.getItem("cyberduel.ultimoFundoBatalha"); } catch {}
+      const candidatos = ["videoParte3", "videoDeserto"].filter(chave => chave !== anterior);
+      this.fundoBatalha = candidatos[Math.floor(Math.random() * candidatos.length)];
+      try { window.sessionStorage?.setItem("cyberduel.ultimoFundoBatalha", this.fundoBatalha); } catch {}
+    }
+  }
+
+  chaveMusicaBatalha() {
+    if (this.tutorial) return "musicaIA";
+    if (window.cyberduelSettings?.get("battlefield") === 3) return "musicaHumbaNet";
+    return { videoParte3: "musicaFundo", videoDeserto: "musicaRemanescentes" }[this.fundoBatalha] || "musicaPadrao";
+  }
+
   // Desativar destrói o vídeo para interromper a reprodução e liberar recursos.
   desenharFundoJogo() {
+    this.escolherFundoBatalha();
+    if (this.fundoBatalha === "jogoFundo") {
+      if (!this.imagemFundo?.active)
+        this.imagemFundo = this.add.image(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, "jogoFundo")
+          .setDisplaySize(LARGURA_LAYOUT, ALTURA_LAYOUT).setDepth(-100);
+      return this.imagemFundo;
+    }
     if (!this.fundoAnimadoAtivo()) {
       this.videoFundo?.destroy();
       this.videoFundo = null;
@@ -2594,13 +2642,6 @@ class CenaJogo extends Phaser.Scene {
         .setVisible(true);
     };
 
-    if (!this.fundoBatalha) {
-      let anterior;
-      try { anterior = window.sessionStorage?.getItem("cyberduel.ultimoFundoBatalha"); } catch {}
-      const candidatos = ["videoParte3", "videoDeserto"].filter(chave => chave !== anterior);
-      this.fundoBatalha = candidatos[Math.floor(Math.random() * candidatos.length)];
-      try { window.sessionStorage?.setItem("cyberduel.ultimoFundoBatalha", this.fundoBatalha); } catch {}
-    }
     if (!this.videoFundo) {
       this.videoFundo = this.add.video(
         LARGURA_LAYOUT / 2,
@@ -3701,6 +3742,7 @@ class CenaJogo extends Phaser.Scene {
     const podeMostrarBotaoHabilidade =
       this.podeUsarHabilidadesAgora() &&
       !this.partida.partidaEncerrada &&
+      !carta.capturadaPor &&
       !!carta.habilidadeAtiva &&
       carta.efeito &&
       (carta.efeito.tipo === TIPOS_EFEITO.SILENCIAR_CARTA ||
@@ -3978,6 +4020,7 @@ class CenaJogo extends Phaser.Scene {
     const podeMostrarBotaoHabilidade =
       this.podeUsarHabilidadesAgora() &&
       !this.partida.partidaEncerrada &&
+      !carta.capturadaPor &&
       !!carta.habilidadeAtiva &&
       carta.efeito &&
       (carta.efeito.tipo === TIPOS_EFEITO.SILENCIAR_CARTA ||
@@ -4646,7 +4689,7 @@ class CenaJogo extends Phaser.Scene {
       this.iniciarSelecaoDeAlvo(
         carta,
         alvos,
-        "Toque em 1 inimigo com menos PA que a Aranha.\nOs pontos dele passam para você.",
+        "Toque em 1 inimigo com PA menor ou igual ao da Aranha.\nOs pontos dele passam para você e a habilidade fica bloqueada.",
       );
     } else if (ehRoubarPoder) {
       this.iniciarSelecaoDeAlvo(
@@ -6887,7 +6930,10 @@ class CenaJogo extends Phaser.Scene {
   }
 
   receberEstadoMultiplayer(snapshot, resultado, update) {
-    if (update.debugFinal && resultado?.fimDeJogo) {
+    if (update.segurancaX1 && resultado?.fimDeJogo) {
+      this.partidaRegistradaNaConta = true;
+    }
+    if (update.debugFinal && !update.segurancaX1 && resultado?.fimDeJogo) {
       this.partida = this.multiplayer.hydrateMatch(snapshot);
       window.partida = this.partida;
       this.mostrarFinalParaTeste(resultado.resultadoCombate);
@@ -7670,6 +7716,18 @@ class CenaJogo extends Phaser.Scene {
         },
       });
     });
+  }
+
+  ativarSegurancaX1(carta) {
+    const account = window.cyberduelAccount;
+    if (this.tutorial || this.multiplayerAtivo || !account?.isAdmin || !account.segurancaX1) return false;
+    const resultado = this.partida.executarSegurancaX1(carta);
+    if (!resultado) return false;
+    this.partidaRegistradaNaConta = true;
+    this.travado = true;
+    this.desenharInterface();
+    this.mostrarTelaFimDeJogo(resultado);
+    return true;
   }
 
   mostrarFinalParaTeste(resultado) {

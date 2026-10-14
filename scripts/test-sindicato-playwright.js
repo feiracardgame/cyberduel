@@ -205,13 +205,16 @@ async function run() {
   assert.equal(await mark('efeitoPolicial'), 1);
   assert.deepEqual(await page.evaluate(() => {
     const before = partida.inimigo.campo.cartas[0].poder;
-    const result = partida.ativarHabilidade(partida.inimigo.campo.cartas[0], partida.inimigo, partida.jogador, 0);
-    return [result.sucesso, partida.inimigo.campo.cartas[0].poder - before];
-  }), [true, -2], 'Rato ganha 1 PA e perde 3 pela advertência');
+    const rat = partida.inimigo.campo.cartas[0], agent = partida.jogador.campo.cartas[0];
+    partida.inimigo.campo.cartas[0] = null; partida.inimigo.campo.cartas[5] = rat;
+    partida.jogador.campo.cartas[0] = null; partida.jogador.campo.cartas[5] = agent;
+    const result = partida.ativarHabilidade(rat, partida.inimigo, partida.jogador, 5);
+    return [result.sucesso, rat.poder - before];
+  }), [true, 0], 'Rato ganha 2 PA e perde 2 pela advertência');
   await waitIdle();
-  await page.evaluate(() => { partida.jogador.campo.removerCarta(0); cena.desenharInterface(); });
+  await page.evaluate(() => { partida.jogador.campo.removerCarta(5); cena.desenharInterface(); });
   await page.waitForFunction(() => game.scene.getScene('CenaEfeitos').marcasSindicato.size === 0);
-  checks.push('Policial: advertência persistente, penalidade de 3 PA e saída da fonte');
+  checks.push('Policial: advertência persistente, penalidade de 2 PA e saída da fonte');
 
   await setup('NeoMedicânico', [{ name: 'O Tigre', index: 1, damage: 7 }]);
   await activate(); await tapSlot('jogador', 1);

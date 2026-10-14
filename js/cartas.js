@@ -56,6 +56,7 @@ function classificarNivelCarta(nome, poder, tipo, lendaria) {
 // Catálogo e regras de descrição das cartas.
 
 const TIPOS_EFEITO = {
+  BONUS_TEMPO_TURNO: "bonus_tempo_turno",
   BUFF_ADJACENTES: "buff_adjacentes",
   BONUS_POR_TERRENOS: "bonus_por_terrenos",
   SILENCIAR_CARTA: "silenciar_carta",
@@ -77,15 +78,15 @@ const TIPOS_EFEITO = {
   // EchoSsystem (booster 2)
   RESETAR_PODER: "resetar_poder", // O Boi (Novo Começo): escolhe uma carta aliada em campo e a devolve ao poder original (poderBase), zerando bônus/reduções acumulados
   ATACAR_DOIS_ALVOS: "atacar_dois_alvos", // O Tigre (Garra de aço): igual a ATACAR, mas escolhe DOIS alvos inimigos distintos em vez de um só (mesmo range para os dois)
-  OVERRIDE: "override", // A Aranha (Override): escolhe uma carta inimiga com poder MENOR que o dela; a carta é "capturada" pro campo do dono, se houver espaço livre
-  ROUBAR_PODER: "roubar_poder", // O Rato (Mãos Leves): escolhe uma carta inimiga em qualquer lugar do campo e rouba poder dela, somando ao próprio poder
+  OVERRIDE: "override", // Mantém um inimigo com PA menor ou igual: transfere seus pontos e bloqueia sua habilidade.
+  ROUBAR_PODER: "roubar_poder", // O Rato rouba PA de um inimigo em alcance H3/V1.
   REPOSICIONAR: "reposicionar", // A Cabra (Escalada): troca de lugar com outra carta aliada (ou se move pra um espaço livre) no próprio campo
   REVELAR_CARTAS_INIMIGO: "revelar_cartas_inimigo", // O Cão (Faro): ao ser invocado, revela até N cartas da mão/baralho do inimigo
   CASCA_GROSSA: "casca_grossa", // O Porco (Casca Grossa): permite perder bônus, mas conserva o piso de 6 PA (ver Carta.buff())
   ENVENENAR: "envenenar", // A Cobra (Dose Letal): escolhe uma carta inimiga em alcance curto (à frente ou espaço adjacente) e a envenena — ela perde poder a cada turno enquanto estiver em campo
   ATACAR_COLUNA: "atacar_coluna", // O Trotar do Cavalo (carta de efeito): escolhe uma coluna do campo inimigo; TODAS as cartas dessa coluna (as duas fileiras) perdem poder
   BUFF_DOIS_ALIADOS: "buff_dois_aliados", // O Canto do Galo (carta de efeito): +3 PA no primeiro aliado escolhido e +2 PA no segundo
-  ARMADILHA_ESPACO: "armadilha_espaco", // A Travessura do Macaco: arma um slot inimigo; a próxima carta nele entra com -2 PA
+  ARMADILHA_ESPACO: "armadilha_espaco", // A próxima carta no espaço inimigo perde 5 PA.
   REDUZIR_TEMPO_OPONENTE: "reduzir_tempo_oponente", // NeoAnalista: reduz o turno adversário quando houver cronômetro ativo
   HUMATRIX: "humbatrix", // HumbaBrain: neutraliza terrenos inimigos e protege terrenos aliados
   DISTRIBUIR_DANO: "distribuir_dano", // Dieh'Go: distribui livremente uma reserva de dano entre inimigos
@@ -100,6 +101,7 @@ const TIPOS_EFEITO = {
 // Use o nível cadastrado da carta, nunca o PA atual, para classificar efeitos.
 function descreverEfeito(efeito) {
   if (!efeito) return "";
+  if (efeito.texto) return efeito.texto;
   switch (efeito.tipo) {
     case TIPOS_EFEITO.SILENCIAR_CARTA:
     case TIPOS_EFEITO.RENOVAR_MAO:
@@ -157,11 +159,11 @@ function descreverEfeito(efeito) {
         `Habilidade ativa (1x por turno, em campo): escolha 2 cartas inimigas no alcance indicado (H${efeito.rangeH}/V${efeito.rangeV}) para perder ${efeito.valor} de PA cada.`
       );
     case TIPOS_EFEITO.OVERRIDE:
-      return `Habilidade ativa (1x por turno, em campo): controle uma carta inimiga com PA menor que o desta carta. Ao escolher outro alvo, o controle anterior é transferido para o novo.`;
+      return `Habilidade ativa (1x por turno, em campo): controle uma carta inimiga com PA menor ou igual ao desta carta e bloqueie sua habilidade. Ao escolher outro alvo, o controle anterior é transferido para o novo.`;
     case TIPOS_EFEITO.ROUBAR_PODER:
-      return `Habilidade ativa (1x por turno, em campo): escolha uma carta inimiga em qualquer lugar do campo. Rouba ${efeito.valor} de poder dela, somando esse valor ao próprio poder.`;
+      return `Habilidade ativa (1x por turno, em campo): escolha uma carta inimiga no alcance H${efeito.rangeH}/V${efeito.rangeV}. Rouba ${efeito.valor} PA dela, somando esse valor ao próprio PA.`;
     case TIPOS_EFEITO.REPOSICIONAR:
-      return `Habilidade ativa (1x por turno, em campo): troque de lugar com outra carta aliada, ou mova-se para um espaço livre do seu campo.`;
+      return `Habilidade ativa (1x por turno, em campo): troque de lugar com outra carta aliada, ou mova-se para um espaço livre do seu campo e ganhe +${efeito.bonusMovimento || 1} PA.`;
     case TIPOS_EFEITO.REVELAR_CARTAS_INIMIGO:
       return `Ao ser invocado: revela até ${efeito.valor} cartas da mão ou do baralho do inimigo.`;
     case TIPOS_EFEITO.CASCA_GROSSA:
@@ -200,6 +202,7 @@ const TIPOS_EFEITO_CONTINUO = {
 
 function descreverEfeitoContinuo(efeito) {
   if (!efeito) return "";
+  if (efeito.texto) return efeito.texto;
   switch (efeito.tipo) {
     case TIPOS_EFEITO_CONTINUO.BUFF_CAMPO_CONTINUO:
       return `Enquanto estiver em campo: cartas aliadas${efeito.booster ? ` da ${efeito.booster}` : ""} ganham +${efeito.valor} de PA.`;
@@ -229,8 +232,7 @@ const POOL_CARTAS_TERRENO = [
     booster: "humbanet",
     efeito: {
       tipo: "renovar_mao",
-      texto:
-        "Claro, aqui está... -> Uma vez por turno, descarte sua mão e compre a mesma quantidade de cartas.",
+      texto: "Claro, aqui está... -> Enquanto este terreno estiver em campo, você pode, uma vez por turno, ativar a habilidade desta carta e descartar sua mão e recomprá-la.",
     },
     habilidadeAtiva: true,
   },
@@ -244,6 +246,7 @@ const POOL_CARTAS_TERRENO = [
     efeitoContinuo: {
       tipo: "buff_campo_continuo",
       valor: 2,
+      texto: "Novas Features -> Todas as suas cartas em campo recebem +2 de PA.",
     },
   },
   {
@@ -258,6 +261,7 @@ const POOL_CARTAS_TERRENO = [
       tipo: "buff_campo_continuo",
       valor: 3,
       booster: "sindicato",
+      texto: "Longe de tudo -> Todas as cartas do Sindicato ganham +3 de PA",
     },
   },
   {
@@ -270,6 +274,7 @@ const POOL_CARTAS_TERRENO = [
       tipo: TIPOS_EFEITO_CONTINUO.BUFF_CAMPO_CONTINUO,
       valor: 2,
       booster: "raspcorp",
+      texto: "Jogando em casa -> O ambiente de trabalho competitivo e supostamente confortável aumenta a produtividade de toda a equipe. Todas as cartas da RaspCorp em campo recebem +2 PA.",
     },
   },
   {
@@ -280,7 +285,8 @@ const POOL_CARTAS_TERRENO = [
     booster: "raspcorp",
     efeitoContinuo: {
       tipo: TIPOS_EFEITO_CONTINUO.RECUPERAR_DANO_CONTINUO,
-      valor: 1,
+      valor: 2,
+      texto: "Rolê na Beira-Mar: A ida à Beira-Mar é um momento de descanso no meio desse mundo louco. Enquanto este terreno estiver em campo, toda carta aliada que tiver sofrido dano recupera 2 PA ao final de cada turno, até o limite de PA original da carta.",
     },
   },
   {
@@ -291,6 +297,7 @@ const POOL_CARTAS_TERRENO = [
     booster: "raspcorp",
     efeitoContinuo: {
       tipo: TIPOS_EFEITO_CONTINUO.REVELAR_MAO_CONTINUO,
+      texto: "Segredos Ocultos → A RaspCorp respeita sua privacidade. Apenas prefere conhecê-la melhor do que você. As cartas na mão do adversário permanecem reveladas para todos enquanto este terreno estiver em campo.",
     },
   },
   {
@@ -300,7 +307,9 @@ const POOL_CARTAS_TERRENO = [
     imagem: "tocacoelho",
     foco: { x: 0.5, y: 0 },
     booster: "echossystem",
-    efeitoContinuo: { tipo: TIPOS_EFEITO_CONTINUO.OCULTAR_ALIADOS },
+    efeitoContinuo: { tipo: TIPOS_EFEITO_CONTINUO.OCULTAR_ALIADOS,
+      texto: "A Toca do Coelho -> Enquanto este terreno estiver em campo, todas as cartas aliadas permanecem viradas para baixo apenas para o inimigo e espectadores. Para seu dono, a face e o PA continuam visíveis, com uma borda rosa suave e um coelhinho indicando a ocultação. Ao sofrerem dano ou ativarem seus efeitos, são reveladas.",
+    },
   },
   {
     nome: "Terras Desertas",
@@ -310,7 +319,8 @@ const POOL_CARTAS_TERRENO = [
     booster: "remanescentes",
     efeitoContinuo: {
       tipo: TIPOS_EFEITO_CONTINUO.DEBUFF_CAMPO_INIMIGO,
-      valor: 1,
+      valor: 2,
+      texto: "Ambiente Inóspito -> Enquanto este terreno estiver em campo, todas as cartas inimigas perdem 2 de PA. Caso o inimigo seja reduzido a 0 de PA, ele é eliminado.",
     },
   },
   {
@@ -322,6 +332,7 @@ const POOL_CARTAS_TERRENO = [
     efeitoContinuo: {
       tipo: TIPOS_EFEITO_CONTINUO.BUFF_MESMA_LINHA,
       valor: 3,
+      texto: "Uma Rodada por Conta da Casa -> Enquanto esta carta estiver em campo, todas as cartas da mesma linha ganham +3 de PA.",
     },
   },
 
@@ -337,6 +348,7 @@ const TIPOS_EFEITO_TURNO = {
 // Descreve o efeito de turno na ficha da carta.
 function descreverEfeitoTurno(efeito) {
   if (!efeito) return "";
+  if (efeito.texto) return efeito.texto;
   switch (efeito.tipo) {
     case TIPOS_EFEITO_TURNO.CHANCE_GANHAR_PODER:
       return `No início de cada turno: ${Math.round(efeito.chance * 100)}% de chance de ganhar +${efeito.valor} de poder.`;
@@ -356,7 +368,8 @@ const POOL_CARTAS_MONSTRO = [
     booster: "humbanet",
     efeito: {
       tipo: "buff_adjacentes",
-      valor: 4,
+      valor: 2,
+      texto: "Benefício do tutorial -> A IA detectou que seus aliados possuem pontos fracos e podem melhorar! Cartas adjacentes à IA de treinamento ganham +2 de PA.",
     },
   },
   {
@@ -368,8 +381,7 @@ const POOL_CARTAS_MONSTRO = [
     booster: "humbanet",
     efeito: {
       tipo: "silenciar_carta",
-      texto:
-        "Controle de Risco -> Uma vez por turno, escolha uma carta inimiga. Seus efeitos ficam desabilitados enquanto HAL estiver em campo. Cada HAL mantém apenas um alvo.",
+      texto: "Controle de Risco -> Escolha uma carta do campo inimigo. O efeito dela é desabilitado enquanto o Hal 9001 estiver em campo. Este efeito não pode ser mantido pela mesma carta em duas cartas simultaneamente.",
     },
     habilidadeAtiva: true,
   },
@@ -381,8 +393,10 @@ const POOL_CARTAS_MONSTRO = [
     imagem: "harvis",
     booster: "humbanet",
     efeito: {
-      tipo: "comprar_carta",
-      valor: 1,
+      tipo: "bonus_tempo_turno",
+      valor: 10,
+      maximo: 60,
+      texto: "Assistente Pessoal -> Enquanto H.A.R.V.I.S estiver em campo, você ganha mais 10 segundos de tempo em cada turno. Este efeito pode acumular para um máximo de 1 minuto.",
     },
   },
   {
@@ -395,20 +409,25 @@ const POOL_CARTAS_MONSTRO = [
     efeito: {
       tipo: "bonus_por_terrenos",
       valor: 3,
+      texto: "Demanda operacional -> Para cada terreno que estiver em campo, os replicantes recebem +3 PA",
     },
   },
   {
     nome: "Dragão das Comunicações Móveis",
     poder: 14,
     descricao:
-      "Um dos primeiros experimentos do HumbaBrain foi fazer o upload de um indivíduo no fim da vida para a simulação, permitindo que escolhesse sua própria forma. O resultado foi... inusitado. Temendo sua possível ameaça, o criador decidiu mantê-lo desativado até que um sinal específico de radiofrequência seja emitido. Desde então, a plateia aguarda para descobrir se ele será um espetáculo ou um desastre.",
+      "Um dos primeiros experimentos do HumbaBrain foi fazer o upload de um indivíduo no fim da vida para a simulação, permitindo que escolhesse sua própria forma. O resultado foi... inusitado. Temendo sua possível ameaça, o criador decidiu mantê-lo desativado até que um sinal específico de radiofrequência seja emitido pelo seu chip de memória. Desde então, a plateia aguarda para descobrir se ele será um espetáculo ou um desastre.",
     imagem: "o_dragao",
     booster: "humbanet",
     nivel: "alta",
     efeito: {
       tipo: "texto_regra",
-      texto:
-        "Adormecido -> Esta carta não possui efeitos enquanto estiver adormecida.",
+      texto: "Adormecido -> Esta carta não possui efeitos enquanto estiver adormecida.",
+    },
+    efeitoSecreto: {
+      tipo: "ganhar_poder_rodada",
+      valor: 3,
+      texto: "Memórias do passado -> Esta carta, caso tenha um Boi aliado em campo, pode ser selecionada como alvo de seu efeito. Caso isso ocorra, o Dragão desperta ao lembrar de suas origens. O Dragão passa a ganhar +3 PA por rodada. Este efeito também ativa caso um Raspclay aliado seja invocado utilizando 3 cartas de sacrifício.",
     },
   },
   {
@@ -424,8 +443,7 @@ const POOL_CARTAS_MONSTRO = [
       tipo: "sindicato",
       acao: "reativar",
       alvo: "aliado",
-      texto:
-        "Recuperação -> Uma vez por turno, escolha uma carta aliada que já tenha usado seu efeito. Ela pode utilizá-lo novamente.",
+      texto: "Recuperação -> Uma vez por turno, escolha uma carta aliada que já tenha usado seu efeito. Ela pode utilizá-lo novamente.",
     },
     habilidadeAtiva: true,
   },
@@ -441,15 +459,14 @@ const POOL_CARTAS_MONSTRO = [
       tipo: "vinculo_aliado",
       acao: "vinculo",
       alvo: "aliado",
-      texto:
-        "Troca de Favores -> Ao invocá-lo, escolha uma carta aliada. Enquanto ela ainda estiver em campo, o Político recebe +6 de PA. Caso ela seja destruída, o político é eliminado junto.",
+      texto: "Troca de Favores -> Ao invocá-lo, escolha uma carta aliada. Enquanto ela ainda estiver em campo, o Político recebe +6 de PA. Caso ela seja destruída, o político é eliminado junto.",
     },
   },
   {
     nome: "Influenciador Digital",
     poder: 6,
     descricao:
-      'Dentre as chamadas "pessoas normais", o Influenciador é aquele que acredita ser mais especial. Dita tendências, opiniões e comportamentos, embora suas convicções possam mudar diante de uma proposta melhor. Não produz nada além de conteúdo, engajamento e publicidade, mas finalmente encontrou uma forma de vender a própria existência e chamar isso de trabalho.',
+      "Dentre as chamadas \"pessoas normais\", o Influenciador é aquele que acredita ser mais especial. Dita tendências, opiniões e comportamentos, embora suas convicções possam mudar diante de uma proposta melhor. Não produz nada além de conteúdo, engajamento e publicidade, mas finalmente encontrou uma forma de vender a própria existência e chamar isso de trabalho.",
     imagem: "neo_influencer",
     booster: "sindicato",
     nivel: "media",
@@ -457,8 +474,7 @@ const POOL_CARTAS_MONSTRO = [
       tipo: "sindicato",
       acao: "opiniao",
       alvo: "qualquer",
-      texto:
-        "Opinião Pública -> Uma vez por turno, escolha duas cartas em campo. Se for aliada, ela recebe engajamento e ganha +2 de PA. Se for inimiga, ela sofre um cancelamento e perde essa mesma quantidade.",
+      texto: "Opinião Pública -> Uma vez por turno, escolha duas cartas em campo. Se for aliada, ela recebe engajamento e ganha +2 de PA. Se for inimiga, ela sofre um cancelamento e perde essa mesma quantidade.",
     },
     habilidadeAtiva: true,
   },
@@ -474,8 +490,7 @@ const POOL_CARTAS_MONSTRO = [
       tipo: "sindicato",
       acao: "curar",
       alvo: "aliado",
-      texto:
-        "Uma vez por turno, escolha uma carta aliada que tenha perdido PA. Ela recupera todos seus PA.",
+      texto: "Plano de Saúde -> Uma vez por turno, escolha uma carta aliada que tenha perdido PA. Ela recupera todos seus PA para o valor original da carta.",
     },
     habilidadeAtiva: true,
   },
@@ -491,8 +506,8 @@ const POOL_CARTAS_MONSTRO = [
       tipo: "sindicato",
       acao: "advertir",
       alvo: "inimigo",
-      texto:
-        "Advertência -> Escolha uma carta inimiga. Ela recebe uma advertência. Cada vez que ela utilizar seu efeito, enquanto o TecnoAgente estiver em campo, perde 3 de PA.",
+      valor: 2,
+      texto: "Advertência -> Escolha uma carta inimiga. Ela recebe uma advertência. Cada vez que ela utilizar seu efeito, enquanto o TecnoAgente estiver em campo, perde 2 de PA.",
     },
     habilidadeAtiva: true,
   },
@@ -508,8 +523,7 @@ const POOL_CARTAS_MONSTRO = [
       tipo: "sindicato",
       acao: "bloquear_bonus",
       alvo: "inimigo",
-      texto:
-        "Extintor -> Uma vez por turno, escolha uma carta inimiga. Até o fim da rodada, ela não pode receber bônus de PA.",
+      texto: "Extintor -> Extintor: Uma vez por turno, escolha uma carta inimiga. Até o fim da rodada, ela não pode receber bônus de PA.",
     },
     habilidadeAtiva: true,
   },
@@ -525,8 +539,7 @@ const POOL_CARTAS_MONSTRO = [
       tipo: "sindicato",
       acao: "aprender",
       alvo: "aliado",
-      texto:
-        "Escolha uma carta aliada que tenha habilidade ativável e perca 2 de PA. O Estudante aprende permanentemente a habilidade da carta escolhida. Este efeito só pode ser utilizado uma vez.",
+      texto: "Cola -> Escolha uma carta aliada que tenha habilidade ativável e perca 2 de PA. O Estudante aprende permanentemente a habilidade da carta escolhida. Este efeito só pode ser utilizado uma vez.",
     },
     habilidadeAtiva: true,
   },
@@ -542,8 +555,8 @@ const POOL_CARTAS_MONSTRO = [
       tipo: "sindicato",
       acao: "mover",
       alvo: "aliado",
-      texto:
-        "Extensão ->Uma vez por turno, escolha uma carta aliada. Você pode movê-la para qualquer outro espaço livre em seu campo.",
+      bonusMovimento: 1,
+      texto: "Extensão -> Uma vez por turno, escolha uma carta aliada. Você pode movê-la para qualquer outro espaço livre em seu campo, aumentando seus PA em 1.",
     },
     habilidadeAtiva: true,
   },
@@ -559,8 +572,7 @@ const POOL_CARTAS_MONSTRO = [
       tipo: "sindicato",
       acao: "proteger",
       alvo: "aliado",
-      texto:
-        "Manutenção Preventiva -> O técnico previne que o servidor superaqueça. Uma vez por turno, escolha uma carta aliada, ela não pode perder PA até o início do seu próximo turno.",
+      texto: "Manutenção Preventiva -> O técnico previne que o servidor superaqueça. Uma vez por turno, escolha uma carta aliada, ela não pode perder PA até o início do seu próximo turno.",
     },
     habilidadeAtiva: true,
   },
@@ -577,6 +589,7 @@ const POOL_CARTAS_MONSTRO = [
       tipo: TIPOS_EFEITO_TURNO.CHANCE_GANHAR_PODER,
       chance: 0.5,
       valor: 3,
+      texto: "Investimento de Alto Risco → Os investimentos finalmente começaram a render. No início de cada turno, o CryptoAcionista tem 50% de chance de ganhar +3 PA.",
     },
   },
 
@@ -593,8 +606,9 @@ const POOL_CARTAS_MONSTRO = [
       tipo: TIPOS_EFEITO.BUFF_ALIADO_ESCOLHIDO,
       valor: 2,
       permiteProprio: true,
+      texto: "Venda Casada → Ao ser colocado em campo, o CyberVendedor faz questão de garantir a venda de um dos seus 65.732 combos, em vez do produto que você realmente queria. Escolha, uma vez por turno, uma carta aliada ou esta para ganhar +2 PA.",
     },
-    // Venda Casada: efeito passivo normal (dispara ao invocar), não é habilidade ativa — segue o mesmo fluxo de BUFF_ALIADOS/DEBUFF_INIMIGOS.
+    // Venda Casada é ativada uma vez por turno, incluindo o próprio vendedor como alvo.
   },
 
   {
@@ -607,11 +621,10 @@ const POOL_CARTAS_MONSTRO = [
     efeito: {
       tipo: TIPOS_EFEITO.ATACAR_DOIS_ALVOS,
       valor: 3,
-      rangeH: 3, // A regra usa rangeH - 1: distância máxima de uma coluna.
+      rangeH: 3,
       rangeV: 2,
       atingeTodos: false,
-      texto:
-        "Missão de Paz -> Uma vez por turno, escolha até 2 cartas em alcance curto ou longo, a até uma coluna de distância. Cada alvo perde 3 PA.",
+      texto: "Missão de Paz - A DIPSP conduz uma operação humanitária para proteger a população local de seus próprios recursos naturais. A cada turno, escolha até 2 cartas em alcance (H3/V2). Os alvos atingidos perdem 3 de PA.",
     },
     habilidadeAtiva: true, // NÃO dispara ao invocar — precisa ser ativada em campo
     somAtaque: "somTiro",
@@ -627,9 +640,10 @@ const POOL_CARTAS_MONSTRO = [
     efeito: {
       tipo: TIPOS_EFEITO.ATACAR,
       valor: 5,
-      rangeH: 2,
+      rangeH: 3,
       rangeV: 2,
       atingeTodos: false,
+      texto: "Protocolo de Segurança -> O Juggernaut é a última lembrança que os infratores tem. Escolha qualquer carta do campo inimigo em alcance (H3V2), a UCC a ataca e causa 5 pontos de dano de PA.",
     },
     habilidadeAtiva: true, // Protocolo de Segurança: não dispara ao invocar — ativa em campo, 1x por turno
     somAtaque: "somTiro",
@@ -645,7 +659,8 @@ const POOL_CARTAS_MONSTRO = [
     efeito: {
       tipo: TIPOS_EFEITO.BUFF_ALIADO_ESCOLHIDO,
       valor: 3,
-      custoProprio: 1, // Machine Learning: além de buffar o alvo, o próprio Estagiário perde 1 PA
+      custoProprio: 1, // Machine Learning: além de buffar o alvo, o próprio Estagiário perde 1 PA,
+      texto: "Machine learning -> Escolha uma carta aliada. Ela recebe +3 PA. O Estagiário perde 1 PA.",
     },
     habilidadeAtiva: true, // Machine Learning: NÃO dispara ao invocar — ativa em campo, 1x por turno, mesma
     // A habilidade seleciona uma carta aliada.
@@ -661,7 +676,8 @@ const POOL_CARTAS_MONSTRO = [
     efeito: {
       tipo: TIPOS_EFEITO.REDISTRIBUIR_PODER,
       perda: 2, // Reestruturação Interna: uma carta aliada escolhida perde 2 PA...
-      ganho: 4, // ...e OUTRA carta aliada escolhida ganha 3 PA (dois alvos distintos)
+      ganho: 4, // Outra carta aliada ganha 4 PA.
+      texto: "Reestruturação Interna → A empresa agradece pelos anos de dedicação do colaborador e informa que sua vaga continuará existindo, porém com salário menor. Escolha uma carta aliada para perder 2 PA. Outra carta aliada ganha 4 PA.",
     },
     habilidadeAtiva: true, // Reestruturação Interna: não dispara ao invocar — ativa em campo, 1x por turno
   },
@@ -677,20 +693,23 @@ const POOL_CARTAS_MONSTRO = [
     efeito: {
       tipo: TIPOS_EFEITO.REDUZIR_TEMPO_OPONENTE,
       valor: 15,
-      minimo: 20,
+      minimo: 15,
+      texto: "SLA de 1º Retorno -> Para cada NeoAnalista de Suporte Nível Alpha em campo, o tempo de turno e de ataque do oponente é reduzido em 15 segundos, até um mínimo de 15 segundos.",
     },
   },
 
   {
     nome: "HumbaBrain",
-    poder: 8,
+    poder: 10,
     descricao:
       "O cientista Humba, buscando salvar o planeta das mudanças climáticas, fez upload de uma IA para sua própria cabeça, tornando-se a primeira IA a experimentar o mundo humano. Após compreender a humanidade, criou uma realidade virtual onde humanos e IAs poderiam viver como iguais. Atualmente, comanda a simulação e trabalha para torná-la cada vez mais atrativa aos usuários, não importa o custo.",
     imagem: "humbabrain",
     foco: { x: 0.5, y: 0 },
     booster: "humbanet",
     lendaria: true,
-    efeito: { tipo: TIPOS_EFEITO.HUMATRIX },
+    efeito: { tipo: TIPOS_EFEITO.HUMATRIX,
+      texto: "Humbatrix -> Após o sucesso de NeoFloripa, HumbaBrain inicia a expansão da simulação. Enquanto esta carta estiver em campo, os terrenos inimigos não têm efeito, e os seus não podem ser destruídos.",
+    },
   },
 
   {
@@ -705,6 +724,7 @@ const POOL_CARTAS_MONSTRO = [
     efeito: {
       tipo: TIPOS_EFEITO.DISTRIBUIR_DANO,
       total: 6,
+      texto: "Eu Sou a Lei -> A cada turno, distribua 6 pontos de dano de PA entre qualquer carta inimiga como desejar. Uma vez que um alvo é selecionado, não se pode voltar atrás.",
     },
     habilidadeAtiva: true,
   },
@@ -720,6 +740,7 @@ const POOL_CARTAS_MONSTRO = [
     efeito: {
       tipo: TIPOS_EFEITO.BONUS_POR_PERDIDAS,
       valor: 1,
+      texto: "Por Aqueles que Ainda Virão -> Esta carta recebe +1 de PA para cada efeito utilizado, carta de personagem que tiver sido destruída ou terreno removido de campo no lado aliado desde que ela foi invocada.",
     },
   },
   {
@@ -733,6 +754,7 @@ const POOL_CARTAS_MONSTRO = [
       tipo: TIPOS_EFEITO.BUFF_ATE_DOIS_ALIADOS,
       valor: 2,
       maxAlvos: 2,
+      texto: "Reparo e Melhoria -> A cada turno, escolha até 2 cartas aliadas, cada uma ganha +2 de PA.",
     },
     habilidadeAtiva: true,
   },
@@ -748,6 +770,7 @@ const POOL_CARTAS_MONSTRO = [
       nomes: ["O Bom", "Sen'Tenzhah, O Mau"],
       valor: 5,
       bonusVizinhos: 3,
+      texto: "Três Homens em Conflito -> Caso seja posto adjacente ao Bom e ao Mau, o Feio ganha + 5 PA e aumenta os outros dois em 3.",
     },
   },
   {
@@ -759,10 +782,11 @@ const POOL_CARTAS_MONSTRO = [
     booster: "remanescentes",
     efeito: {
       tipo: TIPOS_EFEITO.ATACAR,
-      valor: 3,
-      rangeH: 3,
-      rangeV: 3,
-      bonusAoEliminar: 1,
+      valor: 4,
+      rangeH: 5,
+      rangeV: 1,
+      bonusAoEliminar: 2,
+      texto: "Alvo Marcado -> Escolha uma carta inimiga em alcance (H5V1). Ela perde 4 de PA. Caso seja removida do campo por este efeito, O Mau recebe +2 de PA.",
     },
     habilidadeAtiva: true,
   },
@@ -777,6 +801,9 @@ const POOL_CARTAS_MONSTRO = [
       tipo: TIPOS_EFEITO.DISTRIBUIR_DANO,
       total: 6,
       alvosUnicos: true,
+      rangeH: 3,
+      rangeV: 3,
+      texto: "O Número Perfeito -> Escolha até 6 cartas no campo inimigo em alcance (H3V3). Cada uma perde 1 de PA.",
     },
     habilidadeAtiva: true,
   },
@@ -785,11 +812,12 @@ const POOL_CARTAS_MONSTRO = [
     nome: "Advogado Corporativo",
     poder: 5,
     descricao:
-      "Sua principal função é garantir que a Raspcorp permaneça em conformidade com a legislação vigente. Felizmente, ambas costumam ser atualizadas ao mesmo tempo. Ao longo de sua carreira, participou da aquisição de sete empresas, três governos e um incidente que permanece sob sigilo judicial",
+      "Sua principal função é garantir que a Raspcorp permaneça em conformidade com a legislação vigente. Felizmente, ambas costumam ser atualizadas ao mesmo tempo. Ao longo de sua carreira, participou da aquisição de sete empresas, três governos e um incidente que permanece sob sigilo judicial.",
     imagem: "adv",
     booster: "raspcorp",
     efeito: {
       tipo: TIPOS_EFEITO.DESTRUIR_TERRENO_INIMIGO,
+      texto: "Cessar e Desistir → Após uma longa análise jurídica de aproximadamente três minutos, concluiu-se que o terreno inimigo infringe ao menos dezessete patentes da RaspCorp. Uma vez por turno, escolha um terreno inimigo para ser eliminado.",
     },
     habilidadeAtiva: true,
 
@@ -801,7 +829,7 @@ const POOL_CARTAS_MONSTRO = [
     nome: "RaspClay MonteCorp",
     poder: 10,
     descricao:
-      'Raspclay trocou seu antigo nome pelo topo dos arranha-céus de Floripa. Atualmente, comanda a irreverente e opressora empresa de tecnologia, serviços, segurança privada e propaganda Raspcorp. Após comprar todos os setores da sociedade, seus advogados passaram a afirmar que a palavra "monopólio" carrega uma conotação desnecessariamente negativa.',
+      "Raspclay trocou seu antigo nome pelo topo dos arranha-céus de Floripa. Atualmente, comanda a irreverente e opressora empresa de tecnologia, serviços, segurança privada e propaganda Raspcorp. Após comprar todos os setores da sociedade, seus advogados passaram a afirmar que a palavra \"monopólio\" carrega uma conotação desnecessariamente negativa.",
     imagem: "raspclay",
     booster: "raspcorp",
     foco: { x: 0.5, y: 0.05 },
@@ -810,6 +838,8 @@ const POOL_CARTAS_MONSTRO = [
       tipo: TIPOS_EFEITO.ABSORVER_ALIADOS,
       maxAlvos: 3, // Potencialização de Capital: até 3 cartas aliadas por ativação
       niveisPermitidos: ["baixa", "media"],
+      bonusPorNivel: {"baixa": 1, "media": 3},
+      texto: "Potencialização de Capital -> Escolha até 3 cartas aliadas de nível baixo ou médio em campo ao invocar esta carta. RaspClay absorve a produtividade delas, removendo-as do campo e aumentando seu PA pela soma dos seus valores de PA. O Montante final aumenta em +1 para cada carta baixa utilizada e em +3 para cada carta média.",
     },
     // A absorção ocorre na invocação e permite confirmar vários alvos.
   },
@@ -825,10 +855,11 @@ const POOL_CARTAS_MONSTRO = [
     booster: "echossystem",
     efeito: {
       tipo: TIPOS_EFEITO.ATACAR_DOIS_ALVOS,
-      valor: 4,
-      // "Alcance curto": só a coluna imediatamente vizinha (rangeH:1) e a fileira adjacente (rangeV:1) — combate corpo a corpo.
+      valor: 3,
+      // Garra de aço alcança a frente inimiga, até cinco colunas de distância.
       rangeH: 5,
       rangeV: 1,
+      texto: "Garra de aço -> O Tigre é um mestre de combate corpo a corpo. Escolha 2 cartas em alcance (H5/V1), o Tigre reduz seus PA em 3.",
     },
 
     habilidadeAtiva: true, // Garra de aço: não dispara ao invocar — ativa em campo, 1x por turno
@@ -844,6 +875,7 @@ const POOL_CARTAS_MONSTRO = [
     booster: "echossystem",
     efeito: {
       tipo: TIPOS_EFEITO.OVERRIDE,
+      texto: "Override -> Escolha uma carta inimiga com PA atual menor ou igual aos da Aranha. A carta passa a contar pontos para sua equipe e tem sua habilidade bloqueada. Este efeito não pode ser mantido pela mesma carta em duas cartas simultaneamente.",
     },
     // Override mantém a carta fisicamente no campo inimigo, mas transfere os pontos.
     habilidadeAtiva: true, // Override: não dispara ao invocar — ativa em campo, 1x por turno
@@ -859,6 +891,7 @@ const POOL_CARTAS_MONSTRO = [
     lendaria: true, // 1x só no deck — visualização detalhada com destaque especial (ver jogo.js)
     efeito: {
       tipo: TIPOS_EFEITO.RESETAR_PODER,
+      texto: "Novo Começo → Uma vez por turno, escolha uma carta em campo. Ela retorna ao seu PA original, perdendo todos os aumentos e reduções de PA sofridos.",
     },
     habilidadeAtiva: true, // Novo Começo: não dispara ao invocar — ativa em campo, 1x por turno
   },
@@ -873,7 +906,10 @@ const POOL_CARTAS_MONSTRO = [
     booster: "echossystem",
     efeito: {
       tipo: TIPOS_EFEITO.ROUBAR_PODER,
-      valor: 1,
+      valor: 2,
+      rangeH: 3,
+      rangeV: 1,
+      texto: "Mãos Leves → Escolha, a cada turno, uma carta inimiga em alcance (H3V1). O Rato rouba 2 PA dela, adicionando esse valor ao seu próprio PA.",
     },
     habilidadeAtiva: true, // Mãos Leves: não dispara ao invocar — ativa em campo, 1x por turno
   },
@@ -888,6 +924,8 @@ const POOL_CARTAS_MONSTRO = [
     booster: "echossystem",
     efeito: {
       tipo: TIPOS_EFEITO.REPOSICIONAR,
+      bonusMovimento: 1,
+      texto: "Escalada -> A Cabra, devido à sua alta mobilidade, pode, uma vez a cada turno, reposicionar-se no campo aliado, trocando de lugar com outra carta ou espaço livre disponível. Ao fazer isso, ela recebe +1 PA.",
     },
     habilidadeAtiva: true, // Escalada: não dispara ao invocar — ativa em campo, 1x por turno
   },
@@ -903,6 +941,7 @@ const POOL_CARTAS_MONSTRO = [
     efeito: {
       tipo: TIPOS_EFEITO.PENALIZAR_PROXIMA_INVOCACAO,
       valor: 3,
+      texto: "Faro -> O Cão consegue rastrear o cheiro do inimigo, apesar de não tão bem quanto sua época. Ao ser invocado, o Cão reduz 3 de PA da próxima carta de personagem invocada pelo oponente. Este efeito não acumula.",
     },
     // Faro: efeito passivo normal (dispara ao invocar), não é habilidade ativa — mesma família de BUFF_ALIADOS/DEBUFF_INIMIGOS.
   },
@@ -916,6 +955,7 @@ const POOL_CARTAS_MONSTRO = [
     booster: "echossystem",
     efeito: {
       tipo: TIPOS_EFEITO.CASCA_GROSSA,
+      texto: "Casca Grossa → Os PA do Porco não podem ser reduzidos abaixo de 6 PA por efeitos de outras cartas.",
     },
     // Casca Grossa é um passivo permanente, aplicado por Carta.buff().
   },
@@ -932,6 +972,7 @@ const POOL_CARTAS_MONSTRO = [
       valor: 1,
       rangeH: 5,
       rangeV: 5,
+      texto: "Dose Letal → A Cobra injeta uma de suas substâncias em um inimigo em qualquer ponto do campo. O inimigo escolhido perde 1 PA por turno enquanto estiver envenenado. Este efeito pode acumular, porém só conta enquanto A Cobra estiver em campo.",
     },
     habilidadeAtiva: true, // Dose Letal: não dispara ao invocar — ativa em campo, 1x por turno
   },
@@ -948,7 +989,9 @@ const POOL_CARTAS_EFEITO = [
       "Após analisar seu histórico de compras, pesquisas e sonhos recorrentes, o algoritmo preparou uma sugestão especialmente para você. Foi você que aceitou todos os cookies...",
     imagem: "sugalg",
     booster: "raspcorp",
-    efeito: { tipo: TIPOS_EFEITO.BUSCAR_CARTA_DECK },
+    efeito: { tipo: TIPOS_EFEITO.BUSCAR_CARTA_DECK,
+      texto: "Descarte sua mão e recompre um número de cartas equivalente às descartadas.Então, escolha uma carta do seu baralho para puxar diretamente para sua mão.",
+    },
   },
 
   {
@@ -958,7 +1001,9 @@ const POOL_CARTAS_EFEITO = [
       "Há muito tempo, a humanidade admirava seus maiores atletas. Depois descobriu que podia construir robôs mais rápidos. Assim, os humanos desapareceram das pistas. Um deles foi O Cavalo. Tricampeão olímpico, hoje presta serviços à EchoSsystem realizando entregas, causando distrações e se arremessando contra ciborgues. Felizmente, a concussão cerebral deixou de ser um problema depois que metade do seu crânio foi substituída por titânio.",
     imagem: "cavalo",
     booster: "echossystem",
-    efeito: { tipo: TIPOS_EFEITO.ATACAR_COLUNA, valor: 6 },
+    efeito: { tipo: TIPOS_EFEITO.ATACAR_COLUNA, valor: 4,
+      texto: "O Cavalo atravessa uma coluna do campo inimigo, causando 4 PA de dano a todas as cartas presentes nela.",
+    },
   },
 
   {
@@ -969,7 +1014,9 @@ const POOL_CARTAS_EFEITO = [
     imagem: "galo",
     foco: { x: 0.5, y: 0 },
     booster: "echossystem",
-    efeito: { tipo: TIPOS_EFEITO.BUFF_DOIS_ALIADOS, valores: [5, 4] },
+    efeito: { tipo: TIPOS_EFEITO.BUFF_DOIS_ALIADOS, valores: [3, 2],
+      texto: "A inspiradora voz do Galo fortalece seus companheiros. Escolha duas cartas aliadas. A primeira recebe +3 PA e a segunda +2 PA.",
+    },
   },
   {
     nome: "A Travessura do Macaco",
@@ -979,7 +1026,9 @@ const POOL_CARTAS_EFEITO = [
     imagem: "macaco",
     foco: { x: 0.5, y: 0 },
     booster: "echossystem",
-    efeito: { tipo: TIPOS_EFEITO.ARMADILHA_ESPACO, valor: 7 },
+    efeito: { tipo: TIPOS_EFEITO.ARMADILHA_ESPACO, valor: 5,
+      texto: "O Macaco planta uma armadilha em um espaço de carta do campo adversário. A próxima carta invocada nesse espaço entra em campo com -5 PA.",
+    },
   },
   {
     nome: "Você Parece Sozinho",
@@ -991,8 +1040,9 @@ const POOL_CARTAS_EFEITO = [
     booster: "humbanet",
     efeito: {
       tipo: TIPOS_EFEITO.BUFF_ALIADO_ESCOLHIDO,
-      valor: 6,
+      valor: 5,
       exigeAlvoIsolado: true,
+      texto: "Escolha uma carta aliada que, neste momento, não possua nenhuma outra carta adjacente. Ela recebe +5 de PA.",
     },
   },
   {
@@ -1004,16 +1054,19 @@ const POOL_CARTAS_EFEITO = [
     booster: "remanescentes",
     efeito: {
       tipo: TIPOS_EFEITO.RECICLAR_DESCARTE,
+      texto: "Escolha 1 terreno removido, efeito já utilizado ou personagem destruído. Coloque-o novamente em sua mão.",
     },
   },
   {
     nome: "Vento dos Ermos",
     poder: 1,
     descricao:
-      'A forte ventania nas terras destruídas ajuda a acelerar a desertificação no local. De acordo com os anciões remanescentes "o vento tudo leva, menos as lembranças daqueles que passaram"',
+      "A forte ventania nas terras destruídas ajuda a acelerar a desertificação no local. De acordo com os anciões remanescentes \"o vento tudo leva, menos as lembranças daqueles que passaram\"",
     imagem: "ventodosermos",
     booster: "remanescentes",
-    efeito: { tipo: TIPOS_EFEITO.REMOVER_TERRENO },
+    efeito: { tipo: TIPOS_EFEITO.REMOVER_TERRENO,
+      texto: "Escolha um terreno inimigo. Ele será removido.",
+    },
   },
 
   // Adicione novas cartas de efeito aqui, seguindo o mesmo formato acima.
@@ -1089,6 +1142,8 @@ class Carta {
   // Separa ambientação e regras para colorir a descrição.
   partesDescricao() {
     const partes = [];
+    if (this.capturadaPor)
+      partes.push({ tipo: "efeito", texto: "HABILIDADE BLOQUEADA — Override da Aranha. Os PA desta carta contam para o adversário." });
     if (this.efeitoDesabilitado)
       partes.push({
         tipo: "efeito",

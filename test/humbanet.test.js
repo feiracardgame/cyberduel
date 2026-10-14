@@ -19,8 +19,8 @@ const use = (p, c, a, b, enemy = false) => p.ativarHabilidade(c, enemy ? p.inimi
 
 // Every finished artwork referenced by the design document belongs to a playable card.
 const images = new Set([...monsters, ...terrains, ...effects].map(c => context.window.CYBERDUEL_IMAGE_ASSETS[c.imagem]));
-for (const [, path] of fs.readFileSync('Cartas e boosters.md', 'utf8').matchAll(/src="(assets\/cartas\/[^\"]+)"/g))
-  assert.ok(images.has(path), `Carta com arte pronta fora do catálogo: ${path}`);
+for (const [, path] of fs.readFileSync('markdown/Cartas e boosters.md', 'utf8').matchAll(/src="(assets\/cartas\/[^\"]+)"/g))
+  if (fs.existsSync(path)) assert.ok(images.has(path), `Carta com arte pronta fora do catálogo: ${path}`);
 assert.equal(monsters.length, 38);
 
 // Orthogonal adjacency, removal, and stable continuous bonuses.
@@ -28,7 +28,7 @@ assert.equal(monsters.length, 38);
   const p = match(); put(p, 'IA de treinamento', 4);
   const near = put(p, 'O Tigre', 3), below = put(p, 'O Tigre', 9), wrap = put(p, 'O Tigre', 5);
   update(p); update(p);
-  assert.equal(near.poder, 13); assert.equal(below.poder, 13); assert.equal(wrap.poder, 9);
+  assert.equal(near.poder, 11); assert.equal(below.poder, 11); assert.equal(wrap.poder, 9);
   p.jogador.campo.removerCarta(4); update(p);
   assert.equal(near.poder, 9); assert.equal(below.poder, 9);
 }
@@ -37,8 +37,8 @@ for (const enemy of [false, true]) {
   let p = match();
   put(p, 'IA de treinamento', 0, enemy);
   const dead = put(p, 'O Tigre', 5, enemy), attacker = put(p, 'O Tigre', 5, !enemy);
-  update(p); assert.equal(dead.poder, 13);
-  for (let hit = 0; hit < 5; hit++) {
+  update(p); assert.equal(dead.poder, 11);
+  for (let hit = 0; hit < 4; hit++) {
     attacker.usadaEsteTurno = false;
     assert.ok(use(p, attacker, 5, null, !enemy).sucesso);
   }
@@ -50,8 +50,8 @@ for (const enemy of [false, true]) {
   p.jogador.mao.adicionarCarta(fresh);
   assert.ok(p.jogarCartaDoJogador(fresh, 5).sucesso);
   update(p); update(p);
-  assert.equal(fresh.poder, 13);
-  assert.equal(fresh.bonusEfeitoContinuo, 4);
+  assert.equal(fresh.poder, 11);
+  assert.equal(fresh.bonusEfeitoContinuo, 2);
   p.jogador.campo.removerCarta(0); update(p);
   assert.equal(fresh.poder, 9, 'A carta nova perde apenas o bônus quando a IA sai.');
 }
@@ -73,25 +73,25 @@ for (const adjacent of [false, true]) {
   assert.equal(recovered.envenenada, null);
   assert.ok(p.jogarCartaDoJogador(recovered, adjacent ? 5 : 9).sucesso);
   update(p); update(p);
-  assert.equal(recovered.poder, adjacent ? 13 : 9);
+  assert.equal(recovered.poder, adjacent ? 11 : 9);
   assert.equal(p.jogador.campo.cartas[adjacent ? 5 : 9], recovered);
 }
 // HAL can disable passive characters and terrains, switch its single target, and restore on removal.
 {
   const p = match(), hal = put(p, 'HAL 9001', 0), ia = put(p, 'IA de treinamento', 0, true);
   const target = put(p, 'O Tigre', 1, true), bug = put(p, 'Bug na Matrix', 9, true);
-  update(p); assert.equal(target.poder, 15);
+  update(p); assert.equal(target.poder, 13);
   assert.ok(use(p, hal, 0).sucesso); assert.equal(target.poder, 11); assert.equal(ia.efeitoDesabilitado, true);
   assert.equal(use(p, hal, 9).sucesso, false);
   hal.usadaEsteTurno = false; assert.ok(use(p, hal, 9).sucesso);
-  assert.equal(ia.efeitoDesabilitado, false); assert.equal(bug.efeitoContinuo, null); assert.equal(target.poder, 13);
+  assert.equal(ia.efeitoDesabilitado, false); assert.equal(bug.efeitoContinuo, null); assert.equal(target.poder, 11);
   const event = p.eventosEfeito.findLast(e => e.momento === 'habilidade');
   assert.ok(event.alvos.some(a => a.id === bug.id));
   const restored = codec.hydrateMatch(codec.swapSnapshot(codec.serializeMatch(p)));
   update(restored); assert.equal(restored.jogador.campo.cartas[9].efeitoDesabilitado, true);
   restored.inimigo.campo.removerCarta(0); update(restored);
   assert.equal(restored.jogador.campo.cartas[9].efeitoDesabilitado, false);
-  assert.equal(restored.jogador.campo.cartas[1].poder, 15);
+  assert.equal(restored.jogador.campo.cartas[1].poder, 13);
 }
 // Multiple HALs keep independent targets; a blocked HAL stops maintaining control.
 {
@@ -124,7 +124,8 @@ for (const adjacent of [false, true]) {
   assert.equal(rep.poder, 13, 'Terrenos desabilitados continuam presentes e contam para Replicantes.');
   p.inimigo.campo.removerCarta(1); update(p); assert.equal(rep.poder, 10);
   const harvis = card('H.A.R.V.I.S'), next = card('A Cabra'); p.jogador.deck.cartas = [next];
-  p.jogarCartaDoJogador(harvis, 2); assert.equal(p.jogador.mao.cartas.at(-1), next);
+  p.jogarCartaDoJogador(harvis, 2); assert.equal(p.jogador.deck.cartas[0], next);
+  assert.equal(harvis.efeito.tipo, 'bonus_tempo_turno');
 }
 // Faro persists across snapshots, ignores terrain, and affects only the next character.
 {
@@ -157,7 +158,7 @@ for (const adjacent of [false, true]) {
   p.jogador.campo.cartas[2] = null; p.jogador.campo.cartas[7] = mau; update(p);
   assert.equal(bom.poder, 7); assert.equal(feio.poder, 5); assert.equal(mau.poder, 6);
   p.jogador.campo.cartas[0] = null; put(p, 'IA de treinamento', 0); update(p);
-  assert.equal(feio.poder, 9); assert.equal(mau.poder, 6);
+  assert.equal(feio.poder, 7); assert.equal(mau.poder, 6);
   const bystander = put(p, 'O Tigre', 2); update(p); assert.equal(bystander.poder, 9);
 }
 // Updated floor and full recovery; blocked Porco temporarily loses its floor.
@@ -195,38 +196,43 @@ for (const adjacent of [false, true]) {
 }
 {
   const p = match(), seller = put(p, 'CyberVendedor da RaspCorp', 0);
-  assert.ok(use(p, seller, 0).sucesso); assert.equal(seller.poder, 4);
+  assert.ok(use(p, seller, 0).sucesso); assert.equal(seller.poder, 5);
   assert.equal(use(p, seller, 0).sucesso, false);
   const analyst = card('NeoAnalista de Suporte Nível Alpha');
-  assert.equal(analyst.efeito.valor, 15); assert.equal(analyst.efeito.minimo, 20);
+  assert.equal(analyst.efeito.valor, 15); assert.equal(analyst.efeito.minimo, 15);
   vm.runInContext(fs.readFileSync('js/cenas/jogo.js', 'utf8'), context);
   const scene = vm.runInContext('Object.create(CenaJogo.prototype)', context);
   scene.partida = p; scene.duracaoTurnoBase = 40000;
   p.inimigo.campo.adicionarCarta(analyst, 0);
   assert.equal(scene.duracaoPermitidaPara(p.jogador), 25000);
   put(p, 'NeoAnalista de Suporte Nível Alpha', 1, true);
-  assert.equal(scene.duracaoPermitidaPara(p.jogador), 20000);
+  assert.equal(scene.duracaoPermitidaPara(p.jogador), 15000);
   const hal = put(p, 'HAL 9001', 1); use(p, hal, 0);
   assert.equal(scene.duracaoPermitidaPara(p.jogador), 25000);
 }
 console.log('HumbaNet, artes prontas, supressões, Faro, Povo, trio e novos valores validados.');
 
-// O despertar do Dragão está reservado para uma implementação futura.
+// O efeito secreto só aparece ao despertar um Dragão aliado.
 {
   const p = match(), boi = put(p, 'O Boi', 0), dragon = put(p, 'Dragão das Comunicações Móveis', 1);
   const enemy = put(p, 'Dragão das Comunicações Móveis', 1, true);
   p.resolverEfeitosInicioRodada(); assert.equal(dragon.poder, 14);
   assert.ok(use(p, boi, 11).sucesso); assert.equal(enemy.dragaoDesperto, undefined);
   boi.usadaEsteTurno = false;
-  assert.ok(use(p, boi, 1).sucesso); assert.equal(dragon.dragaoDesperto, undefined);
-  assert.ok(!p.eventosEfeito.some(e => e.momento === 'despertar'));
-  p.fimTurno({ semIA: true }); assert.equal(dragon.poder, 14);
+  assert.ok(use(p, boi, 1).sucesso); assert.equal(dragon.dragaoDesperto, true);
+  assert.match(dragon.descricaoCompleta(), /Memórias do passado/);
+  assert.match(dragon.descricaoCompleta(), /Raspclay aliado.*3 cartas de sacrifício/);
+  boi.usadaEsteTurno = false;
+  assert.ok(use(p, boi, 1).sucesso);
+  assert.equal(p.eventosEfeito.filter(e => e.momento === 'despertar').length, 1, 'Despertar só apresenta a arte e o rugido uma vez.');
+  p.jogador.campo.removerCarta(0);
+  p.fimTurno({ semIA: true }); assert.equal(dragon.poder, 17);
   const snapshot = codec.serializeMatch(p);
   const restored = codec.hydrateMatch(codec.swapSnapshot(JSON.parse(JSON.stringify(snapshot))));
   const synced = restored.inimigo.campo.cartas[1];
-  assert.equal(synced.dragaoDesperto, undefined);
-  restored.resolverEfeitosInicioRodada(); assert.equal(synced.poder, 14);
+  assert.equal(synced.dragaoDesperto, true);
+  restored.resolverEfeitosInicioRodada(); assert.equal(synced.poder, 20);
   const serverRound = require('../server/duel-runtime').closeRound(snapshot);
-  assert.equal(serverRound.state.jogador.field[1].poder, 14, 'Rodada online mantém o Dragão adormecido.');
+  assert.equal(serverRound.state.jogador.field[1].poder, 20, 'Rodada online concede +3 PA ao Dragão desperto.');
 }
-console.log('Dragão: Boi não desperta nem concede bônus, incluindo sincronização e rodada online.');
+console.log('Dragão: despertar aliado, texto secreto, sincronização e bônus da rodada online validados.');

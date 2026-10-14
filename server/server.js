@@ -370,6 +370,7 @@ function publicAccount(account) {
     nickname: account.nickname,
     authProvider: account.localAccount ? "local" : account.googleSub ? "google" : "password",
     isAdmin: isAdminAccount(account),
+    segurancaX1: isAdminAccount(account) && account.segurancaX1 === true,
     needsRegistration: needsRegistration(account),
     needsUsername: Boolean(account.googleSub && !validUsername(account.username)),
     avatar: account.avatar,
@@ -714,6 +715,15 @@ async function handleApi(request, response, pathname) {
     if (!pending) return sendJson(response, 401, { ok: false, error: "Entre na sua conta primeiro." });
     if (!isAdminAccount(pending.account))
       return sendJson(response, 403, { ok: false, error: "Esta conta não é administradora." });
+  }
+
+  if (request.method === "POST" && pathname === "/api/admin/seguranca-x1") {
+    const body = await readJson(request);
+    if (typeof body?.enabled !== "boolean")
+      return sendJson(response, 400, { ok: false, error: "Informe enabled como booleano." });
+    pending.account.segurancaX1 = body.enabled;
+    saveAccounts();
+    return sendJson(response, 200, publicAccount(pending.account));
   }
 
   if (request.method === "GET" && pathname === "/api/admin/accounts") {
@@ -1454,11 +1464,14 @@ function broadcastState(room, extra = {}, except = null) {
 }
 
 function phaseDuration(room) {
+  const owner = room.turn === 1 ? room.state?.jogador : room.state?.inimigo;
   const enemy = room.turn === 1 ? room.state?.inimigo : room.state?.jogador;
   const analysts = (enemy?.field || []).filter((c) => c?.efeito?.tipo === "reduzir_tempo_oponente");
   const reduction = analysts.reduce((sum, c) => sum + Math.max(0, Number(c.efeito.valor) || 0), 0);
   const floor = Math.max(15, ...analysts.map((c) => Number(c.efeito.minimo) || 0));
-  return Math.max(floor, 40 - reduction) * 1000;
+  const bonus = (owner?.field || []).reduce((sum, c) => sum +
+    (c?.efeito?.tipo === "bonus_tempo_turno" ? Math.max(0, Number(c.efeito.valor) || 0) : 0), 0);
+  return Math.max(floor, Math.min(60, 40 + bonus) - reduction) * 1000;
 }
 
 function armPhaseClock(room, reset = true, initial = false) {
@@ -1644,6 +1657,8 @@ function surrenderRoom(room, player) {
 }
 
 function acceptClientState(room, state) {
+  // O evento de Segurança X1 só é criado pelo servidor após validar a conta e a invocação.
+  if (Array.isArray(state.eventosEfeito)) state.eventosEfeito = state.eventosEfeito.filter(event => event.momento !== "seguranca_x1");
   if (room.ranked) for (const key of ["turno", "maxTurnos", "rodadasParaVencer", "rodadasJogador", "rodadasInimigo", "partidaEncerrada"])
     state[key] = room.state[key];
   return state;
@@ -2021,7 +2036,24 @@ io.on("connection", (socket) => {
     if (!room?.state || room.state.partidaEncerrada || room.phaseStartedAt > Date.now() || room.turn !== socket.data.player ||
         payload.step !== room.step || payload.round !== room.round || !validState(payload.state))
       return ack({ ok: false, error: "A fase não permite esta atualização." });
+    const ownerKey = room.turn === 1 ? "jogador" : "inimigo";
+    const previousOwner = room.state[ownerKey];
+    const account = room.accounts.get(socket.data.player);
+    const summonedDragon = room.step < 2 && isAdminAccount(account) && account?.segurancaX1 === true &&
+      payload.state[ownerKey].field.find(card => card?.nome === "Dragão das Comunicações Móveis" && card.tipo === "monstro" &&
+        !previousOwner.field.some(previous => previous?.id === card.id) &&
+        previousOwner.hand.some(previous => previous.id === card.id && previous.nome === card.nome));
     room.state = acceptClientState(room, payload.state);
+    if (summonedDragon) {
+      const resolved = require("./duel-runtime").finishSegurancaX1(room.state, room.turn, summonedDragon.id);
+      if (resolved) {
+        clearTimeout(room.timer); clearTimeout(room.effects?.timeout);
+        room.effects = null; room.deadline = null;
+        room.state = resolved.state; room.result = resolved.result; room.debugFinal = true;
+        broadcastState(room, { result: room.result, debugFinal: true, segurancaX1: true });
+        return ack({ ok: true, ...phaseInfo(room) });
+      }
+    }
     armPhaseClock(room, false);
     pauseForEffects(room);
     broadcastState(room, { live: true }, socket.id);
