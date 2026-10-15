@@ -83,7 +83,7 @@ Descrição de como será feito o tutorial do jogo
 -> Usuário tem que invocar o tigre no espaço da frente, de modo a poder acertar o cybervendedor. Ele então tem que passar o turno e depois clicar no Tigre pra usar ele para atacar o Cybervendedor
 
 - ElenAI (sprite 5) -> "Ótimo, muito bem!"
-- ElenAI (sprite 10) -> "No entanto, você deve ter percebido que não conseguiu acertar a carta lá no fundo. Isso acontece porque todo efeito de carta apresenta alguma condição específica. Nesse caso, é o alcance. O número ao lado do "H" indica qual a distância de casas máximas horizontais entre a carta que usa o efeito e o alvo, e o número ao lado do "V" indica o mesmo, porém para a distância de casas verticais."
+- ElenAI (sprite 10) -> "No entanto, você deve ter percebido que não conseguiu acertar a carta lá no fundo. Isso acontece porque todo efeito de carta apresenta alguma condição específica. Nesse caso, é o alcance. O número ao lado do "H" indica qual a distância de casas máximas horizontais que o efeito alcança, e o número ao lado do "V" indica o mesmo, porém para a distância de casas verticais."
 - ElenAI (sprite 10) -> "Tenta utilizar essa carta aqui agora."
 -> Usuário recebe o Agente da DIPSP na mão e aparece brilhando pra ele invocar o DIPSP em um dos espaços da frente. Ele invoca lá e brilha pra passar o turno. Agora, o DIPSP brilha e ele tem que usar a habilidade para acertar o rato.
 
