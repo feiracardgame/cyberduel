@@ -106,8 +106,9 @@ function nameIsBlocked(value) {
   const withoutSuffix = original.toLocaleLowerCase('pt-BR').replace(/\d+$/u, '')
     .normalize('NFD').replace(/\p{M}/gu, '').replace(/[^\p{L}]/gu, '');
   if (RESERVED.has(compact) || RESERVED.has(withoutSuffix) || words.some(word => RESERVED.has(word))) return true;
+  // Apenas termos proibidos com mais de quatro letras bloqueiam trechos de outros nomes.
   return BLOCKED.some(word => words.includes(word) || compact === word || withoutSuffix === word ||
-    (word.length >= 5 && compact.includes(word)) ||
+    (word.length > 4 && (compact.includes(word) || withoutSuffix.includes(word))) ||
     new RegExp(`^${word}\\d*$`).test(normalized));
 }
 module.exports = { nameIsBlocked };

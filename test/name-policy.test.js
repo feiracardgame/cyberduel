@@ -1,5 +1,11 @@
 const assert = require('node:assert/strict');
 const { nameIsBlocked } = require('../server/name-policy');
+for (const name of ['asduhasiudepsteinasduiasdiuh', 'zzEPSTEINyy', 'zzDiddyYY',
+  'zzd.i.d.d.yyy', 'zz3p5t31nyy', 'zzep1steinYY', 'zzcaralhoyy', 'zzSeanCombsyy'])
+  assert.equal(nameIsBlocked(name), true, `Termo com mais de quatro letras no meio: ${name}`);
+for (const name of ['zzadminyy', 'zzsuporteyy', 'zzcyberduelyy', 'zzcuyy', 'zzpauyy',
+  'zzputayy', 'zzfodayy', 'zzfdpyy', 'zzshitYY', 'zzpornYY', 'zzrapeYY'])
+  assert.equal(nameIsBlocked(name), false, `Reservado ou termo curto não bloqueia trecho: ${name}`);
 for (const name of ['admin', 'Admin_Joao', 'AdMiN01', 'ＡＤＭＩＮ', 'аdmin', 'ElénAI', 'p.u.t.a', 'P U T A',
   'C4R4LH0', 'puta123', 'foda123', 'Héil Hitler', 'a\u200bdmin', 'Duelista\u202e', 'filho da puta'])
   assert.equal(nameIsBlocked(name), true, name);
