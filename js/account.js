@@ -9,6 +9,7 @@ class CyberduelAccount {
     this.segurancaX1 = false;
     this.needsRegistration = false;
     this.needsUsername = false;
+    this.nameRestriction = null;
     this.avatar = "";
     this.profilePhotos = [];
     this.deck = null;
@@ -52,6 +53,7 @@ class CyberduelAccount {
       segurancaX1: this.segurancaX1,
       needsRegistration: this.needsRegistration,
       needsUsername: this.needsUsername,
+      nameRestriction: this.nameRestriction,
       avatar: this.avatar,
       deck: this.deck,
       faction: this.faction,
@@ -82,8 +84,13 @@ class CyberduelAccount {
       body: body === undefined ? undefined : JSON.stringify(body),
     });
     const payload = await response.json().catch(() => ({}));
-    if (!response.ok)
-      throw new Error(payload.error || "Falha de comunicação com o servidor.");
+    if (!response.ok) {
+      if (payload.code === "NAME_NOT_ALLOWED")
+        window.cyberduelNameGuard?.show(payload.nameRestriction, { local: path === "/api/auth/local" });
+      const error = new Error(payload.error || "Falha de comunicação com o servidor.");
+      error.code = payload.code;
+      throw error;
+    }
     return payload;
   }
 
@@ -98,6 +105,7 @@ class CyberduelAccount {
     this.segurancaX1 = this.isAdmin && payload.segurancaX1 === true;
     this.needsRegistration = payload.needsRegistration === true;
     this.needsUsername = payload.needsUsername === true;
+    this.nameRestriction = payload.nameRestriction || null;
     this.nickname = typeof payload.nickname === "string" ? payload.nickname : (this.needsRegistration ? "" : this.user) || "";
     this.avatar = payload.avatar || "";
     this.profilePhotos = payload.profilePhotos || [];
@@ -120,6 +128,7 @@ class CyberduelAccount {
     this.councilReached = payload.councilReached === true;
     this.councilMember = payload.councilMember === true;
     this.boosterPrice = Math.max(1, Number(payload.boosterPrice) || 100);
+    window.cyberduelNameGuard?.sync(this.nameRestriction);
     if (shouldNotify) this.notify();
     return this.snapshot();
   }
@@ -214,6 +223,16 @@ class CyberduelAccount {
     return this.applyAuth(payload, false);
   }
 
+  async correctName(fields) {
+    const previousUser = this.user;
+    const payload = await this.request("/api/account/profile", { method: "PUT", body: fields });
+    const builds = localStorage.getItem(`cyberduel.builds.v1:${previousUser}`);
+    const buildsKey = `cyberduel.builds.v1:${payload.username}`;
+    if (builds && previousUser !== payload.username && !localStorage.getItem(buildsKey))
+      localStorage.setItem(buildsKey, builds);
+    return this.applyAuth(payload);
+  }
+
   async saveDeck(deck) {
     if (!this.user) throw new Error("Faça login para salvar o deck na conta.");
     const payload = await this.request("/api/deck", {
@@ -282,6 +301,10 @@ class CyberduelAccount {
   async listAdminAccounts() {
     const payload = await this.request("/api/admin/accounts");
     return payload.accounts;
+  }
+
+  async requireNameChange(username) {
+    return this.request("/api/admin/accounts/require-name-change", { method: "POST", body: { username } });
   }
 
   async setSegurancaX1(enabled) {
@@ -400,6 +423,7 @@ class CyberduelAccount {
     this.isAdmin = false;
     this.needsRegistration = false;
     this.needsUsername = false;
+    this.nameRestriction = null;
     this.avatar = "";
     this.profilePhotos = [];
     this.deck = null;
@@ -413,6 +437,7 @@ class CyberduelAccount {
     this.debugLegendaryUser = null;
     this.segurancaX1 = false;
     localStorage.removeItem(this.storageKey);
+    window.cyberduelNameGuard?.close();
     this.notify();
   }
 }

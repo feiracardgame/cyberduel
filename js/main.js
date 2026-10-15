@@ -292,13 +292,10 @@ class Partida {
       evento.encontro = "trio";
       return;
     }
-    if (!["invocacao", "habilidade"].includes(evento.momento)) return;
-    const candidatos = evento.momento === "invocacao"
-      ? this.capturarCampoEfeitos().filter(c => c.lado !== evento.lado)
-      : evento.alvos;
+    if (evento.momento !== "habilidade") return;
     for (const [tipo, a, b] of pares) {
       const outro = evento.fonte.nome === a ? b : evento.fonte.nome === b ? a : null;
-      if (outro && candidatos.some(c => c.nome === outro && !c.oculto)) {
+      if (outro && evento.alvos.some(c => c.selecionado && c.nome === outro && !c.oculto)) {
         evento.encontro = tipo;
         return;
       }

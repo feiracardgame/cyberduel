@@ -18,11 +18,21 @@ const context = vm.createContext({ window: { cyberduelAccount: { user: "Admin", 
 vm.runInContext(fs.readFileSync('js/debug.js', 'utf8'), context);
 (async () => {
   context.window.cyberduelAccount.isAdmin = false;
+  await assert.rejects(context.window.exigirTrocaDeNome('Duelista'), /administradora/);
+  context.window.cyberduelNameGuard = { show(fields, options) { this.fields = fields; this.preview = options.preview; } };
+  assert.match(context.window.testarNomeCensurado(), /Prévia local/);
+  assert.equal(context.window.cyberduelNameGuard.preview, true, 'Prévia local dispensa administração.');
   await assert.rejects(context.window.adicionarPontos('Duelista', 500), /administradora/);
   await assert.rejects(context.window.liberarLeaderboard(), /administradora/);
   await assert.rejects(context.window.irParaFinal('vitória'), /administradora/);
   assert.throws(() => context.window.irParaX1(), /administradora/);
   context.window.cyberduelAccount.isAdmin = true;
+  context.window.cyberduelAccount.requireNameChange = async username => {
+    assert.equal(username, 'Duelista');
+    return { username };
+  };
+  assert.match(await context.window.exigirTrocaDeNome(' Duelista '), /Troca de nome exigida para Duelista/);
+  await assert.rejects(context.window.exigirTrocaDeNome(''), /Use exigirTrocaDeNome/);
   context.window.cyberduelAccount.unlockLeaderboard = async username => {
     assert.equal(username, 'Admin');
     return { account: { username, humanGames: 5, humanWins: 3 } };

@@ -3,6 +3,25 @@ function requireAdminAccount() {
   if (!window.cyberduelAccount.isAdmin) throw new Error("Esta conta não é administradora.");
 }
 
+// Prévia somente nesta aba: não altera nomes, sessão ou dados no servidor.
+window.testarNomeCensurado = () => {
+  const guard = window.cyberduelNameGuard;
+  if (!guard) throw new Error("Aguarde o carregamento do jogo.");
+  if (window.cyberduelAccount?.nameRestriction || (guard.dialog && !guard.preview))
+    throw new Error("Corrija o nome censurado antes de abrir uma prévia.");
+  guard.show({ username: true, nickname: true }, { preview: true });
+  return "Prévia local aberta. Use FECHAR TESTE ou Escape para sair; sua conta não será alterada.";
+};
+
+// Moderação real, restrita a administradores e direcionada pelo username da conta.
+window.exigirTrocaDeNome = async username => {
+  requireAdminAccount();
+  if (typeof username !== "string" || !username.trim())
+    throw new Error('Use exigirTrocaDeNome("username").');
+  const result = await window.cyberduelAccount.requireNameChange(username.trim());
+  return `Troca de nome exigida para ${result.username}. O aviso permanece até a conta escolher outro apelido permitido.`;
+};
+
 // Console: adicionarPontos("username", quantidade) credita pontos do ranking.
 window.adicionarPontos = async (username, amount) => {
   requireAdminAccount();

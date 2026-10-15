@@ -165,14 +165,24 @@ for (const [sourceName, targetName, expected] of [
   const reversed = codec.swapSnapshot(codec.serializeMatch(p));
   assert.equal(reversed.eventosEfeito.find(e => e.id === event.id).encontro, expected);
 }
-{
-  const p = match(), source = card('O Boi'), rival = card('RaspClay MonteCorp');
+for (const [sourceName, targetName] of [
+  ['O Boi', 'RaspClay MonteCorp'], ['RaspClay MonteCorp', 'O Boi'],
+  ['O Tigre', 'Agente da DIPSP'], ['Agente da DIPSP', 'O Tigre'],
+  ['O Bom', "Sen'Tenzhah, O Mau"], ["Sen'Tenzhah, O Mau", 'O Bom'],
+]) {
+  const p = match(), source = card(sourceName), rival = card(targetName);
   p.inimigo.campo.cartas[0] = rival; p.jogador.mao.cartas.push(source);
   assert.equal(p.colocarCartaDoJogador(source, 5), true);
-  assert.equal(p.eventosEfeito.at(-1).encontro, 'boi_raspclay');
-  rival.ocultadaPelaToca = true;
-  p.registrarEventoEfeito(source, p.jogador, 'invocacao');
-  assert.equal(p.eventosEfeito.at(-1).encontro, undefined, 'Encontro não revela carta oculta.');
+  assert.equal(p.eventosEfeito.some(e => e.encontro), false, `${sourceName}: invocação não ativa encontro.`);
+  for (const target of [
+    { nome: targetName, selecionado: false },
+    { nome: targetName, selecionado: true, oculto: true },
+    { nome: 'Outra carta', selecionado: true },
+  ]) {
+    const event = { momento: 'habilidade', fonte: { nome: sourceName }, alvos: [target] };
+    p.identificarEncontro(event);
+    assert.equal(event.encontro, undefined, 'Exige o outro personagem como alvo selecionado e visível.');
+  }
 }
 {
   const p = match();

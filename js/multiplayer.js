@@ -56,6 +56,15 @@ class CyberduelMultiplayer {
       });
     });
     this.socket.on("matchmaking-stopped", (payload) => this.onMatchmakingStopped?.(payload.error));
+    this.socket.on("name-restricted", payload => {
+      window.cyberduelAccount.nameRestriction = payload.nameRestriction;
+      window.cyberduelNameGuard?.sync(payload.nameRestriction);
+    });
+    this.socket.on("profile-updated", ({ player, username, nickname, profile }) => {
+      this.profiles[player] = profile;
+      if (player === this.player) { this.localUsername = username; this.localNickname = nickname; }
+      else { this.opponentUsername = username; this.opponentNickname = nickname; }
+    });
     this.socket.on("disconnect", () => this.onMatchmakingStopped?.("Conexão perdida. Inicie a busca novamente ao reconectar."));
     this.socket.on("connect_error", () => {
       const destino = serverUrl || location.origin;

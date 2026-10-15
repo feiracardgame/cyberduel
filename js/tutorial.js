@@ -131,9 +131,10 @@ function showElenAI(scene, lines, done, options = {}) {
   const menu = scene.titleUI?.root;
   menu?.classList.add("elenai-story"); if (menu) menu.inert = true;
   const previousFocus = document.activeElement;
-  let index = 0, finished = false;
+  let index = 0, finished = false, removeNameCorrection;
   const close = () => {
     if (finished) return;
+    removeNameCorrection?.();
     finished = true; root.remove(); document.removeEventListener("keydown", keydown);
     menu?.classList.remove("elenai-story"); if (menu) menu.inert = false;
     if (previousFocus?.isConnected) previousFocus.focus();
@@ -165,7 +166,15 @@ function showElenAI(scene, lines, done, options = {}) {
         event.preventDefault(); if (save.disabled) return;
         save.disabled = true; error.textContent = "";
         try { await options.name(input.value); close(); done(); }
-        catch (exception) { error.textContent = exception.message; save.disabled = false; }
+        catch (exception) {
+          error.textContent = exception.message; save.disabled = false;
+          if (exception.code === "NAME_NOT_ALLOWED") {
+            removeNameCorrection?.();
+            removeNameCorrection = scene.account.onChange(({ user, nameRestriction, tutorial }) => {
+              if (user && !nameRestriction && tutorial?.named) { close(); done(); }
+            });
+          }
+        }
       };
       input.focus(); return;
     }
@@ -219,7 +228,7 @@ class CyberduelStory {
   }
   async menu() {
     const scene = this.scene, account = scene.account;
-    if (this.busy || !scene.scene.isActive() || scene.titleUI?.modal || scene.multiplayer.room || scene.entrandoPorConvite) return;
+    if (this.busy || !scene.scene.isActive() || scene.titleUI?.modal || scene.multiplayer.room || scene.entrandoPorConvite || account?.nameRestriction) return;
     if (!account?.user) { scene.titleUI.openAuthDialog(); return; }
     if (account.needsRegistration) { scene.titleUI.openRegistrationDialog(); return; }
     this.busy = true;

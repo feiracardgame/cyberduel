@@ -343,6 +343,17 @@ function needsRegistration(account) {
   return Boolean(account.googleSub && !validUsername(account.username));
 }
 
+function nameRestriction(account) {
+  if (!account) return null;
+  const username = validUsername(account.username) && nameIsBlocked(account.username);
+  const nickname = nameIsBlocked(account.nickname) || account.nameChangeRequired === true;
+  return username || nickname ? { username, nickname } : null;
+}
+
+function nameRejection(fields) {
+  return { ok: false, code: "NAME_NOT_ALLOWED", error: "ESSE NOME NÃO É PERMITIDO", nameRestriction: fields };
+}
+
 function allowedFrontend(origin, host) {
   try {
     const frontend = new URL(origin);
@@ -374,6 +385,7 @@ function publicAccount(account) {
     segurancaX1: isAdminAccount(account) && account.segurancaX1 === true,
     needsRegistration: needsRegistration(account),
     needsUsername: Boolean(account.googleSub && !validUsername(account.username)),
+    nameRestriction: nameRestriction(account),
     avatar: account.avatar,
     profilePhotos: PROFILE_PHOTOS,
     rating: account.rating, rank: ranking.playerProfile(account).rank,
@@ -563,19 +575,21 @@ async function handleApi(request, response, pathname) {
     if (!validUsername(name) || name.length > 18)
       return sendJson(response, 400, { ok: false, error: "Use um nome local de 3 a 18 caracteres: letras, números, ponto, hífen ou sublinhado." });
     const username = `local_${name}`;
-    if (nameIsBlocked(name))
-      return sendJson(response, 400, { ok: false, error: "Esse nome não está disponível. Escolha um nome sem termos ofensivos ou identificação da equipe." });
     const accountKey = normalizeUsername(username);
-    let account = accountStore.accounts[accountKey];
     const existing = accountByUsername(username);
-    if ((account && !account.localAccount) || (existing && existing !== account))
+    let account = existing || accountStore.accounts[accountKey];
+    if (account && normalizeUsername(account.username) !== normalizeUsername(username)) account = null;
+    if (account && !account.localAccount)
       return sendJson(response, 409, { ok: false, error: "Nome local já está em uso." });
+    if (!account && nameIsBlocked(name))
+      return sendJson(response, 400, nameRejection({ username: true, nickname: true }));
     if (!account) {
       account = ensureAccountDefaults({ username, nickname: name, localAccount: true, createdAt: new Date().toISOString() });
       accountStore.accounts[accountKey] = account;
       saveAccounts();
     }
-    return sendJson(response, 200, { ok: true, token: createSession(accountKey), ...publicAccount(account) });
+    const storedKey = Object.keys(accountStore.accounts).find(key => accountStore.accounts[key] === account);
+    return sendJson(response, 200, { ok: true, token: createSession(storedKey), ...publicAccount(account) });
   }
 
   if (["/api/auth/login", "/api/auth/register"].includes(pathname))
@@ -631,6 +645,10 @@ async function handleApi(request, response, pathname) {
   }
 
   const pending = authenticatedSession(request);
+  if (pending && nameRestriction(pending.account) && ![
+    "/api/auth/session", "/api/auth/logout", "/api/account/profile",
+  ].includes(pathname))
+    return sendJson(response, 403, nameRejection(nameRestriction(pending.account)));
   if (pending && needsRegistration(pending.account) && ![
     "/api/auth/session", "/api/auth/logout", "/api/account/profile",
   ].includes(pathname))
@@ -786,27 +804,49 @@ async function handleApi(request, response, pathname) {
     const session = authenticatedSession(request);
     if (!session) return sendJson(response, 401, { ok: false, error: "Entre na conta para editar seu perfil." });
     const body = await readJson(request);
-    const needsUsername = !validUsername(session.account.username);
-    const username = needsUsername && typeof body.username === "string" ? body.username.trim() : session.account.username;
+    const needsUsername = !validUsername(session.account.username) || nameRestriction(session.account)?.username;
+    let username = needsUsername && typeof body.username === "string" ? body.username.trim() : session.account.username;
+    if (needsUsername && session.account.localAccount && typeof body.username === "string") {
+      const localName = body.username.trim().replace(/^local_/i, "");
+      if (!validUsername(localName) || localName.length > 18)
+        return sendJson(response, 400, { ok: false, error: "Use um nome local de 3 a 18 caracteres." });
+      username = `local_${localName}`;
+    }
     if (!validUsername(username))
       return sendJson(response, 400, { ok: false, error: "Use um username de 3 a 24 caracteres: letras, números, ponto, hífen ou sublinhado." });
-    const completingUsername = needsUsername && body.nickname === undefined;
-    const nickname = typeof body.nickname === "string" ? body.nickname.trim() : completingUsername ? session.account.nickname || "" : "";
+    const completingUsername = needsUsername && !nameRestriction(session.account)?.nickname && body.nickname === undefined;
+    const nickname = typeof body.nickname === "string" ? body.nickname.trim() : session.account.nickname || "";
     if ((!nickname && !completingUsername) || Array.from(nickname).length > 32 || /[\u0000-\u001f\u007f]/.test(nickname))
       return sendJson(response, 400, { ok: false, error: "Use um apelido de 1 a 32 caracteres." });
-    if ((needsUsername && nameIsBlocked(username)) || nameIsBlocked(nickname))
-      return sendJson(response, 400, { ok: false, error: "Esse nome não está disponível. Escolha um nome sem termos ofensivos ou identificação da equipe." });
+    if (nameIsBlocked(username) || nameIsBlocked(nickname))
+      return sendJson(response, 400, nameRejection({ username: nameIsBlocked(username), nickname: nameIsBlocked(nickname) }));
+    if (session.account.nameChangeRequired && normalizeUsername(nickname.normalize("NFKC")) === normalizeUsername(session.account.nickname.normalize("NFKC")))
+      return sendJson(response, 400, nameRejection({ username: false, nickname: true }));
     const avatar = body.avatar === undefined ? session.account.avatar : body.avatar;
     if (avatar !== "" && !PROFILE_PHOTOS.includes(avatar))
       return sendJson(response, 400, { ok: false, error: "Escolha uma das fotos de perfil disponíveis." });
     const owner = accountByUsername(username);
     if (owner && owner !== session.account)
       return sendJson(response, 409, { ok: false, error: "Esse username já está em uso. Escolha outro." });
+    const previousUsername = session.account.username;
     session.account.username = username;
     session.account.nickname = nickname;
+    delete session.account.nameChangeRequired;
     if (nickname && session.account.tutorial?.introSeen) session.account.tutorial.named = true;
     session.account.avatar = avatar || FACTION_PHOTOS[session.account.faction] || "";
     session.account.updatedAt = new Date().toISOString();
+    // A identidade da conta e das sessões permanece estável ao corrigir o nome.
+    for (const entry of matchmaking.values()) if (entry.username === previousUsername) entry.username = username;
+    for (const room of rooms.values()) {
+      for (const [player, account] of room.accounts) if (account === session.account) {
+        room.usernames.set(player, username);
+        room.nicknames.set(player, nickname || username);
+        room.profiles.set(player, ranking.playerProfile(account));
+        io.to(room.code).emit("profile-updated", { player, username, nickname: nickname || username, profile: room.profiles.get(player) });
+      }
+      for (const reservation of room.reservations?.values() || [])
+        if (reservation.owner === previousUsername) reservation.owner = username;
+    }
     saveAccounts();
     return sendJson(response, 200, { ok: true, ...publicAccount(session.account) });
   }
@@ -982,6 +1022,25 @@ async function handleApi(request, response, pathname) {
       ...(pathname === "/api/boosters/open" ? { cards } : {}),
       ...publicAccount(session.account),
     });
+  }
+
+  if (request.method === "POST" && pathname === "/api/admin/accounts/require-name-change") {
+    const body = await readJson(request);
+    if (typeof body?.username !== "string" || !body.username.trim())
+      return sendJson(response, 400, { ok: false, error: "Informe o username." });
+    const account = accountByUsername(body.username.trim());
+    if (!account) return sendJson(response, 404, { ok: false, error: "Conta não encontrada." });
+    account.nameChangeRequired = true;
+    account.nameChangeRequestedAt = new Date().toISOString();
+    account.nameChangeRequestedBy = pending.account.username;
+    saveAccounts();
+    const rejection = nameRejection(nameRestriction(account));
+    for (const socket of io.sockets.sockets.values()) {
+      const room = rooms.get(socket.data.room);
+      const connectedAccount = room?.accounts.get(socket.data.player) || accountFromToken(socket.data.accountToken);
+      if (connectedAccount === account) socket.emit("name-restricted", rejection);
+    }
+    return sendJson(response, 200, { ok: true, username: account.username });
   }
 
   if (request.method === "POST" && pathname === "/api/admin/accounts/unlock-leaderboard") {
@@ -1676,7 +1735,7 @@ function accountHasMatch(username) {
 
 function matchQueuedPlayers() {
   for (const entry of [...matchmaking.values()]) {
-    if (!entry.socket.connected || !accountFromToken(entry.token) || accountHasMatch(entry.username)) {
+    if (!entry.socket.connected || !accountFromToken(entry.token) || nameRestriction(accountFromToken(entry.token)) || accountHasMatch(entry.username)) {
       matchmaking.delete(entry.socket.id);
       entry.socket.emit("matchmaking-stopped", { error: "Busca encerrada. Verifique sua sessão ou partida ativa." });
     }
@@ -1715,6 +1774,19 @@ const roomCleanup = setInterval(() => {
 roomCleanup.unref();
 
 io.on("connection", (socket) => {
+  socket.use(([event, payload, ack], next) => {
+    const data = payload && typeof payload === "object" ? payload : {};
+    if (accountFromToken(data.accountToken)) socket.data.accountToken = data.accountToken;
+    const room = rooms.get(socket.data.room);
+    const resumed = !room && data.resumeToken ? findResumable(data) : null;
+    const account = room?.accounts.get(socket.data.player) || resumed?.room.accounts.get(resumed.player) ||
+      accountFromToken(data.accountToken);
+    const restriction = nameRestriction(account);
+    if (!restriction || ["leave-room", "surrender", "decline-match", "unwatch-club-tables"].includes(event)) return next();
+    const rejection = nameRejection(restriction);
+    socket.emit("name-restricted", rejection);
+    if (typeof ack === "function") ack(rejection);
+  });
   socket.on("watch-club-tables", (payload = {}, ack = () => {}) => {
     socket.join("club-tables");
     ack({ ok: true, tables: clubTables(), council: councilTable() });

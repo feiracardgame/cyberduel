@@ -28,6 +28,7 @@ class CenaTitulo extends Phaser.Scene {
       if (this.story?.busy) return;
       this.titleUI?.destroy();
       this.montarInterfaceTitulo();
+      if (this.account?.nameRestriction) return;
       this.atualizarStatus(
         user
           ? `Conta ${nickname || "Google"} conectada. Deck sincronizado com o servidor.`
@@ -43,6 +44,7 @@ class CenaTitulo extends Phaser.Scene {
     this.account?.restore().then(() => {
       this.restaurandoConta = false;
       if (!this.scene.isActive()) return;
+      if (this.account?.nameRestriction) return;
       if (!this.account?.user) { this.story.menu(); return; }
       const roomFromLink = new URLSearchParams(location.search).get("room");
       if (roomFromLink && this.scene.isActive()) {
