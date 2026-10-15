@@ -865,7 +865,7 @@ Descrição: No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Fe
 * Descrição: As Terras Desertas são inóspitas para todos que não aprenderam a sobreviver nelas. A terra rejeita aqueles que vivem nas grandes cidades, assim como eles um dia a rejeitaram.
 
  
-* Efeito: Ambiente Inóspito -> Enquanto este terreno estiver em campo, todas as cartas inimigas perdem 2 de PA. Caso o inimigo seja reduzido a 0 de PA, ele é eliminado.
+* Efeito: Ambiente Inóspito -> Enquanto este terreno estiver em campo, todas as cartas inimigas perdem 2 de PA. Caso o inimigo seja reduzido a 0 de PA, ele é eliminado. Este efeito não acumula
 
  
 * Visual: Faz tipo um deserto cheio de lixo tecnológico
