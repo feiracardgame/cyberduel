@@ -11,6 +11,7 @@
     "test:sindicato:browser": "node scripts/test-sindicato-playwright.js",
     "test:content:browser": "node scripts/test-content-playwright.js",
     "test:profiles:browser": "node scripts/test-profiles-playwright.js",
+    "test:dragon:browser": "node scripts/test-dragon-playwright.js",
     "test:security-x1:browser": "node scripts/test-security-x1-playwright.js"
   },
   "dependencies": {

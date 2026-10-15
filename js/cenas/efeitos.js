@@ -445,6 +445,205 @@ class CenaEfeitos extends Phaser.Scene {
     depois(9100, () => { limpar(); aoConcluir(); });
   }
 
+  animarDespertarDragao(evento, aoConcluir) {
+    const W = LARGURA_LAYOUT, H = ALTURA_LAYOUT, cx = W / 2, cy = H * .44;
+    const origem = this.ponto(evento.lado, evento.fonte.indice);
+    const objetos = [], timers = [], animacoes = [], sons = [];
+    const estado = this.despertarDragaoEmCurso = { eventoId: evento.id, fase: "pressagio" };
+    let encerrado = false;
+    const guardar = objeto => { objetos.push(objeto); return objeto; };
+    const animar = config => { const tween = this.tweens.add(config); animacoes.push(tween); return tween; };
+    const depois = (delay, fn) => timers.push(this.time.delayedCall(delay, () => { if (!encerrado) fn(); }));
+    const tocar = (key, volume, rate = 1) => {
+      if (!this.cache.audio.exists(key)) return;
+      const anteriores = this.sound.getAll?.(key) || [];
+      this.sound.play(key, { volume: window.cyberduelSettings?.effects(volume) ?? volume, rate });
+      sons.push(...(this.sound.getAll?.(key) || []).filter(sound => !anteriores.includes(sound)));
+    };
+    const limpar = () => {
+      if (encerrado) return;
+      encerrado = true;
+      timers.forEach(timer => timer.remove?.(false));
+      animacoes.forEach(tween => tween?.remove?.());
+      objetos.forEach(objeto => { this.tweens.killTweensOf(objeto); if (objeto.active) objeto.destroy(); });
+      sons.forEach(sound => sound.destroy());
+      this.jogo.cameras?.main?.shakeEffect?.reset();
+      if (this.despertarDragaoEmCurso === estado) this.despertarDragaoEmCurso = null;
+      this.events.off("shutdown", limpar);
+    };
+    this.events.once("shutdown", limpar);
+    const brilhoKey = "despertar-dragao-brilho";
+    if (!this.textures.exists(brilhoKey)) {
+      const textura = this.textures.createCanvas(brilhoKey, 128, 128);
+      const ctx = textura.context;
+      const gradiente = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+      gradiente.addColorStop(0, "rgba(255,255,240,1)");
+      gradiente.addColorStop(.12, "rgba(220,255,170,.85)");
+      gradiente.addColorStop(.36, "rgba(145,255,60,.3)");
+      gradiente.addColorStop(1, "rgba(80,255,0,0)");
+      ctx.fillStyle = gradiente; ctx.fillRect(0, 0, 128, 128); textura.refresh();
+    }
+    const brilho = (x, y, tamanho, alpha, depth = 108) => guardar(this.add.image(x, y, brilhoKey)
+      .setDisplaySize(tamanho, tamanho).setAlpha(alpha).setDepth(depth).setBlendMode("ADD"));
+    const texto = (nome, valor, y, tamanho, cor = "#ecffd8") => guardar(this.add.text(cx, y, valor, {
+      fontFamily: "Rushblade, Arial, sans-serif", fontSize: `${tamanho}px`, fontStyle: "bold",
+      align: "center", color: cor, stroke: "#020803", strokeThickness: 10,
+      shadow: { offsetX: 0, offsetY: 0, color: "#7cff25", blur: 18, fill: true },
+    }).setOrigin(.5).setDepth(145).setAlpha(0).setName(nome));
+    const fundo = guardar(this.add.rectangle(cx, H / 2, W, H, 0x010604, 0).setDepth(100).setInteractive());
+    animar({ targets: fundo, fillAlpha: .97, duration: 800, ease: "Sine.InOut" });
+    const ambiente = brilho(cx, cy, W * 1.8, 0, 101);
+    animar({ targets: ambiente, alpha: .23, duration: 1600 });
+    const topo = guardar(this.add.rectangle(cx, 0, W, H * .09, 0x000000).setOrigin(.5, 0).setDepth(150).setScale(1, 0));
+    const rodape = guardar(this.add.rectangle(cx, H, W, H * .09, 0x000000).setOrigin(.5, 1).setDepth(150).setScale(1, 0));
+    animar({ targets: [topo, rodape], scaleY: 1, duration: 600, ease: "Cubic.Out" });
+    const aviso = texto("despertar-dragao-pressagio", "ALGO ANTIGO\nESTÁ DESPERTANDO", H * .22, 62, "#badc9b");
+    animar({ targets: aviso, alpha: 1, y: H * .20, duration: 650, delay: 220 });
+    const semente = brilho(origem.x, origem.y, 170, .9, 112);
+    animar({ targets: semente, x: cx, y: cy, displayWidth: 60, displayHeight: 60,
+      duration: 1200, ease: "Expo.In" });
+
+    // Um único desenho animado mantém os anéis e os raios leves no celular.
+    const vortice = guardar(this.add.graphics().setDepth(109).setName("despertar-dragao-vortice"));
+    const giro = { valor: 0 };
+    animar({ targets: giro, valor: Math.PI * 5, duration: 4200, onUpdate: () => {
+      vortice.clear();
+      for (let anel = 0; anel < 4; anel++) {
+        const raio = W * (.14 + anel * .105);
+        const rotacao = giro.valor * (anel % 2 ? -1 : 1);
+        vortice.lineStyle(anel === 0 ? 5 : 2, anel % 2 ? 0xd5ffb0 : 0x83ff31, .65 - anel * .1);
+        for (let arco = 0; arco < 8; arco++) {
+          vortice.beginPath();
+          for (let ponto = 0; ponto <= 10; ponto++) {
+            const a = rotacao + arco * Math.PI / 4 + ponto * .047;
+            const x = cx + Math.cos(a) * raio, y = cy + Math.sin(a) * raio * .8;
+            if (ponto === 0) vortice.moveTo(x, y); else vortice.lineTo(x, y);
+          }
+          vortice.strokePath();
+        }
+      }
+    } });
+    animar({ targets: vortice, alpha: 0, delay: 3700, duration: 550 });
+    for (let i = 0; i < 42; i++) {
+      const angulo = i * 2.39996, raio = W * (.35 + (i % 7) * .08);
+      const particula = brilho(cx + Math.cos(angulo) * raio, cy + Math.sin(angulo) * raio * 1.5,
+        12 + i % 5 * 5, .45 + i % 3 * .15, 111);
+      animar({ targets: particula, x: cx, y: cy, alpha: 0, scaleX: .04, scaleY: .04,
+        duration: 1000 + i % 6 * 95, delay: i * 19, ease: "Cubic.In" });
+    }
+    const feixe = guardar(this.add.rectangle(cx, cy, 8, H * .72, 0xcaff8d, .7)
+      .setDepth(114).setScale(.1, 0));
+    animar({ targets: feixe, scaleX: 1, scaleY: 1, duration: 1100, ease: "Expo.In" });
+    const chaveRetrato = this.textures.exists("despertarDragaoRetrato") ? "despertarDragaoRetrato" : evento.fonte.imagem;
+    const retrato = guardar(this.add.image(cx, cy + H * .12, chaveRetrato).setDepth(122)
+      .setAlpha(0).setTint(0x071109).setName("despertar-dragao-retrato"));
+    const escalaRetrato = W * 1.2 / retrato.width;
+    retrato.setScale(escalaRetrato * .72);
+    const chaveArte = this.textures.exists("despertarDragaoArte") ? "despertarDragaoArte" : evento.fonte.imagem;
+    const arte = guardar(this.add.image(cx, H * .43, chaveArte).setDepth(118)
+      .setAlpha(0).setVisible(false).setName("despertar-dragao-arte"));
+    const escalaArte = Math.min(W * 1.04 / arte.width, H * .78 / arte.height);
+    arte.setScale(escalaArte * 1.13);
+    const claridade = guardar(this.add.rectangle(cx, H / 2, W, H, 0xe8ffd6)
+      .setDepth(140).setAlpha(0));
+    const titulo = texto("despertar-dragao-titulo", "O DRAGÃO\nDESPERTOU", H * .77, 112);
+    const subtitulo = texto("despertar-dragao-legenda", "O PASSADO NÃO MORREU.", H * .865, 40, "#bfff72");
+
+    depois(1450, () => {
+      estado.fase = "ruptura";
+      animar({ targets: aviso, alpha: 0, y: H * .17, duration: 250 });
+      tocar("somExplosao", .32, .6);
+      this.jogo.cameras.main.shake(650, .005);
+      animar({ targets: feixe, scaleX: 32, alpha: 0, duration: 650, ease: "Expo.Out" });
+      animar({ targets: retrato, alpha: 1, y: cy, scaleX: escalaRetrato, scaleY: escalaRetrato,
+        duration: 850, ease: "Cubic.Out" });
+      const fendas = guardar(this.add.graphics().setDepth(125));
+      for (let i = 0; i < 12; i++) {
+        const angulo = i * Math.PI / 6;
+        fendas.lineStyle(i % 3 ? 2 : 6, i % 2 ? 0xbaff36 : 0xefffdc, .8);
+        fendas.beginPath(); fendas.moveTo(cx, cy);
+        for (let j = 1; j <= 6; j++) {
+          const r = j * W * .12;
+          fendas.lineTo(cx + Math.cos(angulo) * r + Math.sin(i * 5 + j * 3) * 30,
+            cy + Math.sin(angulo) * r * 1.5);
+        }
+        fendas.strokePath();
+      }
+      animar({ targets: fendas, alpha: 0, duration: 950 });
+      for (let i = 0; i < 18; i++) {
+        const a = i * 2.39996, r = 80 + i % 5 * 25;
+        const fragmento = guardar(this.add.triangle(cx + Math.cos(a) * r, cy + Math.sin(a) * r,
+          0, 0, 16 + i % 4 * 8, 9, 3, 42, i % 3 ? 0x284b32 : 0xc6ff80)
+          .setStrokeStyle(2, 0xa5ff52).setDepth(127));
+        animar({ targets: fragmento, x: cx + Math.cos(a) * W, y: cy + Math.sin(a) * H * .65,
+          angle: i * 57, alpha: 0, duration: 1500, ease: "Cubic.Out" });
+      }
+    });
+    depois(2300, () => {
+      estado.fase = "despertar";
+      tocar("somDragao", .72);
+      tocar("somExplosao", .55, .8);
+      retrato.clearTint();
+      this.jogo.cameras.main.shake(1300, .013);
+      claridade.setAlpha(.88);
+      animar({ targets: claridade, alpha: 0, duration: 550, ease: "Cubic.Out" });
+      animar({ targets: retrato, scaleX: escalaRetrato * 1.12, scaleY: escalaRetrato * 1.12,
+        y: cy - H * .025, duration: 1700, ease: "Sine.Out" });
+      for (let i = 0; i < 4; i++) {
+        const onda = guardar(this.add.circle(cx, cy, 55, 0x9aff37, 0)
+          .setStrokeStyle(i ? 3 : 12, i % 2 ? 0xe5ffc6 : 0x91ff21).setDepth(126));
+        animar({ targets: onda, scale: 19 + i * 3, alpha: 0, duration: 1400,
+          delay: i * 110, ease: "Expo.Out" });
+      }
+      for (let i = 0; i < 30; i++) {
+        const a = i * 2.39996, r = W * (.45 + i % 4 * .18);
+        const faisca = brilho(cx, cy, 16 + i % 5 * 5, .9, 130);
+        animar({ targets: faisca, x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r * 1.5,
+          alpha: 0, duration: 1000 + i % 5 * 160, ease: "Cubic.Out" });
+      }
+      const sombraTexto = guardar(this.add.rectangle(cx, H * .84, W, H * .3, 0x010704, .77).setDepth(141));
+      animar({ targets: sombraTexto, alpha: 0, delay: 1900, duration: 500 });
+      titulo.setScale(1.32);
+      animar({ targets: titulo, alpha: 1, scaleX: 1, scaleY: 1, duration: 500, ease: "Expo.Out" });
+      animar({ targets: subtitulo, alpha: 1, duration: 500, delay: 350 });
+    });
+    depois(4300, () => {
+      estado.fase = "memorias";
+      arte.setVisible(true);
+      animar({ targets: arte, alpha: .95, scaleX: escalaArte, scaleY: escalaArte, duration: 1100, ease: "Sine.Out" });
+      animar({ targets: retrato, alpha: 0, x: cx + W * .12, duration: 800 });
+      animar({ targets: [titulo, subtitulo], alpha: 0, duration: 220 });
+      depois(240, () => {
+        titulo.setText("MEMÓRIAS\nDO PASSADO").setScale(.86).setAlpha(0);
+        subtitulo.setText("+3 PA A CADA RODADA").setAlpha(0);
+        animar({ targets: titulo, alpha: 1, scaleX: 1, scaleY: 1, duration: 600, ease: "Cubic.Out" });
+        animar({ targets: subtitulo, alpha: 1, duration: 500, delay: 250 });
+      });
+      const moldura = guardar(this.add.graphics().setDepth(120));
+      moldura.lineStyle(2, 0xc7ff80, .8);
+      for (const sinal of [-1, 1]) {
+        const x = cx + sinal * W * .45;
+        for (const y of [H * .13, H * .68]) {
+          moldura.beginPath(); moldura.moveTo(x - sinal * 80, y); moldura.lineTo(x, y);
+          moldura.lineTo(x, y + (y < cy ? 1 : -1) * 100); moldura.strokePath();
+        }
+      }
+      animar({ targets: moldura, alpha: 0, delay: 1500, duration: 700 });
+    });
+    const duracao = Math.min(11000, Math.max(7600, 2300 + (this.cache.audio.get?.("somDragao")?.duration || 0) * 1000));
+    depois(duracao - 1100, () => {
+      estado.fase = "retorno";
+      animar({ targets: [titulo, subtitulo, topo, rodape, fundo, ambiente], alpha: 0, duration: 850 });
+      animar({ targets: arte, x: origem.x, y: origem.y,
+        scaleX: this.jogo.layout.slotW / arte.width, scaleY: this.jogo.layout.slotH / arte.height,
+        alpha: 0, duration: 950, ease: "Cubic.InOut" });
+      const eco = guardar(this.add.rectangle(origem.x, origem.y, this.jogo.layout.slotW, this.jogo.layout.slotH,
+        0x9dff3d, .12).setStrokeStyle(5, 0xccff8c).setDepth(129).setAlpha(0));
+      animar({ targets: eco, alpha: .9, duration: 320, delay: 450, yoyo: true });
+    });
+    depois(duracao, () => { limpar(); aoConcluir(); });
+  }
+
   proximo() {
     if (this.executando || !this.fila.length) return;
     this.executando = true;
@@ -461,6 +660,13 @@ class CenaEfeitos extends Phaser.Scene {
     const fonteOculta = remoto && evento.fonte.oculto;
     const fonte = fonteOculta ? { nome: "Carta oculta", indice: evento.fonte.indice } : evento.fonte;
     const perfil = APRESENTACAO_EFEITOS[fonte.habilidadeAprendidaDe || fonte.nome] || {};
+    if (evento.momento === "despertar" && perfil.visual === "fullart" &&
+        fonte.imagem && this.textures.exists(fonte.imagem)) {
+      this.animarDespertarDragao(evento, () => {
+        this.executando = false; this.eventoAtual = null; this.proximo();
+      });
+      return;
+    }
     const objetos = [];
     const guardar = (o) => { objetos.push(o); return o; };
     const impactoJuggernaut = perfil.visual === "impactoJuggernaut" && evento.momento === "habilidade";
@@ -518,11 +724,6 @@ class CenaEfeitos extends Phaser.Scene {
           topo ? 170 : ALTURA_LAYOUT - 170, "iaTutorial14").setDepth(20));
         tutorial.setScale(Math.min(280 / tutorial.width, 280 / tutorial.height)).setAngle(topo ? 180 : 0).setAlpha(0);
         this.tweens.add({ targets: tutorial, alpha: 1, duration: 220 });
-      }
-      if (ativo && perfil.visual === "fullart" && fonte.imagem && this.textures.exists(fonte.imagem)) {
-        guardar(this.add.rectangle(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, LARGURA_LAYOUT, ALTURA_LAYOUT, 0x000000, 0.7).setDepth(19));
-        const arte = guardar(this.add.image(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, fonte.imagem).setDepth(20));
-        arte.setScale(Math.min((LARGURA_LAYOUT - 80) / arte.width, (ALTURA_LAYOUT - 80) / arte.height));
       }
       if (ativo && perfil.imagem === "efeitoCoelho") {
         this.pichar(perfil.imagem, { x: LARGURA_LAYOUT / 2, y: ALTURA_LAYOUT / 2 }, guardar, 650, 750);

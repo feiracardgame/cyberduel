@@ -56,12 +56,14 @@ for (const [key, file] of Object.entries({ efeitoRefrigerador: 'refrigerador', e
   assert.ok(fs.existsSync(game[key]), `Símbolo do Sindicato ausente: ${key}`);
 }
 
-const preloadVideos = [], preloadSounds = [], preloadSheets = [];
+const preloadImages = [], preloadVideos = [], preloadSounds = [], preloadSheets = [];
 const Preload = vm.runInContext('CenaPreload', context);
 Preload.prototype.carregarAssets.call({ load: {
-  image() {}, audio(key, url) { preloadSounds.push([key, url]); }, video(key, url) { preloadVideos.push([key, url]); },
+  image(key, url) { preloadImages.push([key, url]); }, audio(key, url) { preloadSounds.push([key, url]); }, video(key, url) { preloadVideos.push([key, url]); },
   spritesheet(key, url, options) { preloadSheets.push([key, url, options]); },
 } });
+assert.ok(preloadImages.some(([key, url]) => key === 'despertarDragaoArte' && url === original.o_dragao),
+  'O despertar carrega a arte original, sem a redução usada nas cartas.');
 assert.ok(preloadVideos.some(([key, url]) => key === 'videoEfeitoJuggernaut' && url.split('?')[0] === 'assets/efeitos/efeito-juggernaut-alpha.webm'));
 assert.ok(preloadVideos.some(([key, url]) => key === 'videoEfeitoBoi' && url === 'assets/efeitos/efeito-boi-alpha.webm'));
 assert.ok(fs.statSync('assets/efeitos/efeito-boi-alpha.webm').size > 0);

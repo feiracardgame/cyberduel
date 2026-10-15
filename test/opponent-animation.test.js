@@ -428,7 +428,6 @@ const newSounds = [
   ['HAL 9001', 'habilidade', 'somHal'],
   ['H.A.R.V.I.S', 'invocacao', 'somHarvis'],
   ['Replicantes', 'continuo', 'somReplicantes'],
-  ['Dragão das Comunicações Móveis', 'despertar', 'somDragao'],
   ['DeepClaude ChatGemini', 'habilidade', 'somDeepClaude'],
   ['Bug na Matrix', 'invocacao', 'somBug'],
   ['Você Parece Sozinho', 'conjuracao', 'somLonely'],
@@ -592,11 +591,18 @@ for (const active of [false, true]) for (const side of ['jogador', 'inimigo']) {
 }
 {
   const f = fixture();
+  let awakenings = 0;
+  f.s.animarDespertarDragao = (_event, complete) => { awakenings++; complete(); };
   f.s.receber([f.event(1, 'despertar', { fonte: { ...f.source, nome: 'Dragão das Comunicações Móveis' } })]);
-  f.flush(); assert.ok(f.objects.some(o => o.type === 'image' && o.value === 'arte' && o.x === 540 && o.y === 1110));
+  f.flush(); assert.equal(awakenings, 1, 'O despertar público usa a sequência cinematográfica dedicada.');
   const dormant = fixture();
+  dormant.s.animarDespertarDragao = () => assert.fail('Invocar o Dragão adormecido não desperta suas memórias.');
   dormant.s.receber([dormant.event(1, 'invocacao', { fonte: { ...dormant.source, nome: 'Dragão das Comunicações Móveis' } })]);
   dormant.flush(); assert.ok(!dormant.objects.some(o => o.type === 'image' && o.value === 'arte' && o.x === 540 && o.y === 1110));
+  const hidden = fixture(true);
+  hidden.s.animarDespertarDragao = () => assert.fail('O despertar não revela a arte de uma fonte oculta ao espectador.');
+  hidden.s.receber([hidden.event(1, 'despertar', { fonte: { ...hidden.source, nome: 'Dragão das Comunicações Móveis', oculto: true } })]);
+  hidden.flush(); assert.ok(!hidden.objects.some(o => o.type === 'image' && o.value === 'arte'));
 }
 console.log('Visuais do documento: cores, sprite 14, Crypto apenas no ganho, Juggernaut no alvo, fila de vídeo, HAL, Replicantes e full art do despertar validados.');
 

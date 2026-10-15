@@ -138,7 +138,8 @@ async function run() {
       scene.desenharInterface(); scene.cameras.main.setAlpha(1);
       return dragon.dragaoDesperto && dragon.efeitoTurno.valor === 3;
     }, trigger), true);
-    await page.waitForFunction(() => game.scene.getScene('CenaEfeitos').children.list.some(object => object.texture?.key === 'o_dragao' && object.visible));
+    await page.waitForFunction(() => game.scene.getScene('CenaEfeitos').children.list.some(object =>
+      object.name === 'despertar-dragao-arte' && object.texture?.key === 'despertarDragaoArte' && object.visible && object.alpha > .9));
     assert.deepEqual(await page.evaluate(() => window.qaDragonSounds), [{ played: true, playing: true }]);
     await page.screenshot({ path: path.join(output, `dragao-${trigger}.png`) });
     await page.waitForFunction(() => !game.scene.getScene('CenaJogo').efeitosVisuaisPendentes());

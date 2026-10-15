@@ -16,6 +16,7 @@ window.CYBERDUEL_IMAGE_ASSETS = Object.freeze({
   "cyber_politico": "assets/cartas/cyber_politico.png",
   "professores_de_duelo": "assets/cartas/professores_de_duelo.png",
   "o_dragao": "assets/cartas/dragão.png",
+  despertarDragaoRetrato: "assets/profiles/dragao_profile.png",
   "neo_palhoca": "assets/cartas/neo_palhoca.png",
 
   fundoCarta: "assets/fundo/fundo_carta_2.png",
@@ -118,6 +119,8 @@ class CenaPreload extends Phaser.Scene {
     Object.entries(window.CYBERDUEL_GAME_IMAGE_ASSETS).forEach(([key, url]) =>
       this.load.image(key, url),
     );
+    // A arte ocupa a arena inteira no despertar; a textura das cartas é reduzida.
+    this.load.image("despertarDragaoArte", window.CYBERDUEL_IMAGE_ASSETS.o_dragao);
     this.load.spritesheet("efeitoFerreira", "assets/efeitos/efeito-ferreira-frames.png", {
       frameWidth: 192, frameHeight: 192, endFrame: 9,
     });
