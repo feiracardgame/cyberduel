@@ -16,7 +16,10 @@ vm.runInContext('globalThis.exportsTutorial = { ELENAI_DIALOGUES, pendingElenAI,
 const { ELENAI_DIALOGUES: lines, pendingElenAI, CyberduelTraining, CyberduelStory, Partida } = context.exportsTutorial;
 assert.equal(lines.intro[0].sprite, 0); assert.equal(lines.declined[0].sprite, 17);
 assert.equal(lines.training.length, 15); assert.equal(lines.council.length, 13);
-assert.match(lines.training[10].text, /distância de casas máximas horizontais/);
+assert.match(lines.training[10].text, /largura total do ataque, centrada na carta/);
+assert.match(lines.training[10].text, /H1 atinge só a própria coluna/);
+assert.match(lines.training[10].text, /H3 inclui uma coluna de cada lado/);
+assert.match(lines.training[10].text, /H5 inclui duas de cada lado/);
 assert.match(lines.training[10].text, /distância de casas verticais/);
 assert.equal(lines.ten.no[5].text, 'sozinha'); assert.equal(lines.ten.yes[7].text, 'Eu te considero meu amigo!');
 for (let n = 1; n <= 17; n++) assert.ok(fs.existsSync(`assets/sprites/elenai-${String(n).padStart(2, '0')}.webp`));

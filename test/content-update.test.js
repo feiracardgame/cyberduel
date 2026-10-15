@@ -52,18 +52,21 @@ function use(p, c, a, b) { return p.ativarHabilidade(c, p.jogador, p.inimigo, a,
   const p = match();
   for (let i = 0; i < 10; i++) put(p, 'O Tigre', i, true);
   for (const [position, h, v, expected] of [
-    [7, 1, 1, [7]], [7, 1, 2, [2, 7]], [5, 3, 1, [5, 6, 7]],
-    [9, 3, 1, [7, 8, 9]], [5, 5, 1, [5, 6, 7, 8, 9]],
+    [7, 1, 1, [7]], [7, 1, 2, [2, 7]],
+    [7, 3, 1, [6, 7, 8]], [7, 3, 2, [1, 2, 3, 6, 7, 8]],
+    [7, 5, 1, [5, 6, 7, 8, 9]], [7, 5, 2, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]],
+    [5, 3, 1, [5, 6]], [9, 3, 1, [8, 9]], [5, 5, 1, [5, 6, 7]],
     [2, 1, 1, []], [2, 1, 2, [7]], [2, 1, 3, [2, 7]],
+    [2, 3, 2, [6, 7, 8]], [2, 3, 3, [1, 2, 3, 6, 7, 8]],
   ]) assert.deepEqual(Array.from(alvosEmRange(position, h, v, p.inimigo.campo)), expected,
-    `Alcance original H${h}/V${v} a partir da posição ${position}.`);
+    `Largura H${h}/V${v} centrada na posição ${position}.`);
 }
 {
   const p = match(), rat = put(p, 'O Rato', 5);
-  const near = put(p, 'O Tigre', 7, true); put(p, 'O Tigre', 8, true); put(p, 'O Tigre', 0, true);
-  assert.deepEqual(Array.from(p.alvosParaHabilidadeEmCampo(rat, p.jogador, p.inimigo)), [7]);
-  assert.equal(use(p, rat, 8).sucesso, false); assert.equal(rat.usadaEsteTurno, false);
-  assert.equal(use(p, rat, 7).sucesso, true); assert.equal(near.poder, 7); assert.equal(rat.poder, 4);
+  const near = put(p, 'O Tigre', 6, true); put(p, 'O Tigre', 7, true); put(p, 'O Tigre', 0, true);
+  assert.deepEqual(Array.from(p.alvosParaHabilidadeEmCampo(rat, p.jogador, p.inimigo)), [6]);
+  assert.equal(use(p, rat, 7).sucesso, false); assert.equal(rat.usadaEsteTurno, false);
+  assert.equal(use(p, rat, 6).sucesso, true); assert.equal(near.poder, 7); assert.equal(rat.poder, 4);
 }
 {
   const p = match(), goat = put(p, 'A Cabra', 0), ally = put(p, 'O Tigre', 7);
@@ -103,14 +106,14 @@ for (const targets of [[1, 2], [1, 2, 2]]) {
 }
 {
   const p = match(), bomber = put(p, 'O Bom', 0);
-  put(p, 'O Tigre', 2, true); put(p, 'O Tigre', 3, true);
-  assert.deepEqual(Array.from(p.alvosParaHabilidadeEmCampo(bomber, p.jogador, p.inimigo)), [2]);
-  assert.equal(use(p, bomber, [3]).sucesso, false);
-  assert.deepEqual(Array.from(p.montarDistribuicaoDanoIA(bomber, p.inimigo)), [2]);
-  assert.equal(use(p, bomber, [2]).sucesso, true);
+  put(p, 'O Tigre', 1, true); put(p, 'O Tigre', 2, true);
+  assert.deepEqual(Array.from(p.alvosParaHabilidadeEmCampo(bomber, p.jogador, p.inimigo)), [1]);
+  assert.equal(use(p, bomber, [2]).sucesso, false);
+  assert.deepEqual(Array.from(p.montarDistribuicaoDanoIA(bomber, p.inimigo)), [1]);
+  assert.equal(use(p, bomber, [1]).sucesso, true);
 }
 {
-  const p = match(), bad = put(p, "Sen'Tenzhah, O Mau", 5);
+  const p = match(), bad = put(p, "Sen'Tenzhah, O Mau", 7);
   const target = put(p, 'O Rato', 9, true);
   assert.equal(use(p, bad, 9).sucesso, true); assert.equal(bad.poder, 8);
   assert.equal(p.inimigo.campo.cartas[9], null); assert.equal(target.poder, 0);
