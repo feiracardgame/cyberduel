@@ -64,6 +64,8 @@ const Y_MAO_INIMIGO = 230 + DESLOCAMENTO_GUI_Y;
 const Y_MAO_JOGADOR = ALTURA_LAYOUT - 175;
 
 const PERSONAGENS_DUELO_POR_AVATAR = Object.freeze({
+  "assets/fotosdeperfil/advogado_icon.png": "assets/profiles/advogado_profille.png",
+  "assets/fotosdeperfil/diego_icon.png": "assets/profiles/diego_profille.png",
   "assets/fotosdeperfil/boi_icon.png": "assets/profiles/boi_profile.png",
   "assets/fotosdeperfil/raspclay_icon.png": "assets/profiles/raspclay_profile.png",
   "assets/fotosdeperfil/agentes_icon.png": "assets/profiles/dipsp_profile.png",

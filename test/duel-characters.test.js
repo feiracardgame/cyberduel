@@ -7,6 +7,14 @@ vm.runInContext(fs.readFileSync('js/cenas/jogo.js', 'utf8'), context);
 const { Scene, width, height, layout, expanded, portraits } = vm.runInContext(
   '({ Scene: CenaJogo, width: LARGURA_LAYOUT, height: ALTURA_LAYOUT, layout: LAYOUT_CAMPO_NORMAL, expanded: LAYOUT_CAMPO_AMPLIADO, portraits: PERSONAGENS_DUELO_POR_AVATAR })', context);
 for (const path of Object.values(portraits)) assert.ok(fs.existsSync(path));
+assert.deepEqual(Object.keys(portraits).sort(), fs.readdirSync('assets/fotosdeperfil')
+  .filter(name => name.endsWith('_icon.png')).map(name => `assets/fotosdeperfil/${name}`).sort(),
+  'Toda foto selecionável precisa de um busto próprio.');
+assert.deepEqual(Object.values(portraits).sort(), fs.readdirSync('assets/profiles')
+  .filter(name => /_profil{1,2}e\.png$/.test(name)).map(name => `assets/profiles/${name}`).sort(),
+  'Todos os bustos disponíveis precisam estar associados.');
+assert.equal(portraits['assets/fotosdeperfil/diego_icon.png'], 'assets/profiles/diego_profille.png');
+assert.equal(portraits['assets/fotosdeperfil/advogado_icon.png'], 'assets/profiles/advogado_profille.png');
 assert.ok(fs.existsSync('assets/profiles/duel_corner.png'));
 assert.ok(fs.existsSync('assets/profiles/duel_corner_opponent.png'));
 assert.match(fs.readFileSync('js/cenas/preload.js', 'utf8'), /duelCorner: "assets\/profiles\/duel_corner\.png"/);
@@ -96,8 +104,8 @@ for (const count of [1, 6, 10, 20]) {
   assert.ok(cards.filter(card => card.maoOcultaLado).every(card => card.x + 100 < cornerLeft));
 }
 
-// Fotos ainda sem busto e ausência de foto usam Clayrton, sem baixar o mesmo asset duas vezes.
-for (const avatar of ['assets/fotosdeperfil/advogado_icon.png', 'assets/fotosdeperfil/diego_icon.png', null]) {
+// Fotos desconhecidas e ausência de foto usam Clayrton, sem baixar o mesmo asset duas vezes.
+for (const avatar of ['assets/fotosdeperfil/desconhecido_icon.png', null]) {
   const { scene: fallback, loaded } = renderer();
   context.window.cyberduelAccount.avatar = avatar;
   fallback.carregarRetratosDuelo();

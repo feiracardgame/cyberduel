@@ -54,14 +54,14 @@
       this.normalize();
       this.save();
       if (this.musicScene?.cyberMusic)
-        this.musicScene.cyberMusic.setVolume(this.music(0.3));
+        this.musicScene.cyberMusic.setVolume(this.musicForTrack(this.musicScene.cyberMusic.key));
       if (key === "textScale") this.queueDomTextUpdate();
     }
 
     reset() {
       this.values = { ...DEFAULTS };
       this.save();
-      this.musicScene?.cyberMusic?.setVolume(this.music(0.3));
+      this.musicScene?.cyberMusic?.setVolume(this.musicForTrack(this.musicScene.cyberMusic.key));
       this.queueDomTextUpdate();
     }
 
@@ -78,10 +78,14 @@
         this.values.masterVolume * this.values.musicVolume;
     }
 
+    musicForTrack(key) {
+      return this.music(key === "musicaRemanescentes" ? 0.4 : 0.3);
+    }
+
     playMusic(scene, key) {
       if (!scene?.sound?.add || scene.cyberMusic?.key === key) return;
       scene.cyberMusic?.destroy();
-      const sound = scene.sound.add(key, { loop: true, volume: this.music(0.3) });
+      const sound = scene.sound.add(key, { loop: true, volume: this.musicForTrack(key) });
       scene.cyberMusic = sound;
       this.musicScene = scene;
       sound.play();
