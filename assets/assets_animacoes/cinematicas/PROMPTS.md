@@ -1,0 +1,36 @@
+# Prompts das artes dos encontros
+
+Ferramenta: image_gen integrada, sem API/CLI externa.
+
+## Pôster do trio
+
+```text
+Use case: compositing. Asset type: finished portrait movie poster for an in-game cinematic, aspect ratio 2:3, high resolution.
+Create an exceptionally beautiful, art-directed 1960s Italian spaghetti-western illustrated cinema poster for CYBERDUEL. The design reference is the vintage Italian The Good, the Bad and the Ugly poster: ivory-white paper, three offset narrow black rounded-rectangle portrait frames near the upper two thirds, staggered vertically rather than three equal columns, huge deep vermilion condensed slab-serif western titles descending diagonally in the lower third. This must read as a real collectible screenprinted film poster, never as a videogame UI.
+Inputs: Image 1 is the exact character O Bom, the young blond cowboy with brown hat, green bird on shoulder, cigar, cybernetic right arm and striped brown poncho. Image 2 is the exact character O Mau, rugged dark-haired mustached cowboy, battered dark hat, red bandanna, long duster and metal fist. Image 3 is the exact character O Feio, armored desert scavenger with fully enclosed riveted metal helmet, beige scarf and tattered cloak. Preserve all three identities, faces/helmet, costume and distinctive accessories. Refine the illustration and lighting to premium painted cinema-poster quality, handsome and richly detailed, without turning them into actors from the original film.
+Composition: O Bom in the left frame slightly lower than center, O Mau in the center frame highest, O Feio in the right frame lower. Large three-quarter-length heroic figures, faces clearly readable, framed from hats/helmet to mid-thigh; no tiny full-body figures. Each portrait has its own gorgeous subtle painted background: golden desert mesas for Bom, dark copper sunset and abandoned western frontier town for Mau, ochre dunes with distant ruined machinery for Feio. Keep those backdrops inside the black frames. Figures may subtly overlap their frame. Abundant clean ivory paper around the portraits and the titles. Tactile fine paper grain, hand-painted edges, fine ink misregistration, gentle age at edges, balanced sophisticated print layout. A muted vermilion sun emblem is optional.
+Exact text only: small black "CYBERDUEL" centered at top; small "TRÊS HOMENS EM CONFLITO" below it; very large red "O BOM" in lower left, very large red "O MAU" slightly lower at center, very large red "E O FEIO" lower right. Big readable western condensed slab-serif display type, no italics. Small restrained bottom line "REM
+ANESCENTES" should instead be one unbroken word "REMANESCENTES". No other text, no actor names, no director names, no logos, no credits, no watermark.
+The complete poster fills the image edge to edge. No mockup, no wall, no frame outside the artwork, no game HUD.
+```
+
+## boi_raspclay
+
+```text
+Use case: stylized-concept. Asset type: a finished environment background for a high quality illustrated cyberpunk card-game character duel. Square composition 1536x1536, no characters or text.
+A breathtaking cinematic illustration of NeoFloripa at blue hour after rain, seen at street level in a wide dramatic symmetrical-ish perspective. A narrow, rain-slick plaza separates two conflicting worlds: on the left the anarchist industrial quarter, worn concrete, exposed pipes, a little deep red practical light and fine drifting embers; on the right an opulent corporate tower entrance, beautiful dark smoked glass, polished pale stone, restrained warm gold light. In the middle distance, a monumental brutalist corporate building and elevated walkways emerge through pearlescent mist. Wet pavement mirrors amber and steel-blue lights. Foreground remains elegant and fairly dark to let two large character portraits overlay the left and right edges; the central view is spectacular but not cluttered. Rich atmospheric depth, beautifully composed architecture, realistic materials with subtle painted graphic-novel texture, cinematic lighting, delicate airborne rain, refined color grading, deep navy with warm copper accents, no oversaturated neon. Edge-to-edge environment, no borders, no lettering, no signage words, no logos, no people, no silhouettes, no weapons, no UI.
+```
+
+## tigre_dipsp
+
+```text
+Use case: stylized-concept. Asset type: a finished environment background for an intense cyberpunk character duel in an illustrated card game. Square composition 1536x1536, no characters or text.
+A spectacular night-time rain-soaked industrial avenue in a dystopian Brazilian smart city, seen at pavement height with bold central vanishing point, immense steel security gates and elevated train track silhouettes in the distance. A narrow column of warm sodium light cuts through the center from an overhead lamp, fine atmospheric fog, electric-blue practical lights and blue reflected water on the left, ember-red warning lamps and warm red reflections on the right. Detailed concrete barriers, futuristic architecture, steam vents, intricate cables, subtle distant sparks. The visual story is an encounter between corporate security and an underground rebel. The foreground and side thirds are dark with rich detail to accommodate large character overlays, and the empty central space glows with dramatic depth. Premium hand-painted cinematic concept-art finish, gorgeous soft volumetric light, restrained highlights and realistic wet metal. Deep ink blue, petrol, rusty vermilion, amber. Not a flat gradient, not generic glowing cyberpunk neon. No characters, no silhouettes, no lettering, no logos, no UI, no borders.
+```
+
+## bom_mau
+
+```text
+Use case: stylized-concept. Asset type: a finished background environment for a western character duel in an illustrated sci-fi card game. Square composition 1536x1536. No characters or text.
+An extraordinarily beautiful cinematic view down the main street of an abandoned frontier settlement in the Ermos, a postapocalyptic spaghetti-western world. Warm low golden sun near the horizon, vast sculpted copper-red desert mesas and a pale dust-filled sky. Weathered timber saloon arcades at left, crumbling adobe and a rusty old frontier watchtower at right, faint old-world machinery integrated discreetly among the western buildings. Wind sweeps glowing dust low over the empty street, long architectural shadows and delicate floating grit. Deep atmospheric perspective, radiant edges of warm light on wood and stone, rich textured painting with the confident brushwork of a vintage painted western film poster upgraded to premium game concept art. Side edges and foreground softly shaded so two large portraits can read over them, center beautifully open with distant mesas and a small gleaming sun. Muted sienna, sandstone, amber and tobacco brown, natural vividness without orange color cast. No people, no silhouettes, no animals, no letters or signs, no logos, no UI, no borders, no guns.
+```

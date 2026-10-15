@@ -46,7 +46,7 @@ async function api(route, body, token, headers = {}) {
   assert.equal((await api('auth/local', { username: 'dev' }, null, { Origin: 'https://external.example' })).status, 403);
   assert.equal((await api('auth/local', { username: 'dev' }, null, { Host: 'external.example' })).status, 403);
   assert.equal((await api('auth/local', { username: 'dev' }, null, { Origin: 'ftp://localhost' })).status, 403);
-  for (const username of ['', 'a', '<script>', 'x'.repeat(19)])
+  for (const username of ['', 'a', '<script>', 'x'.repeat(19), 'admin', 'p.u.t.a', 'caralho'])
     assert.equal((await api('auth/local', { username })).status, 400);
   assert.equal((await api('auth/local', { username: 'reserved' })).status, 409, 'Não vincular nem sobrescrever conta Google.');
   const login = await api('auth/local', { username: 'Dante' });

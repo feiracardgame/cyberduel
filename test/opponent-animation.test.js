@@ -1,6 +1,7 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
+const { EventEmitter } = require('node:events');
 const context = vm.createContext({ window: {}, Phaser: { Scene: class {} },
   LARGURA_LAYOUT: 1080, ALTURA_LAYOUT: 2220, Y_MAO_INIMIGO: 230, Y_MAO_JOGADOR: 1900,
   TIPOS_EFEITO: { ARMADILHA_ESPACO: 'armadilha', SILENCIAR_CARTA: 'silenciar_carta', BONUS_POR_TERRENOS: 'bonus_por_terrenos' },
@@ -36,6 +37,7 @@ function fixture(spectator = false) {
   const source = { id: 1, nome: 'Teste', imagem: 'arte', indice: 0 };
   const fieldObject = object('field', 110, 560); fieldObject.dadosCartaCampo=source;
   const s = Object.assign(Object.create(Scene.prototype), {
+    events: new EventEmitter(),
     fila: [], ultimoEvento: 0, exibidos: [], executando: false,
     jogo: { multiplayer: { spectator }, layout: { slotW: 195, slotH: 270,
       x: [110,325,540,755,970], yInimigo: [560,842], yJogador: [1436,1154] },
@@ -710,3 +712,56 @@ for (const [name, key, moment, extra] of [
   assert.equal(f.sounds.includes('somPolitico'), false, 'Sem coligação, não toca o som político.');
 }
 console.log('Sindicato: dez sons, eventos únicos, símbolos persistentes, orientação, movimento, prioridade e limpeza validados.');
+for (const encontro of ['boi_raspclay', 'bom_mau', 'tigre_dipsp', 'trio']) {
+  const f = fixture();
+  const event = f.event(1, 'invocacao', { encontro });
+  f.s.receber([event]); f.s.receber([event]);
+  assert.equal(f.s.executando, true);
+  const panel = f.objects.find(o => o.encontro === encontro);
+  assert.ok(panel?.active);
+  assert.equal(f.s.encontroEmCurso, panel);
+  assert.ok(panel.value.some(o => o.name === (encontro === 'trio' ? 'poster-trio' : 'fundo-encontro')),
+    'O trio usa o cartaz inteiro e cada duelo usa seu cenário.');
+  f.flush();
+  assert.equal(panel.active, false);
+  assert.equal(f.s.encontroEmCurso, null);
+  assert.equal(f.s.executando, false);
+  assert.deepEqual(Array.from(f.s.exibidos), [1]);
+  assert.deepEqual(f.impacts, [1], 'Após a vinheta, aplica a ação uma única vez.');
+}
+{
+  context.window.matchMedia = () => ({ matches: true });
+  const f = fixture(); let ended = false;
+  f.s.animarEncontro(f.event(1, 'habilidade', { encontro: 'tigre_dipsp' }), () => { ended = true; });
+  assert.ok(!f.tweens.some(tween => tween.yoyo), 'Movimento reduzido omite investidas e recuos.');
+  f.flush(); assert.equal(ended, true);
+  delete context.window.matchMedia;
+}
+for (const name of ['Agente da DIPSP', 'O Tigre']) {
+  const f = fixture(); f.s.cache.audio.exists = () => true;
+  let ended = 0;
+  const event = f.event(1, 'habilidade', { encontro: 'tigre_dipsp', fonte: { ...f.source, nome: name } });
+  f.s.animarEncontro(event, () => ended++);
+  const panel = f.objects.find(o => o.encontro);
+  f.flush();
+  assert.equal(panel.impactosEncontro, 4, 'Os dois personagens atacam duas vezes.');
+  assert.ok(!panel.value.some(o => o.name === 'disparo-dipsp' || o.name === 'garra-tigre'));
+  assert.equal(f.sounds.filter(k => k === 'somTiro').length, 2);
+  assert.equal(f.sounds.filter(k => k === 'somTigreAtaque').length, 2);
+  assert.equal(f.sounds[1], name === 'O Tigre' ? 'somTigreAtaque' : 'somTiro', 'O autor da habilidade inicia o confronto.');
+  assert.equal(ended, 1);
+  assert.equal(f.s.events.listenerCount('shutdown'), 0);
+}
+{
+  const f = fixture(); let ended = false;
+  f.s.animarEncontro(f.event(1, 'habilidade', { encontro: 'tigre_dipsp' }), () => { ended = true; });
+  f.s.events.emit('shutdown'); f.flush();
+  assert.equal(ended, false, 'Sair cancela a vinheta sem executar a ação na cena seguinte.');
+  assert.ok(f.objects.filter(o => o.encontro).every(o => !o.active));
+}
+{
+  const f = fixture(); let ended = 0;
+  f.s.textures.exists = () => false;
+  f.s.animarEncontro(f.event(1, 'invocacao', { encontro: 'trio' }), () => ended++);
+  assert.equal(ended, 1, 'Arte indisponível não prende a ação.');
+}

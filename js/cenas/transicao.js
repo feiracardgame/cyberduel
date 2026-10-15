@@ -8,24 +8,39 @@ class CenaTransicao extends Phaser.Scene {
     configurarCameraLogica(this);
     this.cameras.main.setBackgroundColor("#000000");
 
-    const video = this.add.video(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, "videoTransicao");
+    const campo = window.cyberduelSettings?.get("battlefield");
+    const abertura = { 1: "carregamento_echorasp.mp4", 2: "carregamento_sindicato.mp4",
+      3: "carregamento_echorasp.mp4", 4: "carregamento_remanescentes.mp4" }[campo] || this.registry.get("aberturaTransicao");
+    const chave = { "carregamento_echorasp.mp4": "videoAberturaEchoRasp", "carregamento_sindicato.mp4": "videoAberturaSindicato",
+      "carregamento_remanescentes.mp4": "videoAberturaRemanescentes" }[abertura] || "videoTransicao";
+    this.fundoTransicao = { "carregamento_echorasp.mp4": "jogoFundo", "carregamento_sindicato.mp4": "videoParte3",
+      "carregamento_remanescentes.mp4": "videoDeserto" }[abertura];
+    const video = this.add.video(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, chave);
     video.setOrigin(0.5);
-    video.setVolume?.(window.cyberduelSettings?.music(1) ?? 1);
+    // As aberturas têm áudios diferentes (Echo/Rasp não tem faixa de áudio).
+    // Usa a trilha da facção em todas, no mesmo nível da partida.
+    video.setMute(true);
+    const musica = window.cyberduelSettings?.get("battlefield") === 3 ? "musicaHumbaNet"
+      : { "carregamento_sindicato.mp4": "musicaFundo", "carregamento_remanescentes.mp4": "musicaRemanescentes" }[abertura] || "musicaPadrao";
+    window.cyberduelSettings?.playMusic(this, musica);
     video.setVisible(false);
     video.once("created", (_video, largura, altura) => {
       if (!video.active || !largura || !altura) return;
       const escala = Math.max(LARGURA_LAYOUT / largura, ALTURA_LAYOUT / altura);
       video.setDisplaySize(largura * escala, altura * escala).setVisible(true);
     });
-    video.play(false); // loop = false, mantém o áudio do próprio vídeo
-
     this.jaTransicionou = false;
 
     video.once("complete", () => {
       this.pularParaJogo(video);
     });
+    video.once("error", () => this.pularParaJogo(video));
+    // Um vídeo que não inicia ou não termina não pode prender a partida.
+    this.time.delayedCall(20000, () => this.pularParaJogo(video));
+    this.events.once("shutdown", () => video.destroy());
 
     this.criarSkip(video);
+    video.play(false);
   }
 
   // Troca de cena uma única vez e interrompe o vídeo.
@@ -37,7 +52,7 @@ class CenaTransicao extends Phaser.Scene {
       video.stop();
     }
 
-    this.scene.start("CenaJogo");
+    this.scene.start("CenaJogo", { fundoBatalha: this.fundoTransicao });
   }
 
   criarSkip(video) {

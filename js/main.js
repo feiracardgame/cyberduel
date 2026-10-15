@@ -276,6 +276,33 @@ class Partida {
         aliadoVinculadoId: carta.aliadoVinculadoId,
         oculto: !!fonteReal.ocultadaPelaToca && !fonteReal.revelada,
         indice: dono.campo.cartas.includes(fonteReal) ? dono.campo.cartas.indexOf(fonteReal) : (antes.find((c) => c.lado === lado && c.id === carta.id)?.indice ?? -1) }, alvos, ...extra });
+    this.identificarEncontro(this.eventosEfeito.at(-1));
+  }
+
+  identificarEncontro(evento) {
+    if (evento.fonte.oculto) return;
+    const pares = [
+      ["boi_raspclay", "O Boi", "RaspClay MonteCorp"],
+      ["tigre_dipsp", "O Tigre", "Agente da DIPSP"],
+      ["bom_mau", "O Bom", "Sen'Tenzhah, O Mau"],
+    ];
+    if (evento.momento === "continuo" && evento.fonte.nome === "Tuh'Coh, O Feio" &&
+        evento.alvos.some(a => a.id === evento.fonte.id && a.delta > 0) &&
+        ["O Bom", "Sen'Tenzhah, O Mau"].every(nome => evento.alvos.some(a => a.nome === nome && !a.oculto && a.delta > 0))) {
+      evento.encontro = "trio";
+      return;
+    }
+    if (!["invocacao", "habilidade"].includes(evento.momento)) return;
+    const candidatos = evento.momento === "invocacao"
+      ? this.capturarCampoEfeitos().filter(c => c.lado !== evento.lado)
+      : evento.alvos;
+    for (const [tipo, a, b] of pares) {
+      const outro = evento.fonte.nome === a ? b : evento.fonte.nome === b ? a : null;
+      if (outro && candidatos.some(c => c.nome === outro && !c.oculto)) {
+        evento.encontro = tipo;
+        return;
+      }
+    }
   }
 
   // Registra uma jogada no histórico. "quem" é 'jogador' ou 'inimigo'.
@@ -633,6 +660,7 @@ class Partida {
           selecionado.selecionado = true;
         }
       }
+      this.identificarEncontro(evento);
       const agentes = oponente.campo.cartas.filter((c) =>
         c?.efeito?.acao === "advertir" && (c.alvosAdvertidos || []).includes(carta.id));
       const antes = carta.poder;

@@ -149,8 +149,8 @@ class CenaJogo extends Phaser.Scene {
     this.soloStep = 0;
     this.soloStarter = this.tutorial ? 1 : Math.random() < 0.5 ? 1 : 2;
     this.telaFinalExibida = false;
-    const volumeEfeito = (base) =>
-      window.cyberduelSettings?.effects(base) ?? base;
+    const volumeEfeito = (base, chave) =>
+      window.cyberduelSettings?.effects(base, chave) ?? base;
     const sons = [
       ["somTorcida", true, 0.03],
       ["somJogarCarta", false, 0.3],
@@ -162,13 +162,13 @@ class CenaJogo extends Phaser.Scene {
     ].map(([chave, loop, volume]) => {
       const som = this.sound.add(chave, {
         loop,
-        volume: volumeEfeito(volume),
+        volume: volumeEfeito(volume, chave),
       });
       this[chave] = som;
       return som;
     });
     this.events.once("shutdown", () => sons.forEach((som) => som.destroy()));
-    this.fundoBatalha = null;
+    this.fundoBatalha = dados.fundoBatalha || null;
     this.escolherFundoBatalha();
     window.cyberduelSettings?.playMusic?.(this, this.chaveMusicaBatalha());
     this.somTorcida.play();
@@ -559,7 +559,7 @@ class CenaJogo extends Phaser.Scene {
     if (aviso && !this.avisosBatalhaTocados.has(chave)) {
       this.avisosBatalhaTocados.add(chave);
       this.avisoBatalhaSom?.destroy();
-      this.avisoBatalhaSom = this.sound.add(aviso.som, { volume: window.cyberduelSettings?.effects(1) ?? 1 });
+      this.avisoBatalhaSom = this.sound.add(aviso.som, { volume: window.cyberduelSettings?.effects(0.5, aviso.som) ?? 0.5 });
       const inicio = tipo === "inicio" ? relogio.announcementAt : relogio.introUntil;
       this.avisoBatalhaSom.play({ seek: Math.max(0, (agora - inicio) / 1000) });
     }
@@ -600,7 +600,9 @@ class CenaJogo extends Phaser.Scene {
   }
 
   efeitosBloqueiamInteracao() {
-    return (this.efeitosVisuaisPendentes() || !!this.multiplayer?.effectsPaused) && !this.efeitoInvocacaoEmCurso();
+    const encontro = this.scene?.manager?.keys?.CenaEfeitos?.encontroEmCurso;
+    return !!encontro?.active ||
+      ((this.efeitosVisuaisPendentes() || !!this.multiplayer?.effectsPaused) && !this.efeitoInvocacaoEmCurso());
   }
 
   atualizarInteracaoDuranteEfeitos() {
@@ -736,7 +738,7 @@ class CenaJogo extends Phaser.Scene {
       (!this.training || ["intern", "tiger", "dipsp", "tiger-ability", "dipsp-ability"].includes(this.training.step)) &&
       !this.avisoBatalhaPendente() && !this.efeitosBloqueiamInteracao() &&
       !this.multiplayer?.presentation &&
-      !this.modalAberto &&
+      !this.modalAberto && !this.objetosSelecaoAlvo &&
       !this.animacaoRemotaEmCurso &&
       (!this.ehMeuTurno || !this.travado)
     );
@@ -3704,7 +3706,7 @@ class CenaJogo extends Phaser.Scene {
     botao.on("pointerdown", () => botao.setScale(0.98));
     botao.on("pointerup", () => {
       if ((carta.habilidadeAprendidaDe || carta.nome) === "O Bom" && this.cache?.audio.exists("somBom1"))
-        this.sound.play("somBom1", { volume: window.cyberduelSettings?.effects(0.3) ?? 0.3 });
+        this.sound.play("somBom1", { volume: window.cyberduelSettings?.effects(0.3, "somBom1") ?? 0.3 });
       this.fecharDetalheCarta();
       this.time.delayedCall(180, () => this.iniciarAtivacaoHabilidade(carta));
     });
@@ -3713,7 +3715,7 @@ class CenaJogo extends Phaser.Scene {
 
   mostrarDetalheCarta(carta) {
     if (this.training && !this.training.canUse(carta)) return;
-    if (this.cache?.audio.exists("somInteracao")) this.sound.play("somInteracao", { volume: window.cyberduelSettings?.effects(0.16) ?? 0.16 });
+    if (this.cache?.audio.exists("somInteracao")) this.sound.play("somInteracao", { volume: window.cyberduelSettings?.effects(0.16, "somInteracao") ?? 0.16 });
     if (this.modalAberto) return;
     // Lendárias usam uma ficha própria com arte ampliada.
     if (carta.lendaria) {
@@ -4951,7 +4953,7 @@ class CenaJogo extends Phaser.Scene {
     const L = this.layout;
     const objetos = [];
     if (["Agente da DIPSP", 'UCC "Juggernaut"'].includes(carta.nome) && this.cache?.audio.exists("somAlvo"))
-      this.sound.play("somAlvo", { volume: window.cyberduelSettings?.effects(0.18) ?? 0.18 });
+      this.sound.play("somAlvo", { volume: window.cyberduelSettings?.effects(0.18, "somAlvo") ?? 0.18 });
 
     // Escurece o fundo sem esconder os alvos.
     let overlay = this.add
@@ -5939,7 +5941,7 @@ class CenaJogo extends Phaser.Scene {
     // 2. Toca o som do advogado
     const som = this.sound.add("somAdvogado", {
       loop: false,
-      volume: window.cyberduelSettings?.effects(0.3) ?? 0.3,
+      volume: window.cyberduelSettings?.effects(0.3, "somAdvogado") ?? 0.3,
     });
     som.play();
 
@@ -7851,8 +7853,9 @@ class CenaJogo extends Phaser.Scene {
 
     const corFundo = vitoria ? 0x1fd67a : derrota ? 0xff3b3b : 0xbbbbbb;
     const corTexto = vitoria ? "#afe5ce" : derrota ? "#ffc0ca" : "#eeeeee";
-    if (vitoria || derrota) this.sound?.play(this.multiplayer?.spectator || vitoria ? "somVitoria" : "somDerrota",
-      { volume: window.cyberduelSettings?.effects(1) ?? 1 });
+    const somResultado = this.multiplayer?.spectator || vitoria ? "somVitoria" : "somDerrota";
+    if (vitoria || derrota) this.sound?.play(somResultado,
+      { volume: window.cyberduelSettings?.effects(0.5, somResultado) ?? 0.5 });
     const textoPrincipal =
       this.multiplayer?.spectator && (vitoria || derrota)
         ? "VITÓRIA"

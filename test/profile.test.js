@@ -48,6 +48,7 @@ const avatar = 'assets/fotosdeperfil/juggernaut_icon.png';
   assert.equal(saved.body.avatar, avatar);
   assert.equal(saved.body.currency, registered.body.currency);
   for (const body of [
+    ...['p.u.t.a', 'C4R4LH0', 'Admin', 'a\u200bdmin', 'Héil Hitler'].map(nickname => ({ nickname, avatar: '' })),
     { nickname: '', avatar: '' }, { nickname: 'x'.repeat(33), avatar: '' },
     { nickname: 'A\nB', avatar: '' }, { nickname: 'Teste', avatar: 'https://example.com/a.jpg' },
     { nickname: 'Teste', avatar: 'data:image/svg+xml;base64,PHN2Zz4=' },

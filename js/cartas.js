@@ -320,7 +320,7 @@ const POOL_CARTAS_TERRENO = [
     efeitoContinuo: {
       tipo: TIPOS_EFEITO_CONTINUO.DEBUFF_CAMPO_INIMIGO,
       valor: 2,
-      texto: "Ambiente Inóspito -> Enquanto este terreno estiver em campo, todas as cartas inimigas perdem 2 de PA. Caso o inimigo seja reduzido a 0 de PA, ele é eliminado.",
+      texto: "Ambiente Inóspito -> Enquanto este terreno estiver em campo, todas as cartas inimigas perdem 2 de PA. Caso o inimigo seja reduzido a 0 de PA, ele é eliminado. Este efeito não acumula",
     },
   },
   {

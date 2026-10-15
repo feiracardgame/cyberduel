@@ -58,6 +58,16 @@ window.CYBERDUEL_IMAGE_ASSETS = Object.freeze({
   daranha: "assets/cartas/D_Aranha.png",
   oboi: "assets/cartas/Anarcoboi.png",
   jogoFundo: "assets/fundo/jogo-fundo.png",
+  encontroBoi: "assets/assets_animacoes/boi_versus_asset.png",
+  encontroRaspClay: "assets/assets_animacoes/raspclay_versus_asset.png",
+  encontroDIPSP: "assets/assets_animacoes/dipsp_versus_asset.png",
+  encontroTigre: "assets/assets_animacoes/tigre_versus_asset.png",
+  encontroBom: "assets/assets_animacoes/bom_versus_asset.png",
+  encontroMau: "assets/assets_animacoes/mau_versus_asset.png",
+  posterTrio: "assets/assets_animacoes/cinematicas/poster-trio.webp",
+  fundoEncontroBoi: "assets/assets_animacoes/cinematicas/fundo-boi-raspclay.webp",
+  fundoEncontroTigre: "assets/assets_animacoes/cinematicas/fundo-tigre-dipsp.webp",
+  fundoEncontroBom: "assets/assets_animacoes/cinematicas/fundo-bom-mau.webp",
   duelCorner: "assets/profiles/duel_corner.png",
   duelCornerOpponent: "assets/profiles/duel_corner_opponent.png?v=20261009-filled",
   efeitoDiego: "assets/efeitos/efeito-diego.png",
@@ -180,7 +190,16 @@ class CenaPreload extends Phaser.Scene {
     for (const nome of ["humba", "diego", "professores"])
       this.load.video(`videoEfeito${nome}`, `assets/efeitos/efeito-${nome}-alpha.webm`);
     // videos
-    this.load.video("videoTransicao", `assets/videos/${this.aberturaEscolhida || "carregamento_remanescentes.mp4"}`);
+    const campo = window.cyberduelSettings?.get("battlefield");
+    const abertura = { 1: "carregamento_echorasp.mp4", 2: "carregamento_sindicato.mp4",
+      3: "carregamento_echorasp.mp4", 4: "carregamento_remanescentes.mp4" }[campo]
+      || this.aberturaEscolhida || "carregamento_remanescentes.mp4";
+    this.registry?.set("aberturaTransicao", abertura);
+    this.load.video("videoTransicao", `assets/videos/${abertura}`);
+    for (const [key, file] of Object.entries({
+      videoAberturaEchoRasp: "carregamento_echorasp.mp4", videoAberturaSindicato: "carregamento_sindicato.mp4",
+      videoAberturaRemanescentes: "carregamento_remanescentes.mp4",
+    })) this.load.video(key, `assets/videos/${file}`);
     this.load.video(
       "videoParte3",
       "assets/videos/background_cidade.mp4?v=20260923-cidade",
@@ -216,7 +235,7 @@ class CenaPreload extends Phaser.Scene {
       this.videoFalhou = true;
       video.setVisible(false);
     });
-    const aberturas = ["carregamento_echorasp.mp4", "carregamento_remanescentes.mp4"];
+    const aberturas = ["carregamento_echorasp.mp4", "carregamento_remanescentes.mp4", "carregamento_sindicato.mp4"];
     const proximaAbertura = () => {
       let anterior = this.aberturaEscolhida;
       try { anterior ||= sessionStorage.getItem("cyberduel.ultimaAbertura"); } catch {}

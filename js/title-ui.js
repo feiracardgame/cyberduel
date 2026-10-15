@@ -539,7 +539,7 @@ class CyberduelTitleUI {
   }
 
   playMenuClick() {
-    const volume = this.settings?.effects(0.5) ?? 0.5;
+    const volume = this.settings?.effects(0.3, "menuClick") ?? 0.3;
     if (!volume) return;
     this.menuClickAudio ||= new Audio("assets/sons/clique-menu.mp3");
     this.menuClickAudio.volume = volume;
@@ -548,7 +548,7 @@ class CyberduelTitleUI {
   }
 
   playMenuSwipe() {
-    const volume = this.settings?.effects(0.5) ?? 0.5;
+    const volume = this.settings?.effects(0.3, "menuSwipe") ?? 0.3;
     if (!volume || typeof Audio === "undefined") return;
     this.menuSwipeAudio ||= new Audio("assets/sons/swipe-menu.mp3");
     this.menuSwipeAudio.volume = volume;
@@ -3532,7 +3532,7 @@ class CyberduelTitleUI {
         dialog.classList.add("is-opening");
         if (typeof Audio !== "undefined") {
           this.boosterOpenAudio ||= new Audio("assets/sons/abrir_booster.mp3");
-          this.boosterOpenAudio.volume = this.settings?.effects(0.6) ?? 0.6;
+          this.boosterOpenAudio.volume = this.settings?.effects(0.3, "somAbrirBooster") ?? 0.3;
           this.boosterOpenAudio.currentTime = 0;
           this.boosterOpenAudio.play().catch(() => {});
         }

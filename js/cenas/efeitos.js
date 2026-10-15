@@ -1,7 +1,7 @@
 // A cena independente preserva os efeitos durante o redesenho do campo.
 const APRESENTACAO_EFEITOS = Object.freeze({
-  "HumbaBrain": { invocacao: "somHumba", video: "videoEfeitohumba", volume: 0.75 },
-  "Professores de Duelo": { habilidade: "somProfessores", video: "videoEfeitoprofessores", momentos: ["habilidade"], volume: 0.75 },
+  "HumbaBrain": { invocacao: "somHumba", video: "videoEfeitohumba", volume: 0.3 },
+  "Professores de Duelo": { habilidade: "somProfessores", video: "videoEfeitoprofessores", momentos: ["habilidade"], volume: 0.3 },
   "Refrigeradores de DataCenter": { habilidade: "somRefrigerador", visual: "refrigeracao", momentos: ["habilidade"], corAlvo: 0xb567ff },
   "Montadores de Cabos": { habilidade: "somMontador", visual: "extensao", momentos: ["habilidade"], corAlvo: 0xb567ff },
   "Estudante de Curso Técnico": { habilidade: "somEstudante", visual: "aprendizado", momentos: ["habilidade"], corAlvo: 0xb567ff },
@@ -31,10 +31,10 @@ const APRESENTACAO_EFEITOS = Object.freeze({
   "Agente da DIPSP": { habilidade: "somTiro", visual: "plasma", cor: 0x3388ff, corAlvo: 0x3388ff, momentos: ["habilidade"] },
   'UCC "Juggernaut"': { habilidade: "somJuggernaut", visual: "impactoJuggernaut", video: "videoEfeitoJuggernaut", momentos: ["habilidade"] },
   "O Tigre": { habilidade: "somTigre", imagem: "efeitoTigre", momentos: ["habilidade"], visual: "garras" },
-  "RaspClay MonteCorp": { invocacao: "somRaspClay", video: "efeitoRaspClayVertical", volume: 0.75 },
-  "Dieh'Go, o Xerife": { habilidade: "somDiego", visual: "caveiras", video: "videoEfeitodiego", momentos: ["habilidade"], volume: 0.75 },
+  "RaspClay MonteCorp": { invocacao: "somRaspClay", video: "efeitoRaspClayVertical", volume: 0.3 },
+  "Dieh'Go, o Xerife": { habilidade: "somDiego", visual: "caveiras", video: "videoEfeitodiego", momentos: ["habilidade"], volume: 0.3 },
   "A Aranha": { habilidade: "somAranha", imagem: "efeitoAranha", momentos: ["habilidade"], video: "videoEfeitoAranha" },
-  "O Boi": { habilidade: "somBoi", imagem: "efeitoBoi", momentos: ["habilidade"], video: "videoEfeitoBoi", volume: 0.75 },
+  "O Boi": { habilidade: "somBoi", imagem: "efeitoBoi", momentos: ["habilidade"], video: "videoEfeitoBoi", volume: 0.3 },
   "A Cabra": { habilidade: "somCabra", imagem: "efeitoCabra", momentos: ["habilidade"] },
   "O Cão": { passiva: "somCao", imagem: "efeitoCao", momentos: ["passiva"] },
   "O Trotar do Cavalo": { conjuracao: "somCavalo", imagem: "efeitoCavalo", momentos: ["conjuracao"] },
@@ -62,6 +62,7 @@ class CenaEfeitos extends Phaser.Scene {
     this.fila = [];
     this.exibidos = [];
     this.executando = false;
+    this.encontroEmCurso = null;
     this.invocacaoEmCurso = null;
     this.invocacoesPendentes = new Map();
     this.haCartasOcultas = false;
@@ -303,7 +304,7 @@ class CenaEfeitos extends Phaser.Scene {
     const depois = (delay, callback) => timers.push(this.time.delayedCall(delay, callback));
     const tocar = (key, volume = 0.8, rate = 1) => {
       if (!this.cache.audio.exists(key)) return;
-      const sound = this.sound.add(key, { volume: window.cyberduelSettings?.effects(volume) ?? volume, rate });
+      const sound = this.sound.add(key, { volume: window.cyberduelSettings?.effects(volume, key) ?? volume, rate });
       sons.push(sound); sound.play();
     };
     let encerrado = false;
@@ -457,7 +458,7 @@ class CenaEfeitos extends Phaser.Scene {
     const tocar = (key, volume, rate = 1) => {
       if (!this.cache.audio.exists(key)) return;
       const anteriores = this.sound.getAll?.(key) || [];
-      this.sound.play(key, { volume: window.cyberduelSettings?.effects(volume) ?? volume, rate });
+      this.sound.play(key, { volume: window.cyberduelSettings?.effects(volume, key) ?? volume, rate });
       sons.push(...(this.sound.getAll?.(key) || []).filter(sound => !anteriores.includes(sound)));
     };
     const limpar = () => {
@@ -644,12 +645,150 @@ class CenaEfeitos extends Phaser.Scene {
     depois(duracao, () => { limpar(); aoConcluir(); });
   }
 
+  animarEncontro(evento, aoConcluir) {
+    const pares = {
+      boi_raspclay: ["encontroBoi", "encontroRaspClay", "O BOI", "RASPCLAY MONTECORP", "fundoEncontroBoi"],
+      tigre_dipsp: ["encontroDIPSP", "encontroTigre", "DIPSP", "O TIGRE", "fundoEncontroTigre"],
+      bom_mau: ["encontroBom", "encontroMau", "O BOM", "O MAU", "fundoEncontroBom"],
+    };
+    const trio = evento.encontro === "trio";
+    const par = pares[evento.encontro];
+    const chaves = trio ? ["posterTrio"] : par?.slice(0, 2);
+    if (!chaves?.every(chave => this.textures.exists(chave))) { aoConcluir(); return; }
+    const combate = evento.encontro === "tigre_dipsp";
+    const movimentoReduzido = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
+    const cor = evento.encontro === "bom_mau" ? 0xe9b86b : 0x5be4ff;
+    const duracao = trio ? 4400 : combate ? 3500 : 2800;
+    const painel = this.add.container(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, []).setDepth(1000).setAlpha(0);
+    painel.encontro = evento.encontro;
+    this.encontroEmCurso = painel;
+    painel.faseEncontro = "abertura";
+    painel.impactosEncontro = 0;
+    const timers = [], animacoes = [], sons = [];
+    let encerrado = false;
+    const depois = (delay, callback) => timers.push(this.time.delayedCall(delay, () => { if (!encerrado) callback(); }));
+    const animar = config => {
+      const onComplete = config.onComplete, onUpdate = config.onUpdate;
+      animacoes.push(this.tweens.add({ ...config,
+        onComplete: () => { if (!encerrado) onComplete?.(); },
+        onUpdate: () => { if (!encerrado) onUpdate?.(); },
+      }));
+    };
+    const tocar = (key, volume = .16) => {
+      if (!this.cache.audio.exists(key)) return;
+      const anteriores = this.sound.getAll?.(key) || [];
+      this.sound.play(key, { volume: window.cyberduelSettings?.effects(volume, key) ?? volume });
+      sons.push(...(this.sound.getAll?.(key) || []).filter(sound => !anteriores.includes(sound)));
+    };
+    const limpar = () => {
+      if (encerrado) return;
+      encerrado = true;
+      timers.forEach(timer => timer?.remove?.());
+      animacoes.forEach(animacao => animacao?.stop?.());
+      sons.forEach(som => som.destroy());
+      this.events?.off("shutdown", limpar);
+      if (this.encontroEmCurso === painel) this.encontroEmCurso = null;
+      if (painel.active) painel.destroy(true);
+    };
+    this.events?.once("shutdown", limpar);
+    const guardar = objeto => { painel.add([objeto]); return objeto; };
+    guardar(this.add.rectangle(0, 0, LARGURA_LAYOUT, ALTURA_LAYOUT, 0x030509, trio ? .98 : .94)).setInteractive();
+    const texto = (x, y, valor, tamanho, color = "#f9e6c8") => guardar(this.add.text(x, y, valor, {
+      fontFamily: "Rushblade, Arial, sans-serif", fontSize: `${tamanho}px`, color,
+      align: "center", stroke: "#080b11", strokeThickness: 5, wordWrap: { width: 940 },
+    }).setOrigin(.5));
+    if (trio) {
+      const poster = guardar(this.add.image(0, 0, "posterTrio"));
+      poster.name = "poster-trio";
+      const escala = Math.min(LARGURA_LAYOUT * .94 / poster.width, ALTURA_LAYOUT * .88 / poster.height);
+      poster.setScale(escala);
+      poster.revelado = movimentoReduzido;
+      if (!movimentoReduzido) {
+        poster.setScale(escala * .95).setAngle(-.7);
+        poster.setCrop(0, 0, poster.width, 0);
+        const impressao = { progresso: 0 };
+        animar({ targets: impressao, progresso: 1, delay: 200, duration: 950, ease: "Cubic.easeInOut",
+          onUpdate: () => poster.setCrop(0, 0, poster.width, poster.height * impressao.progresso),
+          onComplete: () => { poster.setCrop(); poster.revelado = true; painel.faseEncontro = "cartaz"; } });
+        animar({ targets: poster, scaleX: escala, scaleY: escala, angle: 0, duration: 3900, ease: "Sine.easeOut" });
+      } else depois(450, () => { painel.faseEncontro = "cartaz"; });
+    } else {
+      guardar(this.add.rectangle(0, 0, LARGURA_LAYOUT, 1180, 0x0a131e));
+      if (this.textures.exists(par[4])) {
+        const fundo = guardar(this.add.image(0, 0, par[4]));
+        fundo.name = "fundo-encontro";
+        const escala = Math.max(LARGURA_LAYOUT / fundo.width, 1180 / fundo.height);
+        fundo.setScale(escala).setAlpha(0);
+        animar({ targets: fundo, alpha: 1, duration: 420 });
+        if (!movimentoReduzido) animar({ targets: fundo, scaleX: escala * 1.035, scaleY: escala * 1.035,
+          duration: duracao, ease: "Sine.easeInOut" });
+      }
+      for (const y of [-600, 600]) guardar(this.add.rectangle(0, y, LARGURA_LAYOUT, 3, cor));
+      const titulo = texto(0, -715, "DESTINOS EM CONFLITO", 35).setAlpha(0);
+      animar({ targets: titulo, alpha: 1, delay: 350, duration: 280 });
+      const retratos = chaves.map((chave, indice) => {
+        const x = [-280, 280][indice];
+        const arte = guardar(this.add.image(x, 570, chave).setOrigin(.5, 1));
+        const escala = Math.min(560 / arte.width, 1140 / arte.height);
+        arte.setScale(escala).setAlpha(0);
+        const inicio = movimentoReduzido ? x : x + (x < 0 ? -440 : 440);
+        arte.x = inicio;
+        arte.name = indice === 0 ? "retrato-esquerdo" : "retrato-direito";
+        if (!movimentoReduzido) arte.y += 35;
+        animar({ targets: arte, x, y: 570, alpha: 1, duration: 650, delay: 150 + indice * 130, ease: "Cubic.easeOut" });
+        return arte;
+      });
+      for (const [x, nome] of [[-280, par[2]], [280, par[3]]]) {
+        const label = texto(x, 660, nome, 36).setAlpha(0);
+        label.setScale(Math.min(1, 480 / label.width));
+        animar({ targets: label, alpha: 1, delay: 700, duration: 250 });
+      }
+      const versus = texto(0, -20, "VS", 94, "#ffffff").setAlpha(0);
+      animar({ targets: versus, alpha: 1, delay: 780, duration: 220 });
+      depois(950, () => { painel.faseEncontro = "confronto"; });
+      if (combate) {
+        const dipspAtaca = evento.fonte.nome === "Agente da DIPSP";
+        const frase = texto(0, 770, dipspAtaca
+          ? "Ameaça identificada, iniciada neutralização"
+          : "Abatendo lacaios do sistema", 34, dipspAtaca ? "#83d9ff" : "#ff8980").setAlpha(0);
+        frase.name = "frase-encontro";
+        animar({ targets: frase, alpha: 1, delay: 700, duration: 250 });
+        const primeiro = dipspAtaca ? 0 : 1;
+        for (const [turno, delay] of (movimentoReduzido ? [] : [1050, 1530, 2010, 2490]).entries()) {
+          const indice = turno % 2 ? 1 - primeiro : primeiro;
+          const dipsp = indice === 0, direcao = dipsp ? 1 : -1;
+          const atacante = retratos[indice], defensor = retratos[1 - indice];
+          depois(delay, () => { painel.faseEncontro = "combate"; painel.impactosEncontro++; tocar(dipsp ? "somTiro" : "somTigreAtaque"); });
+          animar({ targets: atacante, x: direcao * -140, duration: 150, delay, yoyo: true, ease: "Cubic.easeIn" });
+          animar({ targets: defensor, x: direcao * 335, angle: direcao * 3, duration: 130, delay: delay + 130, yoyo: true });
+        }
+      }
+    }
+    animar({ targets: painel, alpha: 1, duration: 250 });
+    depois(160, () => tocar("somInteracao", .10));
+    depois(duracao, () => {
+      painel.faseEncontro = "saida";
+      animar({ targets: painel, alpha: 0, duration: 280, onComplete: () => {
+        limpar(); aoConcluir();
+      } });
+    });
+  }
+
   proximo() {
     if (this.executando || !this.fila.length) return;
     this.executando = true;
     const evento = this.fila.shift();
     this.eventoAtual = evento;
     this.exibidos.push(evento.id);
+    if (evento.encontro && !evento.encontroExibido) {
+      evento.encontroExibido = true;
+      // Retoma o mesmo evento: a vinheta antecede os efeitos e não consome a ação.
+      this.animarEncontro(evento, () => {
+        this.fila.unshift(evento); this.exibidos.pop();
+        this.executando = false; this.proximo();
+      });
+      return;
+    }
     if (evento.momento === "seguranca_x1") {
       this.animarSegurancaX1(evento, () => {
         this.executando = false; this.eventoAtual = null; this.proximo();
@@ -713,7 +852,7 @@ class CenaEfeitos extends Phaser.Scene {
       const pichacaoAtiva = ativo && (!perfil.picharMomentos || perfil.picharMomentos.includes(evento.momento));
       let alvos = (evento.alvos || []).filter((alvo) => alvo.selecionado || alvo.lado !== evento.lado || alvo.id !== fonte.id || perfil.imagem === "efeitoBoi" || (alvo.delta && perfil.imagem !== "efeitoRato"));
       if (ativo && perfil.visual === "garras" && alvos.length && this.cache.audio.exists("somTigreAtaque"))
-        this.sound.play("somTigreAtaque", { volume: window.cyberduelSettings?.effects(0.3) ?? 0.3 });
+        this.sound.play("somTigreAtaque", { volume: window.cyberduelSettings?.effects(0.3, "somTigreAtaque") ?? 0.3 });
       // Só o autor vê onde a armadilha foi plantada; o disparo é público.
       if (remoto && fonte.efeito?.tipo === TIPOS_EFEITO.ARMADILHA_ESPACO && evento.momento === "conjuracao") alvos = [];
       if (fonte.indice >= 0 && ((!echo && !perfil.momentos) ||
@@ -786,7 +925,7 @@ class CenaEfeitos extends Phaser.Scene {
           if (alvo.cascaGrossa) {
             pulsar(destino, 170, 240, 0xff304e);
             this.pichar("efeitoPorco", destino, guardar);
-            if (this.cache.audio.exists("somPorco")) this.sound.play("somPorco", { volume: window.cyberduelSettings?.effects(0.3) ?? 0.3 });
+            if (this.cache.audio.exists("somPorco")) this.sound.play("somPorco", { volume: window.cyberduelSettings?.effects(0.3, "somPorco") ?? 0.3 });
           }
           if (ativo && perfil.visual === "garras") {
             for (let i = 0; i < 3; i++) {
@@ -873,7 +1012,7 @@ class CenaEfeitos extends Phaser.Scene {
       const volume = perfil.volume ?? 0.3;
       const tocaSom = (!perfil.somenteVinculo || fonte.aliadoVinculadoId != null) && (!perfil.somenteGanho || ativo) && (!echo || (ativo && (alvos.length || perfil.imagem === "efeitoCoelho" || ["efeitoAranha", "efeitoBoi", "efeitoCabra"].includes(perfil.imagem)))) &&
         (som !== "somReplicantes" || alvos.some(alvo => alvo.delta > 0)) && this.cache.audio.exists(som);
-      if (tocaSom) this.sound.play(som, { volume: window.cyberduelSettings?.effects(volume) ?? volume });
+      if (tocaSom) this.sound.play(som, { volume: window.cyberduelSettings?.effects(volume, som) ?? volume });
       const duracaoInvestida = ativo && perfil.visual === "garras" ? (this.cache.audio.get?.("somTigreInvestida")?.duration || 0) * 1000 : 0;
       let duracao = impactoJuggernaut ? 650 : Math.max(1000, duracaoInvestida, tocaSom ? (this.cache.audio.get?.(som)?.duration || 0) * 1000 : 0);
       let audioTerminou = false, videoPendente = false, concluido = false, filaLiberada = false;
@@ -929,7 +1068,7 @@ class CenaEfeitos extends Phaser.Scene {
           !perfil.invocacao && !(perfil.video && !perfil.momentos)) liberarFila();
     };
     if (evento.momento === "habilidade" && perfil.visual === "garras" && this.cache.audio.exists("somTigreInvestida"))
-      this.sound.play("somTigreInvestida", { volume: window.cyberduelSettings?.effects(0.3) ?? 0.3 });
+      this.sound.play("somTigreInvestida", { volume: window.cyberduelSettings?.effects(0.3, "somTigreInvestida") ?? 0.3 });
     if (impactoJuggernaut) aplicar();
     else this.animarFonte(evento, fonte, guardar, aplicar);
   }

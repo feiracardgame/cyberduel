@@ -23,6 +23,7 @@ const ranking = require("./ranking");
 const council = require("./council");
 const matchmaking = new Map();
 const battleAnnouncements = require("../js/battle-announcements");
+const { nameIsBlocked } = require("./name-policy");
 
 const PORT = Number(process.env.PORT) || 3000;
 const LOCAL_LOGIN = process.env.CYBERDUEL_LOCAL_LOGIN === "1" && process.env.CYBERDUEL_DEBUG === "1";
@@ -562,6 +563,8 @@ async function handleApi(request, response, pathname) {
     if (!validUsername(name) || name.length > 18)
       return sendJson(response, 400, { ok: false, error: "Use um nome local de 3 a 18 caracteres: letras, números, ponto, hífen ou sublinhado." });
     const username = `local_${name}`;
+    if (nameIsBlocked(name))
+      return sendJson(response, 400, { ok: false, error: "Esse nome não está disponível. Escolha um nome sem termos ofensivos ou identificação da equipe." });
     const accountKey = normalizeUsername(username);
     let account = accountStore.accounts[accountKey];
     const existing = accountByUsername(username);
@@ -791,6 +794,8 @@ async function handleApi(request, response, pathname) {
     const nickname = typeof body.nickname === "string" ? body.nickname.trim() : completingUsername ? session.account.nickname || "" : "";
     if ((!nickname && !completingUsername) || Array.from(nickname).length > 32 || /[\u0000-\u001f\u007f]/.test(nickname))
       return sendJson(response, 400, { ok: false, error: "Use um apelido de 1 a 32 caracteres." });
+    if ((needsUsername && nameIsBlocked(username)) || nameIsBlocked(nickname))
+      return sendJson(response, 400, { ok: false, error: "Esse nome não está disponível. Escolha um nome sem termos ofensivos ou identificação da equipe." });
     const avatar = body.avatar === undefined ? session.account.avatar : body.avatar;
     if (avatar !== "" && !PROFILE_PHOTOS.includes(avatar))
       return sendJson(response, 400, { ok: false, error: "Escolha uma das fotos de perfil disponíveis." });

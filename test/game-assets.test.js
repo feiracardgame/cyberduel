@@ -12,6 +12,8 @@ vm.runInContext(fs.readFileSync("js/cenas/preload.js", "utf8"), context, {
 });
 
 const original = context.window.CYBERDUEL_IMAGE_ASSETS;
+for (const [key, url] of Object.entries(original))
+  assert.ok(fs.statSync(url.split('?')[0]).size > 0, `Imagem ausente: ${key}`);
 const game = context.window.CYBERDUEL_GAME_IMAGE_ASSETS;
 const cardEntries = Object.entries(original).filter(([, url]) =>
   url.startsWith("assets/cartas/"),

@@ -73,13 +73,13 @@
       }
     }
 
-    music(baseVolume = 1) {
-      return clamp(baseVolume, 0, 1) *
+    music(baseVolume = 1, key) {
+      return clamp(baseVolume * (global.CYBERDUEL_AUDIO_GAINS?.[key] ?? 1), 0, 1) *
         this.values.masterVolume * this.values.musicVolume;
     }
 
     musicForTrack(key) {
-      return this.music(key === "musicaRemanescentes" ? 0.4 : 0.3);
+      return this.music(0.3, key);
     }
 
     playMusic(scene, key) {
@@ -99,8 +99,8 @@
       }
     }
 
-    effects(baseVolume = 1) {
-      return clamp(baseVolume, 0, 1) *
+    effects(baseVolume = 1, key) {
+      return clamp(baseVolume * (global.CYBERDUEL_AUDIO_GAINS?.[key] ?? 1), 0, 1) *
         this.values.masterVolume * this.values.effectsVolume;
     }
 

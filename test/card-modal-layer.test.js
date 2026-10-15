@@ -31,6 +31,24 @@ assert.deepEqual(removed, [mask], 'Limpeza repetida não destrói a máscara dua
 game.elevarModalCarta(object(4000), object(4001));
 assert.equal(onTop, true, 'Reabrir eleva novamente a cena.');
 console.log('Ficha: cena acima dos efeitos, zoom, máscara, limpeza e reabertura validadas.');
+{
+  const selection = Object.assign(Object.create(Scene.prototype), {
+    avisoBatalhaPendente: () => false, efeitosBloqueiamInteracao: () => false,
+    ehMeuTurno: false, modalAberto: false, objetosSelecaoAlvo: [{ active: true }],
+  });
+  assert.equal(selection.podeConsultarCartas(), false, 'Tocar no alvo não abre outra ficha durante a seleção.');
+  selection.objetosSelecaoAlvo = null;
+  assert.equal(selection.podeConsultarCartas(), true);
+}
+{
+  const scene = Object.assign(Object.create(Scene.prototype), {
+    scene: { manager: { keys: { CenaEfeitos: { encontroEmCurso: { active: true } } } } },
+    efeitosVisuaisPendentes: () => true, efeitoInvocacaoEmCurso: () => true,
+  });
+  assert.equal(scene.efeitosBloqueiamInteracao(), true, 'A vinheta bloqueia interação mesmo quando antecede uma invocação.');
+  scene.scene.manager.keys.CenaEfeitos.encontroEmCurso = null;
+  assert.equal(scene.efeitosBloqueiamInteracao(), false, 'O voo normal mantém o comportamento existente.');
+}
 
 // A ação visual nova preserva o fechamento antes da seleção e desativa cartas já usadas.
 {

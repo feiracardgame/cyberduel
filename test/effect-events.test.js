@@ -147,6 +147,44 @@ assert.equal(pool.find((c) => c.nome === 'Agente da DIPSP').efeito.rangeH, 3);
   assert.equal(p.eventosEfeito.at(-1).momento, 'inicio_turno');
 }
 assert.equal(perfil['Agente da DIPSP'].visual, 'plasma');
+for (const [sourceName, targetName, expected] of [
+  ['O Boi', 'RaspClay MonteCorp', 'boi_raspclay'],
+  ['Agente da DIPSP', 'O Tigre', 'tigre_dipsp'],
+  ['O Tigre', 'Agente da DIPSP', 'tigre_dipsp'],
+  ['O Bom', "Sen'Tenzhah, O Mau", 'bom_mau'],
+  ["Sen'Tenzhah, O Mau", 'O Bom', 'bom_mau'],
+]) {
+  const p = match(), source = card(sourceName), target = card(targetName);
+  p.jogador.campo.cartas[5] = source; p.inimigo.campo.cartas[5] = target;
+  const candidates = p.alvosParaHabilidadeEmCampo(source, p.jogador, p.inimigo);
+  const index = sourceName === 'O Boi' ? 15 : candidates[0];
+  const result = p.ativarHabilidade(source, p.jogador, p.inimigo, sourceName === 'O Bom' ? [index] : index);
+  assert.equal(result.sucesso, true, sourceName);
+  const event = p.eventosEfeito.findLast(e => e.momento === 'habilidade');
+  assert.equal(event.encontro, expected);
+  const reversed = codec.swapSnapshot(codec.serializeMatch(p));
+  assert.equal(reversed.eventosEfeito.find(e => e.id === event.id).encontro, expected);
+}
+{
+  const p = match(), source = card('O Boi'), rival = card('RaspClay MonteCorp');
+  p.inimigo.campo.cartas[0] = rival; p.jogador.mao.cartas.push(source);
+  assert.equal(p.colocarCartaDoJogador(source, 5), true);
+  assert.equal(p.eventosEfeito.at(-1).encontro, 'boi_raspclay');
+  rival.ocultadaPelaToca = true;
+  p.registrarEventoEfeito(source, p.jogador, 'invocacao');
+  assert.equal(p.eventosEfeito.at(-1).encontro, undefined, 'Encontro não revela carta oculta.');
+}
+{
+  const p = match();
+  for (const [index, name] of [[0, 'O Bom'], [1, "Tuh'Coh, O Feio"], [2, "Sen'Tenzhah, O Mau"]])
+    p.jogador.campo.cartas[index] = card(name);
+  p.resolverEfeitosContinuos(p.jogador);
+  assert.equal(p.eventosEfeito.filter(e => e.encontro === 'trio').length, 1);
+  p.resolverEfeitosContinuos(p.jogador);
+  assert.equal(p.eventosEfeito.filter(e => e.encontro === 'trio').length, 1, 'Não repete em recálculo idêntico.');
+  p.jogador.campo.removerCarta(0); p.resolverEfeitosContinuos(p.jogador);
+  assert.equal(p.eventosEfeito.at(-1).encontro, undefined, 'Fim do bônus não repete o pôster.');
+}
 assert.equal(perfil["Dieh'Go, o Xerife"].visual, 'caveiras');
 assert.equal(perfil['NeoAnalista de Suporte Nível Alpha'].video, 'efeitoNeoAnalista');
 console.log(`${pool.length} personagens e ${activeCount} habilidades: eventos, repetição, remoção, passivas e duas perspectivas validados.`);

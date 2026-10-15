@@ -244,7 +244,7 @@ async function checkClient(profile) {
   for (const nickname of ["", " ", "x".repeat(33), "A\nB"])
     assert.equal((await api("account/profile", { username: "duelista_123", nickname }, "PUT")).status, 400);
   assert.equal((await api("account/profile", { nickname: "Duelista" }, "PUT")).status, 400);
-  for (const username of ["", " ", "ab", "x".repeat(25), "com espaço", "ácento", "<script>", 123, "A\nB"])
+  for (const username of ["", " ", "ab", "x".repeat(25), "com espaço", "ácento", "<script>", 123, "A\nB", "admin", "C4R4LH0", "p.u.t.a"])
     assert.equal((await api("account/profile", { username, nickname: "Duelista" }, "PUT")).status, 400);
   const rejected = await api("account/profile", { username: "SENHAANTIGA", nickname: "Duelista" }, "PUT");
   assert.equal(rejected.status, 409, "Contas preservadas também reservam seu username.");

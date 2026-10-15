@@ -44,3 +44,14 @@ assert.equal(new context.window.CyberduelSettings(localStorage).get('skipBattleA
 settings.reset();
 assert.equal(settings.get('skipBattleAnnouncements'), 0);
 console.log('Pular avisos: padrão desativado, persistência e restauração validados.');
+vm.runInContext(fs.readFileSync('js/audio-levels.js', 'utf8'), context);
+const gains = context.window.CYBERDUEL_AUDIO_GAINS;
+assert.equal(settings.musicForTrack('musicaRemanescentes'), settings.music(.3 * gains.musicaRemanescentes));
+assert.equal(settings.effects(.3, 'somTiro'), settings.effects(.3 * gains.somTiro));
+assert.equal(settings.effects(1, 'somCobra'), settings.effects(1), 'Ganho final não excede o limite.');
+assert.ok(Object.keys(gains).length >= 75);
+for (const gain of Object.values(gains)) assert.ok(Number.isFinite(gain) && gain > 0 && gain <= 4);
+settings.set('masterVolume', 0);
+assert.equal(settings.musicForTrack('musicaMenu'), 0);
+assert.equal(settings.effects(.3, 'somHumba'), 0);
+settings.reset();
