@@ -307,6 +307,10 @@ class CyberduelAccount {
     return this.request("/api/admin/accounts/require-name-change", { method: "POST", body: { username } });
   }
 
+  async broadcastMessage(message) {
+    return this.request("/api/admin/broadcast", { method: "POST", body: { message } });
+  }
+
   async setSegurancaX1(enabled) {
     const payload = await this.request("/api/admin/seguranca-x1", { method: "POST", body: { enabled } });
     return this.applyAuth(payload, false);

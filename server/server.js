@@ -747,6 +747,17 @@ async function handleApi(request, response, pathname) {
     return sendJson(response, 200, publicAccount(pending.account));
   }
 
+  if (request.method === "POST" && pathname === "/api/admin/broadcast") {
+    const body = await readJson(request);
+    const message = typeof body?.message === "string" ? body.message.trim() : "";
+    if (!message || Array.from(message).length > 1000 || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/u.test(message))
+      return sendJson(response, 400, { ok: false, error: "Escreva uma mensagem de 1 a 1000 caracteres." });
+    const notice = { id: randomBytes(12).toString("hex"), message, sentAt: new Date().toISOString() };
+    const connections = io.of("/").sockets.size;
+    io.emit("server-notice", notice);
+    return sendJson(response, 200, { ok: true, connections });
+  }
+
   if (request.method === "GET" && pathname === "/api/admin/accounts") {
     const accounts = Object.values(accountStore.accounts);
     const leaderboard = ranking.leaderboard(accounts);

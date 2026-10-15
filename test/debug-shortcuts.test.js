@@ -18,6 +18,7 @@ const context = vm.createContext({ window: { cyberduelAccount: { user: "Admin", 
 vm.runInContext(fs.readFileSync('js/debug.js', 'utf8'), context);
 (async () => {
   context.window.cyberduelAccount.isAdmin = false;
+  await assert.rejects(context.window.enviarAvisoGeral('Teste'), /administradora/);
   await assert.rejects(context.window.exigirTrocaDeNome('Duelista'), /administradora/);
   context.window.cyberduelNameGuard = { show(fields, options) { this.fields = fields; this.preview = options.preview; } };
   assert.match(context.window.testarNomeCensurado(), /Prévia local/);
@@ -27,6 +28,13 @@ vm.runInContext(fs.readFileSync('js/debug.js', 'utf8'), context);
   await assert.rejects(context.window.irParaFinal('vitória'), /administradora/);
   assert.throws(() => context.window.irParaX1(), /administradora/);
   context.window.cyberduelAccount.isAdmin = true;
+  context.window.cyberduelAccount.broadcastMessage = async message => {
+    assert.equal(message, 'Aviso de teste');
+    return { connections: 3 };
+  };
+  assert.match(await context.window.enviarAvisoGeral(' Aviso de teste '), /3 conexão/);
+  for (const message of ['', 'x'.repeat(1001), null])
+    await assert.rejects(context.window.enviarAvisoGeral(message), /Use enviarAvisoGeral/);
   context.window.cyberduelAccount.requireNameChange = async username => {
     assert.equal(username, 'Duelista');
     return { username };

@@ -1,0 +1,28 @@
+.server-notice {
+  position: fixed;
+  inset: max(20px, env(safe-area-inset-top)) 20px auto auto;
+  z-index: 2147483647;
+  box-sizing: border-box;
+  width: min(480px, calc(100vw - 40px));
+  max-height: calc(100dvh - 40px);
+  margin: 0;
+  overflow: auto;
+  padding: 25px;
+  border: 1px solid #c7a451;
+  border-top: 4px solid #f0c968;
+  border-radius: 0;
+  color: #fff4d7;
+  background: #11120f;
+  box-shadow: 0 14px 65px #000b;
+  font-family: Arial, sans-serif;
+  touch-action: pan-y;
+  animation: server-notice-arrive .25s ease-out;
+}
+.server-notice strong { color: #f0c968; font: 700 10px/1.6 "Courier New", monospace; letter-spacing: 1.5px; }
+.server-notice p { margin: 18px 0 24px; font-size: 19px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.server-notice button { display: block; min-height: 44px; margin-left: auto; padding: 10px 22px; border: 1px solid #c7a451; border-radius: 0; color: #f0c968; background: transparent; font: 700 11px/1.5 Arial, sans-serif; letter-spacing: 1px; cursor: pointer; touch-action: manipulation; }
+.server-notice button:hover { background: #f0c968; color: #11120f; }
+.server-notice button:focus-visible { outline: 2px solid #fff4d7; outline-offset: 4px; }
+@supports not selector(:popover-open) { .server-notice[popover] { display: block; } }
+@keyframes server-notice-arrive { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .server-notice { animation: none; } }

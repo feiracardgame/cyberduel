@@ -22,6 +22,14 @@ window.exigirTrocaDeNome = async username => {
   return `Troca de nome exigida para ${result.username}. O aviso permanece até a conta escolher outro apelido permitido.`;
 };
 
+window.enviarAvisoGeral = async message => {
+  requireAdminAccount();
+  if (typeof message !== "string" || !message.trim() || Array.from(message.trim()).length > 1000)
+    throw new Error('Use enviarAvisoGeral("mensagem de até 1000 caracteres").');
+  const result = await window.cyberduelAccount.broadcastMessage(message.trim());
+  return `Aviso enviado para ${result.connections} conexão(ões) online.`;
+};
+
 // Console: adicionarPontos("username", quantidade) credita pontos do ranking.
 window.adicionarPontos = async (username, amount) => {
   requireAdminAccount();
