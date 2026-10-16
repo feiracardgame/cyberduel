@@ -9,7 +9,7 @@ const users = require('../test/account-fixture')(dataDir, ['P_Diddy', 'Epstein12
 const file = path.join(dataDir, 'accounts.json');
 const store = JSON.parse(fs.readFileSync(file));
 for (const [index, user] of users.entries()) Object.assign(store.accounts[user.accountKey], {
-  nickname: index < 2 ? 'Jeffrey Epstein' : index === 2 ? 'P. Diddy' : '', currency: 875,
+  nickname: index === 0 ? 'ɛpstein' : index === 1 ? 'εpstein' : index === 2 ? 'ᴇᴘꜱᴛᴇɪɴ' : '', currency: 875,
   tutorial: { introSeen: true, named: true, completed: true, wantsTutorial: false, farewellSeen: true, seen: [] },
 });
 store.accounts[users[3].accountKey].tutorial.named = false;
@@ -154,7 +154,7 @@ async function checkDialog(page, viewport, name) {
   const tutorial = await contextFor(users[3], { width: 390, height: 844 });
   await tutorial.page.goto(base, { waitUntil: 'domcontentloaded' });
   await tutorial.page.getByLabel('Seu apelido', { exact: true }).waitFor({ timeout: 120000 });
-  await tutorial.page.getByLabel('Seu apelido', { exact: true }).fill('P. Diddy');
+  await tutorial.page.getByLabel('Seu apelido', { exact: true }).fill('ɛpstein');
   await tutorial.page.locator('.elenai-name-form button').click();
   await tutorial.page.getByRole('alertdialog').waitFor();
   await tutorial.page.getByLabel('NOVO APELIDO', { exact: true }).fill('Aprendiz Novo');

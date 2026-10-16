@@ -74,7 +74,7 @@ const BLOCKED = [
   'vermehumano', 'restodeaborto', 'abortofalhado', 'abortomalfeito',
   'vaimorrer', 'merecemorrer', 'merecesmorrer', 'morralogo', 'morradeumavez',
   'matanegros', 'matajudeus', 'exterminiojudeu', 'exterminionegro',
-  'odeionegros', 'odeiojudeus', 'odeiogays', 'morteaosgays', 'matemgays',
+  'odeionegros', 'odeiojudeus', 'odeiogays', 'morteaosgays', 'matemgays', 'peladas',
   'homossexualimundo', 'gay', 'transimundo', 'transimunda',
   'niggar', 'niggah', 'nigguh', 'niglet', 'coon', 'darkie', 'paki',
   'fagget', 'faggit', 'faggy', 'fagboy', 'faglord', 'retard', 'retarded',
@@ -93,18 +93,41 @@ const BLOCKED = [
   'puffdaddy', 'puffydaddy', 'puffdady', 'puffdiddi',
   'seancombs', 'seanjohncombs', 'seanpuffycombs', 'seandiddycombs', 'shawncombs', 'putinharabudadopipididi'
 ];
+// Equivalências práticas para nomes estilizados; não é um esqueleto Unicode completo.
+// Referência sobre caracteres visualmente semelhantes: https://www.unicode.org/reports/tr39/
+// NFKC já cobre fontes matemáticas, largura cheia e letras circuladas comuns.
+const letterVariants = {
+  a: 'αаɑɐᴀ', b: 'βϐвьʙɓƀ', c: 'ϲсᴄƈ', d: 'ԁժɗđᴅ',
+  e: 'εϵеҽɛɜᴇəɘє', f: 'ϝғƒꜰ', g: 'ɡɢԍցǥ', h: 'һհнʜħ',
+  i: 'ιіӏıɩɪ', j: 'јϳʝᴊ', k: 'κϰкᴋƙ', l: 'ⅼʟłƖ',
+  m: 'μмᴍɱ', n: 'ηոпɴŋռ', o: 'οоօσᴏøɵ', p: 'ρϱрᴘƥ',
+  q: 'ԛզɋ', r: 'гʀɾʁ', s: 'ѕꜱʂʃ', t: 'τтᴛƭ',
+  u: 'υսᴜʋʊ', v: 'νѵⅴᴠ', w: 'ωѡԝᴡ', x: 'χхⅹ', y: 'γуүʏ', z: 'ζᴢƶ',
+};
+const visualLetters = Object.fromEntries(Object.entries(letterVariants)
+  .flatMap(([letter, variants]) => Array.from(variants, variant => [variant, letter])));
+function foldVisualLetters(value) {
+  return value.toLocaleLowerCase('pt-BR').normalize('NFD').replace(/\p{M}/gu, '')
+    .replace(/[^\x00-\x7f]/gu, character => {
+      if (visualLetters[character]) return visualLetters[character];
+      const point = character.codePointAt(0);
+      // Letras em círculos/quadrados negativos e indicadores regionais (emoji).
+      for (const start of [0x1f150, 0x1f170, 0x1f1e6])
+        if (point >= start && point < start + 26) return String.fromCharCode(97 + point - start);
+      return character;
+    });
+}
 const substitutions = { '0': 'o', '1': 'i', '3': 'e', '4': 'a', '5': 's', '7': 't',
-  '@': 'a', '$': 's', '!': 'i', 'а': 'a', 'е': 'e', 'о': 'o', 'р': 'p', 'с': 'c', 'х': 'x', 'і': 'i' };
+  '@': 'a', '$': 's', '!': 'i' };
 function nameIsBlocked(value) {
   const original = String(value || '').normalize('NFKC');
   // Caracteres invisíveis, controles e escrita bidirecional não fazem parte de nomes.
   if (/[\p{Cc}\p{Cf}]/u.test(original)) return true;
-  const normalized = original.toLocaleLowerCase('pt-BR').normalize('NFD').replace(/\p{M}/gu, '')
-    .replace(/[013457@$!аеорсхі]/gu, c => substitutions[c]);
+  const letters = foldVisualLetters(original);
+  const normalized = letters.replace(/[013457@$!]/gu, c => substitutions[c]);
   const words = normalized.split(/[^\p{L}\p{N}]+/u).filter(Boolean);
   const compact = words.join('').replace(/\d/g, '');
-  const withoutSuffix = original.toLocaleLowerCase('pt-BR').replace(/\d+$/u, '')
-    .normalize('NFD').replace(/\p{M}/gu, '').replace(/[^\p{L}]/gu, '');
+  const withoutSuffix = letters.replace(/\d+$/u, '').replace(/[^\p{L}]/gu, '');
   if (RESERVED.has(compact) || RESERVED.has(withoutSuffix) || words.some(word => RESERVED.has(word))) return true;
   // Apenas termos proibidos com mais de quatro letras bloqueiam trechos de outros nomes.
   return BLOCKED.some(word => words.includes(word) || compact === word || withoutSuffix === word ||

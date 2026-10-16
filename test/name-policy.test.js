@@ -1,5 +1,16 @@
 const assert = require('node:assert/strict');
 const { nameIsBlocked } = require('../server/name-policy');
+for (const name of ['εpstein', 'ɛpstein', 'єpstein', 'ƐPSTEIN', 'ᴇᴘꜱᴛᴇɪɴ',
+  'ерѕtеіո', 'ε.p.ѕ.t.ɛ.ɪ.ɴ', 'zzεpsteinyy', 'zzɛpsteinyy', 'zzɛp5tɛ1nyy',
+  'ᴅɪᴅᴅʏ', 'ԁіԁԁу', 'ρuffԁaԁԁу', 'ɑԁмιո', 'ѕυρρоrt'])
+  assert.equal(nameIsBlocked(name), true, `Letras visualmente semelhantes: ${name}`);
+for (const start of [0x1d41a, 0x1d68a, 0x1d552, 0x24d0, 0xff41, 0x1f150, 0x1f170, 0x1f1e6]) {
+  const styled = Array.from('epstein', letter => String.fromCodePoint(start + letter.charCodeAt(0) - 97)).join('');
+  assert.equal(nameIsBlocked(styled), true, `Fonte estilizada: ${styled}`);
+  assert.equal(nameIsBlocked(`zz${styled}yy`), true, `Fonte estilizada no meio: ${styled}`);
+}
+for (const name of ['zzɑԁмιոyy', 'zzρоrոyy', 'ᴊᴏãᴏ', 'ᴍᴀʀɪᴀɴᴀ', 'Αλέξανδρος', 'Марина', '李雷'])
+  assert.equal(nameIsBlocked(name), false, `Limites e nomes legítimos: ${name}`);
 for (const name of ['asduhasiudepsteinasduiasdiuh', 'zzEPSTEINyy', 'zzDiddyYY',
   'zzd.i.d.d.yyy', 'zz3p5t31nyy', 'zzep1steinYY', 'zzcaralhoyy', 'zzSeanCombsyy'])
   assert.equal(nameIsBlocked(name), true, `Termo com mais de quatro letras no meio: ${name}`);

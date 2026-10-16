@@ -9,7 +9,7 @@ const users = require('./account-fixture')(directory, ['Epstein123', 'NomeLimpo'
 const file = path.join(directory, 'accounts.json');
 const store = JSON.parse(fs.readFileSync(file));
 store.accounts[users[0].accountKey].nickname = 'Apelido Limpo';
-store.accounts[users[1].accountKey].nickname = 'P. Diddy';
+store.accounts[users[1].accountKey].nickname = 'εpstein';
 Object.assign(store.accounts[users[2].accountKey], {
   nickname: 'Jeffrey Epstein', currency: 765, rating: 1320,
   collection: { 'monstro:O Rato': 3 }, tutorial: { introSeen: true, named: true },
@@ -57,6 +57,14 @@ const emit = (socket, event, payload) => new Promise((resolve, reject) => socket
   const badAgain = await api('account/profile', users[2], { username: 'PuffDaddy', nickname: 'Sean Combs' });
   assert.equal(badAgain.status, 400);
   assert.equal(badAgain.body.code, 'NAME_NOT_ALLOWED');
+  for (const nickname of ['εpstein', 'ɛpstein', 'ᴇᴘꜱᴛᴇɪɴ', '𝖊𝖕𝖘𝖙𝖊𝖎𝖓',
+    '🅴🅿🆂🆃🅴🅸🅽', 'zzɛpsteinyy', 'ᴅɪᴅᴅʏ']) {
+    const rejected = await api('account/profile', users[3], { nickname });
+    assert.equal(rejected.status, 400, nickname);
+    assert.equal(rejected.body.code, 'NAME_NOT_ALLOWED');
+    assert.deepEqual(rejected.body.nameRestriction, { username: false, nickname: true });
+  }
+  assert.equal((await api('auth/session', users[3])).body.nickname, users[3].username, 'Fontes proibidas não são persistidas.');
   assert.equal((await api('account/profile', users[2], { username: 'OutroDuelista', nickname: 'Novo Apelido' })).status, 409);
   assert.equal((await api('account/profile', users[2], { nickname: 'Novo Apelido' })).status, 400, 'Não corrige apenas metade.');
   assert.equal((await api('account/profile', users[0], { username: 'NickCorrigido' })).status, 200);
