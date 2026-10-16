@@ -49,6 +49,7 @@ const emit = (socket, event, payload) => new Promise((resolve, reject) => socket
     const blocked = await api('account/match-start', user, { mode: 'solo' }, 'POST');
     assert.equal(blocked.status, 403);
     assert.equal(blocked.body.code, 'NAME_NOT_ALLOWED');
+    assert.equal(blocked.body.requiresNameChange, true, 'Nome já salvo exige tela de correção.');
     const socket = await socketFor();
     const announced = new Promise(resolve => socket.once('name-restricted', resolve));
     assert.equal((await emit(socket, 'create-room', { accountToken: user.token })).code, 'NAME_NOT_ALLOWED');
@@ -62,6 +63,8 @@ const emit = (socket, event, payload) => new Promise((resolve, reject) => socket
     const rejected = await api('account/profile', users[3], { nickname });
     assert.equal(rejected.status, 400, nickname);
     assert.equal(rejected.body.code, 'NAME_NOT_ALLOWED');
+    assert.equal(rejected.body.error, 'Nome inválido');
+    assert.equal(rejected.body.requiresNameChange, false, 'Nova tentativa inválida recebe apenas erro no campo.');
     assert.deepEqual(rejected.body.nameRestriction, { username: false, nickname: true });
   }
   assert.equal((await api('auth/session', users[3])).body.nickname, users[3].username, 'Fontes proibidas não são persistidas.');

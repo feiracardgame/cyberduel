@@ -161,14 +161,14 @@ function showElenAI(scene, lines, done, options = {}) {
       input.name = "nickname"; input.autocomplete = "nickname"; input.required = true; input.maxLength = 64;
       input.value = scene.account.nickname || ""; input.setAttribute("aria-label", "Seu apelido");
       const save = ui.element("button", "title-dialog__confirm", "CONTINUAR"); save.type = "submit";
-      form.append(input, save); actions.append(form);
+      form.append(input, error, save); actions.append(form);
       form.onsubmit = async event => {
         event.preventDefault(); if (save.disabled) return;
         save.disabled = true; error.textContent = "";
         try { await options.name(input.value); close(); done(); }
         catch (exception) {
           error.textContent = exception.message; save.disabled = false;
-          if (exception.code === "NAME_NOT_ALLOWED") {
+          if (exception.code === "NAME_NOT_ALLOWED" && exception.requiresNameChange) {
             removeNameCorrection?.();
             removeNameCorrection = scene.account.onChange(({ user, nameRestriction, tutorial }) => {
               if (user && !nameRestriction && tutorial?.named) { close(); done(); }

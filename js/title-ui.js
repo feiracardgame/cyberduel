@@ -1393,7 +1393,10 @@ class CyberduelTitleUI {
         status.textContent = "";
       } finally {
         busy = false;
-        if (this.modal === overlay) refresh();
+        if (this.modal === overlay) {
+          refresh();
+          if (error.textContent) nickname.focus();
+        }
       }
     };
     dialog.append(
@@ -2049,7 +2052,7 @@ class CyberduelTitleUI {
             enter.disabled = false;
           }
         });
-        form.append(label, enter);
+        form.append(label, error, enter);
         dialog.append(
           this.element(
             "p",

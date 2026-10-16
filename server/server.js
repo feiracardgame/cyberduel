@@ -350,8 +350,9 @@ function nameRestriction(account) {
   return username || nickname ? { username, nickname } : null;
 }
 
-function nameRejection(fields) {
-  return { ok: false, code: "NAME_NOT_ALLOWED", error: "ESSE NOME NÃO É PERMITIDO", nameRestriction: fields };
+function nameRejection(fields, requiresNameChange = false) {
+  return { ok: false, code: "NAME_NOT_ALLOWED", error: requiresNameChange ? "ESSE NOME NÃO É PERMITIDO" : "Nome inválido",
+    nameRestriction: fields, requiresNameChange };
 }
 
 function allowedFrontend(origin, host) {
@@ -648,7 +649,7 @@ async function handleApi(request, response, pathname) {
   if (pending && nameRestriction(pending.account) && ![
     "/api/auth/session", "/api/auth/logout", "/api/account/profile",
   ].includes(pathname))
-    return sendJson(response, 403, nameRejection(nameRestriction(pending.account)));
+    return sendJson(response, 403, nameRejection(nameRestriction(pending.account), true));
   if (pending && needsRegistration(pending.account) && ![
     "/api/auth/session", "/api/auth/logout", "/api/account/profile",
   ].includes(pathname))
@@ -829,10 +830,12 @@ async function handleApi(request, response, pathname) {
     const nickname = typeof body.nickname === "string" ? body.nickname.trim() : session.account.nickname || "";
     if ((!nickname && !completingUsername) || Array.from(nickname).length > 32 || /[\u0000-\u001f\u007f]/.test(nickname))
       return sendJson(response, 400, { ok: false, error: "Use um apelido de 1 a 32 caracteres." });
-    if (nameIsBlocked(username) || nameIsBlocked(nickname))
-      return sendJson(response, 400, nameRejection({ username: nameIsBlocked(username), nickname: nameIsBlocked(nickname) }));
+    if (nameIsBlocked(username) || nameIsBlocked(nickname)) {
+      const savedRestriction = nameRestriction(session.account);
+      return sendJson(response, 400, nameRejection(savedRestriction || { username: nameIsBlocked(username), nickname: nameIsBlocked(nickname) }, Boolean(savedRestriction)));
+    }
     if (session.account.nameChangeRequired && normalizeUsername(nickname.normalize("NFKC")) === normalizeUsername(session.account.nickname.normalize("NFKC")))
-      return sendJson(response, 400, nameRejection({ username: false, nickname: true }));
+      return sendJson(response, 400, nameRejection({ username: false, nickname: true }, true));
     const avatar = body.avatar === undefined ? session.account.avatar : body.avatar;
     if (avatar !== "" && !PROFILE_PHOTOS.includes(avatar))
       return sendJson(response, 400, { ok: false, error: "Escolha uma das fotos de perfil disponíveis." });
@@ -1045,7 +1048,7 @@ async function handleApi(request, response, pathname) {
     account.nameChangeRequestedAt = new Date().toISOString();
     account.nameChangeRequestedBy = pending.account.username;
     saveAccounts();
-    const rejection = nameRejection(nameRestriction(account));
+    const rejection = nameRejection(nameRestriction(account), true);
     for (const socket of io.sockets.sockets.values()) {
       const room = rooms.get(socket.data.room);
       const connectedAccount = room?.accounts.get(socket.data.player) || accountFromToken(socket.data.accountToken);
@@ -1794,7 +1797,7 @@ io.on("connection", (socket) => {
       accountFromToken(data.accountToken);
     const restriction = nameRestriction(account);
     if (!restriction || ["leave-room", "surrender", "decline-match", "unwatch-club-tables"].includes(event)) return next();
-    const rejection = nameRejection(restriction);
+    const rejection = nameRejection(restriction, true);
     socket.emit("name-restricted", rejection);
     if (typeof ack === "function") ack(rejection);
   });

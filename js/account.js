@@ -85,10 +85,13 @@ class CyberduelAccount {
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
-      if (payload.code === "NAME_NOT_ALLOWED")
-        window.cyberduelNameGuard?.show(payload.nameRestriction, { local: path === "/api/auth/local" });
+      if (payload.code === "NAME_NOT_ALLOWED" && payload.requiresNameChange === true) {
+        this.nameRestriction = payload.nameRestriction;
+        window.cyberduelNameGuard?.sync(this.nameRestriction);
+      }
       const error = new Error(payload.error || "Falha de comunicação com o servidor.");
       error.code = payload.code;
+      error.requiresNameChange = payload.requiresNameChange === true;
       throw error;
     }
     return payload;

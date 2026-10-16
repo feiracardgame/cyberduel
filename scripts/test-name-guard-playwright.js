@@ -5,7 +5,7 @@ const path = require('node:path');
 const { spawn } = require('node:child_process');
 const { chromium } = require('playwright');
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cyberduel-name-guard-'));
-const users = require('../test/account-fixture')(dataDir, ['P_Diddy', 'Epstein123', 'DueloAntigo', 'TutorialNovo']);
+const users = require('../test/account-fixture')(dataDir, ['P_Diddy', 'Epstein123', 'DueloAntigo', 'TutorialNovo', 'RegistroNovo']);
 const file = path.join(dataDir, 'accounts.json');
 const store = JSON.parse(fs.readFileSync(file));
 for (const [index, user] of users.entries()) Object.assign(store.accounts[user.accountKey], {
@@ -13,6 +13,7 @@ for (const [index, user] of users.entries()) Object.assign(store.accounts[user.a
   tutorial: { introSeen: true, named: true, completed: true, wantsTutorial: false, farewellSeen: true, seen: [] },
 });
 store.accounts[users[3].accountKey].tutorial.named = false;
+Object.assign(store.accounts[users[4].accountKey], { username: 'google_' + 'a'.repeat(32), nickname: '' });
 const starter = [
   ['monstro', 'O Rato', 2], ['monstro', 'A Cabra', 2], ['monstro', 'O Cão', 2],
   ['monstro', 'O Porco', 2], ['monstro', 'A Cobra', 2], ['monstro', 'O Tigre', 2],
@@ -106,6 +107,20 @@ async function checkDialog(page, viewport, name) {
     page.off('request', capture);
     checks.push(`preview-${viewport.width}`);
     checks.push(`correction-${viewport.width}`);
+    await page.evaluate(async () => {
+      if (!window.cyberduelAccount.faction) await window.cyberduelAccount.chooseFaction('echossystem');
+    });
+    await page.getByRole('button', { name: 'CARTEIRINHA', exact: true }).click();
+    await page.getByLabel('Apelido', { exact: true }).fill('ɛpstein');
+    await page.getByRole('button', { name: 'Fechar carteirinha', exact: true }).click();
+    await page.locator('.profile-screen').getByText('Nome inválido', { exact: true }).waitFor();
+    assert.equal(await page.locator('.name-guard').count(), 0, 'Editar com nome inválido não abre a tela vermelha.');
+    const unchanged = await context.request.get(base + '/api/auth/session', { headers: { Authorization: `Bearer ${users[index].token}` } });
+    assert.equal((await unchanged.json()).nickname, 'Nome Permitido');
+    await page.getByLabel('Apelido', { exact: true }).fill('Nome Permitido');
+    await page.getByRole('button', { name: 'Fechar carteirinha', exact: true }).click();
+    await page.waitForFunction(() => !document.querySelector('.profile-screen'));
+    checks.push(`profile-inline-error-${viewport.width}`);
     console.log(`OK ${viewport.width}px: bloqueio de conta antiga, novo nome recusado, correção e persistência.`);
     await context.close();
   }
@@ -139,15 +154,16 @@ async function checkDialog(page, viewport, name) {
   assert.equal(await page.evaluate(() => game.scene.isActive('CenaJogo')), true, 'Duelo continua após corrigir o apelido.');
   checks.push('active-duel-corrected');
   await context.close();
-  // Tentativa no login local também abre a mesma tela, antes de criar uma conta.
+  // Tentativas novas inválidas só mostram erro embaixo do campo.
   const anonymous = await contextFor(null, { width: 390, height: 844 });
   await anonymous.page.goto(base, { waitUntil: 'domcontentloaded' });
   await anonymous.page.getByLabel('Nome para teste local').waitFor({ timeout: 120000 });
   await anonymous.page.getByLabel('Nome para teste local').fill('P_Diddy');
   await anonymous.page.getByRole('button', { name: 'ENTRAR LOCALMENTE' }).click();
-  await anonymous.page.getByRole('alertdialog').waitFor();
-  await anonymous.page.getByLabel('NOVO NOME', { exact: true }).fill('NomeLocalNovo');
-  await anonymous.page.getByRole('button', { name: 'CORRIGIR E CONTINUAR' }).click();
+  await anonymous.page.getByText('Nome inválido', { exact: true }).waitFor();
+  assert.equal(await anonymous.page.locator('.name-guard').count(), 0);
+  await anonymous.page.getByLabel('Nome para teste local').fill('NomeLocalNovo');
+  await anonymous.page.getByRole('button', { name: 'ENTRAR LOCALMENTE' }).click();
   await anonymous.page.waitForFunction(() => !document.querySelector('.name-guard') && window.cyberduelAccount.user === 'local_NomeLocalNovo');
   checks.push('local-rejected-and-corrected');
   await anonymous.context.close();
@@ -156,14 +172,30 @@ async function checkDialog(page, viewport, name) {
   await tutorial.page.getByLabel('Seu apelido', { exact: true }).waitFor({ timeout: 120000 });
   await tutorial.page.getByLabel('Seu apelido', { exact: true }).fill('ɛpstein');
   await tutorial.page.locator('.elenai-name-form button').click();
-  await tutorial.page.getByRole('alertdialog').waitFor();
-  await tutorial.page.getByLabel('NOVO APELIDO', { exact: true }).fill('Aprendiz Novo');
-  await tutorial.page.getByRole('button', { name: 'CORRIGIR E CONTINUAR' }).click();
+  await tutorial.page.getByText('Nome inválido', { exact: true }).waitFor();
+  assert.equal(await tutorial.page.locator('.name-guard').count(), 0);
+  const belowInput = await tutorial.page.evaluate(() => document.querySelector('.elenai-error').getBoundingClientRect().top >=
+    document.querySelector('.elenai-name-form input').getBoundingClientRect().bottom);
+  assert.equal(belowInput, true, 'Mensagem abaixo do campo.');
+  await tutorial.page.getByLabel('Seu apelido', { exact: true }).fill('Aprendiz Novo');
+  await tutorial.page.locator('.elenai-name-form button').click();
   await tutorial.page.waitForFunction(() => !document.querySelector('.name-guard') &&
     !document.querySelector('.elenai-name-form') && window.cyberduelAccount.tutorial.named);
   assert.equal(await tutorial.page.evaluate(() => window.cyberduelAccount.nickname), 'Aprendiz Novo');
   checks.push('tutorial-name-corrected');
   await tutorial.context.close();
+  const registration = await contextFor(users[4], { width: 390, height: 844 });
+  await registration.page.goto(base, { waitUntil: 'domcontentloaded' });
+  await registration.page.getByLabel('Nick único', { exact: true }).waitFor({ timeout: 120000 });
+  await registration.page.getByLabel('Nick único', { exact: true }).fill('zzEpsteinzz');
+  await registration.page.locator('[data-kind="registration"]').getByRole('button', { name: 'CONTINUAR', exact: true }).click();
+  await registration.page.getByText('Nome inválido', { exact: true }).waitFor();
+  assert.equal(await registration.page.locator('.name-guard').count(), 0);
+  await registration.page.getByLabel('Nick único', { exact: true }).fill('NovoCadastroQA');
+  await registration.page.locator('[data-kind="registration"]').getByRole('button', { name: 'CONTINUAR', exact: true }).click();
+  await registration.page.waitForFunction(() => window.cyberduelAccount.user === 'NovoCadastroQA');
+  checks.push('registration-inline-error');
+  await registration.context.close();
   // Duas contas distintas: o comando administrativo afeta apenas o destinatário.
   const admin = await contextFor(users[0], { width: 1366, height: 768 });
   const target = await contextFor(users[1], { width: 390, height: 844 });
