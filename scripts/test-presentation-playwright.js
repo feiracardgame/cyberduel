@@ -159,8 +159,8 @@ const event = (socket, name) => new Promise((resolve, reject) => {
   assert.equal(updated.activePlayer, 3 - active, 'A orientação acompanha quem recebeu a vez.');
   assert.deepEqual(Object.values(updated.centerAngles), [updated.activePlayer === 2 ? 180 : 0,
     updated.activePlayer === 2 ? 180 : 0, updated.activePlayer === 2 ? 180 : 0]);
-  assert.ok(updated.fieldCards.some(card => card.name === played.nome && card.turned),
-    'Carta no campo fica orientada para o jogador da vez.');
+  assert.ok(updated.fieldCards.some(card => card.name === played.nome && card.turned === (active === 2)),
+    'Cartas do campo mantêm a orientação do próprio lado.');
   assert.equal(await codeLabel.count(), 0, 'Código não reaparece ao atualizar.');
   assert.deepEqual(updated.hands[active - 1], state[side].hand.map(card => card.nome));
   assert.ok(updated.labels.includes(String(played.poder)), 'PA dedicado acompanha a carta colocada.');

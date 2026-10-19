@@ -1131,9 +1131,10 @@ class CenaJogo extends Phaser.Scene {
   desenharTimerTurno() {
     const largura = 430;
     const altura = 98;
+    const inverter = this.multiplayer?.presentation && this.multiplayer.activePlayer === 2;
     const x = this.multiplayer?.presentation ? LARGURA_LAYOUT / 2 : LARGURA_LAYOUT - 380;
-    const y = this.multiplayer?.presentation ? ALTURA_LAYOUT / 2 + 15 : 84 + DESLOCAMENTO_GUI_Y;
-    const orientacao = this.multiplayer?.presentation && this.multiplayer.activePlayer === 2 ? 180 : 0;
+    const y = this.multiplayer?.presentation ? ALTURA_LAYOUT / 2 + (inverter ? -15 : 15) : 84 + DESLOCAMENTO_GUI_Y;
+    const orientacao = inverter ? 180 : 0;
 
     const fundo = this.criarPlacaDuelo(0, 0, largura, altura);
     const halo = this.add.circle(-largura / 2 + 23, -19, 5, 0x54ddff, 1);
@@ -2993,9 +2994,7 @@ class CenaJogo extends Phaser.Scene {
     }
     filhos.push(...this.criarIndicadorExtintor(carta, CW, CH, escala));
     // Gira o conteúdo para o dono; tweens no container externo não desfazem a orientação.
-    const campoInimigo = this.partida.inimigo.campo.cartas.includes(carta);
-    const rotacionada = this.multiplayer?.activePlayer === (campoInimigo ? 1 : 2);
-    if (this.multiplayer?.presentation && rotacionada) {
+    if (this.multiplayer?.presentation && this.partida.inimigo.campo.cartas.includes(carta)) {
       for (const filho of filhos)
         filho.setPosition(-filho.x, -filho.y).setAngle((filho.angle || 0) + 180);
     }
@@ -3122,8 +3121,6 @@ class CenaJogo extends Phaser.Scene {
 
     if (totalCartas === 0) return;
 
-    const rotacionada = apresentacao && ((lado === "jogador") === (this.multiplayer.activePlayer === 2));
-
     // CARTAS RECÉM-COMPRADAS
 
     const recemCompradas = this.partida[lado].cartasRecemCompradas || [];
@@ -3158,8 +3155,8 @@ class CenaJogo extends Phaser.Scene {
       if (topo) {
         posX = LARGURA_LAYOUT - posX;
         posY = ALTURA_LAYOUT - posY;
+        angulo += 180;
       }
-      if (rotacionada) angulo += 180;
 
       const donoDoNexus = this.partida[lado === "jogador" ? "inimigo" : "jogador"];
       if (apresentacao && !this.partida.maoRevelada(donoDoNexus)) {
@@ -6558,9 +6555,10 @@ class CenaJogo extends Phaser.Scene {
 
   // Rodadas no topo e fase no intervalo entre os campos.
   desenharStatus() {
-    const orientacao = this.multiplayer?.presentation && this.multiplayer.activePlayer === 2 ? 180 : 0;
+    const inverter = this.multiplayer?.presentation && this.multiplayer.activePlayer === 2;
+    const orientacao = inverter ? 180 : 0;
     const painel = this.criarPlacaDuelo(LARGURA_LAYOUT / 2,
-      this.multiplayer?.presentation ? ALTURA_LAYOUT / 2 - 90 : 339 + DESLOCAMENTO_GUI_Y, 430, 48);
+      this.multiplayer?.presentation ? ALTURA_LAYOUT / 2 + (inverter ? 90 : -90) : 339 + DESLOCAMENTO_GUI_Y, 430, 48);
     painel.setAngle(orientacao);
     painel.add(this.criarTextoUI(0, 0,
       `RODADAS   ${this.partida.rodadasJogador}  :  ${this.partida.rodadasInimigo}`,
@@ -6568,7 +6566,7 @@ class CenaJogo extends Phaser.Scene {
     ).setOrigin(0.5));
 
     const yFase = (this.layout.yInimigoFrente + this.layout.yJogadorFrente) / 2
-      + (this.multiplayer?.presentation ? 95 : 0);
+      + (this.multiplayer?.presentation ? (inverter ? -95 : 95) : 0);
     const faixa = this.criarPlacaDuelo(LARGURA_LAYOUT / 2, yFase, 620, 52,
       this.ehMeuTurno ? 0x54ddff : 0xff72af);
     faixa.setAngle(orientacao);
