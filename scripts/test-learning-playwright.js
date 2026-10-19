@@ -230,6 +230,31 @@ async function run() {
     await context.close();
     checks.push('Saída durante a transferência: painel destruído e timers não retomam o efeito.');
   }
+  if (cases.has('preview')) {
+    const context = await openGame({ width: 480, height: 987 });
+    const frames = path.join(output, 'preview-v2', 'frames');
+    fs.mkdirSync(frames, { recursive: true });
+    await page.evaluate(() => {
+      game.loop.stop();
+      for (const scene of game.scene.getScenes(true)) scene.tweens.getDelta = () => 1000 / 30;
+      window.qaPreviewTime = game.loop.time;
+      window.qaPreviewEnded = false;
+      game.scene.getScene('CenaEfeitos').animarEncontro({ encontro: 'aprendizado',
+        fonte: { nome: 'Estudante de Curso Técnico' } }, () => { window.qaPreviewEnded = true; });
+    });
+    for (let frame = 0; frame < 216; frame++) {
+      const png = await page.evaluate(() => {
+        qaPreviewTime += 1000 / 30;
+        game.step(qaPreviewTime, 1000 / 30);
+        return game.canvas.toDataURL('image/png').split(',')[1];
+      });
+      fs.writeFileSync(path.join(frames, `${String(frame).padStart(4, '0')}.png`), Buffer.from(png, 'base64'));
+      if (frame % 30 === 0) console.log(`Preview: ${frame}/216 frames`);
+    }
+    assert.equal(await page.evaluate(() => qaPreviewEnded), true, 'O preview conclui no tempo programado.');
+    await context.close();
+    checks.push('Preview: 216 frames reais do Phaser, avanço determinístico a 30 fps.');
+  }
   assert.deepEqual(errors, [], 'Sem erros JavaScript no navegador');
   for (const name of fs.readdirSync(output)) if (name === 'failure.png' || /^page@.*\.webm$/.test(name))
     fs.unlinkSync(path.join(output, name));

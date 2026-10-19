@@ -15,7 +15,7 @@ function fixture(spectator = false) {
   context.window.setTimeout = (fn, delay) => schedule(delay, fn);
   context.window.clearTimeout = () => {};
   const object = (type, x, y, value) => {
-    const o = { type, x, y, value, active: true, visible: true, width: 512, height: 768,
+    const o = { type, x, y, value, angle: 0, active: true, visible: true, width: 512, height: 768,
       get displayWidth() { return this.width * (this.scaleX ?? 1); },
       get displayHeight() { return this.height * (this.scaleY ?? 1); },
       setPosition(x,y) { this.x=x; this.y=y; return this; },
@@ -789,7 +789,7 @@ for (const lado of ['jogador', 'inimigo']) for (const spectator of [false, true]
     ['aprendizado-felipe', 'encontroFelipe'], ['aprendizado-sarda', 'encontroSarda'],
     ['aprendizado-aluno', 'encontroAluno'], ['fundo-encontro', 'fundoAprendizado'],
   ]) assert.equal(panel.value.find(o => o.name === name)?.value, key, `${name}: preservar o asset correto.`);
-  assert.ok(panel.value.some(o => o.name === 'aprendizado-titulo'));
+  assert.ok(panel.value.every(o => o.type !== 'text'), 'A animação não exibe textos sobrepostos.');
   while (panel.active) {
     assert.deepEqual(f.impacts, [], 'A cópia e a próxima ação aguardam o fim da vinheta.');
     assert.ok(f.step());
@@ -814,6 +814,11 @@ for (const lado of ['jogador', 'inimigo']) for (const spectator of [false, true]
     }
     assert.equal(f.getTime(), time); assert.equal(panel.faseEncontro, phase);
     assert.equal(ended, 0);
+    assert.ok(panel.value.every(o => o.type !== 'text'), `${phase}: manter a animação sem textos.`);
+    if (phase === 'assimilacao') {
+      assert.ok(f.tweens.some(t => t.orbita === 1 && t.duration === 6800), 'O portal se move durante toda a sequência.');
+      assert.ok(f.tweens.some(t => t.alpha === .65 && t.duration === 260), 'A antecipação escurece a cena antes do impacto.');
+    }
     if (phase === 'transferencia' || phase === 'assimilacao') {
       const key = phase === 'transferencia' ? 'progresso' : 'explosao';
       const tween = f.tweens.find(t => t[key] === 1);

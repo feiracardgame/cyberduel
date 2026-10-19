@@ -712,18 +712,19 @@ class CenaEfeitos extends Phaser.Scene {
       atmosfera.fillRect(-W / 2, -H / 2, W, 610);
       atmosfera.fillGradientStyle(0x07020f, 0x07020f, 0x07020f, 0x07020f, 0, 0, 1, 1);
       atmosfera.fillRect(-W / 2, 620, W, H / 2 - 620);
-      const portal = guardar(this.add.graphics());
+      const portal = guardar(this.add.graphics().setBlendMode("ADD"));
       const professores = chaves.slice(0, 2).map((chave, i) => {
         const x = i ? 255 : -255;
         const arte = guardar(this.add.image(x, 380, chave).setOrigin(.5, 1));
         arte.name = i ? "aprendizado-felipe" : "aprendizado-sarda";
         const escala = Math.min(650 / arte.width, 1040 / arte.height);
         arte.setScale(escala).setAlpha(0);
-        if (!movimentoReduzido) arte.x = i ? 850 : -850;
-        animar({ targets: arte, x, alpha: 1, delay: 300 + i * 170, duration: movimentoReduzido ? 350 : 950, ease: "Cubic.easeOut" });
+        if (!movimentoReduzido) arte.setPosition(i ? 850 : -850, 440).setAngle(i ? 7 : -7);
+        animar({ targets: arte, x, y: 380, angle: 0, alpha: 1, delay: 300 + i * 170,
+          duration: movimentoReduzido ? 350 : 950, ease: "Cubic.easeOut" });
         return arte;
       });
-      const energia = guardar(this.add.graphics());
+      const energia = guardar(this.add.graphics().setBlendMode("ADD"));
       const aura = guardar(this.add.image(0, 800, "encontroAluno").setOrigin(.5, 1)
         .setTint(0xc24cff).setTintMode(Phaser.TintModes.FILL).setBlendMode("ADD").setAlpha(0));
       const aluno = guardar(this.add.image(0, 800, "encontroAluno").setOrigin(.5, 1));
@@ -734,27 +735,10 @@ class CenaEfeitos extends Phaser.Scene {
       if (!movimentoReduzido) aluno.y = 1050;
       animar({ targets: aluno, y: 800, alpha: 1, delay: 650, duration: movimentoReduzido ? 350 : 1000, ease: "Cubic.easeOut" });
       const impacto = guardar(this.add.graphics());
-      const kicker = texto(0, -970, "ESTUDANTE  ×  PROFESSORES", 30, "#cca8ed");
-      const titulo = texto(0, -845, "CÓPIA", 128, "#ffffff");
-      titulo.name = "aprendizado-titulo";
-      const absoluto = texto(0, -718, "ABSOLUTA", 112, "#ffc37d");
-      const legenda = texto(0, 895, "CONECTANDO CONSCIÊNCIAS", 37, "#e7c8ff").setAlpha(0);
-      legenda.name = "aprendizado-legenda";
-      const habilidade = texto(0, 965, "PROFESSORES DE DUELO", 26, "#a2a0ba");
-      animar({ targets: legenda, alpha: 1, delay: 650, duration: 350 });
-      for (const [i, nome] of ["S A R D A", "F E L I P E"].entries()) {
-        const label = texto(i ? 355 : -355, -625, nome, 23, i ? "#9ceeff" : "#ffd49e").setAlpha(0);
-        animar({ targets: label, alpha: 1, delay: 1250, duration: 350 });
-      }
-      if (!movimentoReduzido) {
-        for (const [objeto, x] of [[titulo, -180], [absoluto, 180]]) {
-          objeto.x = x; objeto.alpha = 0;
-          animar({ targets: objeto, x: 0, alpha: 1, delay: 180, duration: 700, ease: "Expo.easeOut" });
-        }
-      }
-      const estado = { progresso: 0, explosao: 0 };
+      const eclipse = guardar(this.add.rectangle(0, 0, W, H, 0x05010b, 1).setAlpha(0));
+      const estado = { progresso: 0, explosao: 0, orbita: 0 };
       const desenhar = () => {
-        const p = estado.progresso, t = p * Math.PI * 4;
+        const p = estado.progresso, t = estado.orbita * Math.PI * 5 + p * Math.PI * 2;
         portal.clear(); energia.clear(); impacto.clear();
         for (let i = 0; i < 3; i++) {
           const raio = 300 + i * 64;
@@ -768,15 +752,24 @@ class CenaEfeitos extends Phaser.Scene {
               Math.cos(a) * (raio + 15), 80 + Math.sin(a) * (raio + 15));
           }
         }
+        if (!movimentoReduzido) {
+          for (let j = 0; j < 24; j++) {
+            const a = j * Math.PI / 12 + t * .25, f = (estado.orbita * 2 + j / 24) % 1;
+            const r = 110 + (1 - f) * 850;
+            portal.lineStyle(j % 3 ? 1 : 3, j % 2 ? 0x63e6ff : 0xffb568, .12 + p * .3);
+            portal.lineBetween(Math.cos(a) * r, 130 + Math.sin(a) * r * 1.35,
+              Math.cos(a) * (r + 60 + p * 110), 130 + Math.sin(a) * (r + 60 + p * 110) * 1.35);
+          }
+        }
         if (p > 0 && p < 1 && !movimentoReduzido) {
           for (const lado of [-1, 1]) {
             const cor = lado < 0 ? 0xffb044 : 0x58e5ff;
             for (let camada = 0; camada < 3; camada++) {
-              energia.lineStyle([24, 8, 2][camada], camada === 2 ? 0xffffff : cor, [.08, .55, .95][camada]);
+              energia.lineStyle([42, 12, 3][camada], camada === 2 ? 0xffffff : cor, [.08, .6, .95][camada]);
               energia.beginPath();
               for (let j = 0; j <= 36; j++) {
                 const f = j / 36, x = lado * 350 * (1 - f);
-                const y = -160 + f * 310 + Math.sin(f * 15 + t * 4 + lado) * Math.sin(f * Math.PI) * 48;
+                const y = -160 + f * 310 + Math.sin(f * 15 + t * 4 + lado) * Math.sin(f * Math.PI) * (55 + p * 35);
                 if (j) energia.lineTo(x, y); else energia.moveTo(x, y);
               }
               energia.strokePath();
@@ -788,9 +781,19 @@ class CenaEfeitos extends Phaser.Scene {
               energia.fillRect(x, y, 3 + f * 5, 12 + f * 12);
             }
           }
+          for (let j = 0; j < 30; j++) {
+            const a = j * Math.PI / 15 + t * 2, r = 290 * (1 - p * .65);
+            const x = Math.cos(a) * r, y = 140 + Math.sin(a) * r * .4;
+            energia.lineStyle(j % 3 ? 2 : 5, j % 2 ? 0xffbd73 : 0x85f5ff, .8);
+            energia.lineBetween(x, y, Math.cos(a + .17) * r, 140 + Math.sin(a + .17) * r * .4);
+          }
         }
         const e = estado.explosao;
         if (e > 0 && e < 1 && !movimentoReduzido) {
+          energia.fillStyle(0xa565ff, (1 - e) * .24);
+          energia.fillRect(-140 * (1 - e), -H / 2, 280 * (1 - e), H);
+          energia.fillStyle(0xd5ffff, (1 - e) * .75);
+          energia.fillRect(-22 * (1 - e), -H / 2, 44 * (1 - e), H);
           for (let i = 0; i < 3; i++) {
             impacto.lineStyle(8 - i * 2, i ? 0xc671ff : 0xffd7a0, (1 - e) * .85);
             impacto.strokeCircle(0, 130, 80 + e * (700 + i * 150));
@@ -804,41 +807,44 @@ class CenaEfeitos extends Phaser.Scene {
         }
       };
       desenhar();
+      if (!movimentoReduzido) {
+        animar({ targets: estado, orbita: 1, duration: duracao, onUpdate: desenhar });
+        depois(3250, () => animar({ targets: eclipse, alpha: .65, duration: 260, ease: "Cubic.easeIn" }));
+      }
       const transferencia = movimentoReduzido ? 800 : 1800;
       const assimilacao = movimentoReduzido ? 1400 : 3700;
       if (!movimentoReduzido) depois(600, () => tocar("somProfessores", .22));
       depois(transferencia, () => {
         painel.faseEncontro = "transferencia";
-        legenda.setText("EXTRAINDO CONHECIMENTO");
         if (!movimentoReduzido) {
           animar({ targets: estado, progresso: 1, duration: 1900, ease: "Sine.easeIn", onUpdate: desenhar });
           animar({ targets: aura, alpha: .65, duration: 1900 });
-          animar({ targets: professores, alpha: .65, duration: 1900 });
+          animar({ targets: [aluno, aura], y: 760, duration: 1900, ease: "Sine.easeIn" });
+          professores.forEach((arte, i) => animar({ targets: arte, x: i ? 305 : -305, y: 350,
+            alpha: .65, duration: 1900, ease: "Sine.easeIn" }));
         }
       });
       depois(assimilacao, () => {
         painel.faseEncontro = "assimilacao";
         painel.impactosEncontro++;
-        legenda.setText("HABILIDADE ASSIMILADA").setColor("#afffee");
-        habilidade.setText("LIBERAR HABILIDADE  //  CÓPIA PERMANENTE");
-        titulo.setText("PODER");
-        absoluto.setText("DESPERTOU").setColor("#baffef");
         if (!movimentoReduzido) {
           tocar("somExplosao", .14);
+          animar({ targets: eclipse, alpha: 0, duration: 120 });
+          aura.setTint(0xaaffef);
           animar({ targets: estado, explosao: 1, duration: 1250, ease: "Cubic.easeOut", onUpdate: desenhar });
           animar({ targets: aura, alpha: .9, scaleX: escalaAluno * 1.08, scaleY: escalaAluno * 1.08, duration: 220, yoyo: true });
           animar({ targets: aluno, scaleX: escalaAluno * 1.045, scaleY: escalaAluno * 1.045, duration: 240, yoyo: true, ease: "Cubic.easeOut" });
-          animar({ targets: professores, alpha: .35, duration: 800 });
+          animar({ targets: professores, alpha: .25, duration: 650 });
+          animar({ targets: [aluno, aura], y: 735, duration: 450, ease: "Cubic.easeOut" });
           const flash = guardar(this.add.rectangle(0, 0, W, H, 0xd6b6ff, .32));
           animar({ targets: flash, alpha: 0, duration: 550 });
-          animar({ targets: painel, x: W / 2 + 7, duration: 45, yoyo: true, repeat: 3 });
+          animar({ targets: painel, x: W / 2 + 12, duration: 45, yoyo: true, repeat: 3 });
         }
       });
       depois(movimentoReduzido ? 1800 : 4600, () => {
         painel.faseEncontro = "concluido";
         if (!movimentoReduzido) {
           animar({ targets: aura, alpha: .22, duration: 900 });
-          animar({ targets: [kicker, titulo, absoluto], alpha: .9, duration: 500 });
         }
       });
     } else if (trio) {
