@@ -2,6 +2,12 @@
 
 Ferramenta: image_gen integrada, sem API/CLI externa.
 
+## aprendizado — fundo-aprendizado.webp
+
+```text
+Use case: stylized-concept. Asset type: final background plate for a vertical cyberpunk anime card-game cinematic, portrait 2:3 composition, no characters. Create an INSANELY cinematic ruined futuristic technical classroom transformed into a forbidden knowledge-transfer chamber. Deep ink-black / midnight violet architecture, monumental circular magenta neural portal centered at 50% horizontal, 43% vertical, amber-orange energy arcing from the left and electric cyan energy arcing from the right towards the portal. Classroom desks and cabling at lower edges, rain-slick reflective dark floor with elaborate perspective lines, towering holographic chalkboards receding behind, suspended paper fragments, atmospheric volumetric haze and beautiful illustrated detail like premium anime key art. Wide clean dark central foreground reserved for three transparent character cutouts added later by game code; all drama in the environment and depth. Strong readable silhouette, glowing edges, subtle halftone texture, expensive hand-painted graphic-novel rendering, cel-shaded inking, strong violet/fuchsia rim light and burnt orange highlights matching neon anime portraits. Top 15% almost black for a game title overlay, bottom 18% almost black for ability label overlay. Absolutely no people, no faces, no typography, no letters, no numbers, no logos, no watermark, no UI or borders. Render a complete background, NOT a mockup or a collage.
+```
+
 ## Pôster do trio
 
 ```text

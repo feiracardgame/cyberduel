@@ -15,6 +15,7 @@
     "test:names:browser": "node scripts/test-name-guard-playwright.js",
     "test:broadcast:browser": "node scripts/test-broadcast-playwright.js",
     "test:dragon:browser": "node scripts/test-dragon-playwright.js",
+    "test:learning:browser": "node scripts/test-learning-playwright.js",
     "test:security-x1:browser": "node scripts/test-security-x1-playwright.js"
   },
   "dependencies": {

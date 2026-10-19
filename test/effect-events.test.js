@@ -112,6 +112,55 @@ for (const base of pool.filter((c) => c.habilidadeAtiva)) {
   p.ativarHabilidade(aluno, p.jogador, p.inimigo, 1); aluno.usadaEsteTurno = false;
   p.ativarHabilidade(aluno, p.jogador, p.inimigo, 5);
   assert.equal(p.eventosEfeito.findLast((e) => e.momento === 'habilidade').fonte.habilidadeAprendidaDe, 'Agente da DIPSP');
+  assert.equal(p.eventosEfeito.some(e => e.encontro === 'aprendizado'), false);
+}
+// The copy vignette belongs to the original learning action, on either player's side.
+for (const side of ['jogador', 'inimigo']) {
+  const p = match(), aluno = card('Estudante de Curso Técnico'), professores = card('Professores de Duelo');
+  const dono = p[side], oponente = p[side === 'jogador' ? 'inimigo' : 'jogador'];
+  dono.campo.cartas[5] = aluno; dono.campo.cartas[1] = professores;
+  assert.equal(p.ativarHabilidade(aluno, dono, oponente, 1).sucesso, true);
+  const event = p.eventosEfeito.findLast(e => e.momento === 'habilidade');
+  assert.equal(event.encontro, 'aprendizado');
+  assert.equal(event.fonte.efeito.acao, 'aprender');
+  assert.equal(event.fonte.habilidadeAprendidaDe, null, 'A cópia ainda usa o perfil visual do Estudante.');
+  assert.ok(event.alvos.some(a => a.id === professores.id && a.lado === side && a.selecionado));
+  assert.equal(aluno.poder, 1); assert.equal(aluno.aprendizadoUsado, true);
+  assert.equal(aluno.efeito.acao, 'reativar'); assert.notEqual(aluno.efeito, professores.efeito);
+  const snapshot = codec.serializeMatch(p);
+  assert.equal(codec.hydrateMatch(snapshot).eventosEfeito.find(e => e.id === event.id).encontro, 'aprendizado');
+  const reversed = codec.swapSnapshot(snapshot).eventosEfeito.find(e => e.id === event.id);
+  assert.equal(reversed.encontro, 'aprendizado'); assert.notEqual(reversed.lado, side);
+  assert.ok(reversed.alvos.some(a => a.id === professores.id && a.lado === reversed.lado && a.selecionado));
+  aluno.usadaEsteTurno = false; professores.usadaEsteTurno = true;
+  assert.equal(p.ativarHabilidade(aluno, dono, oponente, 1).sucesso, true);
+  assert.equal(p.eventosEfeito.findLast(e => e.momento === 'habilidade').fonte.habilidadeAprendidaDe, 'Professores de Duelo');
+  assert.equal(p.eventosEfeito.filter(e => e.encontro === 'aprendizado').length, 1, 'Usar a habilidade aprendida não repete a vinheta.');
+}
+{
+  const p = match();
+  const source = { nome: 'Estudante de Curso Técnico', efeito: { acao: 'aprender' } };
+  const target = { nome: 'Professores de Duelo', lado: 'jogador', selecionado: true };
+  for (const change of [
+    { momento: 'invocacao' },
+    { fonte: { ...source, oculto: true } },
+    { fonte: { ...source, efeito: { acao: 'reativar' } } },
+    { fonte: { ...source, nome: 'Outro estudante' } },
+    ...[{ selecionado: false }, { oculto: true }, { lado: 'inimigo' }, { nome: 'NeoMedicânico' }]
+      .map(alvo => ({ alvos: [{ ...target, ...alvo }] })),
+  ]) {
+    const event = { momento: 'habilidade', lado: 'jogador', fonte: source, alvos: [target], ...change };
+    p.identificarEncontro(event);
+    assert.equal(event.encontro, undefined, 'Exige cópia dos Professores como alvo aliado, selecionado e visível.');
+  }
+  const aluno = card('Estudante de Curso Técnico');
+  p.jogador.campo.cartas[5] = aluno; p.jogador.campo.cartas[1] = card('Professores de Duelo');
+  aluno.protegidaPA = true;
+  assert.equal(p.ativarHabilidade(aluno, p.jogador, p.inimigo, 1).sucesso, false);
+  assert.equal((p.eventosEfeito || []).length, 0, 'Cópia rejeitada não publica a vinheta.');
+  aluno.protegidaPA = false; p.jogador.campo.cartas[1].ocultadaPelaToca = true;
+  assert.equal(p.ativarHabilidade(aluno, p.jogador, p.inimigo, 1).sucesso, true);
+  assert.equal(p.eventosEfeito.some(e => e.encontro), false, 'Copiar uma carta oculta preserva sua identidade.');
 }
 
 // Descriptions must belong to the matching document card (including strings containing quotes).

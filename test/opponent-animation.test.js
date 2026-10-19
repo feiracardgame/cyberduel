@@ -2,7 +2,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const { EventEmitter } = require('node:events');
-const context = vm.createContext({ window: {}, Phaser: { Scene: class {} },
+const context = vm.createContext({ window: {}, Phaser: { Scene: class {}, TintModes: { FILL: 1 } },
   LARGURA_LAYOUT: 1080, ALTURA_LAYOUT: 2220, Y_MAO_INIMIGO: 230, Y_MAO_JOGADOR: 1900,
   TIPOS_EFEITO: { ARMADILHA_ESPACO: 'armadilha', SILENCIAR_CARTA: 'silenciar_carta', BONUS_POR_TERRENOS: 'bonus_por_terrenos' },
 });
@@ -26,12 +26,21 @@ function fixture(spectator = false) {
       setStrokeStyle(width, color) { this.strokeColor=color; return this; }, setOrigin() { return this; },
       setAlpha(v) { this.alpha=v; return this; }, setSize() { return this; },
       setText(v) { this.value=v; return this; },
+      setColor(v) { this.color=v; return this; },
+      setTint(v) { this.tint=v; return this; }, setTintMode(v) { this.tintMode=v; return this; },
+      setBlendMode(v) { this.blendMode=v; return this; },
       setInteractive() { return this; }, on() { return this; },
       setVisible(v) { this.visible=v; return this; }, setDepth(v) { this.depth=v; return this; },
       setScale(x,y=x) { this.scaleX=x; this.scaleY=y; return this; }, setAngle(v) { this.angle=v; return this; },
       add(children) { this.value.push(...children); return this; },
       destroy() { this.active=false; if(Array.isArray(this.value)) this.value.forEach(c=>c.destroy()); },
     };
+    if (type === 'graphics') {
+      o.drawCalls = [];
+      for (const method of ['fillGradientStyle', 'fillRect', 'lineStyle', 'beginPath', 'arc', 'strokePath',
+        'lineBetween', 'clear', 'lineTo', 'moveTo', 'fillStyle', 'strokeCircle'])
+        o[method] = (...args) => { o.drawCalls.push([method, ...args]); return o; };
+    }
     objects.push(o); return o;
   };
   const source = { id: 1, nome: 'Teste', imagem: 'arte', indice: 0 };
@@ -43,7 +52,7 @@ function fixture(spectator = false) {
       x: [110,325,540,755,970], yInimigo: [560,842], yJogador: [1436,1154] },
       partida: { inimigo: { campo: { cartas: [source] } }, jogador: { campo: { cartas: [] } } },
       children: { list: [fieldObject] } },
-    add: Object.fromEntries(['image','sprite','rectangle','text','circle','ellipse','triangle','container','video'].map(type=>[type,(...args)=>object(type,...args)])),
+    add: Object.fromEntries(['image','sprite','rectangle','text','circle','ellipse','triangle','container','video','graphics'].map(type=>[type,(...args)=>object(type,...args)])),
     sound: { play: key => sounds.push(key) },
     textures: { exists:()=>true }, cache: { audio: { exists:()=>false }, video: { exists:()=>false } },
     time: { delayedCall: schedule },
@@ -765,3 +774,100 @@ for (const name of ['Agente da DIPSP', 'O Tigre']) {
   f.s.animarEncontro(f.event(1, 'invocacao', { encontro: 'trio' }), () => ended++);
   assert.equal(ended, 1, 'Arte indisponível não prende a ação.');
 }
+
+// Aprendizado usa os três recortes e segura a próxima ação até encerrar a vinheta.
+for (const lado of ['jogador', 'inimigo']) for (const spectator of [false, true]) {
+  const f = fixture(spectator); f.s.cache.audio.exists = () => true;
+  const event = f.event(1, 'habilidade', { lado, encontro: 'aprendizado',
+    fonte: { ...f.source, nome: 'Estudante de Curso Técnico', efeito: { acao: 'aprender' } },
+    alvos: [{ lado, indice: 1, id: 2, nome: 'Professores de Duelo', selecionado: true, delta: 0 }] });
+  f.s.receber([event, f.event(2, 'habilidade')]); f.s.receber([event]);
+  const panel = f.s.encontroEmCurso;
+  assert.equal(panel.encontro, 'aprendizado');
+  assert.equal(f.s.executando, true); assert.deepEqual(f.impacts, []);
+  for (const [name, key] of [
+    ['aprendizado-felipe', 'encontroFelipe'], ['aprendizado-sarda', 'encontroSarda'],
+    ['aprendizado-aluno', 'encontroAluno'], ['fundo-encontro', 'fundoAprendizado'],
+  ]) assert.equal(panel.value.find(o => o.name === name)?.value, key, `${name}: preservar o asset correto.`);
+  assert.ok(panel.value.some(o => o.name === 'aprendizado-titulo'));
+  while (panel.active) {
+    assert.deepEqual(f.impacts, [], 'A cópia e a próxima ação aguardam o fim da vinheta.');
+    assert.ok(f.step());
+  }
+  assert.equal(f.getTime(), 7080);
+  f.flush();
+  assert.equal(f.s.encontroEmCurso, null); assert.equal(f.s.executando, false);
+  assert.deepEqual(Array.from(f.s.exibidos), [1, 2]);
+  assert.equal(f.objects.filter(o => o.encontro === 'aprendizado').length, 1);
+  assert.equal(f.sounds.filter(key => key === 'somEstudante').length, 1, 'Retomar o evento toca seu som uma única vez.');
+  assert.ok(!f.objects.some(o => o.type === 'video'), 'Copiar ainda usa o perfil original do aluno.');
+  assert.ok(panel.value.every(o => !o.active), 'Limpar todos os objetos da vinheta.');
+}
+{
+  const f = fixture(); let ended = 0;
+  f.s.animarEncontro(f.event(1, 'habilidade', { encontro: 'aprendizado' }), () => ended++);
+  const panel = f.s.encontroEmCurso;
+  assert.equal(panel.faseEncontro, 'abertura');
+  for (const [time, phase] of [[1800, 'transferencia'], [3700, 'assimilacao'], [4600, 'concluido'], [6800, 'saida']]) {
+    while (f.getTime() < time || panel.faseEncontro !== phase) {
+      assert.ok(f.step()); assert.ok(f.getTime() <= time);
+    }
+    assert.equal(f.getTime(), time); assert.equal(panel.faseEncontro, phase);
+    assert.equal(ended, 0);
+    if (phase === 'transferencia' || phase === 'assimilacao') {
+      const key = phase === 'transferencia' ? 'progresso' : 'explosao';
+      const tween = f.tweens.find(t => t[key] === 1);
+      tween.targets[key] = .5; tween.onUpdate();
+      assert.ok(f.objects.some(o => o.drawCalls?.some(([method]) => method === (key === 'progresso' ? 'lineTo' : 'strokeCircle'))),
+        'Os frames intermediários desenham transferência de energia e ondas do impacto.');
+    }
+  }
+  f.flush(); assert.equal(f.getTime(), 7080); assert.equal(ended, 1);
+  assert.equal(panel.active, false); assert.equal(f.s.encontroEmCurso, null);
+  assert.equal(f.s.events.listenerCount('shutdown'), 0);
+  f.s.events.emit('shutdown'); f.flush(); assert.equal(ended, 1, 'Conclusão só ocorre uma vez.');
+}
+for (const key of ['encontroFelipe', 'encontroSarda', 'encontroAluno']) {
+  const f = fixture(); let ended = 0;
+  f.s.textures.exists = texture => texture !== key;
+  f.s.animarEncontro(f.event(1, 'habilidade', { encontro: 'aprendizado' }), () => ended++);
+  f.flush(); assert.equal(ended, 1, `${key}: asset indisponível libera a ação.`);
+  assert.ok(!f.s.encontroEmCurso?.active);
+}
+for (const time of [0, 2000, 4000, 5000, 6900]) {
+  const f = fixture(); let ended = 0;
+  f.s.animarEncontro(f.event(1, 'habilidade', { encontro: 'aprendizado' }), () => ended++);
+  const panel = f.s.encontroEmCurso;
+  f.s.time.delayedCall(time, () => {});
+  while (f.getTime() < time) assert.ok(f.step());
+  f.s.events.emit('shutdown');
+  assert.equal(panel.active, false); assert.equal(f.s.encontroEmCurso, null);
+  assert.equal(f.s.events.listenerCount('shutdown'), 0);
+  const count = f.objects.length;
+  f.flush(); assert.equal(ended, 0, 'Sair em qualquer fase cancela sem executar a habilidade.');
+  assert.equal(f.objects.length, count, 'Timers cancelados não recriam objetos após sair.');
+  assert.ok(panel.value.every(o => !o.active));
+}
+{
+  context.window.matchMedia = () => ({ matches: true });
+  try {
+    const f = fixture(); let ended = 0, shakes = 0;
+    const movements = [], addTween = f.s.tweens.add;
+    f.s.tweens.add = config => {
+      for (const target of Array.isArray(config.targets) ? config.targets : [config.targets])
+        for (const key of ['x', 'y', 'scaleX', 'scaleY', 'angle', 'rotation'])
+          if (key in config && config[key] !== target[key]) movements.push(key);
+      return addTween(config);
+    };
+    f.s.cameras = { main: { shake() { shakes++; }, zoomTo() { assert.fail('Movimento reduzido omite zoom.'); } } };
+    f.s.animarEncontro(f.event(1, 'habilidade', { encontro: 'aprendizado' }), () => ended++);
+    const panel = f.s.encontroEmCurso;
+    f.flush(); assert.equal(ended, 1); assert.equal(f.getTime(), 2880);
+    assert.equal(shakes, 0);
+    assert.deepEqual(movements, [], 'Movimento reduzido preserva posição, escala e rotação.');
+    assert.ok(!f.objects.some(o => o.drawCalls?.some(([method]) => method === 'fillStyle' || method === 'strokeCircle')),
+      'Movimento reduzido omite partículas e ondas de impacto.');
+    assert.equal(panel.active, false); assert.equal(f.s.encontroEmCurso, null);
+  } finally { delete context.window.matchMedia; }
+}
+console.log('Aprendizado: três assets, fases, fila única, perspectivas, cancelamento, fallback e movimento reduzido validados.');

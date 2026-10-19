@@ -44,6 +44,8 @@ Em **Ajustes → Admin**, o toggle **Segurança X1** fica salvo na conta adminis
 
 `npm run test:security-x1:browser` verifica o toggle por cliques, persistência após recarregar, invocação por toques, dez cartas destruídas (incluindo terrenos e proteções), sons reais, animação antes da tela final, limpeza e comportamento desligado. Usa dados temporários e a porta 31976. Capturas, gravação e relatório ficam em `output/sindicato/seguranca-x1/`. Para gravar, instale o binário do Playwright com `npx playwright install ffmpeg`; o teste usa Chrome quando disponível e Chromium nas demais instalações.
 
+Quando o Estudante de Curso Técnico copia Professores de Duelo, uma vinheta de sete segundos reúne Felipe, Sarda e o aluno em uma sala de aula cyberpunk, com transferência de energia, partículas, portal e impacto. O uso posterior da habilidade copiada segue normalmente. Movimento reduzido apresenta a composição sem deslocamentos, zoom ou tremor. Execute `npm run test:learning:browser` para conferir a cópia por toques reais, a fila e a limpeza em celular e desktop; capturas e vídeo ficam em `output/sindicato/aprendizado/`.
+
 ### Live Server opcional
 
 A tela dedicada do Conselho fica em **http://127.0.0.1:3000/leaderboard**, sem exigir login. Ela mostra o top 10 real, consulta o ranking automaticamente a cada 3 segundos após a atualização anterior e anima mudanças de posição, influência e integrantes. O botão **ABRIR PAINEL AO VIVO** no ranking abre essa tela em outra aba. No Live Server, abra `leaderboard.html`; o parâmetro `?server=` também é aceito. Em caso de falha de conexão, a última classificação permanece visível enquanto a página tenta reconectar. A preferência do sistema por movimento reduzido é respeitada.

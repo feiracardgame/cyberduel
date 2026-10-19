@@ -26,3 +26,13 @@ Todas as vinhetas bloqueiam jogadas e consultas, inclusive quando antecedem uma 
 Para conferir o resultado, execute `npm run test:interactions:browser`. O Playwright aciona as habilidades por toques no botão e no alvo e invoca o Feio da mão entre Bom e Mau. Verifica movimento, revelação, cenário, enquadramento, áudio real, bloqueio/liberação da interface, evento único, movimento reduzido e saída durante uma vinheta. Capturas, vídeo `animacoes.webm` e relatório ficam em `output/sindicato/interactions/`; a variável `INTERACTIONS_TEST_OUTPUT` permite outra pasta. A versão animada validada desta revisão está em `output/sindicato/interactions-verified/`.
 
 As três duplas (Boi/RaspClay, Tigre/DIPSP e Bom/Mau) só ativam a vinheta quando um personagem usa sua habilidade diretamente no outro, como alvo selecionado e visível. Invocações não ativam esses encontros. O trio mantém o gatilho do bônus de adjacência.
+
+## Cópia absoluta — Estudante e Professores
+
+Ao copiar a habilidade de **Professores de Duelo**, o Estudante apresenta uma sequência exclusiva com `sarda_asset.png` à esquerda, `felipe_asset.png` à direita e `aluno_asset.png` em primeiro plano. Os PNGs originais são preservados. A sala de aula cyberpunk em `cinematicas/fundo-aprendizado.webp` foi gerada com image_gen integrada e convertida para WebP (aproximadamente 487 KiB); o prompt exato está em [cinematicas/PROMPTS.md](cinematicas/PROMPTS.md).
+
+A vinheta dura 6,8 segundos, com saída de 280 ms: entrada dos três personagens e dos títulos, aproximação do cenário, portal giratório, dois fluxos de conhecimento com partículas, aura do aluno, ondas de impacto e confirmação da habilidade assimilada. Usa Graphics e tweens nativos do Phaser, os sons existentes dos Professores e da explosão e o som do Estudante na retomada da ação. Timers, tweens, objetos e sons da vinheta são limpos ao terminar ou sair da cena.
+
+O gatilho exige a ação original de aprender, com os Professores como alvo aliado, selecionado e visível. Copiar outra carta, invocar os personagens ou usar a habilidade já aprendida não repete a cena. Custo de 2 PA, aprendizado permanente, fila de efeitos e perspectivas online são preservados. Movimento reduzido usa uma composição estática com entrada e saída por opacidade, sem deslocamentos, zoom, partículas, tremor ou ondas; dura 2,6 segundos mais a saída.
+
+Execute `npm run test:learning:browser` para ativar a cópia por toques reais em celular e desktop, conferir a fila, o retorno da interface, movimento reduzido e saída durante a transferência. Capturas, relatório e vídeo ficam em `output/sindicato/aprendizado/`; os testes usam dados temporários.

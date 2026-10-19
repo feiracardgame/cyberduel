@@ -652,13 +652,14 @@ class CenaEfeitos extends Phaser.Scene {
       bom_mau: ["encontroBom", "encontroMau", "O BOM", "O MAU", "fundoEncontroBom"],
     };
     const trio = evento.encontro === "trio";
+    const aprendizado = evento.encontro === "aprendizado";
     const par = pares[evento.encontro];
-    const chaves = trio ? ["posterTrio"] : par?.slice(0, 2);
+    const chaves = aprendizado ? ["encontroSarda", "encontroFelipe", "encontroAluno"] : trio ? ["posterTrio"] : par?.slice(0, 2);
     if (!chaves?.every(chave => this.textures.exists(chave))) { aoConcluir(); return; }
     const combate = evento.encontro === "tigre_dipsp";
     const movimentoReduzido = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
     const cor = evento.encontro === "bom_mau" ? 0xe9b86b : 0x5be4ff;
-    const duracao = trio ? 4400 : combate ? 3500 : 2800;
+    const duracao = aprendizado ? movimentoReduzido ? 2600 : 6800 : trio ? 4400 : combate ? 3500 : 2800;
     const painel = this.add.container(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, []).setDepth(1000).setAlpha(0);
     painel.encontro = evento.encontro;
     this.encontroEmCurso = painel;
@@ -697,7 +698,150 @@ class CenaEfeitos extends Phaser.Scene {
       fontFamily: "Rushblade, Arial, sans-serif", fontSize: `${tamanho}px`, color,
       align: "center", stroke: "#080b11", strokeThickness: 5, wordWrap: { width: 940 },
     }).setOrigin(.5));
-    if (trio) {
+    if (aprendizado) {
+      const W = LARGURA_LAYOUT, H = ALTURA_LAYOUT;
+      if (this.textures.exists("fundoAprendizado")) {
+        const fundo = guardar(this.add.image(0, 0, "fundoAprendizado"));
+        fundo.name = "fundo-encontro";
+        const escala = Math.max(W / fundo.width, H / fundo.height);
+        fundo.setScale(escala).setAlpha(.85);
+        if (!movimentoReduzido) animar({ targets: fundo, scaleX: escala * 1.07, scaleY: escala * 1.07, duration: duracao, ease: "Sine.easeInOut" });
+      }
+      const atmosfera = guardar(this.add.graphics());
+      atmosfera.fillGradientStyle(0x07020f, 0x07020f, 0x07020f, 0x07020f, .98, .98, 0, 0);
+      atmosfera.fillRect(-W / 2, -H / 2, W, 610);
+      atmosfera.fillGradientStyle(0x07020f, 0x07020f, 0x07020f, 0x07020f, 0, 0, 1, 1);
+      atmosfera.fillRect(-W / 2, 620, W, H / 2 - 620);
+      const portal = guardar(this.add.graphics());
+      const professores = chaves.slice(0, 2).map((chave, i) => {
+        const x = i ? 255 : -255;
+        const arte = guardar(this.add.image(x, 380, chave).setOrigin(.5, 1));
+        arte.name = i ? "aprendizado-felipe" : "aprendizado-sarda";
+        const escala = Math.min(650 / arte.width, 1040 / arte.height);
+        arte.setScale(escala).setAlpha(0);
+        if (!movimentoReduzido) arte.x = i ? 850 : -850;
+        animar({ targets: arte, x, alpha: 1, delay: 300 + i * 170, duration: movimentoReduzido ? 350 : 950, ease: "Cubic.easeOut" });
+        return arte;
+      });
+      const energia = guardar(this.add.graphics());
+      const aura = guardar(this.add.image(0, 800, "encontroAluno").setOrigin(.5, 1)
+        .setTint(0xc24cff).setTintMode(Phaser.TintModes.FILL).setBlendMode("ADD").setAlpha(0));
+      const aluno = guardar(this.add.image(0, 800, "encontroAluno").setOrigin(.5, 1));
+      aluno.name = "aprendizado-aluno";
+      const escalaAluno = Math.min(940 / aluno.width, 900 / aluno.height);
+      aluno.setScale(escalaAluno).setAlpha(0);
+      aura.setScale(escalaAluno * 1.035);
+      if (!movimentoReduzido) aluno.y = 1050;
+      animar({ targets: aluno, y: 800, alpha: 1, delay: 650, duration: movimentoReduzido ? 350 : 1000, ease: "Cubic.easeOut" });
+      const impacto = guardar(this.add.graphics());
+      const kicker = texto(0, -970, "ESTUDANTE  ×  PROFESSORES", 30, "#cca8ed");
+      const titulo = texto(0, -845, "CÓPIA", 128, "#ffffff");
+      titulo.name = "aprendizado-titulo";
+      const absoluto = texto(0, -718, "ABSOLUTA", 112, "#ffc37d");
+      const legenda = texto(0, 895, "CONECTANDO CONSCIÊNCIAS", 37, "#e7c8ff").setAlpha(0);
+      legenda.name = "aprendizado-legenda";
+      const habilidade = texto(0, 965, "PROFESSORES DE DUELO", 26, "#a2a0ba");
+      animar({ targets: legenda, alpha: 1, delay: 650, duration: 350 });
+      for (const [i, nome] of ["S A R D A", "F E L I P E"].entries()) {
+        const label = texto(i ? 355 : -355, -625, nome, 23, i ? "#9ceeff" : "#ffd49e").setAlpha(0);
+        animar({ targets: label, alpha: 1, delay: 1250, duration: 350 });
+      }
+      if (!movimentoReduzido) {
+        for (const [objeto, x] of [[titulo, -180], [absoluto, 180]]) {
+          objeto.x = x; objeto.alpha = 0;
+          animar({ targets: objeto, x: 0, alpha: 1, delay: 180, duration: 700, ease: "Expo.easeOut" });
+        }
+      }
+      const estado = { progresso: 0, explosao: 0 };
+      const desenhar = () => {
+        const p = estado.progresso, t = p * Math.PI * 4;
+        portal.clear(); energia.clear(); impacto.clear();
+        for (let i = 0; i < 3; i++) {
+          const raio = 300 + i * 64;
+          portal.lineStyle(i ? 2 : 5, i % 2 ? 0x54dfff : 0xc865ff, .22 + p * .25);
+          portal.beginPath();
+          portal.arc(0, 80, raio, t * (i % 2 ? -1 : 1) + i, t * (i % 2 ? -1 : 1) + i + Math.PI * 1.65);
+          portal.strokePath();
+          for (let j = 0; j < 12; j++) {
+            const a = j * Math.PI / 6 + t * .15;
+            portal.lineBetween(Math.cos(a) * raio, 80 + Math.sin(a) * raio,
+              Math.cos(a) * (raio + 15), 80 + Math.sin(a) * (raio + 15));
+          }
+        }
+        if (p > 0 && p < 1 && !movimentoReduzido) {
+          for (const lado of [-1, 1]) {
+            const cor = lado < 0 ? 0xffb044 : 0x58e5ff;
+            for (let camada = 0; camada < 3; camada++) {
+              energia.lineStyle([24, 8, 2][camada], camada === 2 ? 0xffffff : cor, [.08, .55, .95][camada]);
+              energia.beginPath();
+              for (let j = 0; j <= 36; j++) {
+                const f = j / 36, x = lado * 350 * (1 - f);
+                const y = -160 + f * 310 + Math.sin(f * 15 + t * 4 + lado) * Math.sin(f * Math.PI) * 48;
+                if (j) energia.lineTo(x, y); else energia.moveTo(x, y);
+              }
+              energia.strokePath();
+            }
+            for (let j = 0; j < 22; j++) {
+              const f = (p * 3 + j / 22) % 1, a = j * 2.4 + t;
+              const x = lado * (460 * (1 - f)), y = 150 - (1 - f) * 380 + Math.sin(a) * 80 * (1 - f);
+              energia.fillStyle(j % 3 ? cor : 0xffffff, .8 * Math.sin(f * Math.PI));
+              energia.fillRect(x, y, 3 + f * 5, 12 + f * 12);
+            }
+          }
+        }
+        const e = estado.explosao;
+        if (e > 0 && e < 1 && !movimentoReduzido) {
+          for (let i = 0; i < 3; i++) {
+            impacto.lineStyle(8 - i * 2, i ? 0xc671ff : 0xffd7a0, (1 - e) * .85);
+            impacto.strokeCircle(0, 130, 80 + e * (700 + i * 150));
+          }
+          for (let j = 0; j < 28; j++) {
+            const a = j * Math.PI * 2 / 28, r = 90 + e * 1000;
+            impacto.lineStyle(j % 3 ? 2 : 5, j % 2 ? 0x82edff : 0xffc97e, (1 - e) * .8);
+            impacto.lineBetween(Math.cos(a) * r, 130 + Math.sin(a) * r,
+              Math.cos(a) * (r + 60 + j % 4 * 35), 130 + Math.sin(a) * (r + 60 + j % 4 * 35));
+          }
+        }
+      };
+      desenhar();
+      const transferencia = movimentoReduzido ? 800 : 1800;
+      const assimilacao = movimentoReduzido ? 1400 : 3700;
+      if (!movimentoReduzido) depois(600, () => tocar("somProfessores", .22));
+      depois(transferencia, () => {
+        painel.faseEncontro = "transferencia";
+        legenda.setText("EXTRAINDO CONHECIMENTO");
+        if (!movimentoReduzido) {
+          animar({ targets: estado, progresso: 1, duration: 1900, ease: "Sine.easeIn", onUpdate: desenhar });
+          animar({ targets: aura, alpha: .65, duration: 1900 });
+          animar({ targets: professores, alpha: .65, duration: 1900 });
+        }
+      });
+      depois(assimilacao, () => {
+        painel.faseEncontro = "assimilacao";
+        painel.impactosEncontro++;
+        legenda.setText("HABILIDADE ASSIMILADA").setColor("#afffee");
+        habilidade.setText("LIBERAR HABILIDADE  //  CÓPIA PERMANENTE");
+        titulo.setText("PODER");
+        absoluto.setText("DESPERTOU").setColor("#baffef");
+        if (!movimentoReduzido) {
+          tocar("somExplosao", .14);
+          animar({ targets: estado, explosao: 1, duration: 1250, ease: "Cubic.easeOut", onUpdate: desenhar });
+          animar({ targets: aura, alpha: .9, scaleX: escalaAluno * 1.08, scaleY: escalaAluno * 1.08, duration: 220, yoyo: true });
+          animar({ targets: aluno, scaleX: escalaAluno * 1.045, scaleY: escalaAluno * 1.045, duration: 240, yoyo: true, ease: "Cubic.easeOut" });
+          animar({ targets: professores, alpha: .35, duration: 800 });
+          const flash = guardar(this.add.rectangle(0, 0, W, H, 0xd6b6ff, .32));
+          animar({ targets: flash, alpha: 0, duration: 550 });
+          animar({ targets: painel, x: W / 2 + 7, duration: 45, yoyo: true, repeat: 3 });
+        }
+      });
+      depois(movimentoReduzido ? 1800 : 4600, () => {
+        painel.faseEncontro = "concluido";
+        if (!movimentoReduzido) {
+          animar({ targets: aura, alpha: .22, duration: 900 });
+          animar({ targets: [kicker, titulo, absoluto], alpha: .9, duration: 500 });
+        }
+      });
+    } else if (trio) {
       const poster = guardar(this.add.image(0, 0, "posterTrio"));
       poster.name = "poster-trio";
       const escala = Math.min(LARGURA_LAYOUT * .94 / poster.width, ALTURA_LAYOUT * .88 / poster.height);

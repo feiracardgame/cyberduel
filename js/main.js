@@ -293,6 +293,11 @@ class Partida {
       return;
     }
     if (evento.momento !== "habilidade") return;
+    if (evento.fonte.nome === "Estudante de Curso Técnico" && evento.fonte.efeito?.acao === "aprender" &&
+        evento.alvos.some(c => c.selecionado && c.lado === evento.lado && c.nome === "Professores de Duelo" && !c.oculto)) {
+      evento.encontro = "aprendizado";
+      return;
+    }
     for (const [tipo, a, b] of pares) {
       const outro = evento.fonte.nome === a ? b : evento.fonte.nome === b ? a : null;
       if (outro && evento.alvos.some(c => c.selecionado && c.nome === outro && !c.oculto)) {
