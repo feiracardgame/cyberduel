@@ -88,6 +88,11 @@ const event = (socket, name) => new Promise((resolve, reject) => {
       return {
         hands: [scene.partida.jogador, scene.partida.inimigo].map(player => player.mao.cartas.map(card => card.nome)),
         faces: children.filter(node => node.dadosCarta).map(node => node.dadosCarta.nome),
+        backs: children.filter(node => node.maoOcultaLado).map(node => node.maoOcultaLado),
+        fieldCards: children.filter(node => node.dadosCartaCampo).map(node => ({
+          name: node.dadosCartaCampo.nome,
+          turned: node.list.some(child => Math.abs(child.angle) === 180),
+        })),
         characters: ['jogador', 'inimigo'].map(side => children.find(node => node.name === `personagem-${side}`)?.texture.key),
         labels: children.flatMap(node => node.list || []).filter(node => node.text).map(node => node.text),
         controls: children.filter(node => node.dadosCarta && node.input?.enabled).length,
@@ -99,10 +104,9 @@ const event = (socket, name) => new Promise((resolve, reject) => {
             const node = children.find(node => node.name === `personagem-${side}`);
             return { width: node.displayWidth, angle: node.angle, x: node.x, y: node.y };
           }),
-          hands: [scene.partida.jogador, scene.partida.inimigo].map(player => player.mao.cartas.map(card => {
-            const node = children.find(node => node.dadosCarta === card);
-            return { width: node.width, height: node.height };
-          })),
+          hands: ['jogador', 'inimigo'].map(side => children
+            .filter(node => node.maoOcultaLado === side)
+            .map(node => ({ width: node.width, height: node.height, angle: node.angle }))),
           fieldCenter: (scene.layout.yInimigoTras + scene.layout.yJogadorTras) / 2,
 
         },
@@ -118,17 +122,18 @@ const event = (socket, name) => new Promise((resolve, reject) => {
     assert.deepEqual(initial.hands[index], matches[0].update.state[side].hand.map(card => card.nome));
     assert.ok(initial.characters[index]?.includes(index === 0 ? 'raspclay' : 'cobra'));
   }
-  assert.deepEqual(initial.faces.slice().sort(), initial.hands.flat().sort());
+  assert.deepEqual(initial.faces, [], 'Mãos ocultam a face das cartas na apresentação.');
+  assert.equal(initial.backs.length, initial.hands.flat().length, 'Todas as cartas das mãos aparecem pelo verso.');
   assert.equal(initial.labels.filter(text => text === 'PA:').length, 2);
   assert.equal(initial.symmetry.portraits[0].width, initial.symmetry.portraits[1].width);
   assert.equal(Math.abs(initial.symmetry.portraits[1].angle), 180);
   assert.equal(initial.symmetry.fieldCenter * 2, initial.symmetry.portraits[0].y);
-  for (const hand of initial.symmetry.hands) for (const card of hand) assert.deepEqual(card, { width: 176, height: 246 });
+  for (const hand of initial.symmetry.hands) for (const card of hand) assert.deepEqual({ width: card.width, height: card.height }, { width: 176, height: 246 });
   assert.equal(initial.controls, 0);
   assert.equal(initial.canPlay, false); assert.equal(initial.canUseAbility, false);
   assert.equal(initial.passButton, false);
   assert.equal(await codeLabel.count(), 0, 'Código desaparece quando a partida começa.');
-  checks.push('Mãos reais, PA dedicado, personagens corretos e apresentação sem comandos de jogada.');
+  checks.push('Mãos pelo verso, PA dedicado, personagens corretos e apresentação sem comandos de jogada.');
 
   const active = matches[0].activePlayer;
   await page.waitForTimeout(Math.max(0, matches[0].phaseStartsAt - Date.now()) + 50);
@@ -143,6 +148,9 @@ const event = (socket, name) => new Promise((resolve, reject) => {
   await page.waitForFunction(({ side, count }) => game.scene.getScene('CenaJogo').partida[side].mao.cartas.length === count,
     { side, count: state[side].hand.length });
   const updated = await inspect();
+  assert.equal(updated.activePlayer, 3 - active, 'A orientação acompanha quem recebeu a vez.');
+  assert.ok(updated.fieldCards.some(card => card.name === played.nome && card.turned),
+    'Carta no campo fica orientada para o jogador da vez.');
   assert.equal(await codeLabel.count(), 0, 'Código não reaparece ao atualizar.');
   assert.deepEqual(updated.hands[active - 1], state[side].hand.map(card => card.nome));
   assert.ok(updated.labels.includes(String(played.poder)), 'PA dedicado acompanha a carta colocada.');

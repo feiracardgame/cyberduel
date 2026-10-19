@@ -1387,6 +1387,7 @@ class CenaJogo extends Phaser.Scene {
     this.configurarGestosMao();
     this.chavesCampoRenderAnterior = chavesCampoAtuais;
     this.interfaceJaDesenhada = true;
+    if (this.multiplayer?.presentation) this.presentationActivePlayer = this.multiplayer.activePlayer;
     this.renderizandoInterface = false;
     this.atualizarInteracaoDuranteEfeitos();
     if (this.multiplayerAtivo && !this.aplicandoEstadoRemoto)
@@ -2989,7 +2990,9 @@ class CenaJogo extends Phaser.Scene {
     }
     filhos.push(...this.criarIndicadorExtintor(carta, CW, CH, escala));
     // Gira o conteúdo para o dono; tweens no container externo não desfazem a orientação.
-    if (this.multiplayer?.presentation && this.partida.inimigo.campo.cartas.includes(carta)) {
+    const campoInimigo = this.partida.inimigo.campo.cartas.includes(carta);
+    const rotacionada = this.multiplayer?.activePlayer === (campoInimigo ? 1 : 2);
+    if (this.multiplayer?.presentation && rotacionada) {
       for (const filho of filhos)
         filho.setPosition(-filho.x, -filho.y).setAngle((filho.angle || 0) + 180);
     }
@@ -3105,7 +3108,8 @@ class CenaJogo extends Phaser.Scene {
   }
 
   desenharMaoEmLeque(lado = "jogador") {
-    const topo = this.multiplayer?.presentation && lado === "inimigo";
+    const apresentacao = this.multiplayer?.presentation;
+    const topo = apresentacao && lado === "inimigo";
     if (this.multiplayer?.spectator && !this.multiplayer?.presentation) {
       this.desenharMaoInimigo("jogador");
       return;
@@ -3114,6 +3118,8 @@ class CenaJogo extends Phaser.Scene {
     let totalCartas = cartasMao.length;
 
     if (totalCartas === 0) return;
+
+    const rotacionada = apresentacao && ((lado === "jogador") === (this.multiplayer.activePlayer === 2));
 
     // CARTAS RECÉM-COMPRADAS
 
@@ -3149,7 +3155,16 @@ class CenaJogo extends Phaser.Scene {
       if (topo) {
         posX = LARGURA_LAYOUT - posX;
         posY = ALTURA_LAYOUT - posY;
-        angulo += 180;
+      }
+      if (rotacionada) angulo += 180;
+
+      const donoDoNexus = this.partida[lado === "jogador" ? "inimigo" : "jogador"];
+      if (apresentacao && !this.partida.maoRevelada(donoDoNexus)) {
+        const verso = this.add.image(0, 0, "fundoCarta").setDisplaySize(176, 246);
+        const cartaOculta = this.add.container(posX, posY, [verso]).setSize(176, 246);
+        cartaOculta.setAngle(angulo).setDepth(indice);
+        cartaOculta.maoOcultaLado = lado;
+        return;
       }
 
       // VISUAL DA CARTA
@@ -7035,7 +7050,8 @@ class CenaJogo extends Phaser.Scene {
     else if (!podeJogar) this.atualizarVisualTimerTurno(true);
     this.travado = !podeJogar || !!resultado?.resultadoRodada || !!this.finalizandoJogada;
     // Redesenha após receber a vez para atualizar controles e auras.
-    if (!interfaceDesenhada || update.phaseChanged || podeJogar !== eraMeuTurno)
+    if (!interfaceDesenhada || update.phaseChanged || podeJogar !== eraMeuTurno ||
+      (this.multiplayer.presentation && this.presentationActivePlayer !== update.activePlayer))
       this.desenharInterface();
 
     if (resultado?.fimDeJogo) {

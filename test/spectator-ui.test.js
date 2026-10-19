@@ -11,11 +11,13 @@ function object() { return {
   setInteractive(){throw Error('Apresentação não pode interagir com a mão.');},
 }; }
 const scene=Object.assign(Object.create(Scene.prototype),{
-  multiplayer: { spectator:true, presentation:true },
+  multiplayer: { spectator:true, presentation:true, activePlayer:1 },
   partida: {
     jogador: { mao: { cartas: [{nome:'O Boi',imagem:'arte-jogador'},{nome:'A Cobra',imagem:'arte-jogador'}] } },
     inimigo: { mao: { cartas: [{nome:'O Rato',imagem:'arte-inimigo'}] } },
-    maoRevelada() { throw Error('Espectador não pode revelar a mão nem pelo Nexus.'); },
+    maoRevelada(owner) {
+      return owner === this.reveal;
+    },
   },
   add: {
     rectangle: object,
@@ -32,9 +34,15 @@ scene.configurarGestosMao();
 let concluidas = 0;
 scene.animarComprasInimigas(2, () => concluidas++);
 assert.equal(concluidas, 1, 'Pular a animação deve concluir a atualização remota.');
-assert.deepEqual(images, ['arte-inimigo', 'arte-jogador', 'arte-jogador']);
+assert.deepEqual(images, ['fundoCarta', 'fundoCarta', 'fundoCarta']);
 assert.equal(containers[0].angle, 180, 'Mão do jogador 2 orientada para seu lado da mesa.');
-assert.equal(containers.filter(card => card.dadosCarta).length, 3, 'As duas mãos usam o mesmo leque da interface atual.');
+assert.equal(containers.filter(card => card.maoOcultaLado).length, 3, 'A apresentação mostra só os versos.');
+scene.partida.reveal = scene.partida.inimigo;
+images.length = 0;
+containers.length = 0;
+scene.desenharMaoInimigo();scene.desenharMaoEmLeque();
+assert.deepEqual(images, ['fundoCarta', 'arte-jogador', 'arte-jogador']);
+assert.equal(containers.filter(card => card.dadosCarta).length, 2, 'O Nexus revela a mão do oponente para a apresentação.');
 images.length = 0;
 scene.multiplayer.presentation = false;
 scene.add.rectangle = object;
@@ -46,4 +54,4 @@ scene.partida.maoRevelada = () => false;
 scene.add.rectangle = object;
 scene.desenharMaoInimigo();
 assert.deepEqual(images, ['fundoCarta'], 'Jogadores continuam vendo a mão adversária normalmente.');
-console.log('Apresentação com mãos abertas sem interação; espectador comum e jogadores preservados.');
+console.log('Apresentação oculta mãos sem Nexus, revela pelo Nexus e preserva privacidade de espectadores comuns.');

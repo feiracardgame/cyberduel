@@ -120,7 +120,7 @@ for (const [avatar, path] of Object.entries(portraits)) {
 }
 const { scene: presentation, loaded: displayAssets, objects: displayObjects } = renderer();
 presentation.multiplayerAtivo = true;
-presentation.multiplayer = { presentation: true, profiles: {
+presentation.multiplayer = { presentation: true, activePlayer: 1, profiles: {
   1: { avatar: 'assets/fotosdeperfil/boi_icon.png' }, 2: { avatar: 'assets/fotosdeperfil/raspclay_icon.png' },
 } };
 presentation.carregarRetratosDuelo();
@@ -140,13 +140,27 @@ for (const side of ['jogador', 'inimigo']) presentation.partida[side].mao.cartas
 displayObjects.length = 0;
 presentation.desenharMaoEmLeque(); presentation.desenharMaoInimigo();
 const hands = displayObjects.filter(object => object.dadosCarta);
-assert.equal(hands.length, 2);
-assert.equal(hands[0].width, hands[1].width);
-assert.equal(hands[0].height, hands[1].height);
-assert.equal(hands[1].x, width - hands[0].x);
-assert.equal(hands[1].y, height - hands[0].y);
-assert.equal(hands[1].angle, hands[0].angle + 180);
-assert.ok(hands.every(card => !card.interactive));
+assert.equal(hands.length, 0, 'A apresentação mostra apenas os versos por padrão.');
+let backs = displayObjects.filter(object => object.maoOcultaLado);
+assert.equal(backs.length, 2);
+assert.equal(backs[1].x, width - backs[0].x);
+assert.equal(backs[1].y, height - backs[0].y);
+assert.equal(backs[1].angle, backs[0].angle + 180);
+assert.ok(backs.every(card => !card.interactive));
+presentation.partida.maoRevelada = owner => owner === presentation.partida.inimigo;
+displayObjects.length = 0;
+presentation.desenharMaoEmLeque(); presentation.desenharMaoInimigo();
+assert.deepEqual(displayObjects.filter(object => object.dadosCarta).map(object => object.dadosCarta.nome), ['Carta'],
+  'O Nexus revela a mão do oponente para a apresentação.');
+assert.equal(displayObjects.filter(object => object.maoOcultaLado).length, 1);
+presentation.partida.maoRevelada = () => false;
+presentation.multiplayer.activePlayer = 2;
+displayObjects.length = 0;
+presentation.desenharMaoEmLeque(); presentation.desenharMaoInimigo();
+backs = displayObjects.filter(object => object.maoOcultaLado);
+assert.equal(backs.find(object => object.maoOcultaLado === 'jogador').angle, 180);
+assert.equal(backs.find(object => object.maoOcultaLado === 'inimigo').angle, 0,
+  'A orientação das mãos acompanha o jogador da vez.');
 const symmetricLayout = vm.runInContext('LAYOUT_CAMPO_APRESENTACAO', context);
 assert.equal(symmetricLayout.yInimigoTras + symmetricLayout.yJogadorTras, height);
 assert.equal(symmetricLayout.yInimigoFrente + symmetricLayout.yJogadorFrente, height);
