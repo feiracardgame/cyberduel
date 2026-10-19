@@ -99,6 +99,11 @@ const event = (socket, name) => new Promise((resolve, reject) => {
         canPlay: scene.podeJogarCartasAgora(), canUseAbility: scene.podeUsarHabilidadesAgora(),
         passButton: children.some(node => node.name === 'passar-turno'),
         activePlayer: scene.multiplayer.activePlayer,
+        centerAngles: {
+          timer: Math.abs(scene.timerContainer.angle),
+          rounds: Math.abs(children.find(node => node.list?.some(item => item.text?.startsWith('RODADAS')))?.angle),
+          phase: Math.abs(children.find(node => node.list?.some(item => item.text === 'COLOCAR CARTAS' || item.text === 'HABILIDADES'))?.angle),
+        },
         symmetry: {
           portraits: ['jogador', 'inimigo'].map(side => {
             const node = children.find(node => node.name === `personagem-${side}`);
@@ -125,6 +130,9 @@ const event = (socket, name) => new Promise((resolve, reject) => {
   assert.deepEqual(initial.faces, [], 'Mãos ocultam a face das cartas na apresentação.');
   assert.equal(initial.backs.length, initial.hands.flat().length, 'Todas as cartas das mãos aparecem pelo verso.');
   assert.equal(initial.labels.filter(text => text === 'PA:').length, 2);
+  const initialAngle = initial.activePlayer === 2 ? 180 : 0;
+  assert.deepEqual(Object.values(initial.centerAngles), [initialAngle, initialAngle, initialAngle],
+    'Fase, turno e rodadas apontam para quem está jogando.');
   assert.equal(initial.symmetry.portraits[0].width, initial.symmetry.portraits[1].width);
   assert.equal(Math.abs(initial.symmetry.portraits[1].angle), 180);
   assert.equal(initial.symmetry.fieldCenter * 2, initial.symmetry.portraits[0].y);
@@ -149,6 +157,8 @@ const event = (socket, name) => new Promise((resolve, reject) => {
     { side, count: state[side].hand.length });
   const updated = await inspect();
   assert.equal(updated.activePlayer, 3 - active, 'A orientação acompanha quem recebeu a vez.');
+  assert.deepEqual(Object.values(updated.centerAngles), [updated.activePlayer === 2 ? 180 : 0,
+    updated.activePlayer === 2 ? 180 : 0, updated.activePlayer === 2 ? 180 : 0]);
   assert.ok(updated.fieldCards.some(card => card.name === played.nome && card.turned),
     'Carta no campo fica orientada para o jogador da vez.');
   assert.equal(await codeLabel.count(), 0, 'Código não reaparece ao atualizar.');

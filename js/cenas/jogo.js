@@ -1133,6 +1133,7 @@ class CenaJogo extends Phaser.Scene {
     const altura = 98;
     const x = this.multiplayer?.presentation ? LARGURA_LAYOUT / 2 : LARGURA_LAYOUT - 380;
     const y = this.multiplayer?.presentation ? ALTURA_LAYOUT / 2 + 15 : 84 + DESLOCAMENTO_GUI_Y;
+    const orientacao = this.multiplayer?.presentation && this.multiplayer.activePlayer === 2 ? 180 : 0;
 
     const fundo = this.criarPlacaDuelo(0, 0, largura, altura);
     const halo = this.add.circle(-largura / 2 + 23, -19, 5, 0x54ddff, 1);
@@ -1173,7 +1174,7 @@ class CenaJogo extends Phaser.Scene {
       trilho,
       barra,
     ]);
-    container.setDepth(190);
+    container.setDepth(190).setAngle(orientacao);
     container.add(this.criarTextoUI(
       0, -65, `TURNO ${this.partida.turno} / ${this.partida.maxTurnos}`,
       { fontSize: "24px", color: "#dceaff", fontStyle: "bold" },
@@ -1192,6 +1193,8 @@ class CenaJogo extends Phaser.Scene {
 
   atualizarVisualTimerTurno(forcar = false) {
     if (!this.timerContainer?.active || !this.timerTexto?.active) return;
+    if (this.multiplayer?.presentation)
+      this.timerContainer.setAngle(this.multiplayer.activePlayer === 2 ? 180 : 0);
     if (this.training) {
       this.timerTexto.setText("∞");
       this.timerEstadoTexto.setText("Treino sem limite");
@@ -6555,8 +6558,10 @@ class CenaJogo extends Phaser.Scene {
 
   // Rodadas no topo e fase no intervalo entre os campos.
   desenharStatus() {
+    const orientacao = this.multiplayer?.presentation && this.multiplayer.activePlayer === 2 ? 180 : 0;
     const painel = this.criarPlacaDuelo(LARGURA_LAYOUT / 2,
       this.multiplayer?.presentation ? ALTURA_LAYOUT / 2 - 90 : 339 + DESLOCAMENTO_GUI_Y, 430, 48);
+    painel.setAngle(orientacao);
     painel.add(this.criarTextoUI(0, 0,
       `RODADAS   ${this.partida.rodadasJogador}  :  ${this.partida.rodadasInimigo}`,
       { fontSize: "23px", color: "#dceaff", fontStyle: "bold" },
@@ -6566,6 +6571,7 @@ class CenaJogo extends Phaser.Scene {
       + (this.multiplayer?.presentation ? 95 : 0);
     const faixa = this.criarPlacaDuelo(LARGURA_LAYOUT / 2, yFase, 620, 52,
       this.ehMeuTurno ? 0x54ddff : 0xff72af);
+    faixa.setAngle(orientacao);
     faixa.add(this.criarTextoUI(0, 0,
       this.faseAtual === "habilidades" ? "HABILIDADES" : "COLOCAR CARTAS",
       { fontSize: "32px", color: "#f2fbff", fontStyle: "bold italic", letterSpacing: 2 },

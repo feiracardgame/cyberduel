@@ -30,12 +30,16 @@ game.desenharStatus();
 assert.equal(panels.length,2);
 assert.match(panels[0].children.text,/RODADAS.*2.*:.*1/);
 assert.equal(panels[1].children.text,'HABILIDADES');
+assert.deepEqual(panels.map(panel => panel.angle), [0, 0], 'Os painéis centrais apontam para o jogador 1.');
+game.multiplayer.activePlayer=2;
+game.desenharStatus();
+assert.deepEqual(panels.slice(2).map(panel => panel.angle), [180, 180], 'Rodadas e fase giram para o jogador 2.');
 game.timerContainer.setPosition(700,99).setAngle(0);
 for (const phase of ['colocar','habilidades']) for (const player of [1,2]) {
  game.faseAtual=phase;game.multiplayer.activePlayer=player;game.atualizarVisualTimerTurno();
  assert.equal(game.timerEstadoTexto.text,`Vez de ${player===1?'Ana':'Bruno'}`);
  assert.equal(game.timerLabelTexto.text,phase==='habilidades'?'Habilidades':'Colocar cartas');
- assert.equal(game.timerContainer.angle,0);
+ assert.equal(game.timerContainer.angle,player===2?180:0, 'Painel de turno acompanha o jogador ativo.');
  assert.equal(game.timerContainer.y,99);
  assert.equal(game.timerBarra.displayWidth,185);
 }
