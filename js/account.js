@@ -433,6 +433,17 @@ class CyberduelAccount {
     return payload;
   }
 
+  async generateRedemptionCode(tipo, nome, availableAt = null) {
+    return this.request("/api/admin/redemption-codes", { method: "POST", body: { tipo, nome, availableAt } });
+  }
+
+  async redeemCard(code) {
+    const payload = await this.request("/api/account/redeem-card", { method: "POST", body: { code } });
+    this.applyAuth(payload);
+    window.cyberduelDeckBuilder?.setAccountSession(this.user, this.deck, this.collection);
+    return payload;
+  }
+
   async resetCollection(conta) {
     const payload = await this.request("/api/admin/accounts/reset-collection", {
       method: "POST",

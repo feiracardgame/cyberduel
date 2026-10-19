@@ -22,6 +22,7 @@ const { networkInterfaces } = require("node:os");
 const ranking = require("./ranking");
 const council = require("./council");
 const matchmaking = new Map();
+const redemptionAttempts = new Map();
 const battleAnnouncements = require("../js/battle-announcements");
 const { nameIsBlocked } = require("./name-policy");
 
@@ -175,11 +176,12 @@ function ensureAccountDefaults(account) {
 }
 
 mkdirSync(DATA_DIR, { recursive: true });
-let accountStore = { version: 1, accounts: {} };
+let accountStore = { version: 1, accounts: {}, redemptionCodes: {} };
 try {
   const loaded = JSON.parse(readFileSync(ACCOUNTS_FILE, "utf8"));
   if (loaded?.accounts && typeof loaded.accounts === "object") {
     accountStore = loaded;
+    if (!accountStore.redemptionCodes || typeof accountStore.redemptionCodes !== "object") accountStore.redemptionCodes = {};
     Object.values(accountStore.accounts).forEach(ensureAccountDefaults);
   }
 } catch (error) {
@@ -665,6 +667,40 @@ async function handleApi(request, response, pathname) {
   ].includes(pathname))
     return sendJson(response, 403, { ok: false, error: "Escolha seu nick único antes de continuar." });
 
+  if (request.method === "POST" && pathname === "/api/account/redeem-card") {
+    if (!pending) return sendJson(response, 401, { ok: false, error: "Entre na sua conta para resgatar uma carta." });
+    const now = Date.now();
+    const attempts = (redemptionAttempts.get(pending.account.username) || []).filter(time => now - time < 10 * 60 * 1000);
+    if (attempts.length >= 8) return sendJson(response, 429, { ok: false, error: "Muitas tentativas. Tente novamente em 10 minutos." });
+    attempts.push(now);
+    redemptionAttempts.set(pending.account.username, attempts);
+    const body = await readJson(request);
+    const code = String(body.code || "").trim();
+    if (!/^\d{8}$/.test(code)) return sendJson(response, 400, { ok: false, error: "O código deve ter 8 dígitos." });
+    const entry = accountStore.redemptionCodes?.[code];
+    if (!entry) return sendJson(response, 404, { ok: false, error: "Código inválido." });
+    if (entry.redeemedAt) return sendJson(response, 409, { ok: false, error: "Este código já foi resgatado." });
+    if (entry.availableAt && Date.now() < Date.parse(entry.availableAt))
+      return sendJson(response, 409, { ok: false, error: `Este código poderá ser resgatado a partir de ${new Date(entry.availableAt).toLocaleString("pt-BR")}.` });
+    const card = ALL_AVAILABLE_CARDS.find(item => item.tipo === entry.tipo && item.nome === entry.nome);
+    if (!card) return sendJson(response, 409, { ok: false, error: "A carta deste código não está disponível." });
+    const account = pending.account;
+    const key = cardKey(card.tipo, card.nome);
+    const previousCount = Number(account.collection[key]) || 0;
+    if (!Number.isSafeInteger(previousCount + 1)) return sendJson(response, 409, { ok: false, error: "O limite de cópias desta carta foi atingido." });
+    entry.redeemedAt = new Date().toISOString();
+    entry.redeemedBy = account.username;
+    account.collection[key] = previousCount + 1;
+    account.updatedAt = entry.redeemedAt;
+    try { saveAccounts(); } catch (error) {
+      delete entry.redeemedAt;
+      delete entry.redeemedBy;
+      account.collection[key] = previousCount;
+      throw error;
+    }
+    return sendJson(response, 200, { ok: true, card: { tipo: card.tipo, nome: card.nome }, ...publicAccount(account) });
+  }
+
   if (pathname.startsWith("/api/market/")) {
     if (!pending) return sendJson(response, 401, { ok: false, error: "Entre na sua conta para negociar cartas." });
     const account = pending.account;
@@ -747,6 +783,24 @@ async function handleApi(request, response, pathname) {
     if (!pending) return sendJson(response, 401, { ok: false, error: "Entre na sua conta primeiro." });
     if (!isAdminAccount(pending.account))
       return sendJson(response, 403, { ok: false, error: "Esta conta não é administradora." });
+  }
+
+  if (request.method === "POST" && pathname === "/api/admin/redemption-codes") {
+    const body = await readJson(request);
+    const card = ALL_AVAILABLE_CARDS.find(item => item.tipo === body.tipo && item.nome === body.nome);
+    if (!card) return sendJson(response, 400, { ok: false, error: "Selecione uma carta válida do catálogo." });
+    const availableAt = body.availableAt == null || body.availableAt === "" ? null : new Date(body.availableAt);
+    if (availableAt && !Number.isFinite(availableAt.getTime()))
+      return sendJson(response, 400, { ok: false, error: "Data de liberação inválida." });
+    let code;
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const candidate = String(randomInt(100000000)).padStart(8, "0");
+      if (!accountStore.redemptionCodes[candidate]) { code = candidate; break; }
+    }
+    if (!code) return sendJson(response, 503, { ok: false, error: "Não foi possível gerar um código. Tente novamente." });
+    accountStore.redemptionCodes[code] = { tipo: card.tipo, nome: card.nome, createdAt: new Date().toISOString(), availableAt: availableAt?.toISOString() || null };
+    try { saveAccounts(); } catch (error) { delete accountStore.redemptionCodes[code]; throw error; }
+    return sendJson(response, 201, { ok: true, code, availableAt: availableAt?.toISOString() || null, card: { tipo: card.tipo, nome: card.nome } });
   }
 
   if (request.method === "POST" && pathname === "/api/admin/demo-mode") {

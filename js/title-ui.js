@@ -365,6 +365,13 @@ class CyberduelTitleUI {
             () => this.openBoosterShop(),
           ],
           [
+            "Resgatar carta física",
+            "Digite o código de 8 dígitos da sua carta",
+            "carta",
+            () => this.openCardRedemptionDialog(),
+            "account",
+          ],
+          [
             "Anunciar cartas",
             "Negocie com outros duelistas",
             "anunciar_cartas",
@@ -1785,6 +1792,29 @@ class CyberduelTitleUI {
     cardQuantity.value = "1";
     cardQuantity.setAttribute("aria-label", "Quantidade");
     cardSection.append(cardType, cardName, cardSuggestions, cardQuantity);
+    const availableAt = this.element("input", "title-auth-input");
+    availableAt.type = "datetime-local";
+    availableAt.setAttribute("aria-label", "Data e hora em que o código poderá ser resgatado");
+    const availableAtLabel = this.element("label", "title-admin-note", "Disponível para resgate a partir de (vazio = imediatamente)");
+    availableAtLabel.append(availableAt);
+    cardSection.append(availableAtLabel);
+    const codeResult = this.element("p", "title-admin-note title-admin-result");
+    codeResult.setAttribute("aria-live", "polite");
+    const generateCode = this.button("title-dialog__cancel", "GERAR CÓDIGO FÍSICO", async () => {
+      error.textContent = "";
+      codeResult.textContent = "";
+      const card = catalog.find(entry => entry.tipo === cardType.value && entry.nome === cardName.value.trim());
+      if (!card) { error.textContent = "Selecione uma carta válida do catálogo."; cardName.focus(); return; }
+      generateCode.disabled = true;
+      try {
+        const payload = await this.account.generateRedemptionCode(card.tipo, card.nome,
+          availableAt.value ? new Date(availableAt.value).toISOString() : null);
+        const release = payload.availableAt ? ` a partir de ${new Date(payload.availableAt).toLocaleString("pt-BR")}` : " imediatamente";
+        codeResult.textContent = `Código ${payload.code} · ${card.nome}; disponível${release}. Anote ou copie agora; ele poderá ser resgatado uma única vez.`;
+      } catch (exception) { error.textContent = exception.message || "Falha ao gerar código."; }
+      finally { generateCode.disabled = false; }
+    });
+    cardSection.append(generateCode, codeResult);
 
     const currencySection = this.element("section", "title-admin-section");
     currencySection.append(
@@ -1972,6 +2002,39 @@ class CyberduelTitleUI {
     }).catch(exception => {
       if (this.modal === overlay) accountsStatus.textContent = exception.message || "Falha ao carregar contas.";
     });
+  }
+
+  openCardRedemptionDialog() {
+    if (this.modal || !this.account?.user) return;
+    const overlay = this.createModal("redeem-card");
+    const dialog = this.element("form", "title-dialog title-auth-dialog");
+    dialog.setAttribute("role", "dialog");
+    dialog.setAttribute("aria-modal", "true");
+    dialog.append(this.element("span", "title-kicker", "CARTA FÍSICA"), this.element("h2", "", "Resgatar carta"),
+      this.element("p", "", "Digite o código de 8 dígitos impresso na sua carta."));
+    const code = this.element("input", "title-auth-input");
+    Object.assign(code, { type: "text", inputMode: "numeric", pattern: "[0-9]{8}", maxLength: 8, required: true, placeholder: "00000000" });
+    code.setAttribute("aria-label", "Código de resgate com 8 dígitos");
+    const error = this.element("span", "title-dialog__error");
+    error.setAttribute("role", "alert");
+    const submit = this.element("button", "title-dialog__confirm", "RESGATAR CARTA");
+    submit.type = "submit";
+    dialog.addEventListener("submit", async event => {
+      event.preventDefault();
+      if (!/^\d{8}$/.test(code.value)) { error.textContent = "O código deve ter exatamente 8 dígitos."; code.focus(); return; }
+      submit.disabled = true;
+      error.textContent = "";
+      try {
+        const payload = await this.account.redeemCard(code.value);
+        error.textContent = `Resgatada: ${payload.card.nome}. A carta já está na sua coleção.`;
+        submit.textContent = "CARTA ADICIONADA";
+        setTimeout(() => { if (this.modal === overlay) this.closeModal(); }, 1400);
+      } catch (exception) { error.textContent = exception.message || "Falha ao resgatar código."; submit.disabled = false; }
+    });
+    dialog.append(code, error, submit);
+    overlay.append(dialog);
+    requestAnimationFrame(() => overlay.classList.add("is-visible"));
+    setTimeout(() => code.focus(), 50);
   }
 
   openAuthDialog() {
