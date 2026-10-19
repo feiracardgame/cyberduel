@@ -328,8 +328,23 @@ class CyberduelAccount {
     return payload;
   }
 
+  async resetLeaderboardRating() {
+    const payload = await this.request("/api/admin/accounts/reset-rating", { method: "POST" });
+    this.applyAuth(payload.account);
+    return payload;
+  }
+
   async grantRating(username, amount) {
     const payload = await this.request("/api/admin/accounts/grant-rating", {
+      method: "POST", body: { username, amount },
+    });
+    if (payload.account?.username?.toLocaleLowerCase("pt-BR") === this.user?.toLocaleLowerCase("pt-BR"))
+      this.applyAuth(payload.account);
+    return payload;
+  }
+
+  async removeRating(username, amount) {
+    const payload = await this.request("/api/admin/accounts/remove-rating", {
       method: "POST", body: { username, amount },
     });
     if (payload.account?.username?.toLocaleLowerCase("pt-BR") === this.user?.toLocaleLowerCase("pt-BR"))

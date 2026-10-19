@@ -1073,21 +1073,36 @@ async function handleApi(request, response, pathname) {
     return sendJson(response, 200, { ok: true, account: publicAccount(account) });
   }
 
-  if (request.method === "POST" && pathname === "/api/admin/accounts/grant-rating") {
+  if (request.method === "POST" && pathname === "/api/admin/accounts/reset-rating") {
+    const accounts = Object.values(accountStore.accounts);
+    const updatedAt = new Date().toISOString();
+    for (const account of accounts) {
+      account.rating = 1000;
+      account.updatedAt = updatedAt;
+    }
+    for (const entry of matchmaking.values()) entry.rating = 1000;
+    registerCouncilEntries();
+    saveAccounts();
+    return sendJson(response, 200, { ok: true, count: accounts.length, account: publicAccount(pending.account) });
+  }
+
+  if (request.method === "POST" && ["/api/admin/accounts/grant-rating", "/api/admin/accounts/remove-rating"].includes(pathname)) {
     const body = await readJson(request);
     if (typeof body?.username !== "string" || !body.username.trim() || !Number.isSafeInteger(body.amount) || body.amount < 1)
       return sendJson(response, 400, { ok: false, error: "Informe o username e uma quantidade inteira positiva de pontos." });
     const account = accountByUsername(body.username.trim());
     if (!account) return sendJson(response, 404, { ok: false, error: "Conta não encontrada." });
     ensureAccountDefaults(account);
-    if (!Number.isSafeInteger(account.rating + body.amount))
+    const removing = pathname.endsWith("/remove-rating");
+    const amount = removing ? -Math.min(account.rating, body.amount) : body.amount;
+    if (!Number.isSafeInteger(account.rating + amount))
       return sendJson(response, 400, { ok: false, error: "A pontuação atingiu o limite permitido." });
-    account.rating += body.amount;
+    account.rating += amount;
     account.updatedAt = new Date().toISOString();
     for (const entry of matchmaking.values()) if (entry.username === account.username) entry.rating = account.rating;
     registerCouncilEntries();
     saveAccounts();
-    return sendJson(response, 200, { ok: true, added: body.amount, account: publicAccount(account) });
+    return sendJson(response, 200, { ok: true, ...(removing ? { removed: -amount } : { added: amount }), account: publicAccount(account) });
   }
 
   if (request.method === "POST" && pathname === "/api/admin/accounts/grant-currency") {

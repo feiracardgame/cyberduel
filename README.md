@@ -441,6 +441,10 @@ O botão **ADMIN** nas configurações e no mercado aparece apenas para essas co
 
 A central administrativa permite pesquisar contas por username ou apelido, filtrar acesso ao Clube e ao Conselho atual e ordenar por pontuação. Clique na conta para ver saldo, ranking, tipos de cartas na coleção em relação ao catálogo (incluindo cartas anunciadas), tijolinhos gastos em boosters e compras no mercado e quantidade de vendas concluídas. Gastos e vendas começam a ser registrados com esta atualização; a data inicial aparece nos detalhes, pois não há histórico dessas transações anteriores.
 
+Para resetar os pontos de todos, entre como administrador e execute `resetarPontosLeaderboard()` no console do navegador. O comando salva **1.000 pontos (valor inicial)** em todas as contas, inclusive offline e fora do top, e atualiza a pontuação de quem está na fila. Vitórias, derrotas, elegibilidade, saldo e coleção são preservados. Partidas em andamento continuam valendo pontos quando terminarem. A ação substitui a pontuação anterior de forma persistente.
+
+Para descontar pontos de uma conta, use `diminuirPontos("username", 200)` como administrador no console. A quantidade deve ser um inteiro positivo; a pontuação para em zero se o desconto exceder o saldo. O comando informa o desconto efetivo, salva o resultado e atualiza a fila sem alterar os demais dados. Teste local dos dois comandos: `npm run test:rating:browser`.
+
 ### Recompensas solo contra o bot
 
 Cada partida solo normal de uma conta autenticada concede **1.000 tijolinhos por vitória** e **200 por derrota**; empate concede zero. A tela final mostra o crédito confirmado e permite tentar novamente se houver falha de comunicação. Partidas de teste/atalhos de admin não concedem esse bônus.

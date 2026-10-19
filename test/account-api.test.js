@@ -89,7 +89,7 @@ async function run() {
   for (const account of accountList.payload.accounts)
     assert.deepEqual(Object.keys(account).sort(), ['username', 'nickname', 'clubUnlocked', 'councilMember', 'rating', 'rank',
       'rankingPosition', 'currency', 'currencySpent', 'marketSales', 'statsTrackedSince', 'unlockedCards', 'totalCards'].sort(), 'Não expõe sessão, credenciais ou coleção completa.');
-  for (const route of ["unlock-leaderboard", "grant-rating", "grant-currency", "grant-cards", "give-card", "reset-collection"]) {
+  for (const route of ["unlock-leaderboard", "grant-rating", "remove-rating", "reset-rating", "grant-currency", "grant-cards", "give-card", "reset-collection"]) {
     assert.equal((await api(`/api/admin/accounts/${route}`, { method: "POST", token: second.token, body: { isAdmin: true } })).status, 403);
     assert.equal((await api(`/api/admin/accounts/${route}`, { method: "POST", token: null, body: {} })).status, 401);
   }
@@ -331,6 +331,22 @@ async function run() {
   assert.equal(resetCollection.status, 200);
   assert.deepEqual(resetCollection.payload.account.collection, {});
   assert.equal(resetCollection.payload.account.deck, null);
+
+  await api('/api/admin/accounts/grant-rating', { method: 'POST', body: { username: 'Gabriel', amount: 800 } });
+  const beforeReset = JSON.parse(fs.readFileSync(path.join(dataDir, 'accounts.json'))).accounts;
+  const resetRating = await api('/api/admin/accounts/reset-rating', { method: 'POST' });
+  assert.equal(resetRating.status, 200);
+  assert.equal(resetRating.payload.count, 2);
+  assert.equal(resetRating.payload.account.rating, 1000);
+  const afterReset = JSON.parse(fs.readFileSync(path.join(dataDir, 'accounts.json'))).accounts;
+  for (const fixture of [first, second]) {
+    assert.equal((await api('/api/auth/session', { token: fixture.token })).payload.rating, 1000);
+    assert.deepEqual(afterReset[fixture.accountKey], {
+      ...beforeReset[fixture.accountKey], rating: 1000, updatedAt: afterReset[fixture.accountKey].updatedAt,
+    }, 'Reseta todas as contas, preservando os demais dados.');
+  }
+  assert.equal((await api('/api/leaderboard')).payload.entries[0].rating, 1000);
+  assert.equal((await api('/api/admin/accounts/reset-rating', { method: 'POST' })).status, 200, 'Pode repetir o reset.');
 
   const persisted = fs.readFileSync(
     path.join(dataDir, "accounts.json"),

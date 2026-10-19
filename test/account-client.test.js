@@ -61,6 +61,15 @@ account.request = async () => ({
   };
   await account.grantRating("Gabriel", 500);
   assert.equal(account.councilMember, true);
+  account.request = async (route, options) => {
+    assert.equal(route, '/api/admin/accounts/reset-rating');
+    assert.equal(options.method, 'POST');
+    return { count: 2, account: { username: 'Gabriel', rating: 1000, councilMember: false } };
+  };
+  const resetRating = await account.resetLeaderboardRating();
+  assert.equal(resetRating.count, 2);
+  assert.equal(resetRating.account.rating, 1000);
+  assert.equal(account.councilMember, false);
   account.request = async route => {
     assert.equal(route, '/api/admin/accounts');
     return { accounts: [{ username: 'Gabriel', clubUnlocked: true, councilMember: true }] };

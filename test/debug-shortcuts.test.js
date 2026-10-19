@@ -25,9 +25,12 @@ vm.runInContext(fs.readFileSync('js/debug.js', 'utf8'), context);
   assert.equal(context.window.cyberduelNameGuard.preview, true, 'Prévia local dispensa administração.');
   await assert.rejects(context.window.adicionarPontos('Duelista', 500), /administradora/);
   await assert.rejects(context.window.liberarLeaderboard(), /administradora/);
+  await assert.rejects(context.window.resetarPontosLeaderboard(), /administradora/);
   await assert.rejects(context.window.irParaFinal('vitória'), /administradora/);
   assert.throws(() => context.window.irParaX1(), /administradora/);
   context.window.cyberduelAccount.isAdmin = true;
+  context.window.cyberduelAccount.resetLeaderboardRating = async () => ({ count: 2 });
+  assert.match(await context.window.resetarPontosLeaderboard(), /2 conta\(s\) resetada para 1000 pontos/);
   context.window.cyberduelAccount.broadcastMessage = async message => {
     assert.equal(message, 'Aviso de teste');
     return { connections: 3 };

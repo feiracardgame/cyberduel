@@ -30,6 +30,12 @@ window.enviarAvisoGeral = async message => {
   return `Aviso enviado para ${result.connections} conexão(ões) online.`;
 };
 
+window.resetarPontosLeaderboard = async () => {
+  requireAdminAccount();
+  const payload = await window.cyberduelAccount.resetLeaderboardRating();
+  return `Pontuação de ${payload.count} conta(s) resetada para 1000 pontos.`;
+};
+
 // Console: adicionarPontos("username", quantidade) credita pontos do ranking.
 window.adicionarPontos = async (username, amount) => {
   requireAdminAccount();
@@ -37,6 +43,14 @@ window.adicionarPontos = async (username, amount) => {
     throw new Error('Use adicionarPontos("username", quantidadeInteiraPositiva).');
   const payload = await window.cyberduelAccount.grantRating(username.trim(), amount);
   return `+${payload.added} pontos para ${payload.account.username}. Total: ${payload.account.rating}.`;
+};
+
+window.diminuirPontos = async (username, amount) => {
+  requireAdminAccount();
+  if (typeof username !== "string" || !username.trim() || !Number.isSafeInteger(amount) || amount < 1)
+    throw new Error('Use diminuirPontos("username", quantidadeInteiraPositiva).');
+  const payload = await window.cyberduelAccount.removeRating(username.trim(), amount);
+  return `-${payload.removed} pontos para ${payload.account.username}. Total: ${payload.account.rating}.`;
 };
 
 // Atalhos do console, disponíveis desde o menu e resolvidos na cena atual.
