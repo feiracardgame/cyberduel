@@ -846,6 +846,7 @@ async function handleApi(request, response, pathname) {
         reserved.some(listing => listing.tipo === card.tipo && listing.nome === card.nome)).length;
       const position = leaderboard.indexOf(account);
       return { username: account.username, nickname: account.nickname || account.username,
+        nameChangeRequired: account.nameChangeRequired === true,
         clubUnlocked: account.humanWins >= 3, councilMember: position >= 0 && position < 10,
         rating: account.rating, rank: ranking.playerProfile(account).rank, rankingPosition: position < 0 ? null : position + 1,
         currency: account.currency, currencySpent: account.currencySpent, marketSales: account.marketSales,

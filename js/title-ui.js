@@ -1699,13 +1699,27 @@ class CyberduelTitleUI {
         const row = this.button("title-admin-account", "", () => {
           username.value = account.username;
           details.hidden = false;
+          const requireNameChange = this.button("title-dialog__cancel", account.nameChangeRequired ? "TROCA DE NOME JÁ EXIGIDA" : "EXIGIR TROCA DE NOME", async () => {
+            requireNameChange.disabled = true;
+            try {
+              await this.account.requireNameChange(account.username);
+              account.nameChangeRequired = true;
+              requireNameChange.textContent = "TROCA DE NOME JÁ EXIGIDA";
+              detailsStatus.textContent = `A conta ${account.username} terá que escolher outro nome ao entrar novamente.`;
+            } catch (exception) {
+              detailsStatus.textContent = exception.message || "Falha ao exigir troca de nome.";
+              requireNameChange.disabled = false;
+            }
+          });
+          const detailsStatus = this.element("p", "title-admin-note");
           details.replaceChildren(this.element("h3", "", `${account.username} · ${account.nickname}`),
             this.element("p", "", `${account.rank} · ${account.rating.toLocaleString("pt-BR")} pontos · ${account.rankingPosition ? `${account.rankingPosition}º no ranking` : "Ainda fora do ranking"}`),
             this.element("p", "", `Saldo: ${account.currency.toLocaleString("pt-BR")} tijolinhos`),
             this.element("p", "", `Tijolinhos gastos: ${account.currencySpent.toLocaleString("pt-BR")}`),
             this.element("p", "", `Cartas liberadas na coleção: ${account.unlockedCards} de ${account.totalCards} tipos (inclui cartas anunciadas)`),
             this.element("p", "", `Vendas concluídas no mercado: ${account.marketSales}`),
-            this.element("p", "title-admin-note", `Gastos e vendas registrados desde ${new Date(account.statsTrackedSince).toLocaleString("pt-BR")}. O histórico anterior não foi registrado.`));
+            this.element("p", "title-admin-note", `Gastos e vendas registrados desde ${new Date(account.statsTrackedSince).toLocaleString("pt-BR")}. O histórico anterior não foi registrado.`),
+            requireNameChange, detailsStatus);
         }, `Selecionar conta ${account.username}`);
         row.append(this.element("strong", "", account.username), this.element("span", "", account.nickname),
           this.element("small", "", `Clube: ${account.clubUnlocked ? "SIM" : "NÃO"} · Conselho: ${account.councilMember ? "SIM" : "NÃO"}`));
