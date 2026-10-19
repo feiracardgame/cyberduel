@@ -3795,6 +3795,12 @@ class CyberduelTitleUI {
       () => this.switchBoosterView(() => this.openBoosterInventory()),
     );
     inventory.hidden = opening;
+    const redeem = this.button(
+      "booster-inventory-link",
+      "RESGATAR CÓDIGO DE CARTA",
+      () => this.switchBoosterView(() => this.openCardRedemptionDialog()),
+    );
+    redeem.hidden = opening;
     dialog.append(
       header,
       wallet,
@@ -3807,6 +3813,7 @@ class CyberduelTitleUI {
       error,
       buy,
       inventory,
+      redeem,
     );
     overlay.append(dialog);
     reset();
