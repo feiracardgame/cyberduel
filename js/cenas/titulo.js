@@ -101,9 +101,11 @@ class CenaTitulo extends Phaser.Scene {
   montarApresentacao() {
     const root = document.createElement("div");
     root.className = "presentation-screen";
+    root.dataset.responsiveText = "";
     const table = window.CYBERDUEL_TABLE;
     const heading = document.createElement("h1"); heading.textContent = table === 5 ? "CYBERDUEL · CONSELHO" : table ? `CYBERDUEL · MESA ${table}` : "CYBERDUEL · ARENA";
     const code = document.createElement("strong"); code.className = "presentation-code";
+    code.dataset.responsiveText = "";
     const status = document.createElement("p"); status.textContent = "Abra a arena para receber os jogadores.";
     const seats = document.createElement("div"); seats.className = "presentation-seats";
     const start = document.createElement("button"); start.textContent = "ABRIR ARENA";
@@ -115,7 +117,7 @@ class CenaTitulo extends Phaser.Scene {
       start.disabled = false;
       if (!response.ok) { status.textContent = response.error; start.hidden = false; return; }
       start.hidden = true;
-      code.textContent = table && response.showCode ? `CÓDIGO ${response.room.code}` : "";
+      code.textContent = `CÓDIGO ${response.room.code}`;
       status.textContent = response.update ? "Duelo iniciado" : table
         ? `Jogadores prontos: ${response.room.players}/2 · Aguardando oponente`
         : "Cada jogador escaneia um QR code e entra com sua conta e seu deck.";
@@ -132,10 +134,8 @@ class CenaTitulo extends Phaser.Scene {
         } else if (table) {
           const note = document.createElement("p"); note.textContent = (table === 5 ? "Reserve um canto na Partida do Conselho." : `Escolha a Mesa ${table} no Clube secreto.`);
           card.append(note);
-          if (response.showCode) {
-            const entryCode = document.createElement("strong"); entryCode.className = "presentation-code"; entryCode.textContent = response.room.code;
-            card.append(entryCode);
-          }
+          const entryCode = document.createElement("strong"); entryCode.className = "presentation-code"; entryCode.textContent = response.room.code;
+          card.append(entryCode);
         } else {
           const image = document.createElement("img"); image.src = invite.qrCode; image.alt = `QR code do jogador ${invite.player}`;
           const link = document.createElement("a"); link.href = invite.url; link.textContent = invite.url;
@@ -144,7 +144,13 @@ class CenaTitulo extends Phaser.Scene {
         seats.append(card);
       }
     };
-    this.multiplayer.onReady = () => { if (this.scene.isActive()) this.scene.start("CenaJogo"); };
+    this.multiplayer.onReady = () => {
+      if (!this.scene.isActive()) return;
+      code.className = "presentation-code presentation-code--duel";
+      document.body.append(code);
+      this.scene.get("CenaJogo").events.once("shutdown", () => code.remove());
+      this.scene.start("CenaJogo");
+    };
     this.multiplayer.onStatus = message => { status.textContent = message; };
     start.onclick = () => {
       start.disabled = true;
@@ -287,6 +293,7 @@ class CenaTitulo extends Phaser.Scene {
   mostrarEsperaArena(player, table = null) {
     this.telaEsperaArena?.remove();
     const root = document.createElement("section"); root.className = "arena-waiting";
+    root.dataset.responsiveText = "";
     root.setAttribute("role", "status"); root.setAttribute("aria-live", "polite");
     const title = document.createElement("h1"); title.textContent = table ? `MESA ${table} · 1/2 PRONTOS` : "CONECTADO";
     const seat = document.createElement("p"); seat.textContent = `Você é o jogador ${player}`;

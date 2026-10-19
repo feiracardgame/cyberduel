@@ -8,6 +8,13 @@ const { io } = require('socket.io-client');
 
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cyberduel-presentation-browser-'));
 const users = require('../test/account-fixture')(dataDir, ['ArenaUm', 'ArenaDois']);
+const accountsFile = path.join(dataDir, 'accounts.json');
+const store = JSON.parse(fs.readFileSync(accountsFile));
+for (const user of users) Object.assign(store.accounts[user.accountKey], {
+  humanGames: 3, humanWins: 3,
+  tutorial: { introSeen: true, named: true, completed: true, wantsTutorial: false, farewellSeen: true, seen: [] },
+});
+fs.writeFileSync(accountsFile, JSON.stringify(store));
 const base = 'http://127.0.0.1:31982';
 const output = path.resolve('output/sindicato/presentation');
 fs.mkdirSync(output, { recursive: true });
@@ -35,10 +42,20 @@ const event = (socket, name) => new Promise((resolve, reject) => {
   browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: 1366, height: 768 } });
   page.on('pageerror', error => errors.push(error.message));
-  await page.goto(base + '/apresentacao', { waitUntil: 'domcontentloaded' });
-  await page.getByRole('button', { name: 'ABRIR ARENA' }).click();
-  await page.locator('.presentation-seats a').first().waitFor();
-  const links = await page.locator('.presentation-seats a').evaluateAll(nodes => nodes.map(node => node.href));
+  await page.goto(base + '/apresentacao1', { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => /^CÓDIGO \d{6}$/.test(document.querySelector('.presentation-center .presentation-code')?.textContent));
+  const code = await page.evaluate(() => window.cyberduelMultiplayer.room);
+  const codeLabel = page.getByText(`CÓDIGO ${code}`, { exact: true });
+  assert.equal(await codeLabel.isVisible(), true, 'Código visível sem solicitar a mesa.');
+  await page.screenshot({ path: path.join(output, 'espera-desktop.png') });
+  await page.setViewportSize({ width: 720, height: 1480 });
+  await page.screenshot({ path: path.join(output, 'espera-retrato.png') });
+  const waitingStyle = await page.locator('.presentation-seats section[data-player="1"]').evaluate(node => ({
+    border: getComputedStyle(node).borderTopColor, radius: getComputedStyle(node).borderRadius,
+  }));
+  assert.equal(waitingStyle.border, 'rgb(84, 221, 255)');
+  assert.equal(waitingStyle.radius, '0px');
+  await page.setViewportSize({ width: 1366, height: 768 });
   const avatars = ['raspclay', 'cobra'];
   const ready = [];
   for (const [index, user] of users.entries()) {
@@ -55,11 +72,10 @@ const event = (socket, name) => new Promise((resolve, reject) => {
     sockets.push(socket);
     await event(socket, 'connect');
     ready.push(event(socket, 'match-ready'));
-    const url = new URL(links[index]);
     assert.equal((await ack(socket, 'join-room', {
-      code: url.searchParams.get('room'), seat: url.searchParams.get('seat'),
-      ticket: url.searchParams.get('ticket'), accountToken: user.token,
+      code, table: 1, seat: index + 1, accountToken: user.token,
     })).ok, true);
+    assert.equal(await codeLabel.isVisible(), true, 'Código continua visível quando um jogador entra.');
   }
   const matches = await Promise.all(ready);
   await page.waitForFunction(() => typeof game !== 'undefined' && game.scene.isActive('CenaJogo'));
@@ -95,6 +111,12 @@ const event = (socket, name) => new Promise((resolve, reject) => {
   assert.equal(initial.controls, 0);
   assert.equal(initial.canPlay, false); assert.equal(initial.canUseAbility, false);
   assert.equal(initial.passButton, false);
+  assert.equal(await codeLabel.isVisible(), true);
+  const badge = await codeLabel.evaluate(node => ({
+    width: node.getBoundingClientRect().width, font: getComputedStyle(node).font,
+    parent: node.parentElement.className, viewport: innerWidth,
+  }));
+  assert.ok(badge.width < 250, 'Código compacto preserva o espaço dos indicadores de PA em desktop: ' + JSON.stringify(badge));
   checks.push('Mãos reais, PA dedicado, personagens corretos e apresentação sem comandos de jogada.');
 
   const active = matches[0].activePlayer;
@@ -110,16 +132,49 @@ const event = (socket, name) => new Promise((resolve, reject) => {
   await page.waitForFunction(({ side, count }) => game.scene.getScene('CenaJogo').partida[side].mao.cartas.length === count,
     { side, count: state[side].hand.length });
   const updated = await inspect();
+  assert.equal(await codeLabel.isVisible(), true, 'Atualizar a arena preserva o código.');
   assert.deepEqual(updated.hands[active - 1], state[side].hand.map(card => card.nome));
   assert.ok(updated.labels.includes(String(played.poder)), 'PA dedicado acompanha a carta colocada.');
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => typeof game !== 'undefined' && game.scene.isActive('CenaJogo') &&
     game.scene.getScene('CenaJogo').children.list.some(node => node.name === 'personagem-inimigo'));
   assert.deepEqual((await inspect()).hands, updated.hands);
+  assert.equal(await codeLabel.isVisible(), true, 'Código restaurado ao recarregar.');
   checks.push('Atualização real da mão e PA pelo servidor; recarga restaura cartas e personagens.');
   await page.setViewportSize({ width: 720, height: 1480 });
   await page.waitForTimeout(500);
   await page.screenshot({ path: path.join(output, 'arena-retrato.png') });
+  checks.push('Espera com assets de NeoFloripa, molduras ciano/rosa do duelo e código no estilo do HUD.');
+  assert.equal((await ack(sockets[0], 'decline-match', { room: code, accountToken: users[0].token })).ok, true);
+  await page.waitForFunction(() => game.scene.getScene('CenaJogo').telaFinalExibida);
+  assert.equal(await codeLabel.isVisible(), true, 'Código permanece visível sobre o resultado.');
+  await page.screenshot({ path: path.join(output, 'codigo-resultado.png') });
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => typeof game !== 'undefined' && game.scene.isActive('CenaTitulo'));
+  assert.equal(await page.locator('.presentation-code--duel').count(), 0, 'Retornar à espera remove o indicador do duelo anterior.');
+  checks.push('Código sempre visível: mesa vazia, entrada, duelo, atualização, recarga e resultado.');
+  const normal = await browser.newPage({ viewport: { width: 720, height: 1480 } });
+  await normal.addInitScript(token => {
+    localStorage.setItem('cyberduel.account.token.v1', token);
+    window.CYBERDUEL_PRESENTATION = true;
+  }, users[0].token);
+  normal.on('pageerror', error => errors.push(error.message));
+  await normal.goto(base, { waitUntil: 'domcontentloaded' });
+  await normal.waitForFunction(() => typeof game !== 'undefined' && game.scene.isActive('CenaTitulo'));
+  await normal.evaluate(async () => {
+    await window.cyberduelAccount.restore();
+    const account = window.cyberduelAccount;
+    window.cyberduelDeckBuilder.setAccountSession(account.user, account.deck, account.collection);
+    window.CYBERDUEL_PRESENTATION = false;
+    game.scene.stop('CenaTitulo');
+    game.scene.start('CenaJogo', { debug: true, deckDebug: account.deck });
+  });
+  await normal.waitForFunction(() => game.scene.isActive('CenaJogo') &&
+    game.scene.getScene('CenaJogo').children.list.some(node => node.name === 'personagem-jogador') &&
+    game.scene.getScene('CenaJogo').cameras.main.alpha === 1);
+  assert.equal(await normal.locator('.elenai-dialogue').count(), 0);
+  assert.equal(await normal.locator('.presentation-screen').count(), 0);
+  await normal.screenshot({ path: path.join(output, 'duelo-normal-referencia.png') });
   assert.deepEqual(errors, []);
   console.log('Apresentação no Playwright aprovada. Evidências: ' + output);
 })().catch(error => { console.error(error); process.exitCode = 1; }).finally(async () => {

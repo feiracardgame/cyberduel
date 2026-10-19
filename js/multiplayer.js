@@ -56,6 +56,7 @@ class CyberduelMultiplayer {
       });
     });
     this.socket.on("matchmaking-stopped", (payload) => this.onMatchmakingStopped?.(payload.error));
+    this.socket.on("game-config", config => window.cyberduelAccount.applyDemoMode(config.demoMode === true));
     this.socket.on("name-restricted", payload => {
       window.cyberduelAccount.nameRestriction = payload.nameRestriction;
       window.cyberduelNameGuard?.sync(payload.nameRestriction);

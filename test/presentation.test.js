@@ -128,7 +128,7 @@ async function run() {
     const host = await connect(); hosts.push(host);
     const created = await ack(host, 'create-presentation', { table });
     assert.equal(created.ok, true); assert.equal(created.room.table, table);
-    assert.equal(created.showCode, false, "O código começa oculto na apresentação.");
+    assert.match(created.room.code, /^\d{6}$/, 'Código disponível desde a abertura da mesa.');
     tables.push(created);
   }
   assert.equal(new Set(tables.map(table => table.room.code)).size, 4, 'Cada apresentação tem seu próprio código.');
@@ -156,7 +156,7 @@ async function run() {
   for (const account of tableAccounts) await api('account/faction', account.token, { faction: 'echossystem' });
   for (const [index, table] of tables.entries()) {
     const firstPlayer = await connect(), secondPlayer = await connect();
-    const reveal = event(hosts[index], 'presentation-room', response => response.showCode);
+    const reveal = event(hosts[index], 'presentation-room', response => response.room.code === table.room.code);
     const requested = await ack(firstPlayer, 'request-club-code', { table: index + 1, accountToken: tableAccounts[index * 2].token });
     assert.equal(requested.ok, true); assert.equal(requested.code, undefined);
     assert.equal((await reveal).room.code, table.room.code);
@@ -183,7 +183,7 @@ async function run() {
     const [firstMatch, secondMatch, lockState, shown] = await Promise.all([readyFirst, readySecond, locked, display]);
     assert.equal(firstMatch.room, table.room.code); assert.equal(secondMatch.room, table.room.code);
     assert.equal(firstMatch.player, 2); assert.equal(secondMatch.player, 1);
-    assert.equal(shown.showCode, false, 'Ocultar código depois da entrada.');
+    assert.equal(shown.room.code, table.room.code, 'Código disponível depois da entrada.');
     assert.equal((await ack(intruder, 'request-club-code', { table: index + 1, accountToken: accounts[0].token })).ok, false, 'Mesa em partida não exibe código.');
     assert.equal(firstMatch.arena, true); assert.equal(shown.room.table, index + 1);
     assert.deepEqual(shown.update.state.jogador.hand, firstMatch.update.state.jogador.hand, 'Mesas também exibem a mão na apresentação.');

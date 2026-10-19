@@ -3243,7 +3243,7 @@ class CyberduelTitleUI {
         "Povo da Areia",
       ],
       ["sindicato", "Sindicato", "Ninguém vence sozinho.", "#bf94ff", null],
-    ];
+    ].filter(faction => !window.CYBERDUEL_DEMO_MODE || ["echossystem", "raspcorp"].includes(faction[0]));
   }
 
   switchBoosterView(show) {
@@ -3274,7 +3274,8 @@ class CyberduelTitleUI {
       ),
     );
     const list = this.element("div", "booster-inventory-list");
-    const packs = this.account.boosters || [];
+    const packs = (this.account.boosters || []).filter(pack => this.boosterFactions().some(faction => faction[0] === pack.faction));
+    if (window.CYBERDUEL_DEMO_MODE) dialog.append(this.element("p", "booster-status", "Modo demo: apenas Echossystem e RaspCorp. Os outros pacotes continuam guardados."));
     for (const faction of this.boosterFactions()) {
       const owned = packs.filter((pack) => pack.faction === faction[0]);
       if (!owned.length) continue;

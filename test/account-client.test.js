@@ -75,6 +75,23 @@ account.request = async () => ({
     return { accounts: [{ username: 'Gabriel', clubUnlocked: true, councilMember: true }] };
   };
   assert.equal((await account.listAdminAccounts())[0].username, 'Gabriel');
+  let rendered = 0, stoppedSolo = 0;
+  const builder = context.window.cyberduelDeckBuilder;
+  builder.getCatalog = () => [];
+  builder.isCardAllowed = card => ['echossystem', 'raspcorp'].includes(card.booster);
+  const player = { deck: { cartas: [{ booster: 'humbanet' }] }, mao: { cartas: [] }, campo: { cartas: [] }, descarte: [] };
+  const editor = { scene: { isActive: () => true }, deckBuilderUI: { render() { rendered++; } } };
+  const duel = { scene: { isActive: () => true, start(key) { assert.equal(key, 'CenaTitulo'); stoppedSolo++; } },
+    partida: { jogador: player, inimigo: player }, multiplayerAtivo: false };
+  context.window.cyberduelGame = { scene: { getScene: key => key === 'CenaDeckBuilder' ? editor : duel } };
+  account.applyDemoMode(true);
+  account.applyDemoMode(true);
+  assert.equal(stoppedSolo, 1, 'Encerra solo incompatível uma vez ao ativar.');
+  assert.equal(account.snapshot().demoMode, true);
+  account.applyDemoMode(false);
+  assert.equal(rendered, 2, 'Editor acompanha ativação e desativação sem perder o rascunho.');
+  assert.equal(stoppedSolo, 1);
+  context.window.cyberduelGame = null;
   console.log("Coleção administrativa sincronizada com o Deck Forge.");
 })().catch((error) => {
   console.error(error);

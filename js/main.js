@@ -2072,4 +2072,5 @@ const config = {
 };
 
 const game = new Phaser.Game(config);
+window.cyberduelGame = game;
 window.cyberduelViewport?.attach(game);

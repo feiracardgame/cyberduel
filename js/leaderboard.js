@@ -13,6 +13,9 @@
       this.initialized = false;
       this.rows = new Map();
       this.reducedMotion = global.matchMedia("(prefers-reduced-motion: reduce)");
+      this.nameResizeObserver = global.ResizeObserver ? new global.ResizeObserver(() => this.updateNameScrolling()) : null;
+      this.nameResizeObserver?.observe(root);
+      document.fonts?.ready.then(() => this.updateNameScrolling());
       this.fillSlots();
     }
 
@@ -37,23 +40,26 @@
       });
       portrait.append(image);
       const identity = document.createElement("td");
+      const nameViewport = document.createElement("span");
+      nameViewport.className = "player-name";
       const name = document.createElement("span");
-      name.className = "player-name";
-      identity.append(name);
+      name.className = "player-name-text";
+      nameViewport.append(name);
+      identity.append(nameViewport);
       const influence = document.createElement("td");
       influence.className = "influence-cell";
       const score = document.createElement("span");
       score.className = "influence-value";
       influence.append(score);
       row.append(rank, portrait, identity, influence);
-      row.parts = { number, movement, image, name, score };
+      row.parts = { number, movement, image, name, nameViewport, score };
       this.writeRow(row, entry);
       return row;
     }
 
     writeRow(row, entry) {
       row.parts.number.textContent = entry.position;
-      row.parts.name.textContent = entry.nickname || entry.username;
+      if (row.parts.name.textContent !== (entry.nickname || entry.username)) row.parts.name.textContent = entry.nickname || entry.username;
       row.parts.name.title = entry.nickname || entry.username;
       const avatar = entry.avatar || fallbackAvatar;
       if (row.parts.image.getAttribute("src") !== avatar) row.parts.image.src = avatar;
@@ -74,6 +80,17 @@
           row.append(cell);
         }
         this.body.append(row);
+      }
+    }
+
+    updateNameScrolling() {
+      for (const row of this.rows.values()) {
+        const { name, nameViewport } = row.parts;
+        if (!nameViewport.clientWidth) continue;
+        const overflow = Math.max(0, name.scrollWidth - nameViewport.clientWidth);
+        nameViewport.classList[overflow > 1 ? "add" : "remove"]("is-scrolling");
+        name.style.setProperty("--name-overflow", `${overflow}px`);
+        name.style.setProperty("--name-duration", `${Math.max(6, overflow / 25 + 4)}s`);
       }
     }
 
@@ -148,6 +165,7 @@
       this.entries = next;
       this.initialized = true;
       await Promise.all(transitions);
+      this.updateNameScrolling();
       if (animate && (moving || this.body.querySelector(".is-changed, .is-new"))) await pause(1200);
       for (const row of this.rows.values()) row.classList.remove("is-up", "is-down", "is-changed", "is-new");
     }
@@ -165,7 +183,7 @@
         await this.update(data.entries);
         this.root.classList.add("is-live");
         this.root.classList.remove("is-offline");
-        this.status.textContent = "Ranking ao vivo · Top 10";
+        this.status.textContent = "";
       } catch {
         this.root.classList.remove("is-live");
         this.root.classList.add("is-offline");

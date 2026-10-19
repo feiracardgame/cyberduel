@@ -126,6 +126,15 @@ const BOOSTER_CARDS = Object.freeze(Object.fromEntries(
     ALL_AVAILABLE_CARDS.filter((c) => c.booster === faction).map((c) => [c.tipo, c.nome, c.nivel, 1])]),
 ));
 
+const DEMO_BOOSTERS = new Set(["echossystem", "raspcorp"]);
+const DEMO_CARDS = new Set(ALL_AVAILABLE_CARDS.filter(card => DEMO_BOOSTERS.has(card.booster)).map(card => `${card.tipo}:${card.nome}`));
+const DEMO_ERROR = "Modo demo: use apenas cartas e boosters de Echossystem e RaspCorp.";
+const demoAllowsCards = (cards, enabled = accountStore.demoMode) => !enabled || (Array.isArray(cards) && cards.every(card =>
+  !card || (typeof card.tipo === "string" && typeof card.nome === "string" && DEMO_CARDS.has(cardKey(card.tipo, card.nome)))));
+const demoAllowsState = (state, enabled = accountStore.demoMode) => !enabled || [state?.jogador, state?.inimigo].every(player =>
+  player && ["deck", "hand", "field", "discard"].every(zone =>
+    (zone === "discard" && player[zone] === undefined) || demoAllowsCards(player[zone], enabled)));
+
 const ADMIN_USERNAMES = new Set(String(process.env.ADMIN_USERNAMES || "")
   .split(",").map(name => name.trim().toLocaleLowerCase("pt-BR")).filter(Boolean));
 
@@ -384,6 +393,7 @@ function publicAccount(account) {
     authProvider: account.localAccount ? "local" : account.googleSub ? "google" : "password",
     isAdmin: isAdminAccount(account),
     segurancaX1: isAdminAccount(account) && account.segurancaX1 === true,
+    demoMode: accountStore.demoMode === true,
     needsRegistration: needsRegistration(account),
     needsUsername: Boolean(account.googleSub && !validUsername(account.username)),
     nameRestriction: nameRestriction(account),
@@ -739,6 +749,20 @@ async function handleApi(request, response, pathname) {
       return sendJson(response, 403, { ok: false, error: "Esta conta não é administradora." });
   }
 
+  if (request.method === "POST" && pathname === "/api/admin/demo-mode") {
+    const body = await readJson(request);
+    if (typeof body?.enabled !== "boolean")
+      return sendJson(response, 400, { ok: false, error: "Informe enabled como booleano." });
+    if (body.enabled && [...rooms.values()].some(room => !room.state?.partidaEncerrada &&
+      (!demoAllowsCards([...room.decks.values()].flat(), true) || (room.state && !demoAllowsState(room.state, true)))))
+      return sendJson(response, 409, { ok: false, error: "Conclua ou feche as salas com cartas de outros boosters antes de ativar o modo demo." });
+    accountStore.demoMode = body.enabled;
+    saveAccounts();
+    matchQueuedPlayers();
+    io.emit("game-config", { demoMode: body.enabled });
+    return sendJson(response, 200, { ok: true, demoMode: body.enabled });
+  }
+
   if (request.method === "POST" && pathname === "/api/admin/seguranca-x1") {
     const body = await readJson(request);
     if (typeof body?.enabled !== "boolean")
@@ -786,6 +810,7 @@ async function handleApi(request, response, pathname) {
   if (request.method === "GET" && pathname === "/api/config") {
     return sendJson(response, 200, {
       ok: true,
+      demoMode: accountStore.demoMode === true,
       booster: {
         price: BOOSTER_PRICE,
         ...BOOSTER_CONFIG,
@@ -899,6 +924,7 @@ async function handleApi(request, response, pathname) {
       });
     const body = await readJson(request);
     const deck = sanitizeDeck(body.deck);
+    if (!demoAllowsCards(deck)) return sendJson(response, 403, { ok: false, error: DEMO_ERROR });
     const total = deck.reduce((sum, entry) => sum + entry.quantidade, 0);
     if (total !== 20)
       return sendJson(response, 400, {
@@ -974,6 +1000,8 @@ async function handleApi(request, response, pathname) {
     if (pathname === "/api/boosters/open" && body.packId) {
       const pack = session.account.boosters.find((entry) => entry.id === body.packId);
       if (!pack) return sendJson(response, 404, { ok: false, error: "Pacote não encontrado no seu inventário." });
+      if (accountStore.demoMode && (!DEMO_BOOSTERS.has(pack.faction) || !demoAllowsCards(pack.cards)))
+        return sendJson(response, 403, { ok: false, error: DEMO_ERROR });
       if (!pack.openedAt) {
         if (body.debugLegendary === true) {
           if (process.env.CYBERDUEL_DEBUG !== "1" || !isAdminAccount(session.account))
@@ -1003,6 +1031,8 @@ async function handleApi(request, response, pathname) {
     const faction = String(body.faction || "").toLowerCase();
     if (!BOOSTER_CARDS[faction])
       return sendJson(response, 400, { ok: false, error: "Booster inválido." });
+    if (accountStore.demoMode && !DEMO_BOOSTERS.has(faction))
+      return sendJson(response, 403, { ok: false, error: DEMO_ERROR });
     if (session.account.currency < BOOSTER_PRICE)
       return sendJson(response, 400, {
         ok: false,
@@ -1257,6 +1287,7 @@ async function handleApi(request, response, pathname) {
     const body = await readJson(request);
     if (pathname.endsWith("match-start")) {
       if (body.mode !== "solo") return sendJson(response, 400, { ok: false, error: "Modo de partida inválido." });
+      if (!demoAllowsCards(account.deck || [])) return sendJson(response, 403, { ok: false, error: DEMO_ERROR });
       const match = { id: randomBytes(16).toString("hex") };
       // ponytail: últimos 100 solos por conta; IDs removidos são recusados, nunca pagos novamente.
       account.soloMatches = [...(account.soloMatches || []).slice(-99), match];
@@ -1504,7 +1535,6 @@ function presentationState(snapshot) {
 
 function presentationInfo(room) {
   return { ok: true, room: publicRoom(room), displayKey: room.displayKey, invitations: room.invitations,
-    showCode: !!room.codeRequested,
     nicknames: Object.fromEntries(room.nicknames), profiles: Object.fromEntries(room.profiles),
     seats: [1, 2].map(player => ({ player, connected: !!room.players.get(player) })),
     ...(room.state ? { update: { state: presentationState(room.state), ...phaseInfo(room), initial: true } } : {}) };
@@ -1542,7 +1572,6 @@ function notifyClubTables() {
 const councilClock = setInterval(() => {
   const room = clubTableRoom(5);
   if (council.expire(room)) {
-    room.codeRequested = room.reservations.size > 0;
     notifyPresentation(room);
   }
 }, 1000);
@@ -1764,9 +1793,9 @@ function accountHasMatch(username) {
 
 function matchQueuedPlayers() {
   for (const entry of [...matchmaking.values()]) {
-    if (!entry.socket.connected || !accountFromToken(entry.token) || nameRestriction(accountFromToken(entry.token)) || accountHasMatch(entry.username)) {
+    if (!entry.socket.connected || !accountFromToken(entry.token) || nameRestriction(accountFromToken(entry.token)) || accountHasMatch(entry.username) || !demoAllowsCards(entry.deck)) {
       matchmaking.delete(entry.socket.id);
-      entry.socket.emit("matchmaking-stopped", { error: "Busca encerrada. Verifique sua sessão ou partida ativa." });
+      entry.socket.emit("matchmaking-stopped", { error: !demoAllowsCards(entry.deck) ? DEMO_ERROR : "Busca encerrada. Verifique sua sessão ou partida ativa." });
     }
   }
   for (const entry of [...matchmaking.values()]) {
@@ -1803,6 +1832,7 @@ const roomCleanup = setInterval(() => {
 roomCleanup.unref();
 
 io.on("connection", (socket) => {
+  socket.emit("game-config", { demoMode: accountStore.demoMode === true });
   socket.use(([event, payload, ack], next) => {
     const data = payload && typeof payload === "object" ? payload : {};
     if (accountFromToken(data.accountToken)) socket.data.accountToken = data.accountToken;
@@ -1833,14 +1863,13 @@ io.on("connection", (socket) => {
       return ack({ ok: false, error: "Sua conta já está nesta mesa." });
     const reservation = council.reserve(room, account.username, Number(payload.seat));
     if (!reservation) return ack({ ok: false, error: "Este canto está indisponível." });
-    room.codeRequested = true;
     notifyPresentation(room);
     ack({ ok: true, expiresAt: reservation.expiresAt, serverNow: Date.now() });
   });
   socket.on("release-council-seat", (payload = {}) => {
     const account = accountFromToken(payload.accountToken), room = clubTableRoom(5);
     for (const [seat, reservation] of room?.reservations || []) if (reservation.owner === account?.username) room.reservations.delete(seat);
-    if (room) { room.codeRequested = !!room.reservations?.size; notifyPresentation(room); }
+    if (room) notifyPresentation(room);
   });
 
   socket.on("request-club-code", (payload = {}, ack = () => {}) => {
@@ -1853,7 +1882,6 @@ io.on("connection", (socket) => {
     if (room.table === 5) return ack({ ok: false, error: "Reserve um canto na Partida do Conselho." });
     if (!(account.humanWins >= 3))
       return ack({ ok: false, error: "Conquiste 3 vitórias contra jogadores para entrar no Clube secreto." });
-    room.codeRequested = true;
     notifyPresentation(room);
     ack({ ok: true });
   });
@@ -1918,6 +1946,7 @@ io.on("connection", (socket) => {
     if (duplicate && duplicate.socket.id !== socket.id)
       return ack({ ok: false, error: "Sua conta já está buscando em outra aba." });
     const deck = sanitizeDeck(account.deck);
+    if (!demoAllowsCards(deck)) return ack({ ok: false, error: DEMO_ERROR });
     const quantities = new Map();
     for (const card of deck) quantities.set(cardKey(card.tipo, card.nome), (quantities.get(cardKey(card.tipo, card.nome)) || 0) + card.quantidade);
     if (!account.faction || !require("./duel-runtime").validDeck(deck) || deck.reduce((sum, card) => sum + card.quantidade, 0) !== 20 ||
@@ -1935,6 +1964,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("create-room", async (payload = {}, ack = () => {}) => {
+    if (!demoAllowsCards(sanitizeDeck(payload.deck))) return ack({ ok: false, error: DEMO_ERROR });
     const active = findResumable(payload);
     if (active?.room.ranked) return ack({ ok: false, error: "Conclua sua partida ranqueada antes de criar uma sala." });
     const account = accountFromToken(payload.accountToken);
@@ -2006,6 +2036,7 @@ io.on("connection", (socket) => {
           return ack({ ok: false, error: "Reserve este canto antes de inserir o código. A reserva dura 1 minuto." });
       }
       const deck = sanitizeDeck(account.deck);
+      if (!demoAllowsCards(deck)) return ack({ ok: false, error: DEMO_ERROR });
       if (!require("./duel-runtime").validDeck(deck))
         return ack({ ok: false, error: "Sele um deck válido antes de entrar." });
       room.reservations?.delete(player);
@@ -2016,7 +2047,6 @@ io.on("connection", (socket) => {
       room.accounts.set(player, account);
       room.resumeTokens.set(player, randomBytes(32).toString("hex"));
       socket.join(code); socket.data.room = code; socket.data.player = player;
-      if (fromTable) room.codeRequested = room.table === 5 && !!room.reservations?.size;
       ack({ ok: true, waiting: room.players.size < 2, room: publicRoom(room), player, resumeToken: room.resumeTokens.get(player) });
       if (room.players.size === 2) {
         room.starter = room.turn = randomInt(1, 3);
@@ -2030,6 +2060,8 @@ io.on("connection", (socket) => {
     }
     if (room.players.size >= 2)
       return ack({ ok: false, error: "Esta sala já está cheia." });
+
+    if (!demoAllowsCards(sanitizeDeck(payload.deck))) return ack({ ok: false, error: DEMO_ERROR });
 
     removeFromRoom(socket);
     room.players.set(2, socket.id);
@@ -2096,7 +2128,7 @@ io.on("connection", (socket) => {
   });
 
   const validState = (state) => state && [state.jogador, state.inimigo].every((p) =>
-    p && Array.isArray(p.field) && p.field.length === 10 && Array.isArray(p.hand) && Array.isArray(p.deck));
+    p && Array.isArray(p.field) && p.field.length === 10 && Array.isArray(p.hand) && Array.isArray(p.deck)) && demoAllowsState(state);
 
   socket.on("initial-state", (payload = {}, ack = () => {}) => {
     const room = rooms.get(socket.data.room);

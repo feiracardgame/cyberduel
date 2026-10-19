@@ -3,6 +3,13 @@ function requireAdminAccount() {
   if (!window.cyberduelAccount.isAdmin) throw new Error("Esta conta não é administradora.");
 }
 
+window.modoDemo = async (enabled = true) => {
+  requireAdminAccount();
+  if (typeof enabled !== "boolean") throw new Error("Use modoDemo(true) para ativar ou modoDemo(false) para desativar.");
+  const result = await window.cyberduelAccount.setDemoMode(enabled);
+  return result.demoMode ? "Modo demo ativado para todos: apenas Echossystem e RaspCorp." : "Modo demo desativado para todos.";
+};
+
 // Prévia somente nesta aba: não altera nomes, sessão ou dados no servidor.
 window.testarNomeCensurado = () => {
   const guard = window.cyberduelNameGuard;

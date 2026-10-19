@@ -50,6 +50,8 @@ Quando o Estudante de Curso Técnico copia Professores de Duelo, uma vinheta de 
 
 A tela dedicada do Conselho fica em **http://127.0.0.1:3000/leaderboard**, sem exigir login. Ela mostra o top 10 real, consulta o ranking automaticamente a cada 3 segundos após a atualização anterior e anima mudanças de posição, influência e integrantes. O botão **ABRIR PAINEL AO VIVO** no ranking abre essa tela em outra aba. No Live Server, abra `leaderboard.html`; o parâmetro `?server=` também é aceito. Em caso de falha de conexão, a última classificação permanece visível enquanto a página tenta reconectar. A preferência do sistema por movimento reduzido é respeitada.
 
+Nomes que ultrapassam a largura da coluna deslizam automaticamente, com uma pausa em cada ponta. Nomes curtos ficam parados; a rolagem se ajusta ao redimensionar a tela e não reinicia a cada consulta do ranking.
+
 Se preferir, abra `index.html` com **Open with Live Server**. Nas portas 5500/5501 (também 4173, 5173 e 8080), login e multiplayer usam automaticamente o servidor da mesma máquina na porta 3000. Se uma compra provocar refresh, acesse diretamente a porta 3000.
 
 A configuração em `.vscode/settings.json` impede que gravações de saldo e coleção em `server/data` recarreguem a página durante a abertura de boosters. Se o Live Server já estava aberto ao receber essa configuração, pare e inicie o **Live Server** novamente para aplicá-la.
@@ -445,6 +447,10 @@ Para resetar os pontos de todos, entre como administrador e execute `resetarPont
 
 Para descontar pontos de uma conta, use `diminuirPontos("username", 200)` como administrador no console. A quantidade deve ser um inteiro positivo; a pontuação para em zero se o desconto exceder o saldo. O comando informa o desconto efetivo, salva o resultado e atualiza a fila sem alterar os demais dados. Teste local dos dois comandos: `npm run test:rating:browser`.
 
+Como administrador, execute `await modoDemo(true)` (ou `await modoDemo()`) para ativar globalmente o **modo demo**, limitado às cartas e boosters de **Echossystem e RaspCorp**. Use `await modoDemo(false)` para desativar. A configuração persiste após reiniciar o servidor e é enviada às telas abertas. O editor e a loja mostram apenas o conteúdo permitido; decks incompatíveis ficam bloqueados para salvar ou iniciar duelos. Outros pacotes continuam guardados, sem poder comprar ou abrir enquanto o modo estiver ativo. Desativar restaura o acesso sem apagar coleção, decks ou pacotes.
+
+Conclua ou feche salas online com cartas de outros boosters antes de ativar: o servidor recusa a troca para preservar esses duelos. Buscas incompatíveis são retiradas da fila. Solos locais incompatíveis voltam ao menu ao receber a ativação. O servidor também valida decks, estados de partida e aberturas enviadas diretamente à API. Testes: `node test/demo-mode.test.js` e `npm run test:demo:browser`.
+
 ### Recompensas solo contra o bot
 
 Cada partida solo normal de uma conta autenticada concede **1.000 tijolinhos por vitória** e **200 por derrota**; empate concede zero. A tela final mostra o crédito confirmado e permite tentar novamente se houver falha de comunicação. Partidas de teste/atalhos de admin não concedem esse bônus.
@@ -497,7 +503,9 @@ Abra **`https://SEU-SERVIDOR/apresentacao`** na tela extra e clique em **ABRIR A
 
 A tela mostra um QR code exclusivo para cada lugar. Os jogadores escaneiam códigos diferentes, entram nas próprias contas e usam seus decks salvos. O duelo começa quando ambos estiverem conectados; cada celular mantém a interface normal. A apresentação usa a interface atual do duelo, com as cartas das duas mãos abertas, PA dedicado, personagens nos cantos, rodadas e fase. As cartas do jogador 2 continuam orientadas para seu lado da mesa. Decks, armadilhas e cartas ocultas do campo permanecem protegidos; a tela não permite jogadas nem esconder a mão. Espectadores comuns continuam recebendo apenas os versos das mãos. Teste local: `npm run test:presentation:browser`.
 
-O **Clube secreto** possui quatro mesas independentes, com apresentações em **`/apresentacao1`**, **`/apresentacao2`**, **`/apresentacao3`** e **`/apresentacao4`**. Cada página abre sua mesa automaticamente, com o código inicialmente oculto. Ao selecionar uma mesa no menu do clube, seu código aparece na apresentação correspondente. Escolha o jogador 1 ou 2 e digite esse código para entrar; lugares ocupados ficam indisponíveis. O código volta a ficar oculto após a entrada. O menu atualiza a contagem de jogadores prontos em tempo real; com 2/2, a mesa fica trancada e o duelo começa. Mesas cuja apresentação está desconectada ficam indisponíveis. Sair antes da chegada do oponente libera o lugar e mantém a apresentação aberta.
+O **Clube secreto** possui quatro mesas independentes, com apresentações em **`/apresentacao1`**, **`/apresentacao2`**, **`/apresentacao3`** e **`/apresentacao4`**. Cada página abre sua mesa automaticamente. O código fica visível desde a abertura da mesa, durante a espera, o duelo, os efeitos e o resultado, inclusive na apresentação do Conselho. Escolha o jogador 1 ou 2 e digite esse código para entrar; lugares ocupados ficam indisponíveis. O menu atualiza a contagem de jogadores prontos em tempo real; com 2/2, a mesa fica trancada e o duelo começa. Mesas cuja apresentação está desconectada ficam indisponíveis. Sair antes da chegada do oponente libera o lugar e mantém a apresentação aberta.
+
+A espera segue o visual do duelo: cenário de NeoFloripa, molduras angulares ciano e rosa, fonte Rushblade e as mesmas artes dos cantos da arena. O código permanece em uma placa do HUD durante a partida, sem cobrir o PA; a escala de texto das configurações continua sendo respeitada.
 
 A página tenta entrar em tela cheia ao abrir a arena. **Esc** durante o duelo encerra a sala da apresentação e volta à preparação. Recarregar a página na mesma aba permite retomar a apresentação enquanto a sala existir. As salas ficam em memória; reiniciar o servidor encerra os duelos.
 

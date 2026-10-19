@@ -18,6 +18,7 @@ const context = vm.createContext({ window: { cyberduelAccount: { user: "Admin", 
 vm.runInContext(fs.readFileSync('js/debug.js', 'utf8'), context);
 (async () => {
   context.window.cyberduelAccount.isAdmin = false;
+  await assert.rejects(context.window.modoDemo(), /administradora/);
   await assert.rejects(context.window.enviarAvisoGeral('Teste'), /administradora/);
   await assert.rejects(context.window.exigirTrocaDeNome('Duelista'), /administradora/);
   context.window.cyberduelNameGuard = { show(fields, options) { this.fields = fields; this.preview = options.preview; } };
@@ -29,6 +30,10 @@ vm.runInContext(fs.readFileSync('js/debug.js', 'utf8'), context);
   await assert.rejects(context.window.irParaFinal('vitória'), /administradora/);
   assert.throws(() => context.window.irParaX1(), /administradora/);
   context.window.cyberduelAccount.isAdmin = true;
+  context.window.cyberduelAccount.setDemoMode = async enabled => ({ demoMode: enabled });
+  assert.match(await context.window.modoDemo(), /ativado para todos/);
+  assert.match(await context.window.modoDemo(false), /desativado para todos/);
+  await assert.rejects(context.window.modoDemo('true'), /Use modoDemo/);
   context.window.cyberduelAccount.resetLeaderboardRating = async () => ({ count: 2 });
   assert.match(await context.window.resetarPontosLeaderboard(), /2 conta\(s\) resetada para 1000 pontos/);
   context.window.cyberduelAccount.broadcastMessage = async message => {

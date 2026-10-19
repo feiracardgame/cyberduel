@@ -6,6 +6,7 @@ class CyberduelAccount {
     this.nickname = "";
     this.authProvider = null;
     this.isAdmin = false;
+    this.demoMode = false;
     this.segurancaX1 = false;
     this.needsRegistration = false;
     this.needsUsername = false;
@@ -50,6 +51,7 @@ class CyberduelAccount {
       nickname: this.nickname,
       authProvider: this.authProvider,
       isAdmin: this.isAdmin,
+      demoMode: this.demoMode,
       segurancaX1: this.segurancaX1,
       needsRegistration: this.needsRegistration,
       needsUsername: this.needsUsername,
@@ -98,6 +100,7 @@ class CyberduelAccount {
   }
 
   applyAuth(payload, shouldNotify = true) {
+    if (typeof payload.demoMode === "boolean") this.applyDemoMode(payload.demoMode, false);
     if (payload.token) {
       this.token = payload.token;
       localStorage.setItem(this.storageKey, this.token);
@@ -137,6 +140,10 @@ class CyberduelAccount {
   }
 
   async restore() {
+    try {
+      const config = await this.request("/api/config", { auth: false });
+      this.applyDemoMode(config.demoMode === true);
+    } catch { /* Mantém a última configuração conhecida durante a reconexão. */ }
     if (!this.token) return this.snapshot();
     try {
       return this.applyAuth(await this.request("/api/auth/session"));
@@ -312,6 +319,33 @@ class CyberduelAccount {
 
   async broadcastMessage(message) {
     return this.request("/api/admin/broadcast", { method: "POST", body: { message } });
+  }
+
+  applyDemoMode(enabled, shouldNotify = true) {
+    if (this.demoMode === enabled && window.CYBERDUEL_DEMO_MODE === enabled) return;
+    this.demoMode = enabled;
+    window.CYBERDUEL_DEMO_MODE = enabled;
+    const manager = window.cyberduelGame?.scene;
+    if (manager) {
+      const editor = manager.getScene("CenaDeckBuilder");
+      if (editor?.scene.isActive()) {
+        editor.deckBuilderUI.catalog = window.cyberduelDeckBuilder.getCatalog();
+        editor.deckBuilderUI.render();
+      }
+      const duel = manager.getScene("CenaJogo");
+      if (enabled && duel?.scene.isActive() && !duel.multiplayerAtivo &&
+        [duel.partida.jogador, duel.partida.inimigo].some(player =>
+          [...player.deck.cartas, ...player.mao.cartas, ...player.campo.cartas, ...player.descarte]
+            .some(card => card && !window.cyberduelDeckBuilder.isCardAllowed(card))))
+        duel.scene.start("CenaTitulo");
+    }
+    if (shouldNotify) this.notify();
+  }
+
+  async setDemoMode(enabled) {
+    const payload = await this.request("/api/admin/demo-mode", { method: "POST", body: { enabled } });
+    this.applyDemoMode(payload.demoMode);
+    return payload;
   }
 
   async setSegurancaX1(enabled) {

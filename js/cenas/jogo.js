@@ -345,6 +345,7 @@ class CenaJogo extends Phaser.Scene {
         }
       }
 
+      if (!window.cyberduelDeckBuilder.isCardAllowed(carta)) throw Error("Modo demo: apenas Echossystem e RaspCorp.");
       this.partida.jogador.mao.adicionarCarta(carta);
       this.partida.jogador.cartasRecemCompradas.push(carta);
 
@@ -406,6 +407,7 @@ class CenaJogo extends Phaser.Scene {
         }
       }
 
+      if (!window.cyberduelDeckBuilder.isCardAllowed(carta)) throw Error("Modo demo: apenas Echossystem e RaspCorp.");
       this.partida.inimigo.campo.adicionarCarta(carta, posicao);
       this.partida.resolverEfeitosContinuos(this.partida.inimigo);
       this.partida.resolverEfeitosContinuos(this.partida.jogador);

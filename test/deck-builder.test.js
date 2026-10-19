@@ -26,6 +26,12 @@ vm.runInContext(
 
 const { builder, CyberduelDeckBuilderUI } = context.exportsForTest;
 const catalog = builder.getCatalog();
+context.window.CYBERDUEL_DEMO_MODE = true;
+assert.deepEqual([...new Set(builder.getCatalog().map(card => card.booster))].sort(), ['echossystem', 'raspcorp']);
+assert.equal(builder.ownedQuantity(catalog.find(card => card.booster === 'humbanet')), 0);
+assert.equal(builder.isValid(builder.getStarterDeck()), true);
+context.window.CYBERDUEL_DEMO_MODE = false;
+assert.equal(builder.getCatalog(), catalog, 'Desativar restaura o catálogo original.');
 assert.ok(
   catalog.length >= 20,
   "A coleção deve oferecer escolhas para o deck.",

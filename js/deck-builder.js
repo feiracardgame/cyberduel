@@ -14,7 +14,7 @@ class CyberduelDeckBuilder {
   }
 
   getCatalog() {
-    if (this.catalogCache) return this.catalogCache;
+    if (this.catalogCache) return window.CYBERDUEL_DEMO_MODE ? this.catalogCache.filter(card => this.isCardAllowed(card)) : this.catalogCache;
     const entries = [
       ...POOL_CARTAS_MONSTRO.map((base) => ({ tipo: "monstro", base })),
       ...POOL_CARTAS_EFEITO.map((base) => ({ tipo: "efeito", base })),
@@ -70,7 +70,11 @@ class CyberduelDeckBuilder {
         ),
       ]),
     );
-    return this.catalogCache;
+    return window.CYBERDUEL_DEMO_MODE ? this.catalogCache.filter(card => this.isCardAllowed(card)) : this.catalogCache;
+  }
+
+  isCardAllowed(card) {
+    return !window.CYBERDUEL_DEMO_MODE || ["echossystem", "raspcorp"].includes(card?.booster);
   }
 
   normalizeSearchText(value) {
@@ -120,6 +124,7 @@ class CyberduelDeckBuilder {
 
   isValid(deck) {
     if (this.total(deck) !== this.maxCards) return false;
+    if (window.CYBERDUEL_DEMO_MODE && deck.some(card => !this.isCardAllowed(this.getCatalogByKey().get(`${card.tipo}:${card.nome}`)))) return false;
     const composition = this.composition(deck);
     return Object.entries(this.minimums).every(
       ([level, minimum]) => composition[level] >= minimum,
@@ -284,6 +289,7 @@ class CyberduelDeckBuilder {
   }
 
   ownedQuantity(card) {
+    if (!this.isCardAllowed(card)) return 0;
     if (!this.account || !this.collection) return card.limite;
     return Math.max(0, Number(this.collection[card.key]) || 0);
   }
@@ -335,11 +341,7 @@ class CyberduelDeckBuilder {
       composition,
       remaining,
       slotsRemaining: Math.max(0, this.maxCards - total),
-      valid:
-        total === this.maxCards &&
-        Object.entries(this.minimums).every(
-          ([level, minimum]) => composition[level] >= minimum,
-        ),
+      valid: this.isValid(deck),
     };
   }
 

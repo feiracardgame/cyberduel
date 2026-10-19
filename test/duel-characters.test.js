@@ -119,7 +119,14 @@ for (const [avatar, path] of Object.entries(portraits)) {
   assert.equal(mapped.personagensDuelo.jogador, `personagem:${path}`);
 }
 const { scene: presentation, loaded: displayAssets, objects: displayObjects } = renderer();
-presentation.multiplayer = { presentation: true };
-presentation.carregarRetratosDuelo(); presentation.desenharPersonagensDuelo(); presentation.desenharMaoEmLeque();
-assert.equal(displayAssets.length, 0); assert.equal(displayObjects.length, 0);
+presentation.multiplayerAtivo = true;
+presentation.multiplayer = { presentation: true, profiles: {
+  1: { avatar: 'assets/fotosdeperfil/boi_icon.png' }, 2: { avatar: 'assets/fotosdeperfil/raspclay_icon.png' },
+} };
+presentation.carregarRetratosDuelo();
+assert.equal(displayAssets.length, 2);
+presentation.textures.exists = () => true;
+presentation.desenharPersonagensDuelo(); presentation.desenharMaoEmLeque();
+assert.ok(displayObjects.find(object => object.name === 'personagem-jogador').key.includes('boi_profile'));
+assert.ok(displayObjects.find(object => object.name === 'personagem-inimigo').key.includes('raspclay_profile'));
 console.log('Personagens: avatar local/remoto, Boi, Clayrton, fallback, cantos, espaço da mão e apresentação validados.');

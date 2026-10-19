@@ -35,6 +35,16 @@ const entry = (username, rating = 1000) => ({ username, nickname: 'Mesmo apelido
 async function run() {
   await board.update([entry('one', 2000), entry('two', 1800)]);
   const one = board.rows.get('one'), two = board.rows.get('two');
+  const scrolling = {};
+  one.parts.nameViewport.clientWidth = 100;
+  one.parts.name.scrollWidth = 180;
+  one.parts.name.style = { setProperty: (key, value) => scrolling[key] = value };
+  board.updateNameScrolling();
+  assert.equal(one.parts.nameViewport.classes.has('is-scrolling'), true);
+  assert.equal(scrolling['--name-overflow'], '80px');
+  one.parts.name.scrollWidth = 70;
+  board.updateNameScrolling();
+  assert.equal(one.parts.nameViewport.classes.has('is-scrolling'), false, 'Nome curto permanece parado.');
   assert.equal(board.rows.size, 2, 'Apelidos repetidos não combinam os jogadores.');
   assert.equal(parts['#leaderboard-rows'].children.length, 10, 'Mantém dez posições no painel.');
   await board.update([entry('two', 2100), entry('one', 1900)]);
