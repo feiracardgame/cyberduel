@@ -75,7 +75,7 @@ const event = (socket, name) => new Promise((resolve, reject) => {
     assert.equal((await ack(socket, 'join-room', {
       code, table: 1, seat: index + 1, accountToken: user.token,
     })).ok, true);
-    assert.equal(await codeLabel.isVisible(), true, 'Código continua visível quando um jogador entra.');
+    if (index === 0) assert.equal(await codeLabel.isVisible(), true, 'Código continua visível enquanto espera o segundo jogador.');
   }
   const matches = await Promise.all(ready);
   await page.waitForFunction(() => typeof game !== 'undefined' && game.scene.isActive('CenaJogo'));
@@ -94,6 +94,18 @@ const event = (socket, name) => new Promise((resolve, reject) => {
         canPlay: scene.podeJogarCartasAgora(), canUseAbility: scene.podeUsarHabilidadesAgora(),
         passButton: children.some(node => node.name === 'passar-turno'),
         activePlayer: scene.multiplayer.activePlayer,
+        symmetry: {
+          portraits: ['jogador', 'inimigo'].map(side => {
+            const node = children.find(node => node.name === `personagem-${side}`);
+            return { width: node.displayWidth, angle: node.angle, x: node.x, y: node.y };
+          }),
+          hands: [scene.partida.jogador, scene.partida.inimigo].map(player => player.mao.cartas.map(card => {
+            const node = children.find(node => node.dadosCarta === card);
+            return { width: node.width, height: node.height };
+          })),
+          fieldCenter: (scene.layout.yInimigoTras + scene.layout.yJogadorTras) / 2,
+
+        },
       };
     });
   }
@@ -106,17 +118,16 @@ const event = (socket, name) => new Promise((resolve, reject) => {
     assert.deepEqual(initial.hands[index], matches[0].update.state[side].hand.map(card => card.nome));
     assert.ok(initial.characters[index]?.includes(index === 0 ? 'raspclay' : 'cobra'));
   }
-  assert.deepEqual(initial.faces, initial.hands[0]);
+  assert.deepEqual(initial.faces.slice().sort(), initial.hands.flat().sort());
   assert.equal(initial.labels.filter(text => text === 'PA:').length, 2);
+  assert.equal(initial.symmetry.portraits[0].width, initial.symmetry.portraits[1].width);
+  assert.equal(Math.abs(initial.symmetry.portraits[1].angle), 180);
+  assert.equal(initial.symmetry.fieldCenter * 2, initial.symmetry.portraits[0].y);
+  for (const hand of initial.symmetry.hands) for (const card of hand) assert.deepEqual(card, { width: 176, height: 246 });
   assert.equal(initial.controls, 0);
   assert.equal(initial.canPlay, false); assert.equal(initial.canUseAbility, false);
   assert.equal(initial.passButton, false);
-  assert.equal(await codeLabel.isVisible(), true);
-  const badge = await codeLabel.evaluate(node => ({
-    width: node.getBoundingClientRect().width, font: getComputedStyle(node).font,
-    parent: node.parentElement.className, viewport: innerWidth,
-  }));
-  assert.ok(badge.width < 250, 'Código compacto preserva o espaço dos indicadores de PA em desktop: ' + JSON.stringify(badge));
+  assert.equal(await codeLabel.count(), 0, 'Código desaparece quando a partida começa.');
   checks.push('Mãos reais, PA dedicado, personagens corretos e apresentação sem comandos de jogada.');
 
   const active = matches[0].activePlayer;
@@ -132,14 +143,14 @@ const event = (socket, name) => new Promise((resolve, reject) => {
   await page.waitForFunction(({ side, count }) => game.scene.getScene('CenaJogo').partida[side].mao.cartas.length === count,
     { side, count: state[side].hand.length });
   const updated = await inspect();
-  assert.equal(await codeLabel.isVisible(), true, 'Atualizar a arena preserva o código.');
+  assert.equal(await codeLabel.count(), 0, 'Código não reaparece ao atualizar.');
   assert.deepEqual(updated.hands[active - 1], state[side].hand.map(card => card.nome));
   assert.ok(updated.labels.includes(String(played.poder)), 'PA dedicado acompanha a carta colocada.');
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => typeof game !== 'undefined' && game.scene.isActive('CenaJogo') &&
     game.scene.getScene('CenaJogo').children.list.some(node => node.name === 'personagem-inimigo'));
   assert.deepEqual((await inspect()).hands, updated.hands);
-  assert.equal(await codeLabel.isVisible(), true, 'Código restaurado ao recarregar.');
+  assert.equal(await codeLabel.count(), 0, 'Código não reaparece ao recarregar o duelo.');
   checks.push('Atualização real da mão e PA pelo servidor; recarga restaura cartas e personagens.');
   await page.setViewportSize({ width: 720, height: 1480 });
   await page.waitForTimeout(500);
@@ -147,12 +158,12 @@ const event = (socket, name) => new Promise((resolve, reject) => {
   checks.push('Espera com assets de NeoFloripa, molduras ciano/rosa do duelo e código no estilo do HUD.');
   assert.equal((await ack(sockets[0], 'decline-match', { room: code, accountToken: users[0].token })).ok, true);
   await page.waitForFunction(() => game.scene.getScene('CenaJogo').telaFinalExibida);
-  assert.equal(await codeLabel.isVisible(), true, 'Código permanece visível sobre o resultado.');
+  assert.equal(await codeLabel.count(), 0, 'Resultado mantém código oculto.');
   await page.screenshot({ path: path.join(output, 'codigo-resultado.png') });
   await page.keyboard.press('Escape');
   await page.waitForFunction(() => typeof game !== 'undefined' && game.scene.isActive('CenaTitulo'));
   assert.equal(await page.locator('.presentation-code--duel').count(), 0, 'Retornar à espera remove o indicador do duelo anterior.');
-  checks.push('Código sempre visível: mesa vazia, entrada, duelo, atualização, recarga e resultado.');
+  checks.push('Código visível na espera e oculto durante duelo, recarga e resultado.');
   const normal = await browser.newPage({ viewport: { width: 720, height: 1480 } });
   await normal.addInitScript(token => {
     localStorage.setItem('cyberduel.account.token.v1', token);

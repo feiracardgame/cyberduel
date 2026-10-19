@@ -34,7 +34,7 @@ scene.animarComprasInimigas(2, () => concluidas++);
 assert.equal(concluidas, 1, 'Pular a animação deve concluir a atualização remota.');
 assert.deepEqual(images, ['arte-inimigo', 'arte-jogador', 'arte-jogador']);
 assert.equal(containers[0].angle, 180, 'Mão do jogador 2 orientada para seu lado da mesa.');
-assert.equal(containers.filter(card => card.dadosCarta).length, 2, 'Mão local usa o leque da interface atual.');
+assert.equal(containers.filter(card => card.dadosCarta).length, 3, 'As duas mãos usam o mesmo leque da interface atual.');
 images.length = 0;
 scene.multiplayer.presentation = false;
 scene.add.rectangle = object;

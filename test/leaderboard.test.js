@@ -13,6 +13,11 @@ class Element {
   setAttribute(name, value) { this.attributes[name] = value; }
   addEventListener() {}
   append(...children) { for (const child of children) { child.remove(); child.parent = this; this.children.push(child); } }
+  insertBefore(child, reference) {
+    this.insertions = (this.insertions || 0) + 1;
+    child.remove(); child.parent = this;
+    this.children.splice(reference ? this.children.indexOf(reference) : this.children.length, 0, child);
+  }
   remove() { if (this.parent) { this.parent.children = this.parent.children.filter(child => child !== this); this.parent = null; } }
   querySelectorAll(query) { return this.children.filter(child => query.split(',').some(selector => child.classes.has(selector.trim().slice(1)))); }
   querySelector(query) { return this.querySelectorAll(query)[0]; }
@@ -47,6 +52,9 @@ async function run() {
   assert.equal(one.parts.nameViewport.classes.has('is-scrolling'), false, 'Nome curto permanece parado.');
   assert.equal(board.rows.size, 2, 'Apelidos repetidos não combinam os jogadores.');
   assert.equal(parts['#leaderboard-rows'].children.length, 10, 'Mantém dez posições no painel.');
+  const insertions = parts['#leaderboard-rows'].insertions;
+  await board.update([entry('one', 2000), entry('two', 1800)]);
+  assert.equal(parts['#leaderboard-rows'].insertions, insertions, 'Atualização sem mudança preserva as linhas e a animação dos nomes.');
   await board.update([entry('two', 2100), entry('one', 1900)]);
   assert.equal(parts['#leaderboard-rows'].children[0], two, 'A linha existente acompanha o jogador na troca.');
   assert.equal(board.rows.get('one'), one);

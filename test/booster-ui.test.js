@@ -94,5 +94,21 @@ for (const tipo of ['terreno', 'efeito']) {
   await retry.click();
   assert.equal(failedDialog.children.find(x => x.classList.contains('title-dialog__error')).textContent, 'Sem conexão');
   assert.equal(retry.disabled, false);
+  ui.modal = null;
+  context.window.CYBERDUEL_DEMO_MODE = true;
+  ui.openBoosterShop();
+  const demoDialog = ui.modal.children[0];
+  const demoTabs = demoDialog.children.find(node => node.classList.contains('booster-factions')).children;
+  assert.equal(demoTabs.length, 5, 'Todos os boosters continuam visíveis.');
+  assert.equal(demoTabs.filter(button => !button.disabled).length, 2);
+  for (const button of demoTabs.filter(button => button.disabled)) {
+    assert.equal(button.children[0].textContent, 'Disponível apenas na feira de jogos.');
+    button.click();
+  }
+  assert.equal(purchases, 1, 'Booster bloqueado não pode ser comprado.');
+  ui.modal = null;
+  context.window.CYBERDUEL_DEMO_MODE = false;
+  ui.openBoosterShop();
+  assert.ok(ui.modal.children[0].children.find(node => node.classList.contains('booster-factions')).children.every(button => !button.disabled));
   console.log('Booster: ordem, duplicatas, revelação individual, lendária, compra única, reinício e falha validados.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

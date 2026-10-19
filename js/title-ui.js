@@ -3212,7 +3212,7 @@ class CyberduelTitleUI {
       });
   }
 
-  boosterFactions() {
+  boosterFactions(includeLocked = false) {
     return [
       [
         "raspcorp",
@@ -3243,7 +3243,7 @@ class CyberduelTitleUI {
         "Povo da Areia",
       ],
       ["sindicato", "Sindicato", "Ninguém vence sozinho.", "#bf94ff", null],
-    ].filter(faction => !window.CYBERDUEL_DEMO_MODE || ["echossystem", "raspcorp"].includes(faction[0]));
+    ].filter(faction => includeLocked || !window.CYBERDUEL_DEMO_MODE || ["echossystem", "raspcorp"].includes(faction[0]));
   }
 
   switchBoosterView(show) {
@@ -3342,11 +3342,12 @@ class CyberduelTitleUI {
       opening ? "Abertura de booster" : "Mercado de boosters",
     );
     this.modalAfterClose = () => this.account.notify();
-    const factions = this.boosterFactions();
+    const factions = this.boosterFactions(!opening);
+    const available = this.boosterFactions();
     let selected =
-      factions.find(
+      available.find(
         (f) => f[0] === (ownedPack?.faction || this.account.faction),
-      ) || factions[0];
+      ) || available[0];
     let busy = false;
     let opened = false;
     const header = this.element("header", "booster-header");
@@ -3593,7 +3594,7 @@ class CyberduelTitleUI {
       balance.textContent = `${this.account.currency.toLocaleString("pt-BR")} TIJOLINHOS`;
       close.disabled = admin.disabled = inventory.disabled = busy || revealing;
       for (const button of tabs.children) {
-        button.disabled = busy || revealing;
+        button.disabled = busy || revealing || button.dataset.locked === "true";
         button.setAttribute(
           "aria-pressed",
           String(button.dataset.faction === selected[0]),
@@ -3713,6 +3714,11 @@ class CyberduelTitleUI {
         reset();
       });
       button.dataset.faction = faction[0];
+      button.dataset.locked = String(!available.some(item => item[0] === faction[0]));
+      if (button.dataset.locked === "true") {
+        button.setAttribute("aria-label", `${faction[1]} · Disponível apenas na feira de jogos.`);
+        button.append(this.element("small", "", "Disponível apenas na feira de jogos."));
+      }
       tabs.append(button);
     }
     const factionAnalysis = this.element("div", "booster-analysis");

@@ -90,7 +90,7 @@
         const overflow = Math.max(0, name.scrollWidth - nameViewport.clientWidth);
         nameViewport.classList[overflow > 1 ? "add" : "remove"]("is-scrolling");
         name.style.setProperty("--name-overflow", `${overflow}px`);
-        name.style.setProperty("--name-duration", `${Math.max(6, overflow / 25 + 4)}s`);
+        name.style.setProperty("--name-duration", `${Math.max(10, overflow / 10 + 4)}s`);
       }
     }
 
@@ -137,7 +137,7 @@
         if (!ids.has(id)) { row.remove(); this.rows.delete(id); }
       }
       transitions.length = 0;
-      for (const entry of next) {
+      for (const [index, entry] of next.entries()) {
         let row = this.rows.get(entry.username);
         const old = previous.get(entry.username);
         if (!row) {
@@ -146,7 +146,7 @@
           if (this.initialized) row.classList.add("is-new");
         }
         this.writeRow(row, entry);
-        this.body.append(row);
+        if (this.body.children[index] !== row) this.body.insertBefore(row, this.body.children[index] || null);
         if (animate && old?.rating !== undefined && old.rating !== entry.rating) transitions.push(this.countScore(row.parts.score, old.rating, entry.rating, 1100));
       }
       this.fillSlots();

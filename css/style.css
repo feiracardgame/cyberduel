@@ -3124,23 +3124,6 @@ body.title-terminal-open #game-viewport canvas {
   background: #061027f0;
   clip-path: polygon(3cqw 0, 100% 0, 100% calc(100% - 3cqw), calc(100% - 3cqw) 100%, 0 100%, 0 3cqw);
 }
-.presentation-code--duel {
-  position: fixed;
-  z-index: 10000;
-  left: calc(var(--viewport-left, 0px) + var(--viewport-width, 100vw) / 2);
-  top: calc(var(--viewport-top, 0px) + var(--viewport-height, 100dvh) / 2 + var(--game-display-height, 100dvh) * .25);
-  transform: translate(-50%, -50%);
-  padding: .4em .7em;
-  border: 1px solid #54ddff;
-  background: #061027;
-  color: #dceaff;
-  border-bottom-width: 3px;
-  clip-path: polygon(.6em 0, 100% 0, 100% calc(100% - .6em), calc(100% - .6em) 100%, 0 100%, 0 .6em);
-  font: bold italic calc(min(4.5vw, 2.19dvh) * var(--cyber-text-scale, 1)) Arial, sans-serif;
-  letter-spacing: .08em;
-  white-space: nowrap;
-  pointer-events: none;
-}
 .presentation-seats { position: absolute; inset: 0; }
 .presentation-seats section {
   --seat-color: #54ddff;
@@ -3420,3 +3403,6 @@ body.title-terminal-open #game-viewport canvas {
 .title-club-dialog > .club-tables-status { margin: 12px 0; }
 .title-club-dialog > .title-dialog__cancel { width: 100%; min-height: 44px; border-radius: 8px; }
 .club-table-entry .title-room-create { margin-top: 12px; }
+
+.title-booster-dialog .booster-faction[data-locked="true"] { opacity: .8; cursor: not-allowed; }
+.booster-faction small { display: block; max-width: 140px; margin-top: 6px; white-space: normal; font-size: 9px; line-height: 1.4; }

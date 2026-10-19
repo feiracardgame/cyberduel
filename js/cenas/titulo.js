@@ -146,9 +146,6 @@ class CenaTitulo extends Phaser.Scene {
     };
     this.multiplayer.onReady = () => {
       if (!this.scene.isActive()) return;
-      code.className = "presentation-code presentation-code--duel";
-      document.body.append(code);
-      this.scene.get("CenaJogo").events.once("shutdown", () => code.remove());
       this.scene.start("CenaJogo");
     };
     this.multiplayer.onStatus = message => { status.textContent = message; };

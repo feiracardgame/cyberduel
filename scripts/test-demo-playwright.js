@@ -66,7 +66,10 @@ const checks = [], errors = [];
   assert.deepEqual(restricted.boosters.sort(), ['echossystem', 'raspcorp']);
   assert.deepEqual(restricted.cards, ['echossystem', 'raspcorp']);
   await player.evaluate(() => game.scene.getScene('CenaTitulo').titleUI.openBoosterShop());
-  assert.equal(await player.locator('.booster-factions button').count(), 2);
+  assert.equal(await player.locator('.booster-factions button').count(), 5);
+  assert.equal(await player.locator('.booster-factions button:enabled').count(), 2);
+  assert.equal(await player.locator('.booster-factions button:disabled').count(), 3);
+  assert.equal(await player.getByText('Disponível apenas na feira de jogos.', { exact: true }).count(), 3);
   await player.waitForFunction(() => [...document.querySelectorAll('.title-modal')].some(node => getComputedStyle(node).opacity === '1'));
   await player.screenshot({ path: path.join(output, 'demo-loja.png') });
   await player.evaluate(() => {
@@ -77,7 +80,7 @@ const checks = [], errors = [];
   await player.waitForFunction(() => game.scene.isActive('CenaDeckBuilder'));
   assert.equal(await player.evaluate(() => game.scene.getScene('CenaDeckBuilder').deckBuilderUI.catalog.every(card => ['echossystem', 'raspcorp'].includes(card.booster))), true);
   await player.screenshot({ path: path.join(output, 'demo-deck.png') });
-  checks.push('Comando exclusivo de admin; dois boosters na loja e apenas cartas permitidas no editor; deck antigo preservado e bloqueado.');
+  checks.push('Comando exclusivo de admin; cinco boosters visíveis, três bloqueados com aviso e apenas cartas permitidas no editor; deck antigo preservado e bloqueado.');
 
   assert.match(await admin.evaluate(() => modoDemo(false)), /desativado para todos/);
   await player.waitForFunction(() => !window.cyberduelAccount.demoMode && game.scene.getScene('CenaDeckBuilder').deckBuilderUI.catalog.some(card => card.booster === 'humbanet'));

@@ -50,6 +50,11 @@ const LAYOUT_CAMPO_NORMAL = calcularLayoutCampo(
   510 + DESLOCAMENTO_GUI_Y, // yInimigoTras: espaço para retrato, timer e mão do oponente
 );
 
+const LAYOUT_CAMPO_APRESENTACAO = calcularLayoutCampo(
+  195, 270, 12, 240,
+  (ALTURA_LAYOUT - (4 * 270 + 2 * 12 + 240)) / 2 + 135,
+);
+
 // Layout ampliado: mão escondida. Cartas ainda maiores, aproveitando o espaço liberado pela mão.
 const LAYOUT_CAMPO_AMPLIADO = calcularLayoutCampo(
   195, // slotW: largura da carta
@@ -1126,8 +1131,8 @@ class CenaJogo extends Phaser.Scene {
   desenharTimerTurno() {
     const largura = 430;
     const altura = 98;
-    const x = LARGURA_LAYOUT - 380;
-    const y = 84 + DESLOCAMENTO_GUI_Y;
+    const x = this.multiplayer?.presentation ? LARGURA_LAYOUT / 2 : LARGURA_LAYOUT - 380;
+    const y = this.multiplayer?.presentation ? ALTURA_LAYOUT / 2 + 15 : 84 + DESLOCAMENTO_GUI_Y;
 
     const fundo = this.criarPlacaDuelo(0, 0, largura, altura);
     const halo = this.add.circle(-largura / 2 + 23, -19, 5, 0x54ddff, 1);
@@ -1344,9 +1349,8 @@ class CenaJogo extends Phaser.Scene {
     this.btnAnteriorHistorico = null;
     this.btnProximaHistorico = null;
 
-    this.layout = this.maoEscondida
-      ? LAYOUT_CAMPO_AMPLIADO
-      : LAYOUT_CAMPO_NORMAL;
+    this.layout = this.multiplayer?.presentation ? LAYOUT_CAMPO_APRESENTACAO
+      : this.maoEscondida ? LAYOUT_CAMPO_AMPLIADO : LAYOUT_CAMPO_NORMAL;
 
     this.desenharStatus();
     this.desenharMaoInimigo();
@@ -1391,6 +1395,7 @@ class CenaJogo extends Phaser.Scene {
 
   // Mostra as costas das cartas na mão do inimigo, no topo da tela — só pra dar noção visual de quantas cartas ele tem (não revela quais são).
   desenharMaoInimigo(lado = "inimigo") {
+    if (this.multiplayer?.presentation) return this.desenharMaoEmLeque(lado);
     const cartasMao = this.partida[lado].mao.cartas;
     const total = cartasMao.length;
     if (total === 0) return;
@@ -3099,21 +3104,22 @@ class CenaJogo extends Phaser.Scene {
     return { x: LARGURA_LAYOUT / 2, y: 1230 };
   }
 
-  desenharMaoEmLeque() {
+  desenharMaoEmLeque(lado = "jogador") {
+    const topo = this.multiplayer?.presentation && lado === "inimigo";
     if (this.multiplayer?.spectator && !this.multiplayer?.presentation) {
       this.desenharMaoInimigo("jogador");
       return;
     }
-    let cartasMao = this.partida.jogador.mao.cartas;
+    let cartasMao = this.partida[lado].mao.cartas;
     let totalCartas = cartasMao.length;
 
     if (totalCartas === 0) return;
 
     // CARTAS RECÉM-COMPRADAS
 
-    const recemCompradas = this.partida.jogador.cartasRecemCompradas || [];
+    const recemCompradas = this.partida[lado].cartasRecemCompradas || [];
 
-    this.partida.jogador.cartasRecemCompradas = [];
+    this.partida[lado].cartasRecemCompradas = [];
 
     // CONFIGURAÇÃO DO LEQUE
 
@@ -3140,6 +3146,11 @@ class CenaJogo extends Phaser.Scene {
       let posY = centroY + Math.pow(offset, 2) * curvaturaY;
 
       let angulo = offset * anguloPasso;
+      if (topo) {
+        posX = LARGURA_LAYOUT - posX;
+        posY = ALTURA_LAYOUT - posY;
+        angulo += 180;
+      }
 
       // VISUAL DA CARTA
 
@@ -6529,13 +6540,15 @@ class CenaJogo extends Phaser.Scene {
 
   // Rodadas no topo e fase no intervalo entre os campos.
   desenharStatus() {
-    const painel = this.criarPlacaDuelo(LARGURA_LAYOUT / 2, 339 + DESLOCAMENTO_GUI_Y, 430, 48);
+    const painel = this.criarPlacaDuelo(LARGURA_LAYOUT / 2,
+      this.multiplayer?.presentation ? ALTURA_LAYOUT / 2 - 90 : 339 + DESLOCAMENTO_GUI_Y, 430, 48);
     painel.add(this.criarTextoUI(0, 0,
       `RODADAS   ${this.partida.rodadasJogador}  :  ${this.partida.rodadasInimigo}`,
       { fontSize: "23px", color: "#dceaff", fontStyle: "bold" },
     ).setOrigin(0.5));
 
-    const yFase = (this.layout.yInimigoFrente + this.layout.yJogadorFrente) / 2;
+    const yFase = (this.layout.yInimigoFrente + this.layout.yJogadorFrente) / 2
+      + (this.multiplayer?.presentation ? 95 : 0);
     const faixa = this.criarPlacaDuelo(LARGURA_LAYOUT / 2, yFase, 620, 52,
       this.ehMeuTurno ? 0x54ddff : 0xff72af);
     faixa.add(this.criarTextoUI(0, 0,
@@ -6547,8 +6560,8 @@ class CenaJogo extends Phaser.Scene {
   // Contadores estáveis deixam a comparação de poder legível sem alterar o tamanho do HUD a cada carta colocada.
   desenharIndicadoresPoder() {
     this.criarIndicadorPoder(
-      370,
-      100 + DESLOCAMENTO_GUI_Y,
+      this.multiplayer?.presentation ? 185 : 370,
+      this.multiplayer?.presentation ? 350 : 100 + DESLOCAMENTO_GUI_Y,
       this.partida.calcularPoderTotal(this.partida.inimigo),
       "inimigo",
     );
@@ -6562,7 +6575,8 @@ class CenaJogo extends Phaser.Scene {
 
   criarIndicadorPoder(x, y, valor, lado) {
     const local = lado === "jogador";
-    const placa = this.add.container(x, y).setAngle(local ? -22 : -16).setDepth(180);
+    const simetrico = local || this.multiplayer?.presentation;
+    const placa = this.add.container(x, y).setAngle(simetrico ? (local ? -22 : 158) : -16).setDepth(180);
     const textoX = -145;
     const nome = local
       ? (this.multiplayerAtivo ? this.multiplayer.localNickname : window.cyberduelAccount?.nickname) || "VOCÊ"
@@ -6572,14 +6586,14 @@ class CenaJogo extends Phaser.Scene {
       fontSize: "40px",
       color: "#ffffff", fontStyle: "bold italic",
     }).setOrigin(0, 0.5).setStroke("#02040b", 7);
-    const larguraNome = local ? 290 : 230;
+    const larguraNome = simetrico ? 290 : 230;
     if (nomeTexto.width > larguraNome) nomeTexto.setScale(larguraNome / nomeTexto.width);
     const numero = this.criarTextoUI(textoX + 67, 0, String(valor), {
       fontSize: "100px", color: "#ffffff", fontFamily: "Arial, sans-serif", fontStyle: "bold italic",
     }).setOrigin(0, 0.5).setStroke("#02040b", 7);
-    const larguraNumero = local ? 230 : 170;
+    const larguraNumero = simetrico ? 230 : 170;
     if (numero.width > larguraNumero) numero.setScale(larguraNumero / numero.width);
-    const label = this.criarTextoUI(textoX, local ? 20 : 0, "PA:", {
+    const label = this.criarTextoUI(textoX, simetrico ? 20 : 0, "PA:", {
       fontSize: "36px", color: "#ffffff", fontStyle: "bold italic",
     }).setOrigin(0, 0.5).setStroke("#02040b", 7);
     placa.add([nomeTexto, numero, label]);
@@ -6591,6 +6605,15 @@ class CenaJogo extends Phaser.Scene {
       const key = this.personagensDuelo?.[lado];
       if (!key || !this.textures.exists(key)) continue;
       const local = lado === "jogador";
+      if (this.multiplayer?.presentation && !local) {
+        const largura = LARGURA_LAYOUT * 0.35;
+        this.add.image(0, 0, "duelCorner").setOrigin(1, 1).setAngle(180)
+          .setDisplaySize(650, 600).setDepth(-3).setName(`fundo-personagem-${lado}`);
+        const personagem = this.add.image(0, 0, key).setOrigin(1, 1).setAngle(180)
+          .setDepth(-2).setName(`personagem-${lado}`);
+        personagem.setScale(largura / personagem.width);
+        continue;
+      }
       const largura = LARGURA_LAYOUT * (local ? 0.35 : 0.21);
       this.add.image(local ? LARGURA_LAYOUT : 0, local ? ALTURA_LAYOUT : 0,
         local ? "duelCorner" : "duelCornerOpponent")
