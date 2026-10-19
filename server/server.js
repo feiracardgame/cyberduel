@@ -1495,9 +1495,9 @@ function spectatorState(snapshot) {
 function presentationState(snapshot) {
   const state = spectatorState(snapshot);
   if (!state) return null;
-  for (const player of [state.jogador, state.inimigo]) {
-    player.hand = [];
-    player.deck = [];
+  for (const side of ["jogador", "inimigo"]) {
+    state[side].hand = JSON.parse(JSON.stringify(snapshot[side].hand));
+    state[side].deck = [];
   }
   return state;
 }
@@ -1505,7 +1505,7 @@ function presentationState(snapshot) {
 function presentationInfo(room) {
   return { ok: true, room: publicRoom(room), displayKey: room.displayKey, invitations: room.invitations,
     showCode: !!room.codeRequested,
-    nicknames: Object.fromEntries(room.nicknames),
+    nicknames: Object.fromEntries(room.nicknames), profiles: Object.fromEntries(room.profiles),
     seats: [1, 2].map(player => ({ player, connected: !!room.players.get(player) })),
     ...(room.state ? { update: { state: presentationState(room.state), ...phaseInfo(room), initial: true } } : {}) };
 }

@@ -1032,7 +1032,6 @@ class CenaJogo extends Phaser.Scene {
   }
 
   carregarRetratosDuelo() {
-    if (this.multiplayer?.presentation) return;
     const player = this.multiplayer?.player || 1;
     const profiles = this.multiplayerAtivo ? this.multiplayer.profiles : {};
     const urls = {
@@ -1125,12 +1124,10 @@ class CenaJogo extends Phaser.Scene {
   desenharTimerTurno() {
     const largura = 430;
     const altura = 98;
-    const x = this.multiplayer?.presentation ? LARGURA_LAYOUT / 2 : LARGURA_LAYOUT - 380;
-    const y = this.multiplayer?.presentation ? 84 : 84 + DESLOCAMENTO_GUI_Y;
+    const x = LARGURA_LAYOUT - 380;
+    const y = 84 + DESLOCAMENTO_GUI_Y;
 
-    const fundo = this.multiplayer?.presentation
-      ? this.criarSuperficieVidro(0, 0, largura, altura)
-      : this.criarPlacaDuelo(0, 0, largura, altura);
+    const fundo = this.criarPlacaDuelo(0, 0, largura, altura);
     const halo = this.add.circle(-largura / 2 + 23, -19, 5, 0x54ddff, 1);
     const label = this.criarTextoUI(-largura / 2 + 40, -20, "Sua vez", {
       fontSize: "24px",
@@ -1170,7 +1167,7 @@ class CenaJogo extends Phaser.Scene {
       barra,
     ]);
     container.setDepth(190);
-    if (!this.multiplayer?.presentation) container.add(this.criarTextoUI(
+    container.add(this.criarTextoUI(
       0, -65, `TURNO ${this.partida.turno} / ${this.partida.maxTurnos}`,
       { fontSize: "24px", color: "#dceaff", fontStyle: "bold" },
     ).setOrigin(0.5));
@@ -1198,8 +1195,6 @@ class CenaJogo extends Phaser.Scene {
     if (this.multiplayer?.presentation) {
       const player = this.multiplayer.activePlayer;
       const name = player === 1 ? this.multiplayer.localNickname : this.multiplayer.opponentNickname;
-      this.timerContainer.setPosition(LARGURA_LAYOUT / 2, player === 1 ? ALTURA_LAYOUT - 84 : 84);
-      this.timerContainer.setAngle(player === 2 ? 180 : 0);
       this.timerLabelTexto.setText(this.faseAtual === "habilidades" ? "Habilidades" : "Colocar cartas");
       this.timerEstadoTexto.setText(`Vez de ${String(name || `Jogador ${player}`).slice(0, 32)}`);
       this.timerTexto.setText(this.formatarTempoTurno());
@@ -1394,15 +1389,14 @@ class CenaJogo extends Phaser.Scene {
 
   // Mostra as costas das cartas na mão do inimigo, no topo da tela — só pra dar noção visual de quantas cartas ele tem (não revela quais são).
   desenharMaoInimigo(lado = "inimigo") {
-    if (this.multiplayer?.presentation) return;
     const cartasMao = this.partida[lado].mao.cartas;
     const total = cartasMao.length;
     if (total === 0) return;
 
     // Nexus de Dados Global: enquanto esse terreno estiver no campo do jogador, a mão do inimigo fica revelada.
     const revelada =
-      !this.multiplayer?.spectator &&
-      this.partida.maoRevelada(this.partida.jogador);
+      this.multiplayer?.presentation ||
+      (!this.multiplayer?.spectator && this.partida.maoRevelada(this.partida.jogador));
 
     const centroY = lado === "jogador" ? Y_MAO_JOGADOR : Y_MAO_INIMIGO;
     const larguraCarta = 140;
@@ -1494,11 +1488,13 @@ class CenaJogo extends Phaser.Scene {
 
       // Ajustes para o Leque Inimigo Interativo:
       container.setSize(larguraCarta, alturaCarta);
-      container.setAngle(angulo);
+      container.setAngle(angulo + (this.multiplayer?.presentation && lado === "inimigo" ? 180 : 0));
 
       // Controla a profundidade baseada no índice para que as cartas se sobreponham corretamente, assim como no leque original.
       container.depthBase = 10 + indice;
       container.setDepth(container.depthBase);
+
+      if (this.multiplayer?.presentation) return;
 
       container.setInteractive({ useHandCursor: true });
 
@@ -3102,8 +3098,7 @@ class CenaJogo extends Phaser.Scene {
   }
 
   desenharMaoEmLeque() {
-    if (this.multiplayer?.presentation) return;
-    if (this.multiplayer?.spectator) {
+    if (this.multiplayer?.spectator && !this.multiplayer?.presentation) {
       this.desenharMaoInimigo("jogador");
       return;
     }
@@ -3214,10 +3209,6 @@ class CenaJogo extends Phaser.Scene {
 
       containerCarta.setAngle(angulo);
 
-      containerCarta.setInteractive({
-        useHandCursor: true,
-      });
-
       // Dados usados pelo drag/drop.
       containerCarta.dadosCarta = carta;
 
@@ -3232,6 +3223,8 @@ class CenaJogo extends Phaser.Scene {
 
       containerCarta.setDepth(indice);
 
+      if (this.multiplayer?.presentation) return;
+      containerCarta.setInteractive({ useHandCursor: true });
       this.input.setDraggable(containerCarta);
 
       // ANIMAÇÃO DE ENTRADA
@@ -6534,20 +6527,6 @@ class CenaJogo extends Phaser.Scene {
 
   // Rodadas no topo e fase no intervalo entre os campos.
   desenharStatus() {
-    if (this.multiplayer?.presentation) {
-      for (const player of [1, 2]) {
-        const side = player === 1 ? "jogador" : "inimigo";
-        const name = player === 1 ? this.multiplayer.localNickname : this.multiplayer.opponentNickname;
-        const wins = player === 1 ? this.partida.rodadasJogador : this.partida.rodadasInimigo;
-        const otherWins = player === 1 ? this.partida.rodadasInimigo : this.partida.rodadasJogador;
-        const panel = this.criarPainelTatico(LARGURA_LAYOUT / 2, player === 1 ? ALTURA_LAYOUT - 220 : 220, 780, 160);
-        const label = this.criarTextoUI(0, -38, String(name || `Jogador ${player}`).slice(0, 32), { fontSize: "32px", color: "#e9fff3", fontStyle: "bold" }).setOrigin(0.5);
-        const score = this.criarTextoUI(0, 18, `PA ${this.partida.calcularPoderTotal(this.partida[side])} · Rodadas ${wins} : ${otherWins}`, { fontSize: "28px", color: "#afe5ce" }).setOrigin(0.5);
-        const round = this.criarTextoUI(0, 58, `Turno ${this.partida.turno} / ${this.partida.maxTurnos}`, { fontSize: "22px", color: "#d7efdf" }).setOrigin(0.5);
-        panel.add([label, score, round]); panel.setAngle(player === 2 ? 180 : 0);
-      }
-      return;
-    }
     const painel = this.criarPlacaDuelo(LARGURA_LAYOUT / 2, 339 + DESLOCAMENTO_GUI_Y, 430, 48);
     painel.add(this.criarTextoUI(0, 0,
       `RODADAS   ${this.partida.rodadasJogador}  :  ${this.partida.rodadasInimigo}`,
@@ -6565,7 +6544,6 @@ class CenaJogo extends Phaser.Scene {
 
   // Contadores estáveis deixam a comparação de poder legível sem alterar o tamanho do HUD a cada carta colocada.
   desenharIndicadoresPoder() {
-    if (this.multiplayer?.presentation) return;
     this.criarIndicadorPoder(
       370,
       100 + DESLOCAMENTO_GUI_Y,
@@ -6607,7 +6585,6 @@ class CenaJogo extends Phaser.Scene {
   }
 
   desenharPersonagensDuelo() {
-    if (this.multiplayer?.presentation) return;
     for (const lado of ["jogador", "inimigo"]) {
       const key = this.personagensDuelo?.[lado];
       if (!key || !this.textures.exists(key)) continue;
@@ -8003,7 +7980,7 @@ class CenaJogo extends Phaser.Scene {
   // Gestos verticais alternam a visibilidade da mão.
 
   configurarGestosMao() {
-    if (this.training) return;
+    if (this.training || this.multiplayer?.presentation) return;
     // Arrastar para baixo esconde a mão; para cima, mostra.
 
     if (this.gestosMaoConfigurados) return;

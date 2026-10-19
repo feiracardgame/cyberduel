@@ -67,11 +67,12 @@ async function run() {
   assert.equal(first.player, 1); assert.equal(second.player, 2);
   for (const side of ['jogador', 'inimigo']) {
     assert.ok(first.update.state[side].hand.length > 0);
-    assert.deepEqual(shown.update.state[side].hand, []);
+    assert.deepEqual(shown.update.state[side].hand, first.update.state[side].hand);
     assert.deepEqual(shown.update.state[side].deck, []);
     assert.equal(shown.update.state[side].field.length, 10);
   }
   assert.equal(shown.decks, undefined);
+  assert.deepEqual(shown.profiles, first.profiles, 'Transmite os avatares para os personagens nos cantos.');
   assert.equal((await ack(screen, 'finish-turn', { state: first.update.state, step: 0, round: 1 })).ok, false);
   const spectator = await ack(outsider, 'spectate-room', { code: room.room.code });
   assert.equal(spectator.ok, true);
@@ -80,8 +81,8 @@ async function run() {
   const reconnect = await connect();
   screen.disconnect(); await new Promise(resolve => setTimeout(resolve, 70));
   const resumed = await ack(reconnect, 'create-presentation', { code: room.room.code, displayKey: room.displayKey });
-  assert.equal(resumed.ok, true); assert.deepEqual(resumed.update.state.jogador.hand, []);
-  // Um estado novo mantém o campo e os efeitos, sem transmitir as mãos à apresentação.
+  assert.equal(resumed.ok, true); assert.deepEqual(resumed.update.state.jogador.hand, first.update.state.jogador.hand);
+  // A apresentação acompanha as cartas da mão, do campo e os efeitos após cada jogada.
   const card = first.update.state.jogador.hand.shift();
   first.update.state.jogador.field[0] = card;
   first.update.state.eventosEfeito = [{ id: 1, lado: 'jogador', momento: 'invocacao', fonte: { id: card.id, nome: card.nome, indice: 0 }, alvos: [] }];
@@ -91,7 +92,9 @@ async function run() {
   const update = event(reconnect, "state-update");
   assert.equal((await ack(actor, 'finish-turn', { state: first.update.state, step: first.step, round: first.round })).ok, true);
   const next = await update;
-  assert.deepEqual(next.state.jogador.hand, []); assert.deepEqual(next.state.inimigo.hand, []);
+  assert.deepEqual(next.state.jogador.hand, first.update.state.jogador.hand);
+  assert.deepEqual(next.state.inimigo.hand, first.update.state.inimigo.hand);
+  assert.deepEqual(next.state.jogador.deck, []); assert.deepEqual(next.state.inimigo.deck, []);
   assert.equal(next.state.jogador.field[0].nome, card.nome);
   assert.equal(next.state.eventosEfeito[0].fonte.nome, card.nome);
   const final = event(two, 'state-update');
@@ -183,7 +186,7 @@ async function run() {
     assert.equal(shown.showCode, false, 'Ocultar código depois da entrada.');
     assert.equal((await ack(intruder, 'request-club-code', { table: index + 1, accountToken: accounts[0].token })).ok, false, 'Mesa em partida não exibe código.');
     assert.equal(firstMatch.arena, true); assert.equal(shown.room.table, index + 1);
-    assert.deepEqual(shown.update.state.jogador.hand, [], 'A mesa mantém a privacidade da apresentação comum.');
+    assert.deepEqual(shown.update.state.jogador.hand, firstMatch.update.state.jogador.hand, 'Mesas também exibem a mão na apresentação.');
     assert.equal(lockState.tables[index].players, 2);
     assert.equal(lockState.tables[index].locked, true); assert.equal(lockState.tables[index].available, false);
     assert.equal((await ack(intruder, 'join-room', { table: index + 1, code: table.room.code, accountToken: accounts[0].token })).ok, false, 'Mesa em jogo não aceita terceiros.');
