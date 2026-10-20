@@ -298,152 +298,214 @@ class CenaEfeitos extends Phaser.Scene {
   }
 
   animarSegurancaX1(evento, aoConcluir) {
-    const W = LARGURA_LAYOUT, H = ALTURA_LAYOUT, cx = W / 2;
-    const objetos = [], timers = [], sons = [];
-    const guardar = objeto => { objetos.push(objeto); return objeto; };
-    const depois = (delay, callback) => timers.push(this.time.delayedCall(delay, callback));
-    const tocar = (key, volume = 0.8, rate = 1) => {
+    const W = LARGURA_LAYOUT, H = ALTURA_LAYOUT, cx = W / 2, cy = H * .49;
+    const reduzido = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
+    const objetos = [], timers = [], animacoes = [], sons = [];
+    const estado = this.segurancaX1EmCurso = { eventoId: evento.id, fase: "protocolo", destruidas: 0 };
+    let encerrado = false;
+    const guardar = objeto => { objetos.push(objeto); return objeto.setName("seguranca-x1-efeito"); };
+    const depois = (delay, callback) => timers.push(this.time.delayedCall(delay, () => { if (!encerrado) callback(); }));
+    const animar = config => animacoes.push(this.tweens.add(config));
+    const tocar = (key, volume = .7, rate = 1) => {
       if (!this.cache.audio.exists(key)) return;
       const sound = this.sound.add(key, { volume: window.cyberduelSettings?.effects(volume, key) ?? volume, rate });
       sons.push(sound); sound.play();
     };
-    let encerrado = false;
+    const tremer = (duracao, intensidade) => {
+      if (!reduzido) {
+        this.jogo.cameras?.main?.shake(duracao, intensidade);
+        this.cameras.main.shake(duracao, intensidade * .45);
+      }
+    };
     const limpar = () => {
       if (encerrado) return;
       encerrado = true;
       timers.forEach(timer => timer.remove(false));
-      objetos.forEach(objeto => { if (objeto.active) { this.tweens.killTweensOf(objeto); objeto.destroy(); } });
+      animacoes.forEach(animacao => animacao.remove());
+      objetos.forEach(objeto => { if (objeto.active) objeto.destroy(); });
       sons.forEach(sound => sound.destroy());
-      this.cameras.main.resetFX(); this.jogo.cameras.main.resetFX();
+      this.cameras?.main?.resetFX(); this.jogo.cameras?.main?.resetFX();
+      this.segurancaX1EmCurso = null;
       this.events.off("shutdown", limpar);
     };
     this.events.once("shutdown", limpar);
-    const titulo = (text, y, size, color = "#baff3d") => guardar(this.add.text(cx, y, text, {
-      fontFamily: "Arial, sans-serif", fontSize: `${size}px`, fontStyle: "bold", align: "center",
-      color, stroke: "#030608", strokeThickness: 10, letterSpacing: 4,
-    }).setOrigin(0.5).setDepth(90).setAlpha(0));
-    const fundo = guardar(this.add.rectangle(cx, H / 2, W, H, 0x020508, 0).setDepth(20));
-    const vinheta = guardar(this.add.rectangle(cx, H / 2, W, H, 0x103c06, 0).setDepth(21));
-    this.tweens.add({ targets: fundo, fillAlpha: 0.92, duration: 700 });
-    this.tweens.add({ targets: vinheta, fillAlpha: 0.25, duration: 900 });
-    const alerta = titulo("SEGURANÇA X1", H * .17, 76);
-    const subtitulo = titulo("PROTOCOLO DE ANIQUILAÇÃO", H * .22, 26, "#f0ffd8");
-    this.tweens.add({ targets: [alerta, subtitulo], alpha: 1, y: "-=18", duration: 400 });
-    const cy = H * .52;
+    const titulo = (text, y, size, color = "#d9ffae") => guardar(this.add.text(cx, y, text, {
+      fontFamily: "Rushblade, Arial, sans-serif", fontSize: `${size}px`, align: "center",
+      color, stroke: "#020704", strokeThickness: 8, letterSpacing: 3,
+    }).setOrigin(.5).setDepth(90).setAlpha(0));
+    const anel = (x, y, raio, cor, depth = 42) => guardar(this.add.circle(x, y, raio, cor, 0)
+      .setStrokeStyle(3, cor, .8).setDepth(depth));
+    const fundo = guardar(this.add.rectangle(cx, H / 2, W, H, 0x010604, 0).setDepth(20));
+    animar({ targets: fundo, fillAlpha: .97, duration: 650 });
+    const barras = [H * .035, H * .965].map(y => guardar(this.add.rectangle(cx, y, W, H * .07, 0x000000)
+      .setDepth(88).setAlpha(0)));
+    animar({ targets: barras, alpha: 1, duration: 500 });
+    const alerta = titulo("SEGURANÇA X1", H * .13, 88, "#c5ff52");
+    const subtitulo = titulo("PROTOCOLO DE ANIQUILAÇÃO", H * .175, 27);
+    const status = titulo("SISTEMA COMPROMETIDO", H * .85, 26, "#72e9d9");
+    animar({ targets: [alerta, subtitulo, status], alpha: 1, duration: 500 });
     const alvos = evento.alvos.filter(alvo => alvo.lado !== evento.lado && alvo.removida);
     const cartas = alvos.map(alvo => {
       const p = this.ponto(alvo.lado, alvo.indice), layout = this.jogo.layout;
       const key = alvo.oculto && (alvo.lado !== "jogador" || this.jogo.multiplayer?.spectator) ? "fundoCarta" : alvo.imagem;
-      if (!key || !this.textures.exists(key)) return { alvo, p, key };
-      const image = guardar(this.add.image(p.x, p.y, key).setDisplaySize(layout.slotW, layout.slotH).setDepth(23));
-      image.setName("seguranca-x1-alvo");
-      return { alvo, p, key, image };
+      const image = key && this.textures.exists(key) ? guardar(this.add.image(p.x, p.y, key)
+        .setDisplaySize(layout.slotW, layout.slotH).setDepth(23)).setName("seguranca-x1-alvo") : null;
+      return { p, key, image };
     });
-    const anel = (x, y, raio, color, depth = 24) => guardar(this.add.circle(x, y, raio, color, 0)
-      .setStrokeStyle(5, color, 1).setDepth(depth));
-    for (let i = 0; i < 5; i++) {
-      const ring = anel(cx, cy, 45 + i * 55, i % 2 ? 0x49edff : 0xbaff3d);
-      this.tweens.add({ targets: ring, scale: 0.15, alpha: 0, duration: 1700, delay: i * 140, ease: "Expo.In" });
-    }
-    for (let i = 0; i < 52; i++) {
-      const angle = i * 2.39996, radius = 280 + (i % 9) * 55;
-      const spark = guardar(this.add.circle(cx + Math.cos(angle) * radius, cy + Math.sin(angle) * radius,
-        3 + i % 5, i % 3 ? 0xbaff3d : 0x48eaff, 0.85).setDepth(25));
-      this.tweens.add({ targets: spark, x: cx, y: cy, scale: 0.1, alpha: 0,
-        duration: 900, delay: i * 20, ease: "Expo.In" });
-    }
-    const dragao = guardar(this.add.image(cx, cy + H * .18, evento.fonte.imagem || "o_dragao")
-      .setDepth(35).setAlpha(0).setName("seguranca-x1-dragao"));
-    const escala = Math.min(W * .94 / dragao.width, H * .82 / dragao.height);
-    dragao.setScale(escala * .16).setTint(0xbaff3d);
-    depois(850, () => {
-      tocar("somDragao", .9, .78);
-      this.jogo.cameras.main.shake(2100, .006);
-      this.tweens.add({ targets: dragao, alpha: 1, y: cy, scaleX: escala, scaleY: escala,
-        duration: 1700, ease: "Expo.Out", onComplete: () => dragao.clearTint() });
-      for (let i = 0; i < 3; i++) {
-        const eco = guardar(this.add.image(cx, cy, evento.fonte.imagem || "o_dragao")
-          .setScale(escala * .82).setTint(i % 2 ? 0x37eaff : 0x77ff1d).setAlpha(.22).setDepth(34));
-        this.tweens.add({ targets: eco, scaleX: escala * (1.5 + i * .2), scaleY: escala * (1.5 + i * .2),
-          alpha: 0, duration: 1700, delay: i * 150 });
+    const chaveArte = this.textures.exists("segurancaX1Arte") ? "segurancaX1Arte" :
+      this.textures.exists("despertarDragaoArte") ? "despertarDragaoArte" : evento.fonte.imagem || "o_dragao";
+    const dragao = guardar(this.add.image(cx, cy, chaveArte).setDepth(35).setAlpha(0)).setName("seguranca-x1-dragao");
+    const escala = Math.min(W * 1.12 / dragao.width, H * .72 / dragao.height);
+    dragao.setScale(escala * (reduzido ? 1 : .72));
+    const reator = guardar(this.add.graphics().setPosition(cx, cy).setDepth(33).setAlpha(0));
+    for (let i = 0; i < 3; i++) {
+      const raio = W * (.28 + i * .11);
+      reator.lineStyle(i === 1 ? 5 : 2, i === 1 ? 0xbaff3d : 0x42d9cb, .55);
+      for (let segmento = 0; segmento < 8; segmento++) {
+        reator.beginPath(); reator.arc(0, 0, raio, segmento * Math.PI / 4, segmento * Math.PI / 4 + .55); reator.strokePath();
       }
+    }
+    for (let i = 0; i < 48; i++) {
+      const a = i * Math.PI / 24, r = W * .51, externo = r + (i % 4 ? 10 : 30);
+      reator.lineStyle(i % 4 ? 2 : 4, 0xbaff3d, .7);
+      reator.lineBetween(Math.cos(a) * r, Math.sin(a) * r, Math.cos(a) * externo, Math.sin(a) * externo);
+    }
+    animar({ targets: reator, alpha: 1, duration: 1000 });
+    if (!reduzido) {
+      animar({ targets: reator, angle: 100, duration: 6800 });
+      for (let i = 0; i < 40; i++) {
+        const a = i * 2.39996, r = W * (.35 + i % 7 * .055);
+        const particula = guardar(this.add.circle(cx + Math.cos(a) * r, cy + Math.sin(a) * r,
+          2 + i % 4, i % 3 ? 0xc5ff52 : 0x5df5f3, .75).setDepth(38));
+        animar({ targets: particula, x: cx, y: cy, alpha: 0, scale: .1, duration: 1300,
+          delay: 500 + i * 38, ease: "Cubic.In" });
+      }
+    }
+    depois(850, () => {
+      estado.fase = "despertar";
+      tocar("somDragao", .75, .72); tremer(1400, .004);
+      animar({ targets: dragao, alpha: 1, scaleX: escala, scaleY: escala, duration: reduzido ? 500 : 1400, ease: "Cubic.Out" });
+      status.setText("AUTORIDADE MÁXIMA · CONTENÇÃO ROMPIDA");
     });
     const alvoY = alvos.length ? alvos.reduce((sum, alvo) => sum + this.ponto(alvo.lado, alvo.indice).y, 0) / alvos.length :
       H * (evento.lado === "jogador" ? .3 : .7);
+    const origemX = cx - W * .14, origemY = cy + H * .045;
+    const nucleo = guardar(this.add.circle(origemX, origemY, 52, 0xeaffc9, .9).setDepth(45).setAlpha(0));
+    const aura = guardar(this.add.circle(origemX, origemY, 130, 0x8dff27, .15).setDepth(44).setAlpha(0));
     depois(2300, () => {
-      tocar("somDragao", .75, 1.08);
-      this.tweens.add({ targets: [alerta, subtitulo], alpha: 0, duration: 250 });
-      this.tweens.add({ targets: dragao, scaleX: escala * 1.28, scaleY: escala * 1.28,
-        y: cy - H * .035, duration: 850, ease: "Expo.In" });
-      const raios = guardar(this.add.graphics().setDepth(42));
-      for (let i = 0; i < 11; i++) {
-        raios.lineStyle(i % 2 ? 3 : 7, i % 2 ? 0xf6ffe0 : 0x7cff00, .85);
-        raios.beginPath(); raios.moveTo(cx, cy);
-        const destinoX = (i + .5) * W / 11;
-        for (let j = 1; j <= 7; j++) raios.lineTo(cx + (destinoX - cx) * j / 7 + Math.sin(i * 3 + j) * 55,
-          cy + (alvoY - cy) * j / 7);
-        raios.strokePath();
+      estado.fase = "sobrecarga";
+      tocar("somDragao", .6, 1.12);
+      status.setText("ENERGIA CRÍTICA · DISPARO IMINENTE");
+      animar({ targets: [nucleo, aura], alpha: 1, duration: 700 });
+      if (!reduzido) {
+        animar({ targets: nucleo, scale: 1.8, duration: 1050, ease: "Expo.In" });
+        animar({ targets: aura, scale: 2.1, duration: 1050, ease: "Expo.In" });
+        animar({ targets: dragao, scaleX: escala * 1.12, scaleY: escala * 1.12, duration: 1050, ease: "Cubic.In" });
+        for (let i = 0; i < 3; i++) {
+          const ring = anel(origemX, origemY, 160 + i * 95, i % 2 ? 0x5ce8ef : 0xbaff3d, 46);
+          animar({ targets: ring, scale: .12, alpha: 0, duration: 800, delay: i * 120, ease: "Expo.In" });
+        }
       }
-      this.tweens.add({ targets: raios, alpha: 0, duration: 650, delay: 650 });
     });
-    depois(3100, () => {
-      tocar("somExplosao", .9, .65); tocar("somTiro", .6, .7);
-      this.jogo.cameras.main.shake(1900, .019); this.cameras.main.shake(1600, .008);
-      const feixe = guardar(this.add.rectangle(cx, (cy + alvoY) / 2, W * .32, Math.abs(cy - alvoY) + H * .28,
-        0x7cff16, .8).setDepth(50).setScale(.04, 1));
-      const nucleo = guardar(this.add.rectangle(cx, (cy + alvoY) / 2, W * .1, Math.abs(cy - alvoY) + H * .28,
-        0xf5ffe5, 1).setDepth(51).setScale(.03, 1));
-      this.tweens.add({ targets: [feixe, nucleo], scaleX: 1.4, alpha: 0, duration: 850, ease: "Expo.Out" });
-      this.tweens.add({ targets: dragao, alpha: .18, duration: 800 });
-      const onda = anel(cx, alvoY, 35, 0xd7ff8f, 54);
-      this.tweens.add({ targets: onda, scale: 25, alpha: 0, duration: 1300, ease: "Expo.Out" });
-      cartas.forEach(({ alvo, p, key, image }, index) => depois(index * 100, () => {
-        if (image?.active) image.destroy();
-        const explosao = guardar(this.add.circle(p.x, p.y, 22, 0xfaffc0, .95).setDepth(57));
-        explosao.setName("seguranca-x1-explosao");
-        this.tweens.add({ targets: explosao, scale: 9, alpha: 0, duration: 700, ease: "Expo.Out" });
-        const ring = anel(p.x, p.y, 20, index % 2 ? 0xff653a : 0xbaff3d, 58);
-        this.tweens.add({ targets: ring, scale: 12, alpha: 0, duration: 850 });
-        if (key && this.textures.exists(key)) for (let row = 0; row < 2; row++) for (let col = 0; col < 3; col++) {
-          const shard = guardar(this.add.image(p.x, p.y, key).setDepth(59));
+    depois(3450, () => {
+      estado.fase = "disparo";
+      animar({ targets: [nucleo, aura], alpha: 0, duration: 180 });
+      animar({ targets: [alerta, subtitulo], alpha: 0, duration: 200 });
+      if (!reduzido) animar({ targets: dragao, alpha: .08, duration: 130 });
+    });
+    depois(3700, () => {
+      tocar("somExplosao", .8, .6); tocar("somTiro", .4, .7); tremer(850, .018);
+      animar({ targets: dragao, alpha: .1, duration: reduzido ? 600 : 180 });
+      animar({ targets: reator, alpha: .2, duration: 350 });
+      status.setText(`ALVOS NEUTRALIZADOS · 0 / ${cartas.length}`);
+      const feixe = guardar(this.add.graphics().setDepth(50).setAlpha(0)).setName("seguranca-x1-feixe");
+      const left = W * .1, right = W * .9, finalY = alvoY + (alvoY < origemY ? -170 : 170);
+      feixe.fillStyle(0x60ff1d, .12); feixe.fillTriangle(origemX, origemY, left - 80, finalY, right + 80, finalY);
+      feixe.fillStyle(0xbaff3d, .3); feixe.fillTriangle(origemX, origemY, left, finalY, right, finalY);
+      feixe.fillStyle(0xf4ffe0, .55); feixe.fillTriangle(origemX, origemY, cx - W * .19, finalY, cx + W * .19, finalY);
+      animar({ targets: feixe, alpha: reduzido ? .3 : 1, duration: 180 });
+      animar({ targets: feixe, alpha: 0, delay: 1000, duration: 700 });
+      if (!reduzido) {
+        const plasma = guardar(this.add.graphics().setDepth(52).setBlendMode(Phaser.BlendModes.ADD));
+        const energia = { progresso: 0 };
+        animar({ targets: energia, progresso: 1, duration: 1300, onUpdate: () => {
+          plasma.clear();
+          const fase = Math.floor(energia.progresso * 24);
+          for (let i = 0; i < 11; i++) {
+            const destinoX = W * (.05 + i * .09);
+            plasma.lineStyle(i % 3 ? 3 : 7, i % 3 ? 0xd9ffb2 : 0x46fff0, (1 - energia.progresso) * .85);
+            plasma.beginPath(); plasma.moveTo(origemX, origemY);
+            for (let j = 1; j <= 8; j++) plasma.lineTo(origemX + (destinoX - origemX) * j / 8 +
+              Math.sin(i * 7 + j * 5 + fase * 3) * 32, origemY + (finalY - origemY) * j / 8);
+            plasma.strokePath();
+          }
+        } });
+        const choque = guardar(this.add.rectangle(cx, H / 2, W, H, 0xe6ffc0, .55).setDepth(80));
+        animar({ targets: choque, alpha: 0, duration: 450 });
+        for (let i = 0; i < 3; i++) {
+          const onda = anel(cx, alvoY, 35, i % 2 ? 0x4bfff0 : 0xdbff8b, 54);
+          onda.setScale(1, .4);
+          animar({ targets: onda, scaleX: 22, scaleY: 12, alpha: 0, delay: i * 160, duration: 1200, ease: "Cubic.Out" });
+        }
+      }
+      cartas.forEach(({ p, key, image }, index) => depois(250 + index * 110, () => {
+        estado.destruidas++;
+        status.setText(`ALVOS NEUTRALIZADOS · ${estado.destruidas} / ${cartas.length}`);
+        if (image?.active) {
+          if (reduzido) animar({ targets: image, alpha: 0, duration: 400 });
+          else image.destroy();
+        }
+        const explosao = guardar(this.add.circle(p.x, p.y, 22, 0xeaffac, .85).setDepth(57)).setName("seguranca-x1-explosao");
+        animar({ targets: explosao, scale: reduzido ? 2 : 7, alpha: 0, duration: 650, ease: "Cubic.Out" });
+        if (reduzido) return;
+        const mira = guardar(this.add.graphics().setDepth(56));
+        mira.lineStyle(3, 0xc5ff52, .8); mira.lineBetween(origemX, origemY, p.x, p.y);
+        animar({ targets: mira, alpha: 0, duration: 450 });
+        if (key && this.textures.exists(key)) for (let row = 0; row < 3; row++) for (let col = 0; col < 3; col++) {
+          const shard = guardar(this.add.image(p.x, p.y, key).setDepth(59)).setName("seguranca-x1-fragmento");
           shard.setScale(this.jogo.layout.slotW / shard.width, this.jogo.layout.slotH / shard.height)
-            .setCrop(col * shard.width / 3, row * shard.height / 2, shard.width / 3, shard.height / 2);
-          shard.setName("seguranca-x1-fragmento");
-          const angle = (row * 3 + col) * Math.PI / 3 + index;
-          this.tweens.add({ targets: shard, x: p.x + Math.cos(angle) * 450, y: p.y + Math.sin(angle) * 490,
-            angle: (col - 1) * 150 + row * 110, alpha: 0, scaleX: shard.scaleX * .25, scaleY: shard.scaleY * .25,
-            duration: 1300, ease: "Cubic.Out" });
+            .setCrop(col * shard.width / 3, row * shard.height / 3, shard.width / 3, shard.height / 3);
+          const a = (row * 3 + col) * Math.PI * 2 / 9 + index;
+          animar({ targets: shard, x: p.x + Math.cos(a) * (320 + col * 90), y: p.y + Math.sin(a) * (350 + row * 80),
+            angle: (col - 1) * 170 + row * 100, alpha: 0, scaleX: shard.scaleX * .12, scaleY: shard.scaleY * .12,
+            duration: 1500, ease: "Cubic.Out" });
         }
-        for (let i = 0; i < 12; i++) {
-          const angle = i * Math.PI / 6 + index;
-          const fogo = guardar(this.add.circle(p.x, p.y, 3 + i % 4, i % 3 ? 0xbaff3d : 0xff7733, .9).setDepth(60));
-          this.tweens.add({ targets: fogo, x: p.x + Math.cos(angle) * (160 + i * 15),
-            y: p.y + Math.sin(angle) * (160 + i * 15), alpha: 0, duration: 1100 });
+        for (let i = 0; i < 8; i++) {
+          const a = i * Math.PI / 4 + index;
+          const fogo = guardar(this.add.circle(p.x, p.y, 3 + i % 4, i % 3 ? 0xc5ff52 : 0x51ecff, .9).setDepth(60));
+          animar({ targets: fogo, x: p.x + Math.cos(a) * (170 + i * 20),
+            y: p.y + Math.sin(a) * (170 + i * 20), alpha: 0, duration: 1100 });
         }
-        tocar("somExplosao", .35, .82 + index * .035);
+        if (index % 3 === 0) tocar("somExplosao", .22, .8 + index * .035);
       }));
     });
-    depois(5300, () => {
-      const fissuras = guardar(this.add.graphics().setDepth(65));
-      for (let i = 0; i < 9; i++) {
-        const y = H * (.12 + i * .09);
-        fissuras.lineStyle(2 + i % 3, 0xbaff3d, .75); fissuras.beginPath(); fissuras.moveTo(0, y);
-        for (let j = 1; j <= 8; j++) fissuras.lineTo(j * W / 8, y + Math.sin(i * 7 + j) * 38);
-        fissuras.strokePath();
+    depois(6000, () => {
+      estado.fase = "rescaldo";
+      status.setText("CONTENÇÃO ENCERRADA · CAMPO ELIMINADO");
+      animar({ targets: dragao, alpha: .55, duration: 1000 });
+      if (!reduzido) {
+        const fissuras = guardar(this.add.graphics().setDepth(65));
+        for (let i = 0; i < 7; i++) {
+          const a = i * Math.PI * 2 / 7;
+          fissuras.lineStyle(2, 0xbaff3d, .45); fissuras.beginPath(); fissuras.moveTo(cx, alvoY);
+          for (let j = 1; j <= 6; j++) fissuras.lineTo(cx + Math.cos(a) * j * 110 + Math.sin(i * 3 + j) * 35,
+            alvoY + Math.sin(a) * j * 150);
+          fissuras.strokePath();
+        }
+        animar({ targets: fissuras, alpha: 0, duration: 1600 });
       }
-      this.tweens.add({ targets: fissuras, alpha: 0, duration: 1600 });
-      this.tweens.add({ targets: dragao, alpha: .75, scaleX: escala * .83, scaleY: escala * .83,
-        y: H * .43, duration: 1100, ease: "Cubic.Out" });
     });
-    depois(6600, () => {
-      const vitoria = titulo("ANIQUILAÇÃO", H * .76, 82);
-      const detalhe = titulo(evento.lado === "jogador" ? "VITÓRIA ABSOLUTA" : "CAMPO ANIQUILADO", H * .815, 36, "#f0ffd8");
-      this.tweens.add({ targets: [vitoria, detalhe], alpha: 1, y: "-=22", duration: 500, ease: "Back.Out" });
+    depois(7100, () => {
+      estado.fase = "veredito";
+      const vitoria = titulo("ANIQUILAÇÃO", H * .73, 98, "#e4ffc4");
+      const detalhe = titulo(evento.lado === "jogador" ? "VITÓRIA ABSOLUTA" : "CAMPO ANIQUILADO", H * .785, 34);
+      animar({ targets: [vitoria, detalhe], alpha: 1, duration: 650 });
+      status.setText(`${cartas.length} ALVOS · NENHUMA DEFESA`);
+      const linha = guardar(this.add.rectangle(cx, H * .815, W * .55, 2, 0xc5ff52).setDepth(90).setAlpha(0));
+      animar({ targets: linha, alpha: .7, duration: 650 });
     });
-    depois(8600, () => {
-      this.tweens.add({ targets: objetos.filter(objeto => objeto.active), alpha: 0, duration: 450 });
-    });
-    depois(9100, () => { limpar(); aoConcluir(); });
+    depois(9700, () => animar({ targets: objetos.filter(objeto => objeto.active), alpha: 0, duration: 450 }));
+    depois(10200, () => { limpar(); aoConcluir(); });
   }
 
   animarDespertarDragao(evento, aoConcluir) {

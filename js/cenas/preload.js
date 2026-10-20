@@ -17,6 +17,7 @@ window.CYBERDUEL_IMAGE_ASSETS = Object.freeze({
   "professores_de_duelo": "assets/cartas/professores_de_duelo.png",
   "o_dragao": "assets/cartas/dragão.png",
   despertarDragaoRetrato: "assets/profiles/dragao_profile.png",
+  segurancaX1Arte: "assets/assets_animacoes/cinematicas/seguranca-x1-dragao.webp",
   "neo_palhoca": "assets/cartas/neo_palhoca.png",
 
   fundoCarta: "assets/fundo/fundo_carta_2.png",

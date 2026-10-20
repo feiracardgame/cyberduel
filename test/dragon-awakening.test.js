@@ -11,7 +11,7 @@ vm.runInContext(fs.readFileSync('js/cenas/efeitos.js', 'utf8'), context);
 const Scene = context.window.CenaEfeitos;
 const dragonName = 'Dragão das Comunicações Móveis';
 
-function fixture({ side = 'jogador', spectator = false, presentation = false, audio = true,
+function fixture({ side = 'jogador', spectator = false, presentation = false, audio = true, reduced = false,
   duration = 2, missing = [] } = {}) {
   let now = 0;
   const tasks = [], objects = [], sounds = [], shakes = [];
@@ -94,6 +94,7 @@ function fixture({ side = 'jogador', spectator = false, presentation = false, au
     },
   });
   context.window.cyberduelSettings = { effects: volume => volume * .4 };
+  context.window.matchMedia = () => ({ matches: reduced });
   const f = { scene, objects, sounds, shakes, events,
     advance(until) {
       let steps = 0;
@@ -203,3 +204,56 @@ for (const cameras of [{ main: undefined }, undefined]) {
 }
 
 console.log('Despertar do Dragão: fases, rugido único, fila, perspectivas, áudio ausente/longa duração e limpeza ao sair validados.');
+
+// O golpe admin preserva a fila até o veredito e destrói as cartas em qualquer perspectiva.
+function securityEvent(f) {
+  return f.event(1, { momento: 'seguranca_x1', alvos: Array.from({ length: 10 }, (_, indice) => ({
+    lado: 'inimigo', indice, imagem: 'rato', removida: true,
+    oculto: indice === 0,
+  })) });
+}
+for (const reduced of [false, true]) for (const side of ['jogador', 'inimigo']) for (const spectator of [false, true]) {
+  const f = fixture({ side, reduced, spectator, presentation: true });
+  const event = securityEvent(f);
+  event.alvos.forEach(target => { target.lado = side === 'jogador' ? 'inimigo' : 'jogador'; });
+  f.scene.receber([event, event]);
+  assert.equal(f.scene.segurancaX1EmCurso.fase, 'protocolo');
+  assert.equal(f.named('seguranca-x1-dragao').value, 'segurancaX1Arte');
+  if (side === 'jogador' || spectator) assert.equal(f.named('seguranca-x1-alvo').value, 'fundoCarta', 'Não revela a arte de cartas ocultas.');
+  for (const [at, phase] of [[850, 'despertar'], [2300, 'sobrecarga'], [3450, 'disparo'], [6000, 'rescaldo'], [7100, 'veredito']]) {
+    f.advance(at);
+    assert.equal(f.scene.segurancaX1EmCurso.fase, phase);
+    assert.equal(f.scene.executando, true, 'A tela final aguarda toda a sequência.');
+  }
+  assert.equal(f.scene.segurancaX1EmCurso.destruidas, 10);
+  assert.ok(f.sounds.some(sound => sound.key === 'somDragao'));
+  assert.ok(f.sounds.some(sound => sound.key === 'somExplosao'));
+  assert.ok(f.sounds.every(sound => sound.config.volume <= .4));
+  assert.equal(f.shakes.length > 0, !reduced, 'Movimento reduzido suprime os tremores.');
+  assert.equal(f.objects.some(object => object.name === 'seguranca-x1-fragmento'), !reduced);
+  f.advance(11000);
+  assert.equal(f.scene.executando, false);
+  assert.equal(f.scene.segurancaX1EmCurso, null);
+  assert.ok(f.objects.every(object => !object.active));
+  assert.ok(f.sounds.every(sound => !sound.sound.active));
+  assert.equal(f.events.listenerCount('shutdown'), 0);
+}
+for (const leaveAt of [600, 2600, 4200]) {
+  const f = fixture(); f.scene.receber([securityEvent(f)]); f.advance(leaveAt);
+  f.scene.jogo.cameras = undefined;
+  f.events.emit('shutdown');
+  const count = [f.objects.length, f.sounds.length];
+  f.advance(20000);
+  assert.equal(f.scene.segurancaX1EmCurso, null);
+  assert.ok(f.objects.every(object => !object.active));
+  assert.ok(f.sounds.every(sound => !sound.sound.active));
+  assert.deepEqual([f.objects.length, f.sounds.length], count, 'Sair cancela os efeitos ainda agendados.');
+}
+{
+  const f = fixture({ audio: false, missing: ['segurancaX1Arte'] });
+  f.scene.receber([securityEvent(f)]);
+  assert.equal(f.named('seguranca-x1-dragao').value, 'despertarDragaoArte');
+  f.advance(11000);
+  assert.equal(f.scene.executando, false);
+}
+console.log('Segurança X1 cinematográfico: fases, dez alvos, ambos os lados, movimento reduzido, áudio, fallback e limpeza validados.');
