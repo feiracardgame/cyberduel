@@ -3469,6 +3469,11 @@ class CyberduelTitleUI {
     pack.setAttribute("aria-hidden", "true");
     const artwork = this.element("img", "booster-pack-art");
     artwork.alt = "";
+    artwork.draggable = false;
+    const lid = this.element("div", "booster-pack-lid");
+    const lidArtwork = this.element("img", "booster-pack-lid-art");
+    lidArtwork.alt = "";
+    lidArtwork.draggable = false;
     const foil = this.element("div", "booster-pack-foil");
     const packBrand = this.element(
       "span",
@@ -3477,7 +3482,18 @@ class CyberduelTitleUI {
     );
     const packName = this.element("strong", "booster-pack-name");
     const seal = this.element("span", "booster-pack-seal", "05 / CARTAS");
-    pack.append(artwork, foil, packBrand, packName, seal);
+    lid.append(lidArtwork, packBrand);
+    pack.append(artwork, foil, lid, packName, seal);
+    const energy = this.element("div", "booster-energy");
+    const burst = this.element("div", "booster-burst");
+    energy.setAttribute("aria-hidden", "true");
+    burst.setAttribute("aria-hidden", "true");
+    for (let i = 0; i < 12; i++) {
+      const ray = this.element("span");
+      ray.style.setProperty("--ray-angle", `${i * 30}deg`);
+      ray.style.setProperty("--ray-delay", `${i * 18}ms`);
+      burst.append(ray);
+    }
     const flash = this.element("div", "booster-flash");
     flash.setAttribute("aria-hidden", "true");
     const scratch = this.button(
@@ -3492,7 +3508,7 @@ class CyberduelTitleUI {
     scratch.hidden = !opening;
     pack.append(scratch);
     pack.removeAttribute("aria-hidden");
-    stage.append(pack, flash);
+    stage.append(energy, pack, burst, flash);
     const intro = this.element("div", "booster-intro");
     const title = this.element("h3");
     const subtitle = this.element("p");
@@ -3505,6 +3521,8 @@ class CyberduelTitleUI {
     status.setAttribute("role", "status");
     status.setAttribute("aria-live", "polite");
     const results = this.element("div", "title-booster-results");
+    results.setAttribute("role", "group");
+    results.setAttribute("aria-label", "Cartas do pacote. Arraste para cima ou use o botão Próxima carta.");
     results.hidden = true;
     const error = this.element("span", "title-dialog__error");
     error.setAttribute("role", "alert");
@@ -3521,6 +3539,7 @@ class CyberduelTitleUI {
     cutin.hidden = true;
     const revealNext = async () => {
       if (revealing || !opened || position >= queue.length) return;
+      finishSwipe();
       revealing = true;
       refresh();
       const currentGeneration = generation;
@@ -3528,6 +3547,7 @@ class CyberduelTitleUI {
         this.modal === overlay && currentGeneration === generation;
       const previous = results.querySelector(".is-front");
       if (previous) {
+        this.playMenuSwipe();
         previous.classList.add("is-leaving");
         await pause(350);
         if (!alive()) return;
@@ -3535,6 +3555,7 @@ class CyberduelTitleUI {
       }
       const card = queue[position];
       const item = results.children[0];
+      results.dataset.rarity = card.nivel;
       if (card.nivel === "lendaria") {
         cutin.replaceChildren(
           this.element("strong", "", "LENDÁRIA!"),
@@ -3557,6 +3578,7 @@ class CyberduelTitleUI {
       item.removeAttribute("aria-hidden");
       await pause(450);
       if (!alive()) return;
+      item.classList.add("is-settled");
       if (position === 0 && queue.length > 1) {
         item.prepend(
           this.element("span", "booster-swipe-hint", "↑ arraste para cima"),
@@ -3623,12 +3645,7 @@ class CyberduelTitleUI {
         }
         status.textContent = "Rompendo o lacre…";
         balance.textContent = `${this.account.currency.toLocaleString("pt-BR")} TIJOLINHOS`;
-        const reducedMotion = window.matchMedia?.(
-          "(prefers-reduced-motion: reduce)",
-        ).matches;
-        await new Promise((resolve) =>
-          setTimeout(resolve, reducedMotion ? 0 : 1100),
-        );
+        await pause(1600);
         if (this.modal !== overlay) {
           this.account.notify();
           return;
@@ -3723,10 +3740,14 @@ class CyberduelTitleUI {
       const source = window.CYBERDUEL_IMAGE_ASSETS?.[model?.imagem];
       if (source) {
         artwork.src = source;
+        lidArtwork.src = source;
         artwork.hidden = false;
+        lidArtwork.hidden = false;
       } else {
         artwork.removeAttribute("src");
+        lidArtwork.removeAttribute("src");
         artwork.hidden = true;
+        lidArtwork.hidden = true;
       }
       error.textContent = "";
       status.textContent = opening
@@ -3738,11 +3759,14 @@ class CyberduelTitleUI {
     scratch.addEventListener("pointerdown", (event) => {
       if (scratch.disabled) return;
       scratchStart = { id: event.pointerId, x: event.clientX };
+      pack.classList.add("is-tearing");
       scratch.setPointerCapture(event.pointerId);
     });
     scratch.addEventListener("pointermove", (event) => {
       if (!scratchStart || event.pointerId !== scratchStart.id) return;
       const distance = Math.abs(event.clientX - scratchStart.x);
+      pack.style.setProperty("--tear-offset", `${Math.min(30, distance * .12)}px`);
+      pack.style.setProperty("--pack-tilt", `${Math.sign(event.clientX - scratchStart.x) * Math.min(6, distance * .04)}deg`);
       scratch.style.setProperty(
         "--scratch",
         `${Math.min(100, (distance / scratch.clientWidth) * 100)}%`,
@@ -3755,28 +3779,61 @@ class CyberduelTitleUI {
     const cancelScratch = () => {
       scratchStart = null;
       scratch.style.removeProperty("--scratch");
+      pack.classList.remove("is-tearing");
+      pack.style.removeProperty("--tear-offset");
+      pack.style.removeProperty("--pack-tilt");
     };
     scratch.addEventListener("pointerup", cancelScratch);
     scratch.addEventListener("pointercancel", cancelScratch);
+    scratch.addEventListener("lostpointercapture", cancelScratch);
     scratch.addEventListener("click", (event) => {
       if (event.detail === 0) buy.click();
     });
-    let swipeStart = null;
+    let swipeStart = null, swipeFrame = null;
+    const finishSwipe = (commit = false) => {
+      if (swipeFrame !== null) cancelAnimationFrame(swipeFrame);
+      swipeFrame = null;
+      const drag = swipeStart;
+      swipeStart = null;
+      if (!drag) return;
+      drag.item.classList.remove("is-dragging");
+      results.style.removeProperty("--swipe-progress");
+      if (!commit) for (const key of ["--drag-x", "--drag-y", "--drag-rotate", "--shine-x"])
+        drag.item.style.removeProperty(key);
+      if (results.hasPointerCapture?.(drag.id)) results.releasePointerCapture(drag.id);
+    };
     results.addEventListener("pointerdown", (event) => {
-      swipeStart = { id: event.pointerId, y: event.clientY };
+      if (swipeStart || !opened || busy || revealing || event.isPrimary === false || (event.button != null && event.button !== 0)) return;
+      const item = results.querySelector(".is-front");
+      if (!item) return;
+      swipeStart = { id: event.pointerId, x: event.clientX, y: event.clientY, dx: 0, dy: 0, item };
+      item.classList.add("is-dragging");
       results.setPointerCapture(event.pointerId);
     });
+    results.addEventListener("pointermove", (event) => {
+      if (swipeStart?.id !== event.pointerId) return;
+      swipeStart.dx = Math.max(-160, Math.min(160, event.clientX - swipeStart.x));
+      swipeStart.dy = Math.max(-360, Math.min(80, event.clientY - swipeStart.y));
+      if (swipeFrame !== null) return;
+      swipeFrame = requestAnimationFrame(() => {
+        swipeFrame = null;
+        if (!swipeStart || this.modal !== overlay) return;
+        const { item, dx, dy } = swipeStart;
+        item.style.setProperty("--drag-x", `${dx}px`);
+        item.style.setProperty("--drag-y", `${dy > 0 ? dy * .4 : dy}px`);
+        item.style.setProperty("--drag-rotate", `${reducedMotion ? 0 : dx * .075}deg`);
+        item.style.setProperty("--shine-x", `${50 + dx * .2}%`);
+        results.style.setProperty("--swipe-progress", Math.min(1, Math.max(0, -dy / 140)));
+      });
+    });
     results.addEventListener("pointerup", (event) => {
-      if (
-        swipeStart?.id === event.pointerId &&
-        swipeStart.y - event.clientY > 45
-      )
-        revealNext();
-      swipeStart = null;
+      if (swipeStart?.id !== event.pointerId) return;
+      const commit = swipeStart.y - event.clientY > 65 && position < queue.length;
+      finishSwipe(commit);
+      if (commit) return revealNext();
     });
-    results.addEventListener("pointercancel", () => {
-      swipeStart = null;
-    });
+    results.addEventListener("pointercancel", () => finishSwipe());
+    results.addEventListener("lostpointercapture", () => finishSwipe());
     results.addEventListener(
       "wheel",
       (event) => {

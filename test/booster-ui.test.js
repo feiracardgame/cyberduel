@@ -4,7 +4,10 @@ const vm = require('node:vm');
 class Element {
   constructor(tag, cls = '', text = '') {
     this.tag = tag; this.children = []; this.textContent = text; this.dataset = {};
-    this.attributes = {}; this.events = {}; this.style = { setProperty() {}, removeProperty() {} };
+    this.attributes = {}; this.events = {};
+    const properties = new Map();
+    this.style = { setProperty: (key, value) => properties.set(key, value), removeProperty: key => properties.delete(key), getPropertyValue: key => properties.get(key) || '' };
+    this.clientWidth = 200;
     const classes = new Set(cls.split(' '));
     this.classList = { add: (...xs) => xs.forEach(x => classes.add(x)), remove: (...xs) => xs.forEach(x => classes.delete(x)), contains: x => classes.has(x) };
   }
@@ -14,11 +17,14 @@ class Element {
   setAttribute(k, v) { this.attributes[k] = v; }
   removeAttribute(k) { delete this.attributes[k]; }
   addEventListener(k, f) { this.events[k] = f; }
+  setPointerCapture(id) { this.pointerId = id; }
+  hasPointerCapture(id) { return this.pointerId === id; }
+  releasePointerCapture() { this.pointerId = null; this.events.lostpointercapture?.(); }
   querySelector(selector) { return this.children.find(x => x.classList.contains(selector.slice(1))); }
   remove() { this.parent.children = this.parent.children.filter(x => x !== this); }
   click() { if (!this.disabled) return this.handler?.(); }
 }
-const context = vm.createContext({ document: { body: new Element("body") }, window: { matchMedia: () => ({ matches: true }) }, console, setTimeout: f => { f(); }, requestAnimationFrame: f => f() });
+const context = vm.createContext({ document: { body: new Element("body") }, window: { matchMedia: () => ({ matches: true }) }, console, setTimeout: f => { f(); }, requestAnimationFrame: f => { f(); return null; }, cancelAnimationFrame() {} });
 vm.runInContext(fs.readFileSync('js/title-ui.js', 'utf8') + '\nglobalThis.UI = CyberduelTitleUI;', context);
 const ui = Object.create(context.UI.prototype);
 assert.equal(ui.boosterFactions().find(faction => faction[0] === 'raspcorp')[3], '#4da6ff');
@@ -73,7 +79,19 @@ for (const tipo of ['terreno', 'efeito']) {
   assert.equal(results.children[0].children.at(-1).textContent, 'Comum');
   assert.ok(results.children[0].classList.contains('is-front'));
   assert.equal(results.children[2].attributes['aria-hidden'], 'true');
-  await buy.click();
+  const front = results.children[0];
+  results.events.pointerdown({ pointerId: 4, clientX: 100, clientY: 200 });
+  results.events.pointermove({ pointerId: 4, clientX: 140, clientY: 150 });
+  assert.ok(front.classList.contains('is-dragging'));
+  assert.equal(front.style.getPropertyValue('--drag-x'), '40px');
+  assert.equal(front.style.getPropertyValue('--drag-y'), '-50px', 'Carta acompanha o movimento antes de soltar.');
+  results.events.pointercancel();
+  assert.equal(front.classList.contains('is-dragging'), false);
+  assert.equal(front.style.getPropertyValue('--drag-y'), '');
+  assert.equal(results.children.length, 3, 'Gesto cancelado não descarta uma carta.');
+  results.events.pointerdown({ pointerId: 5, clientX: 100, clientY: 200 });
+  results.events.pointermove({ pointerId: 5, clientX: 120, clientY: 80 });
+  await results.events.pointerup({ pointerId: 5, clientX: 120, clientY: 80 });
   assert.equal(results.children.length, 2);
   const next = buy.click();
   assert.equal(buy.disabled, true);

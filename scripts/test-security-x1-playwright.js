@@ -103,7 +103,11 @@ async function run() {
   await page.screenshot({ path: path.join(output, 'dragao-carga.png') });
   await page.waitForFunction(() => game.scene.getScene('CenaEfeitos').children.list.filter(object => object.name === 'seguranca-x1-fragmento' && object.active).length >= 12);
   assert.equal(await page.evaluate(() => game.sound.getAll('somExplosao').some(sound => sound.isPlaying)), true);
+  assert.equal(await page.evaluate(() => game.scene.getScene('CenaEfeitos').children.list.find(object => object.name === 'seguranca-x1-dragao').visible), false, 'O Dragão some durante as explosões.');
   await page.screenshot({ path: path.join(output, 'campo-explodindo.png') });
+  await page.waitForFunction(() => game.scene.getScene('CenaEfeitos').segurancaX1EmCurso?.fase === 'retorno');
+  await page.waitForFunction(() => game.scene.getScene('CenaEfeitos').children.list.some(object => object.name === 'seguranca-x1-dragao' && object.visible && object.alpha > .8));
+  await page.screenshot({ path: path.join(output, 'dragao-retorno-explosivo.png') });
   assert.equal(await page.evaluate(() => game.scene.getScene('CenaJogo').telaFinalExibida), false, 'Vitória aguarda a animação terminar.');
   await page.waitForFunction(() => game.scene.getScene('CenaJogo').telaFinalExibida);
   assert.equal(await page.evaluate(() => partida.rodadasJogador), 4);

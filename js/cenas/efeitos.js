@@ -411,11 +411,11 @@ class CenaEfeitos extends Phaser.Scene {
       estado.fase = "disparo";
       animar({ targets: [nucleo, aura], alpha: 0, duration: 180 });
       animar({ targets: [alerta, subtitulo], alpha: 0, duration: 200 });
-      if (!reduzido) animar({ targets: dragao, alpha: .08, duration: 130 });
+      dragao.setVisible(false).setAlpha(0);
+      fundo.setFillStyle(0x010604, 1);
     });
     depois(3700, () => {
       tocar("somExplosao", .8, .6); tocar("somTiro", .4, .7); tremer(850, .018);
-      animar({ targets: dragao, alpha: .1, duration: reduzido ? 600 : 180 });
       animar({ targets: reator, alpha: .2, duration: 350 });
       status.setText(`ALVOS NEUTRALIZADOS · 0 / ${cartas.length}`);
       const feixe = guardar(this.add.graphics().setDepth(50).setAlpha(0)).setName("seguranca-x1-feixe");
@@ -480,10 +480,33 @@ class CenaEfeitos extends Phaser.Scene {
       }));
     });
     depois(6000, () => {
-      estado.fase = "rescaldo";
-      status.setText("CONTENÇÃO ENCERRADA · CAMPO ELIMINADO");
-      animar({ targets: dragao, alpha: .55, duration: 1000 });
+      estado.fase = "retorno";
+      status.setText("RUPTURA TOTAL · O DRAGÃO RETORNA");
+      dragao.setVisible(true).setScale(escala * (reduzido ? 1 : .4));
+      tocar("somDragao", .8, .82); tocar("somExplosao", .65, .65);
+      animar({ targets: dragao, alpha: 1, scaleX: escala, scaleY: escala,
+        duration: reduzido ? 650 : 900, ease: "Back.Out" });
+      animar({ targets: reator, alpha: .8, duration: 700 });
       if (!reduzido) {
+        tremer(750, .013);
+        const ruptura = guardar(this.add.circle(cx, cy, 55, 0xddffac, .8).setDepth(70))
+          .setName("seguranca-x1-retorno");
+        animar({ targets: ruptura, scale: 20, alpha: 0, duration: 650, ease: "Expo.Out" });
+        for (let i = 0; i < 3; i++) {
+          const onda = anel(cx, cy, 65, i % 2 ? 0x52fff0 : 0xbaff3d, 71);
+          animar({ targets: onda, scale: 15 + i * 3, alpha: 0, duration: 1000, delay: i * 100, ease: "Cubic.Out" });
+          const eco = guardar(this.add.image(cx, cy, chaveArte).setDepth(34).setScale(escala * .5)
+            .setTint(i % 2 ? 0x4affeb : 0xbaff3d).setAlpha(.3));
+          animar({ targets: eco, scaleX: escala * (1.3 + i * .15), scaleY: escala * (1.3 + i * .15),
+            alpha: 0, duration: 950, delay: i * 90 });
+        }
+        for (let i = 0; i < 28; i++) {
+          const a = i * 2.39996;
+          const estilhaco = guardar(this.add.rectangle(cx, cy, 3 + i % 4, 35 + i % 5 * 15,
+            i % 3 ? 0xbaff3d : 0x51fff0, .85).setAngle(a * 180 / Math.PI + 90).setDepth(72));
+          animar({ targets: estilhaco, x: cx + Math.cos(a) * W * .8, y: cy + Math.sin(a) * H * .45,
+            alpha: 0, duration: 850 + i % 5 * 70, ease: "Cubic.Out" });
+        }
         const fissuras = guardar(this.add.graphics().setDepth(65));
         for (let i = 0; i < 7; i++) {
           const a = i * Math.PI * 2 / 7;

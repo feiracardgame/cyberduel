@@ -19,7 +19,8 @@
     "test:demo:browser": "node scripts/test-demo-playwright.js",
     "test:dragon:browser": "node scripts/test-dragon-playwright.js",
     "test:learning:browser": "node scripts/test-learning-playwright.js",
-    "test:security-x1:browser": "node scripts/test-security-x1-playwright.js"
+    "test:security-x1:browser": "node scripts/test-security-x1-playwright.js",
+    "test:boosters:browser": "node scripts/test-booster-playwright.js"
   },
   "dependencies": {
     "google-auth-library": "^11.1.0",

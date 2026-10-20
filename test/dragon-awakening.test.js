@@ -36,6 +36,7 @@ function fixture({ side = 'jogador', spectator = false, presentation = false, au
       setBlendMode(v) { this.blendMode = v; return this; },
       setOrigin() { return this; }, setScrollFactor() { return this; }, setCrop() { return this; },
       setInteractive() { return this; },
+      setFillStyle() { return this; },
       setMask() { return this; }, createGeometryMask() { return { destroy() {} }; },
       add(children) { (this.children ||= []).push(...children); return this; },
       destroy() {
@@ -220,10 +221,12 @@ for (const reduced of [false, true]) for (const side of ['jogador', 'inimigo']) 
   assert.equal(f.scene.segurancaX1EmCurso.fase, 'protocolo');
   assert.equal(f.named('seguranca-x1-dragao').value, 'segurancaX1Arte');
   if (side === 'jogador' || spectator) assert.equal(f.named('seguranca-x1-alvo').value, 'fundoCarta', 'Não revela a arte de cartas ocultas.');
-  for (const [at, phase] of [[850, 'despertar'], [2300, 'sobrecarga'], [3450, 'disparo'], [6000, 'rescaldo'], [7100, 'veredito']]) {
+  for (const [at, phase] of [[850, 'despertar'], [2300, 'sobrecarga'], [3450, 'disparo'], [5000, 'disparo'], [6000, 'retorno'], [7100, 'veredito']]) {
     f.advance(at);
     assert.equal(f.scene.segurancaX1EmCurso.fase, phase);
     assert.equal(f.scene.executando, true, 'A tela final aguarda toda a sequência.');
+    if (at === 3450 || at === 5000) assert.equal(f.named('seguranca-x1-dragao').visible, false, 'Dragão some por completo durante a destruição.');
+    if (at === 6000) assert.equal(f.named('seguranca-x1-dragao').visible, true, 'Dragão reaparece na ruptura final.');
   }
   assert.equal(f.scene.segurancaX1EmCurso.destruidas, 10);
   assert.ok(f.sounds.some(sound => sound.key === 'somDragao'));
