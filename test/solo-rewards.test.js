@@ -49,7 +49,7 @@ const begin = async () => {
   assert.equal((await api("account/match-start", { mode: "online" })).status, 400);
   assert.equal((await api("account/match-complete", { result: "jogador" })).status, 404);
   let games = 0, currency = 500;
-  for (const [result, reward] of [["jogador", 1000], ["inimigo", 200], ["empate", 0]]) {
+  for (const [result, reward] of [["jogador", 10], ["inimigo", 0], ["empate", 0]]) {
     const matchId = await begin();
     assert.equal((await api("account/match-complete", { matchId, result }, other.token)).status, 404);
     assert.equal((await api("account/match-complete", { matchId, result: "vitoria" })).status, 400);

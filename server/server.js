@@ -21,6 +21,7 @@ const QRCode = require("qrcode");
 const { networkInterfaces } = require("node:os");
 const ranking = require("./ranking");
 const council = require("./council");
+const { onlineRewards } = require("./match-rewards");
 const matchmaking = new Map();
 const redemptionAttempts = new Map();
 const battleAnnouncements = require("../js/battle-announcements");
@@ -1357,7 +1358,7 @@ async function handleApi(request, response, pathname) {
       return sendJson(response, 409, { ok: false, error: "Esta partida já tem outro resultado." });
     if (!match.result) {
       // ponytail: o motor solo ainda roda no navegador; validar o combate exige levá-lo ao servidor.
-      const reward = body.result === "jogador" ? 1000 : body.result === "inimigo" ? 200 : 0;
+      const reward = body.result === "jogador" ? 10 : 0;
       if (!Number.isSafeInteger(account.currency + reward))
         return sendJson(response, 400, { ok: false, error: "O saldo atingiu o limite permitido." });
       match.result = body.result;
@@ -1801,12 +1802,13 @@ function settleMatch(room) {
   const winner = room.result.resultadoCombate?.resultado;
   if (!["jogador", "inimigo", "empate"].includes(winner)) return;
   const accounts = [1, 2].map(player => room.accounts.get(player));
+  const rewards = onlineRewards(room);
   if (room.ranked && accounts.every(Boolean)) ranking.applyResult(...accounts, winner);
   if (!room.debugFinal) [...new Set(accounts.filter(Boolean))].forEach(account => {
     ensureAccountDefaults(account);
     const player = accounts.indexOf(account) + 1;
     const winnerPlayer = winner === "jogador" ? 1 : winner === "inimigo" ? 2 : 0;
-    const reward = !winnerPlayer || accounts[0] === accounts[1] ? 0 : player === winnerPlayer ? 2000 : 400;
+    const reward = rewards[player - 1];
     account.currency = Math.min(Number.MAX_SAFE_INTEGER, account.currency + reward);
     account.gamesPlayed += 1;
     if (accounts.every(Boolean) && accounts[0] !== accounts[1]) {
@@ -1826,6 +1828,7 @@ function settleMatch(room) {
 
 function surrenderRoom(room, player) {
   if (!room.state || room.state.partidaEncerrada) return;
+  room.surrenderedBy = player;
   const resolved = require("./duel-runtime").finishBySurrender(room.state, player);
   clearTimeout(room.timer); room.deadline = null;
   room.state = resolved.state; room.result = resolved.result;

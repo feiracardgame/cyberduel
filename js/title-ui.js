@@ -1720,6 +1720,8 @@ class CyberduelTitleUI {
             this.element("p", "", `Vendas concluídas no mercado: ${account.marketSales}`),
             this.element("p", "title-admin-note", `Gastos e vendas registrados desde ${new Date(account.statsTrackedSince).toLocaleString("pt-BR")}. O histórico anterior não foi registrado.`),
             requireNameChange, detailsStatus);
+          details.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
+          requireNameChange.focus({ preventScroll: true });
         }, `Selecionar conta ${account.username}`);
         row.append(this.element("strong", "", account.username), this.element("span", "", account.nickname),
           this.element("small", "", `Clube: ${account.clubUnlocked ? "SIM" : "NÃO"} · Conselho: ${account.councilMember ? "SIM" : "NÃO"}`));
@@ -2623,6 +2625,7 @@ class CyberduelTitleUI {
       ["Tempo de cada turno", "Cada turno tem um tempo máximo de 40 segundos para realizar suas ações. O cronômetro fica pausado durante as animações dos efeitos e volta a contar quando elas terminam."],
       ["Vença as rodadas", "O poder total de cada campo define o vencedor da rodada. Empates não pontuam. A partida termina com 4 rodadas vencidas ou após 7 rodadas; vence quem tiver mais rodadas ganhas. Resultados iguais terminam em empate."],
       ["Escolha sua partida", "Jogue solo contra o bot, procure um adversário em Partida aleatória ou convide amigos em Partida privada. Partidas privadas não rendem tijolinhos."],
+      ["Tijolinhos nas partidas online", "Se o mesmo jogador desistir novamente contra o mesmo adversário nos três primeiros turnos, os tijolinhos dos dois são reduzidos pela metade a cada repetição, arredondando para baixo até zero. A primeira desistência paga o valor normal. Após o terceiro turno, a recompensa é normal. O histórico continua entre modalidades e após reiniciar."],
       ["Entre no Clube secreto", "Conquiste 3 vitórias contra jogadores para liberar as quatro mesas. Escolha uma mesa e insira o código exibido na apresentação correspondente."],
       ["Leaderboard e Conselho", "São necessárias 5 partidas e 3 vitórias contra jogadores para entrar na leaderboard. O top 10 atual forma o Conselho. Na mesa do Conselho, cada canto pode ser reservado por 1 minuto para inserir o código. Partidas contra o bot não contam para esses requisitos."],
       ["Pratique com a ElenAI", "Use Repetir tutorial para aprender os controles e jogar um treino guiado."],

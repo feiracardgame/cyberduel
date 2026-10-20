@@ -338,7 +338,7 @@ O menu **Mercado → Anunciar cartas** abre uma galeria para escolher de 1 a 99 
 
 Em **Visualizar anúncios**, busque por carta ou vendedor e compre o lote pelo total exibido. O comprador paga o preço integral, e o vendedor recebe 80% do total na conclusão da compra, arredondados para baixo em tijolinhos inteiros. O restante é a taxa do mercado; anunciar ou cancelar não cobra taxa nem gera pagamento. O formulário mostra o valor líquido antes da publicação. **Meus anúncios** permite cancelar e recuperar as cópias. Use **Atualizar** para conferir novas ofertas, vendas e saldo; anúncios e transações são persistidos junto das contas em `accounts.json`.
 
-Os Booster packs terão valores de X tijolinhos, contudo, esse valor pode ser reajustado de acordo com a demanda. Além disso, o lançamento deles pode ser direto (todos os boosters serão disponibilizados no site de venda da feira automaticamente desde o início) ou gradual (os boosters são lançados ao longo da feira).
+Cada booster custa **100 tijolinhos**. Além disso, o lançamento deles pode ser direto (todos os boosters serão disponibilizados no site de venda da feira automaticamente desde o início) ou gradual (os boosters são lançados ao longo da feira).
 
 Os boosters serão temáticos com o grupo (RaspCorp, EchoSystem, Sindicato, etc) e só conterão cartas daquele grupo.
 
@@ -453,13 +453,13 @@ Conclua ou feche salas online com cartas de outros boosters antes de ativar: o s
 
 ### Recompensas solo contra o bot
 
-Cada partida solo normal de uma conta autenticada concede **1.000 tijolinhos por vitória** e **200 por derrota**; empate concede zero. A tela final mostra o crédito confirmado e permite tentar novamente se houver falha de comunicação. Partidas de teste/atalhos de admin não concedem esse bônus.
+Cada partida solo normal de uma conta autenticada concede **10 tijolinhos por vitória** e **zero por derrota**; empate concede zero. A tela final mostra o crédito confirmado e permite tentar novamente se houver falha de comunicação. Partidas de teste/atalhos de admin não concedem esse bônus.
 
 O servidor fixa o valor, vincula o ID da partida à conta e impede pagamento duplicado, inclusive após reiniciar. Mantém os últimos 100 registros solo por conta; IDs antigos são recusados. O combate solo ainda acontece no navegador, portanto o resultado informado pelo cliente não tem validação contra manipulação do jogo.
 
 ### Recompensas online
 
-Matchmaking e partidas por sala pagam **2.000 tijolinhos por vitória** e **400 por derrota** às contas autenticadas; empate paga zero. O servidor credita uma vez ao encerrar o duelo, inclusive por desistência, e persiste os saldos. Espectadores e finais por atalhos de teste não recebem recompensa. Usar a mesma conta nos dois lugares não concede bônus. O saldo respeita o limite de inteiro seguro.
+Partidas aleatórias pagam **20 tijolinhos por vitória** e **10 por derrota**; partidas do Clube pagam **50 por vitória** e **25 por derrota**; partidas do Conselho pagam **100 por vitória** e **50 por derrota** às contas autenticadas. Partidas privadas não pagam recompensa; empate paga zero. O servidor credita uma vez ao encerrar o duelo e persiste os saldos. Se o mesmo jogador desistir novamente contra o mesmo adversário nos três primeiros turnos (rodadas 1 a 3 do servidor), a recompensa dos dois é dividida por 2 a cada repetição, com arredondamento para baixo até zero. Exemplo na Partida aleatória: o vencedor recebe 20 → 10 → 5 → 2 → 1 → 0 e quem desiste recebe 10 → 5 → 2 → 1 → 0. A primeira desistência paga o valor normal. Desistências a partir do quarto turno e combates concluídos normalmente pagam os valores normais e não aumentam nem apagam esse contador. O histórico é por conta que desiste e adversário, vale entre modalidades e persiste após reiniciar, sem prazo de expiração. Não há duração mínima nem limite de partidas premiadas. Partidas sem recompensa continuam registrando resultado e estatísticas, incluindo a pontuação do ranking. Espectadores e finais por atalhos de teste não recebem recompensa. Usar a mesma conta nos dois lugares não concede bônus. O saldo respeita o limite de inteiro seguro.
 
 ### Comprar e abrir boosters
 

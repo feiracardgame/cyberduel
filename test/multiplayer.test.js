@@ -295,23 +295,23 @@ async function run() {
     assert.equal((await emitAck(menu, "resume-match", credentials)).ok, false);
   }
   assert.equal((await emitAck(opponent, "live-state", { state, step: 0, round: 1 })).ok, false);
-  assert.equal(await balance(token1), 900, "Derrota por sala paga 400.");
-  assert.equal(await balance(token2), 2500, "Vitória por sala paga 2.000.");
+  assert.equal(await balance(token1), 500, "Derrota em partida privada não paga recompensa.");
+  assert.equal(await balance(token2), 500, "Vitória em partida privada não paga recompensa.");
   const normal = await emitAck(menu, "create-room", { accountToken: token2 });
   await emitAck(opponent, "join-room", { code: normal.room.code, accountToken: token1 });
   await emitAck(menu, "initial-state", { state });
   await emitAck(intruder, "spectate-room", { code: normal.room.code });
   intruder.emit("surrender");
   await emitAck(intruder, "find-active-match", {});
-  assert.equal(await balance(token1), 900, "Espectador não pode encerrar nem pagar uma partida.");
+  assert.equal(await balance(token1), 500, "Espectador não pode encerrar nem pagar uma partida.");
   const normalFinal = once(opponent, "state-update");
   menu.emit("surrender");
   assert.equal((await normalFinal).result.resultadoCombate.resultado, "inimigo");
   menu.emit("surrender"); opponent.emit("surrender");
   await emitAck(menu, "live-state", { state, step: 0, round: 1 });
   await emitAck(opponent, "live-state", { state, step: 0, round: 1 });
-  assert.equal(await balance(token1), 2900, "Vitória paga uma única vez.");
-  assert.equal(await balance(token2), 2900, "Derrota paga uma única vez.");
+  assert.equal(await balance(token1), 500, "Vitória privada continua sem recompensa após repetir o encerramento.");
+  assert.equal(await balance(token2), 500, "Derrota privada continua sem recompensa após repetir o encerramento.");
   menu.disconnect(); opponent.disconnect();
   for (const socket of [player1, player2, intruder, reconnected]) socket.disconnect();
   console.log("Fluxo multiplayer validado.");

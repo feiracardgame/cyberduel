@@ -93,6 +93,33 @@ async function run() {
   assert.equal((await ack(two, 'join-room', { ...second, code, table: 5 })).ok, true);
   assert.equal((await ack(outsider, 'watch-club-tables')).council.locked, true);
   assert.equal((await ack(otherTab, 'reserve-council-seat', first)).ok, false);
+  assert.equal((await ack(one, 'decline-match', { room: code, accountToken: first.accountToken })).ok, true);
+  for (const [index, fixture] of fixtures.slice(0, 2).entries()) {
+    const response = await fetch(url + '/api/auth/session', { headers: { Authorization: `Bearer ${fixture.token}` } });
+    assert.equal((await response.json()).currency, index === 0 ? 550 : 600, 'Primeira desistência no Conselho paga os valores normais.');
+  }
+  assert.equal((await ack(one, 'decline-match', { room: code, accountToken: first.accountToken })).ok, false);
+  const saved = JSON.parse(fs.readFileSync(file)).accounts;
+  assert.equal(saved[fixtures[0].accountKey].currency, 550);
+  assert.equal(saved[fixtures[1].accountKey].currency, 600, 'Primeira desistência no Conselho paga uma única vez.');
+  let loserBalance = 550, winnerBalance = 600;
+  for (let repetition = 1; repetition <= 7; repetition++) {
+    one.emit('leave-room'); two.emit('leave-room'); screen.emit('leave-room');
+    const next = await ack(screen, 'create-presentation', { table: 5 });
+    assert.equal(next.ok, true);
+    const nextCode = next.room.code;
+    assert.equal((await ack(one, 'reserve-council-seat', first)).ok, true);
+    assert.equal((await ack(one, 'join-room', { ...first, code: nextCode, table: 5 })).ok, true);
+    assert.equal((await ack(two, 'reserve-council-seat', second)).ok, true);
+    assert.equal((await ack(two, 'join-room', { ...second, code: nextCode, table: 5 })).ok, true);
+    assert.equal((await ack(one, 'decline-match', { room: nextCode, accountToken: first.accountToken })).ok, true);
+    loserBalance += Math.floor(50 / 2 ** repetition);
+    winnerBalance += Math.floor(100 / 2 ** repetition);
+    const persisted = JSON.parse(fs.readFileSync(file)).accounts;
+    assert.equal(persisted[fixtures[0].accountKey].currency, loserBalance);
+    assert.equal(persisted[fixtures[1].accountKey].currency, winnerBalance, 'Repetir desistências corta o pagamento até zero.');
+    assert.equal(persisted[fixtures[0].accountKey].earlySurrenders[0].count, repetition + 1);
+  }
   console.log('Conselho: top 10 atual, reserva exclusiva, prazo de 60s e partida validados.');
 }
 run().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => {
