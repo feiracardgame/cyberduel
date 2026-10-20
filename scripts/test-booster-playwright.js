@@ -12,9 +12,13 @@ const stored = JSON.parse(fs.readFileSync(file));
 const cards = [
   ['O Rato', 'baixa'], ['A Cobra', 'media'], ['O Boi', 'alta'], ['A Aranha', 'lendaria'], ['O Cão', 'baixa'],
 ].map(([nome, nivel]) => ({ nome, nivel, tipo: 'monstro', quantidade: 1 }));
+const raspCards = [
+  ['CyberVendedor da RaspCorp', 'baixa'], ['Agente da DIPSP', 'media'], ['Advogado Corporativo', 'media'],
+  ['UCC "Juggernaut"', 'alta'], ['RaspClay MonteCorp', 'lendaria'],
+].map(([nome, nivel]) => ({ nome, nivel, tipo: 'monstro', quantidade: 1 }));
 Object.assign(stored.accounts[fixture.accountKey], {
   tutorial: { introSeen: true, named: true, wantsTutorial: false, completed: true, farewellSeen: true, seen: [] },
-  boosters: [1, 2].map(id => ({ id: `visual-pack-${id}`, faction: 'echossystem', cards, purchasedAt: new Date().toISOString() })),
+  boosters: [1, 2].map(id => ({ id: `visual-pack-${id}`, faction: id === 1 ? 'echossystem' : 'raspcorp', cards: id === 1 ? cards : raspCards, purchasedAt: new Date().toISOString() })),
 });
 fs.writeFileSync(file, JSON.stringify(stored));
 const output = path.resolve('output/sindicato/booster-visual'); fs.mkdirSync(output, { recursive: true });
@@ -55,8 +59,20 @@ async function run() {
   page.on('request', request => { if (request.url().endsWith('/api/boosters/open')) opened++; });
   await page.goto('http://127.0.0.1:31962', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => typeof game !== 'undefined' && game.scene.isActive('CenaTitulo') && cyberduelAccount.user && !game.scene.getScene('CenaTitulo').restaurandoConta, null, { timeout: 120000 });
+  await page.evaluate(() => game.scene.getScene('CenaTitulo').titleUI.openBoosterShop());
+  for (const faction of ['raspcorp', 'echossystem', 'humbanet', 'remanescentes', 'sindicato']) {
+    await page.locator(`.booster-faction[data-faction="${faction}"]`).click();
+    assert.equal(await page.locator('.booster-pack-lid img').count(), 0, 'A aba de abertura não contém retrato.');
+    assert.equal(await page.locator('.booster-pack').evaluate(pack => {
+      const windowArt = pack.querySelector('.booster-pack-window'), lid = pack.querySelector('.booster-pack-lid');
+      return windowArt.offsetTop >= lid.offsetHeight && getComputedStyle(pack.querySelector('.booster-pack-art')).objectFit === 'contain';
+    }), true, 'Tampa e personagem ocupam áreas separadas.');
+    assert.equal(await page.locator('.booster-pack-name').evaluate(name => name.scrollWidth <= name.clientWidth), true, 'Nome da facção cabe na embalagem.');
+    assert.match(await page.locator('.booster-pack-art').getAttribute('src'), /\/game\/.*\.webp/);
+  }
+  await page.getByRole('button', { name: 'Fechar loja de boosters', exact: true }).click();
   await page.evaluate(() => game.scene.getScene('CenaTitulo').titleUI.openBoosterInventory());
-  await page.getByRole('button', { name: 'ABRIR BOOSTER', exact: true }).click();
+  await page.locator('.booster-inventory-item').filter({ hasText: 'EchoSsystem' }).getByRole('button', { name: 'ABRIR BOOSTER', exact: true }).click();
   await page.waitForFunction(() => getComputedStyle(document.querySelector('.booster-fullscreen')).opacity === '1' && document.querySelector('.booster-pack-art').complete);
   await page.screenshot({ path: path.join(output, 'pacote-fechado.png') });
   const seal = await page.locator('.booster-scratch').boundingBox();
@@ -74,6 +90,8 @@ async function run() {
   await page.screenshot({ path: path.join(output, 'lacre-rompendo.png') });
   await frontReady();
   assert.equal(opened, 1);
+  assert.equal(await page.locator('.title-booster-card:not(.is-front) img[src]').count(), 0, 'Somente a carta revelada carrega sua imagem.');
+  assert.match(await page.locator('.title-booster-card.is-front img').getAttribute('src'), /\/game\/.*\.webp/);
   const card = await page.locator('.title-booster-card.is-front').boundingBox();
   const x = card.x + card.width / 2, y = card.y + card.height * .6;
   await startTouch(x, y); await moveTouch(x + 35, y - 85);
@@ -111,6 +129,15 @@ async function run() {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.setViewportSize({ width: 1366, height: 768 });
   await page.getByRole('button', { name: 'ABRIR BOOSTER', exact: true }).click();
+  await page.waitForFunction(() => document.querySelectorAll('.booster-fullscreen').length === 1 && getComputedStyle(document.querySelector('.booster-fullscreen')).opacity === '1' && document.querySelector('.booster-pack-art').complete && document.querySelector('.booster-pack-art').naturalWidth > 0);
+  await page.screenshot({ path: path.join(output, 'raspcorp-lacre-separado.png') });
+  await page.setViewportSize({ width: 320, height: 568 });
+  const action = await page.locator('.booster-buy').boundingBox();
+  assert.ok(action.y + action.height <= 569, 'Botão de abertura cabe no celular compacto.');
+  assert.equal(await page.locator('.booster-pack-window').evaluate(windowArt => windowArt.clientHeight >= windowArt.closest('.booster-pack').clientHeight * .4), true, 'O retrato continua legível no celular compacto.');
+  assert.equal(await page.locator('.booster-pack-name').evaluate(name => name.scrollWidth <= name.clientWidth), true);
+  await page.screenshot({ path: path.join(output, 'raspcorp-celular-compacto.png') });
+  await page.setViewportSize({ width: 1366, height: 768 });
   await page.locator('.booster-scratch').focus(); await page.keyboard.press('Enter'); await frontReady();
   assert.equal(opened, 2);
   assert.equal(await page.locator('.title-booster-card.is-front').evaluate(node => getComputedStyle(node).animationName), 'none');
@@ -121,6 +148,7 @@ async function run() {
   assert.equal(await page.evaluate(() => cyberduelAccount.boosters.length), 0);
   assert.equal(await page.evaluate(() => cyberduelAccount.currency), before.currency);
   checks.push('1366×768 e movimento reduzido: abertura por Enter, cinco revelações, duas aberturas únicas e saldo preservado.');
+  checks.push('Cinco facções: arte inteira separada do lacre, nomes sem cortes, imagens WebP e carregamento somente da carta revelada; RaspCorp conferida em 320×568.');
   assert.deepEqual(errors, []);
   fs.writeFileSync(path.join(output, 'report.json'), JSON.stringify({ checks, errors, opened, animationStartedAt }, null, 2));
   const video = page.video(); await context.close(); await video.saveAs(path.join(output, 'booster-abertura-arraste.webm'));

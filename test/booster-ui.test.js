@@ -20,7 +20,7 @@ class Element {
   setPointerCapture(id) { this.pointerId = id; }
   hasPointerCapture(id) { return this.pointerId === id; }
   releasePointerCapture() { this.pointerId = null; this.events.lostpointercapture?.(); }
-  querySelector(selector) { return this.children.find(x => x.classList.contains(selector.slice(1))); }
+  querySelector(selector) { return this.children.find(x => selector.startsWith('.') ? x.classList.contains(selector.slice(1)) : x.tag === selector); }
   remove() { this.parent.children = this.parent.children.filter(x => x !== this); }
   click() { if (!this.disabled) return this.handler?.(); }
 }
@@ -33,6 +33,17 @@ ui.button = (cls, text, handler) => { const el = ui.element('button', cls, text)
 ui.createModal = () => ui.modal = new Element('div');
 ui.closeModal = () => { ui.modal = null; };
 ui.deckBuilder = { getCatalog: () => [], getCatalogByKey: () => new Map() };
+context.window.CYBERDUEL_IMAGE_ASSETS = { testArt: 'assets/cartas/original.png' };
+context.window.CYBERDUEL_GAME_IMAGE_ASSETS = { testArt: 'assets/cartas/game/otimizada.webp' };
+ui.deckBuilder.getCatalogByKey = () => new Map([['monstro:Ilustrada', { imagem: 'testArt', nivel: 'baixa' }]]);
+const illustrated = ui.createBoosterResult({ tipo: 'monstro', nivel: 'baixa', nome: 'Ilustrada' });
+assert.equal(illustrated.children[0].src, undefined, 'Cartas viradas não carregam a ilustração.');
+assert.equal(illustrated.children[0].dataset.src, 'assets/cartas/game/otimizada.webp');
+const optimizedAssets = context.window.CYBERDUEL_GAME_IMAGE_ASSETS;
+context.window.CYBERDUEL_GAME_IMAGE_ASSETS = undefined;
+assert.equal(ui.createBoosterResult({ tipo: 'monstro', nivel: 'baixa', nome: 'Ilustrada' }).children[0].dataset.src, 'assets/cartas/original.png', 'Mantém fallback quando o catálogo otimizado não está disponível.');
+context.window.CYBERDUEL_GAME_IMAGE_ASSETS = optimizedAssets;
+ui.deckBuilder.getCatalogByKey = () => new Map();
 let purchases = 0;
 let openings = 0;
 ui.account = { user: {}, currency: 500, boosterPrice: 100, notify() {}, boosters: [], async buyBooster() {

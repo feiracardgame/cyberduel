@@ -3432,13 +3432,14 @@ class CyberduelTitleUI {
     let opened = false;
     const header = this.element("header", "booster-header");
     const heading = this.element("div");
+    heading.dataset.responsiveText = "true";
     heading.append(
       this.element(
         "span",
         "title-kicker",
         opening ? "SEU PACOTE" : "MERCADO / COLEÇÃO",
       ),
-      this.element("h2", "", opening ? "Abra seu booster" : "Booster Vault"),
+      this.element("h2", "", opening ? "Abra seu booster" : "Boosters"),
     );
     const close = this.button(
       "booster-close",
@@ -3466,31 +3467,32 @@ class CyberduelTitleUI {
     tabs.setAttribute("aria-label", "Facção do pacote");
     const stage = this.element("div", "booster-stage");
     const pack = this.element("div", "booster-pack");
+    pack.dataset.responsiveText = "true";
     pack.setAttribute("aria-hidden", "true");
     const artwork = this.element("img", "booster-pack-art");
     artwork.alt = "";
     artwork.draggable = false;
+    artwork.decoding = "async";
+    const windowArt = this.element("div", "booster-pack-window");
     const lid = this.element("div", "booster-pack-lid");
-    const lidArtwork = this.element("img", "booster-pack-lid-art");
-    lidArtwork.alt = "";
-    lidArtwork.draggable = false;
     const foil = this.element("div", "booster-pack-foil");
     const packBrand = this.element(
       "span",
       "booster-pack-brand",
-      "CYBER / DUEL",
+      "CYBERDUEL",
     );
     const packName = this.element("strong", "booster-pack-name");
     const seal = this.element("span", "booster-pack-seal", "05 / CARTAS");
-    lid.append(lidArtwork, packBrand);
-    pack.append(artwork, foil, lid, packName, seal);
+    lid.append(packBrand);
+    windowArt.append(artwork, foil);
+    pack.append(lid, windowArt, packName, seal);
     const energy = this.element("div", "booster-energy");
     const burst = this.element("div", "booster-burst");
     energy.setAttribute("aria-hidden", "true");
     burst.setAttribute("aria-hidden", "true");
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < 8; i++) {
       const ray = this.element("span");
-      ray.style.setProperty("--ray-angle", `${i * 30}deg`);
+      ray.style.setProperty("--ray-angle", `${i * 45}deg`);
       ray.style.setProperty("--ray-delay", `${i * 18}ms`);
       burst.append(ray);
     }
@@ -3498,7 +3500,7 @@ class CyberduelTitleUI {
     flash.setAttribute("aria-hidden", "true");
     const scratch = this.button(
       "booster-scratch",
-      "RISQUE AQUI PARA ABRIR →",
+      "DESLIZE O LACRE →",
       () => {},
     );
     scratch.setAttribute(
@@ -3506,7 +3508,7 @@ class CyberduelTitleUI {
       "Abrir pacote. Arraste horizontalmente ou pressione Enter.",
     );
     scratch.hidden = !opening;
-    pack.append(scratch);
+    lid.append(scratch);
     pack.removeAttribute("aria-hidden");
     stage.append(energy, pack, burst, flash);
     const intro = this.element("div", "booster-intro");
@@ -3555,6 +3557,12 @@ class CyberduelTitleUI {
       }
       const card = queue[position];
       const item = results.children[0];
+      const image = item.querySelector("img");
+      if (image) {
+        image.src = image.dataset.src;
+        await image.decode?.().catch(() => {});
+        if (!alive()) return;
+      }
       results.dataset.rarity = card.nivel;
       if (card.nivel === "lendaria") {
         cutin.replaceChildren(
@@ -3668,7 +3676,7 @@ class CyberduelTitleUI {
         opened = true;
         queue = revealed;
         position = 0;
-        await pause(450);
+        await pause(180);
         if (this.modal === overlay) await revealNext();
       } catch (exception) {
         if (this.modal === overlay) {
@@ -3737,17 +3745,13 @@ class CyberduelTitleUI {
       const model =
         catalog.find((c) => c.nome === selected[4]) ||
         catalog.find((c) => c.booster === selected[0] && c.imagem);
-      const source = window.CYBERDUEL_IMAGE_ASSETS?.[model?.imagem];
+      const source = window.CYBERDUEL_GAME_IMAGE_ASSETS?.[model?.imagem] || window.CYBERDUEL_IMAGE_ASSETS?.[model?.imagem];
       if (source) {
         artwork.src = source;
-        lidArtwork.src = source;
         artwork.hidden = false;
-        lidArtwork.hidden = false;
       } else {
         artwork.removeAttribute("src");
-        lidArtwork.removeAttribute("src");
         artwork.hidden = true;
-        lidArtwork.hidden = true;
       }
       error.textContent = "";
       status.textContent = opening
@@ -3769,7 +3773,7 @@ class CyberduelTitleUI {
       pack.style.setProperty("--pack-tilt", `${Math.sign(event.clientX - scratchStart.x) * Math.min(6, distance * .04)}deg`);
       scratch.style.setProperty(
         "--scratch",
-        `${Math.min(100, (distance / scratch.clientWidth) * 100)}%`,
+        Math.min(1, distance / scratch.clientWidth),
       );
       if (distance >= scratch.clientWidth * 0.55) {
         scratchStart = null;
@@ -3798,7 +3802,7 @@ class CyberduelTitleUI {
       if (!drag) return;
       drag.item.classList.remove("is-dragging");
       results.style.removeProperty("--swipe-progress");
-      if (!commit) for (const key of ["--drag-x", "--drag-y", "--drag-rotate", "--shine-x"])
+      if (!commit) for (const key of ["--drag-x", "--drag-y", "--drag-rotate", "--shine-offset"])
         drag.item.style.removeProperty(key);
       if (results.hasPointerCapture?.(drag.id)) results.releasePointerCapture(drag.id);
     };
@@ -3822,7 +3826,7 @@ class CyberduelTitleUI {
         item.style.setProperty("--drag-x", `${dx}px`);
         item.style.setProperty("--drag-y", `${dy > 0 ? dy * .4 : dy}px`);
         item.style.setProperty("--drag-rotate", `${reducedMotion ? 0 : dx * .075}deg`);
-        item.style.setProperty("--shine-x", `${50 + dx * .2}%`);
+        item.style.setProperty("--shine-offset", `${dx * .15}px`);
         results.style.setProperty("--swipe-progress", Math.min(1, Math.max(0, -dy / 140)));
       });
     });
@@ -3907,9 +3911,11 @@ class CyberduelTitleUI {
       .get(`${card.tipo}:${card.nome}`);
     const item = this.element("article", "title-booster-card");
     item.dataset.rarity = card.nivel || model?.nivel || "utilidade";
-    if (model?.imagem && window.CYBERDUEL_IMAGE_ASSETS?.[model.imagem]) {
+    const source = window.CYBERDUEL_GAME_IMAGE_ASSETS?.[model?.imagem] || window.CYBERDUEL_IMAGE_ASSETS?.[model?.imagem];
+    if (source) {
       const image = this.element("img");
-      image.src = window.CYBERDUEL_IMAGE_ASSETS[model.imagem];
+      image.dataset.src = source;
+      image.decoding = "async";
       image.alt = card.nome;
       image.draggable = false;
       item.append(image);
