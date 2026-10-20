@@ -78,6 +78,10 @@ async function run() {
   await page.waitForFunction(() => typeof game !== 'undefined' && game.scene.isActive('CenaTitulo') && cyberduelAccount.user && !game.scene.getScene('CenaTitulo').restaurandoConta, null, { timeout: 120000 });
   await page.evaluate(() => {
     window.boosterReveals = [];
+    window.boosterBackgroundMutations = 0;
+    new MutationObserver(records => {
+      if (document.querySelector('.booster-fullscreen')) window.boosterBackgroundMutations += records.length;
+    }).observe(document.querySelector('.title-matrix'), { childList: true, subtree: true });
     const seen = new WeakSet();
     new MutationObserver(() => {
       const card = document.querySelector('.title-booster-results.is-revealing .is-front:not(.is-settled)');
@@ -102,6 +106,7 @@ async function run() {
   await page.evaluate(() => game.scene.getScene('CenaTitulo').titleUI.openBoosterInventory());
   await page.locator('.booster-inventory-item').filter({ hasText: 'EchoSsystem' }).getByRole('button', { name: 'ABRIR BOOSTER', exact: true }).click();
   await page.waitForFunction(() => getComputedStyle(document.querySelector('.booster-fullscreen')).opacity === '1' && document.querySelector('.booster-pack-art').complete);
+  assert.equal(await page.locator('.title-matrix-stream').first().evaluate(node => getComputedStyle(node).animationPlayState), 'paused', 'Animação do menu encoberto fica pausada.');
   await page.screenshot({ path: path.join(output, 'pacote-fechado.png') });
   const seal = await page.locator('.booster-scratch').boundingBox();
   const sx = seal.x + seal.width * .25, sy = seal.y + seal.height / 2;
@@ -168,6 +173,7 @@ async function run() {
     { rarity: 'lendaria', animation: 'booster-legend', duration: '1.15s' },
   ]);
   assert.equal(await page.locator('.title-booster-results').evaluate(node => node.getAnimations({ subtree: true }).filter(animation => animation.playState === 'running').length), 0, 'Nenhum efeito continua rodando depois da revelação.');
+  assert.equal(await page.evaluate(() => window.boosterBackgroundMutations), 0, 'O menu encoberto não gera alterações de texto durante a abertura.');
   assert.equal(await page.locator('.title-booster-card.is-front strong').innerText(), 'A Aranha');
   await page.screenshot({ path: path.join(output, 'carta-revelada.png') });
   await page.waitForTimeout(600);
@@ -180,6 +186,7 @@ async function run() {
   checks.push('Toque: lacre cancelado e rompido, carta acompanha o dedo, cancelamento retorna, arraste revela uma carta sem repetir a abertura.');
   checks.push('Teclado, roda do mouse, lendária, última carta, saldo e cinco cartas recebidas conferidos.');
   await page.getByRole('button', { name: 'VOLTAR AO INVENTÁRIO', exact: true }).click();
+  assert.equal(await page.locator('.title-matrix-stream').first().evaluate(node => getComputedStyle(node).animationPlayState), 'running', 'O menu retoma sua animação ao sair da abertura.');
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.setViewportSize({ width: 1366, height: 768 });
   await page.getByRole('button', { name: 'ABRIR BOOSTER', exact: true }).click();
@@ -218,6 +225,7 @@ async function run() {
   checks.push('1366×768 e movimento reduzido: abertura por Enter, cinco revelações, duas aberturas únicas e saldo preservado.');
   checks.push('Cinco facções: arte inteira separada do lacre, nomes sem cortes, imagens WebP e carregamento somente da carta revelada; RaspCorp conferida em 320×568.');
   checks.push('Baixa 160 ms, média 380 ms, alta 700 ms e lendária 1150 ms com apresentação de 1800 ms: efeitos distintos, sem animação ociosa e com movimento reduzido respeitado.');
+  checks.push('Menu encoberto sem atualizações de texto ou animação durante a abertura; animação retomada ao voltar ao inventário.');
   checks.push('Lendária sem arte ampliada. Moldura acompanha a proporção nativa com borda de 5px nos quatro lados, sem sobras ou cortes em 390×844, 320×568 e 1366×768.');
   assert.deepEqual(errors, []);
   fs.writeFileSync(path.join(output, 'report.json'), JSON.stringify({ checks, frames, errors, opened, animationStartedAt, legendaryStartedAt }, null, 2));

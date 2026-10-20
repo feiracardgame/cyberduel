@@ -108,6 +108,7 @@ class CyberduelTitleUI {
     this.matrixTimer = setInterval(() => {
       if (
         document.hidden ||
+        this.modal?.classList.contains("booster-fullscreen") ||
         window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
       )
         return;
@@ -3421,7 +3422,11 @@ class CyberduelTitleUI {
       "aria-label",
       opening ? "Abertura de booster" : "Mercado de boosters",
     );
-    this.modalAfterClose = () => this.account.notify();
+    this.modalAfterClose = () => {
+      cancelScratch();
+      finishSwipe();
+      this.account.notify();
+    };
     const factions = this.boosterFactions(!opening);
     const available = this.boosterFactions();
     let selected =
@@ -3767,33 +3772,43 @@ class CyberduelTitleUI {
         : "O pacote ficará guardado no seu inventário.";
       refresh();
     };
-    let scratchStart = null;
+    let scratchStart = null, scratchFrame = null;
     scratch.addEventListener("pointerdown", (event) => {
-      if (scratch.disabled) return;
-      scratchStart = { id: event.pointerId, x: event.clientX };
+      if (scratchStart || scratch.disabled || event.isPrimary === false || (event.button != null && event.button !== 0)) return;
+      scratchStart = { id: event.pointerId, x: event.clientX, clientX: event.clientX, width: scratch.clientWidth };
       pack.classList.add("is-tearing");
       scratch.setPointerCapture(event.pointerId);
     });
     scratch.addEventListener("pointermove", (event) => {
       if (!scratchStart || event.pointerId !== scratchStart.id) return;
-      const distance = Math.abs(event.clientX - scratchStart.x);
-      pack.style.setProperty("--tear-offset", `${Math.min(30, distance * .12)}px`);
-      pack.style.setProperty("--pack-tilt", `${Math.sign(event.clientX - scratchStart.x) * Math.min(6, distance * .04)}deg`);
-      scratch.style.setProperty(
-        "--scratch",
-        Math.min(1, distance / scratch.clientWidth),
-      );
-      if (distance >= scratch.clientWidth * 0.55) {
-        scratchStart = null;
+      if (scratchStart.clientX === event.clientX) return;
+      scratchStart.clientX = event.clientX;
+      if (Math.abs(event.clientX - scratchStart.x) >= scratchStart.width * 0.55) {
+        cancelScratch();
         buy.click();
+        return;
       }
+      if (scratchFrame !== null) return;
+      scratchFrame = requestAnimationFrame(() => {
+        scratchFrame = null;
+        if (!scratchStart || this.modal !== overlay) return;
+        const dx = scratchStart.clientX - scratchStart.x;
+        const distance = Math.abs(dx);
+        pack.style.setProperty("--tear-offset", `${Math.min(30, distance * .12)}px`);
+        pack.style.setProperty("--pack-tilt", `${Math.sign(dx) * Math.min(6, distance * .04)}deg`);
+        scratch.style.setProperty("--scratch", Math.min(1, distance / scratchStart.width));
+      });
     });
     const cancelScratch = () => {
+      if (scratchFrame !== null) cancelAnimationFrame(scratchFrame);
+      scratchFrame = null;
+      const drag = scratchStart;
       scratchStart = null;
       scratch.style.removeProperty("--scratch");
       pack.classList.remove("is-tearing");
       pack.style.removeProperty("--tear-offset");
       pack.style.removeProperty("--pack-tilt");
+      if (drag && scratch.hasPointerCapture?.(drag.id)) scratch.releasePointerCapture(drag.id);
     };
     scratch.addEventListener("pointerup", cancelScratch);
     scratch.addEventListener("pointercancel", cancelScratch);
