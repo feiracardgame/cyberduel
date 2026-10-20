@@ -3538,6 +3538,7 @@ class CyberduelTitleUI {
     const pause = (ms) =>
       new Promise((resolve) => setTimeout(resolve, reducedMotion ? 0 : ms));
     const cutin = this.element("div", "booster-cutin");
+    cutin.setAttribute("aria-hidden", "true");
     cutin.hidden = true;
     const revealNext = async () => {
       if (revealing || !opened || position >= queue.length) return;
@@ -3564,28 +3565,40 @@ class CyberduelTitleUI {
         if (!alive()) return;
       }
       results.dataset.rarity = card.nivel;
+      const duration = { baixa: 160, media: 380, alta: 700, lendaria: 1150 }[card.nivel] || 160;
+      results.style.setProperty("--reveal-duration", `${duration}ms`);
       if (card.nivel === "lendaria") {
         cutin.replaceChildren(
           this.element("strong", "", "LENDÁRIA!"),
           this.element("span", "", card.nome),
         );
-        const source = window.CYBERDUEL_LEGENDARY_CUTINS?.[card.nome];
+        const source = window.CYBERDUEL_LEGENDARY_CUTINS?.[card.nome] || image?.src;
         if (source) {
           const art = this.element("img");
           art.src = source;
           art.alt = "";
+          art.decoding = "async";
           cutin.prepend(art);
         }
+        const sparks = this.element("div", "booster-cutin-sparks");
+        for (let i = 0; i < 10; i++) {
+          const spark = this.element("i");
+          spark.style.setProperty("--spark-angle", `${i * 36}deg`);
+          sparks.append(spark);
+        }
+        cutin.append(sparks, this.element("small", "", "SINAL LENDÁRIO DETECTADO"));
         cutin.hidden = false;
         status.textContent = "Uma lendária está chegando…";
-        await pause(1600);
+        await pause(1800);
         if (!alive()) return;
         cutin.hidden = true;
       }
+      results.classList.add("is-revealing");
       item.classList.add("is-front");
       item.removeAttribute("aria-hidden");
-      await pause(450);
+      await pause(duration);
       if (!alive()) return;
+      results.classList.remove("is-revealing");
       item.classList.add("is-settled");
       if (position === 0 && queue.length > 1) {
         item.prepend(
@@ -3735,6 +3748,7 @@ class CyberduelTitleUI {
       dialog.classList.remove("is-revealed", "is-opening");
       dialog.style.setProperty("--pack-color", selected[3]);
       results.hidden = true;
+      results.classList.remove("is-revealing");
       results.replaceChildren();
       stage.hidden = false;
       intro.hidden = false;
@@ -3810,24 +3824,35 @@ class CyberduelTitleUI {
       if (swipeStart || !opened || busy || revealing || event.isPrimary === false || (event.button != null && event.button !== 0)) return;
       const item = results.querySelector(".is-front");
       if (!item) return;
-      swipeStart = { id: event.pointerId, x: event.clientX, y: event.clientY, dx: 0, dy: 0, item };
+      swipeStart = { id: event.pointerId, x: event.clientX, y: event.clientY, clientX: event.clientX, clientY: event.clientY, dx: 0, dy: 0, item };
       item.classList.add("is-dragging");
       results.setPointerCapture(event.pointerId);
     });
     results.addEventListener("pointermove", (event) => {
       if (swipeStart?.id !== event.pointerId) return;
-      swipeStart.dx = Math.max(-160, Math.min(160, event.clientX - swipeStart.x));
-      swipeStart.dy = Math.max(-360, Math.min(80, event.clientY - swipeStart.y));
+      if (swipeStart.clientX === event.clientX && swipeStart.clientY === event.clientY) return;
+      swipeStart.clientX = event.clientX;
+      swipeStart.clientY = event.clientY;
       if (swipeFrame !== null) return;
       swipeFrame = requestAnimationFrame(() => {
         swipeFrame = null;
         if (!swipeStart || this.modal !== overlay) return;
-        const { item, dx, dy } = swipeStart;
-        item.style.setProperty("--drag-x", `${dx}px`);
-        item.style.setProperty("--drag-y", `${dy > 0 ? dy * .4 : dy}px`);
-        item.style.setProperty("--drag-rotate", `${reducedMotion ? 0 : dx * .075}deg`);
-        item.style.setProperty("--shine-offset", `${dx * .15}px`);
-        results.style.setProperty("--swipe-progress", Math.min(1, Math.max(0, -dy / 140)));
+        const drag = swipeStart;
+        const dx = Math.max(-160, Math.min(160, drag.clientX - drag.x));
+        const dy = Math.max(-360, Math.min(80, drag.clientY - drag.y));
+        if (dx !== drag.dx) {
+          drag.item.style.setProperty("--drag-x", `${dx}px`);
+          drag.item.style.setProperty("--drag-rotate", `${reducedMotion ? 0 : dx * .075}deg`);
+          drag.item.style.setProperty("--shine-offset", `${dx * .15}px`);
+        }
+        if (dy !== drag.dy) {
+          drag.item.style.setProperty("--drag-y", `${dy > 0 ? dy * .4 : dy}px`);
+          const progress = Math.min(1, Math.max(0, -dy / 140));
+          if (progress !== Math.min(1, Math.max(0, -drag.dy / 140)))
+            results.style.setProperty("--swipe-progress", progress);
+        }
+        drag.dx = dx;
+        drag.dy = dy;
       });
     });
     results.addEventListener("pointerup", (event) => {

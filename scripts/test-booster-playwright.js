@@ -59,6 +59,17 @@ async function run() {
   page.on('request', request => { if (request.url().endsWith('/api/boosters/open')) opened++; });
   await page.goto('http://127.0.0.1:31962', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => typeof game !== 'undefined' && game.scene.isActive('CenaTitulo') && cyberduelAccount.user && !game.scene.getScene('CenaTitulo').restaurandoConta, null, { timeout: 120000 });
+  await page.evaluate(() => {
+    window.boosterReveals = [];
+    const seen = new WeakSet();
+    new MutationObserver(() => {
+      const card = document.querySelector('.title-booster-results.is-revealing .is-front:not(.is-settled)');
+      if (!card || seen.has(card)) return;
+      seen.add(card);
+      const style = getComputedStyle(card);
+      window.boosterReveals.push({ rarity: card.dataset.rarity, animation: style.animationName, duration: style.animationDuration });
+    }).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class'] });
+  });
   await page.evaluate(() => game.scene.getScene('CenaTitulo').titleUI.openBoosterShop());
   for (const faction of ['raspcorp', 'echossystem', 'humbanet', 'remanescentes', 'sindicato']) {
     await page.locator(`.booster-faction[data-faction="${faction}"]`).click();
@@ -108,13 +119,34 @@ async function run() {
   await frontReady();
   assert.equal(opened, 1, 'Arrastar não reabre nem cobra novamente.');
   await page.locator('.booster-buy').focus(); await page.keyboard.press('Enter');
-  await page.waitForFunction(() => document.querySelectorAll('.title-booster-card').length === 3); await frontReady();
+  await page.waitForFunction(() => document.querySelector('.title-booster-results.is-revealing[data-rarity="media"]'));
+  await page.waitForFunction(() => document.querySelector('.title-booster-card.is-front').getAnimations()[0]?.currentTime > 120);
+  await page.screenshot({ path: path.join(output, 'revelacao-media.png') });
+  await frontReady();
   await page.mouse.move(x, y); await page.mouse.wheel(0, -180);
-  await page.waitForFunction(() => document.querySelectorAll('.title-booster-card').length === 2); await frontReady();
+  await page.waitForFunction(() => document.querySelector('.title-booster-results.is-revealing[data-rarity="alta"]'));
+  await page.waitForFunction(() => document.querySelector('.title-booster-card.is-front').getAnimations()[0]?.currentTime > 260);
+  await page.screenshot({ path: path.join(output, 'revelacao-alta.png') });
+  await frontReady();
   await page.getByRole('button', { name: 'PRÓXIMA CARTA', exact: false }).click();
   await page.locator('.booster-cutin').waitFor({ state: 'visible' });
+  await page.evaluate(() => document.querySelector('.title-booster-results').dispatchEvent(new WheelEvent('wheel', { deltaY: -180, cancelable: true })));
+  assert.equal(await page.locator('.booster-cutin img').count(), 1, 'Apresentação lendária exibe a arte da própria carta.');
+  assert.equal(await page.locator('.booster-cutin-sparks i').count(), 10);
+  await page.waitForFunction(() => document.querySelector('.booster-cutin img').getAnimations()[0].currentTime > 550);
   await page.screenshot({ path: path.join(output, 'lendaria.png') });
+  await page.waitForFunction(() => document.querySelector('.title-booster-results.is-revealing[data-rarity="lendaria"]'));
+  await page.waitForFunction(() => document.querySelector('.title-booster-card.is-front').getAnimations()[0]?.currentTime > 430);
+  await page.screenshot({ path: path.join(output, 'revelacao-lendaria.png') });
   await frontReady();
+  assert.deepEqual(await page.evaluate(() => window.boosterReveals), [
+    { rarity: 'baixa', animation: 'booster-quick', duration: '0.16s' },
+    { rarity: 'baixa', animation: 'booster-quick', duration: '0.16s' },
+    { rarity: 'media', animation: 'booster-turn', duration: '0.38s' },
+    { rarity: 'alta', animation: 'booster-high', duration: '0.7s' },
+    { rarity: 'lendaria', animation: 'booster-legend', duration: '1.15s' },
+  ]);
+  assert.equal(await page.locator('.title-booster-results').evaluate(node => node.getAnimations({ subtree: true }).filter(animation => animation.playState === 'running').length), 0, 'Nenhum efeito continua rodando depois da revelação.');
   assert.equal(await page.locator('.title-booster-card.is-front strong').innerText(), 'A Aranha');
   await page.screenshot({ path: path.join(output, 'carta-revelada.png') });
   const last = await page.locator('.title-booster-card.is-front').boundingBox();
@@ -145,10 +177,15 @@ async function run() {
   for (let i = 0; i < 4; i++) {
     await page.getByRole('button', { name: 'PRÓXIMA CARTA', exact: false }).click(); await frontReady();
   }
+  assert.equal(await page.locator('.title-booster-results').evaluate(node => getComputedStyle(node, '::after').animationName), 'none');
+  assert.equal(await page.evaluate(() => window.boosterReveals.slice(5).every(reveal => reveal.animation === 'none')), true, 'Todas as raridades respeitam movimento reduzido.');
+  assert.equal(await page.locator('.booster-cutin img').evaluate(node => getComputedStyle(node).animationName), 'none');
+  assert.equal(await page.locator('.booster-cutin-sparks').evaluate(node => getComputedStyle(node).display), 'none');
   assert.equal(await page.evaluate(() => cyberduelAccount.boosters.length), 0);
   assert.equal(await page.evaluate(() => cyberduelAccount.currency), before.currency);
   checks.push('1366×768 e movimento reduzido: abertura por Enter, cinco revelações, duas aberturas únicas e saldo preservado.');
   checks.push('Cinco facções: arte inteira separada do lacre, nomes sem cortes, imagens WebP e carregamento somente da carta revelada; RaspCorp conferida em 320×568.');
+  checks.push('Baixa 160 ms, média 380 ms, alta 700 ms e lendária 1150 ms com apresentação de 1800 ms: efeitos distintos, sem animação ociosa e com movimento reduzido respeitado.');
   assert.deepEqual(errors, []);
   fs.writeFileSync(path.join(output, 'report.json'), JSON.stringify({ checks, errors, opened, animationStartedAt }, null, 2));
   const video = page.video(); await context.close(); await video.saveAs(path.join(output, 'booster-abertura-arraste.webm'));

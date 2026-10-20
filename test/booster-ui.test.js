@@ -89,20 +89,48 @@ for (const tipo of ['terreno', 'efeito']) {
   assert.equal(results.children.length, 3);
   assert.equal(results.children[0].children.at(-1).textContent, 'Comum');
   assert.ok(results.children[0].classList.contains('is-front'));
+  assert.equal(results.style.getPropertyValue('--reveal-duration'), '160ms');
   assert.equal(results.children[2].attributes['aria-hidden'], 'true');
   const front = results.children[0];
+  const frames = new Map(), writes = [];
+  let frameId = 0;
+  const immediateFrame = context.requestAnimationFrame;
+  context.requestAnimationFrame = callback => { frames.set(++frameId, callback); return frameId; };
+  context.cancelAnimationFrame = id => frames.delete(id);
+  const flushFrame = () => { const callbacks = [...frames.values()]; frames.clear(); callbacks.forEach(callback => callback()); };
+  for (const node of [front, results]) {
+    const setProperty = node.style.setProperty;
+    node.style.setProperty = (key, value) => { writes.push(key); return setProperty(key, value); };
+  }
   results.events.pointerdown({ pointerId: 4, clientX: 100, clientY: 200 });
+  results.events.pointermove({ pointerId: 4, clientX: 120, clientY: 180 });
   results.events.pointermove({ pointerId: 4, clientX: 140, clientY: 150 });
+  assert.equal(frames.size, 1, 'Eventos no mesmo quadro são agrupados.');
+  assert.equal(writes.length, 0, 'Pointermove não altera estilos antes do quadro.');
+  flushFrame();
+  assert.equal(writes.length, 5);
   assert.ok(front.classList.contains('is-dragging'));
   assert.equal(front.style.getPropertyValue('--drag-x'), '40px');
   assert.equal(front.style.getPropertyValue('--drag-y'), '-50px', 'Carta acompanha o movimento antes de soltar.');
+  results.events.pointermove({ pointerId: 4, clientX: 140, clientY: 150 });
+  assert.equal(frames.size, 0, 'Coordenadas repetidas não agendam trabalho.');
+  results.events.pointermove({ pointerId: 4, clientX: 140, clientY: -200 });
+  flushFrame();
+  assert.deepEqual(writes.slice(5), ['--drag-y', '--swipe-progress'], 'Movimento vertical não reescreve inclinação e brilho.');
+  results.events.pointermove({ pointerId: 4, clientX: 140, clientY: -300 });
+  flushFrame();
+  assert.equal(writes.length, 7, 'Movimento além do limite não reescreve estilos.');
+  results.events.pointermove({ pointerId: 4, clientX: 120, clientY: 160 });
   results.events.pointercancel();
+  assert.equal(frames.size, 0, 'Cancelamento descarta o quadro pendente.');
   assert.equal(front.classList.contains('is-dragging'), false);
   assert.equal(front.style.getPropertyValue('--drag-y'), '');
   assert.equal(results.children.length, 3, 'Gesto cancelado não descarta uma carta.');
   results.events.pointerdown({ pointerId: 5, clientX: 100, clientY: 200 });
   results.events.pointermove({ pointerId: 5, clientX: 120, clientY: 80 });
   await results.events.pointerup({ pointerId: 5, clientX: 120, clientY: 80 });
+  assert.equal(frames.size, 0, 'Soltar a carta não deixa quadros na próxima revelação.');
+  context.requestAnimationFrame = immediateFrame;
   assert.equal(results.children.length, 2);
   const next = buy.click();
   assert.equal(buy.disabled, true);
@@ -115,6 +143,32 @@ for (const tipo of ['terreno', 'efeito']) {
   assert.equal(ui.modal.children[0].attributes['aria-label'], 'Inventário de boosters');
   assert.equal(purchases, 1);
   assert.equal(openings, 1);
+  ui.modal = null;
+  context.window.matchMedia = () => ({ matches: false });
+  const waits = [];
+  context.setTimeout = (callback, ms) => { waits.push(ms); callback(); };
+  ui.deckBuilder.getCatalogByKey = () => new Map([['monstro:lendaria', { imagem: 'testArt' }]]);
+  ui.account.openBooster = async () => ['baixa', 'media', 'alta', 'lendaria'].map(nivel => ({ tipo: 'monstro', nome: nivel, nivel }));
+  ui.openBoosterOpening({ id: 'rarities', faction: 'raspcorp' });
+  const rarityDialog = ui.modal.children[0];
+  const rarityButton = rarityDialog.children.find(node => node.classList.contains('booster-buy'));
+  const rarityResults = rarityDialog.children.find(node => node.classList.contains('title-booster-results'));
+  for (const [rarity, duration] of [['baixa', 160], ['media', 380], ['alta', 700], ['lendaria', 1150]]) {
+    waits.length = 0;
+    await rarityButton.click();
+    assert.equal(rarityResults.dataset.rarity, rarity);
+    assert.equal(rarityResults.style.getPropertyValue('--reveal-duration'), `${duration}ms`);
+    assert.equal(waits.at(-1), duration, 'O botão só libera após o efeito da raridade.');
+    assert.equal(rarityResults.classList.contains('is-revealing'), false);
+    assert.equal(rarityButton.disabled, false);
+    if (rarity === 'lendaria') {
+      const legendary = rarityDialog.children.find(node => node.classList.contains('booster-cutin'));
+      assert.ok(waits.includes(1800));
+      assert.equal(legendary.querySelector('img').src, 'assets/cartas/game/otimizada.webp', 'A apresentação usa a arte da lendária como fallback.');
+      assert.equal(legendary.querySelector('.booster-cutin-sparks').children.length, 10);
+      assert.equal(legendary.hidden, true);
+    }
+  }
   ui.modal = null;
   ui.openBoosterOpening({ id: "owned-pack", faction: "raspcorp" });
   ui.account.openBooster = async () => { throw new Error('Sem conexão'); };
@@ -139,5 +193,5 @@ for (const tipo of ['terreno', 'efeito']) {
   context.window.CYBERDUEL_DEMO_MODE = false;
   ui.openBoosterShop();
   assert.ok(ui.modal.children[0].children.find(node => node.classList.contains('booster-factions')).children.every(button => !button.disabled));
-  console.log('Booster: ordem, duplicatas, revelação individual, lendária, compra única, reinício e falha validados.');
+  console.log('Booster: raridades e tempos, arraste agrupado sem escritas repetidas, cancelamento, compra única, reinício e falha validados.');
 })().catch(error => { console.error(error); process.exitCode = 1; });
