@@ -3563,6 +3563,8 @@ class CyberduelTitleUI {
         image.src = image.dataset.src;
         await image.decode?.().catch(() => {});
         if (!alive()) return;
+        if (image.naturalWidth && image.naturalHeight)
+          item.style.setProperty("--card-ratio", image.naturalWidth / image.naturalHeight);
       }
       results.dataset.rarity = card.nivel;
       const duration = { baixa: 160, media: 380, alta: 700, lendaria: 1150 }[card.nivel] || 160;
@@ -3572,14 +3574,6 @@ class CyberduelTitleUI {
           this.element("strong", "", "LENDÁRIA!"),
           this.element("span", "", card.nome),
         );
-        const source = window.CYBERDUEL_LEGENDARY_CUTINS?.[card.nome] || image?.src;
-        if (source) {
-          const art = this.element("img");
-          art.src = source;
-          art.alt = "";
-          art.decoding = "async";
-          cutin.prepend(art);
-        }
         const sparks = this.element("div", "booster-cutin-sparks");
         for (let i = 0; i < 10; i++) {
           const spark = this.element("i");
@@ -3936,6 +3930,7 @@ class CyberduelTitleUI {
       .get(`${card.tipo}:${card.nome}`);
     const item = this.element("article", "title-booster-card");
     item.dataset.rarity = card.nivel || model?.nivel || "utilidade";
+    const art = this.element("div", "booster-card-art");
     const source = window.CYBERDUEL_GAME_IMAGE_ASSETS?.[model?.imagem] || window.CYBERDUEL_IMAGE_ASSETS?.[model?.imagem];
     if (source) {
       const image = this.element("img");
@@ -3943,8 +3938,9 @@ class CyberduelTitleUI {
       image.decoding = "async";
       image.alt = card.nome;
       image.draggable = false;
-      item.append(image);
+      art.append(image);
     }
+    item.append(art);
     item.append(
       this.element(
         "small",

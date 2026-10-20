@@ -25,8 +25,8 @@ const output = path.resolve('output/sindicato/booster-visual'); fs.mkdirSync(out
 const server = spawn(process.execPath, ['server/server.js'], {
   env: { ...process.env, PORT: '31962', DATA_DIR: dataDir }, stdio: ['ignore', 'pipe', 'inherit'],
 });
-let browser, page, touch, opened = 0, recordingStartedAt, animationStartedAt;
-const errors = [], checks = [];
+let browser, page, touch, opened = 0, recordingStartedAt, animationStartedAt, legendaryStartedAt;
+const errors = [], checks = [], frames = [];
 const frontReady = () => page.waitForFunction(() => document.querySelector('.title-booster-card.is-front.is-settled') && !document.querySelector('.booster-buy').disabled && [...document.querySelectorAll('.title-booster-card.is-front img')].every(img => img.complete && img.naturalWidth > 0));
 const frame = () => page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
 async function startTouch(x, y) {
@@ -38,6 +38,23 @@ async function moveTouch(x, y) {
 }
 async function endTouch(cancel = false) {
   await touch.send('Input.dispatchTouchEvent', { type: cancel ? 'touchCancel' : 'touchEnd', touchPoints: [] });
+}
+async function checkFrame(label) {
+  const geometry = await page.locator('.title-booster-card.is-front').evaluate(card => {
+    const art = card.querySelector('.booster-card-art'), image = card.querySelector('img');
+    const box = card.getBoundingClientRect(), picture = art.getBoundingClientRect();
+    const name = card.querySelector('strong'), nameBox = name.getBoundingClientRect();
+    return { width: box.width, height: box.height, ratio: image.naturalWidth / image.naturalHeight,
+      artWidth: picture.width, artHeight: picture.height,
+      gaps: [picture.left - box.left, box.right - picture.right, picture.top - box.top, box.bottom - picture.bottom],
+      insideViewport: box.left >= 0 && box.right <= innerWidth && box.top >= 0 && box.bottom <= document.querySelector('.booster-buy').getBoundingClientRect().top,
+      nameFits: name.scrollWidth <= name.clientWidth && nameBox.top >= picture.top && nameBox.bottom <= picture.bottom };
+  });
+  assert.ok(Math.abs(geometry.artWidth / geometry.artHeight - geometry.ratio) < .002, `${label}: arte preserva a proporção nativa.`);
+  assert.ok(geometry.gaps.every(gap => Math.abs(gap - 5) < 1), `${label}: moldura acompanha a imagem com 5px em cada lado.`);
+  assert.equal(geometry.insideViewport, true, `${label}: carta cabe entre cabeçalho e botão.`);
+  assert.equal(geometry.nameFits, true, `${label}: nome fica dentro da moldura.`);
+  frames.push({ label, ...geometry });
 }
 async function run() {
   await new Promise((resolve, reject) => {
@@ -100,6 +117,8 @@ async function run() {
   await page.waitForFunction(() => document.querySelector('.booster-pack').getAnimations().some(animation => animation.currentTime >= 450));
   await page.screenshot({ path: path.join(output, 'lacre-rompendo.png') });
   await frontReady();
+  await checkFrame('390×844 · baixa');
+  await page.screenshot({ path: path.join(output, 'moldura-celular.png') });
   assert.equal(opened, 1);
   assert.equal(await page.locator('.title-booster-card:not(.is-front) img[src]').count(), 0, 'Somente a carta revelada carrega sua imagem.');
   assert.match(await page.locator('.title-booster-card.is-front img').getAttribute('src'), /\/game\/.*\.webp/);
@@ -130,15 +149,17 @@ async function run() {
   await frontReady();
   await page.getByRole('button', { name: 'PRÓXIMA CARTA', exact: false }).click();
   await page.locator('.booster-cutin').waitFor({ state: 'visible' });
+  legendaryStartedAt = Date.now() - recordingStartedAt;
   await page.evaluate(() => document.querySelector('.title-booster-results').dispatchEvent(new WheelEvent('wheel', { deltaY: -180, cancelable: true })));
-  assert.equal(await page.locator('.booster-cutin img').count(), 1, 'Apresentação lendária exibe a arte da própria carta.');
+  assert.equal(await page.locator('.booster-cutin img').count(), 0, 'Apresentação lendária usa apenas efeitos, sem arte ampliada.');
   assert.equal(await page.locator('.booster-cutin-sparks i').count(), 10);
-  await page.waitForFunction(() => document.querySelector('.booster-cutin img').getAnimations()[0].currentTime > 550);
+  await page.waitForFunction(() => document.querySelector('.booster-cutin').getAnimations()[0].currentTime > 550);
   await page.screenshot({ path: path.join(output, 'lendaria.png') });
   await page.waitForFunction(() => document.querySelector('.title-booster-results.is-revealing[data-rarity="lendaria"]'));
   await page.waitForFunction(() => document.querySelector('.title-booster-card.is-front').getAnimations()[0]?.currentTime > 430);
   await page.screenshot({ path: path.join(output, 'revelacao-lendaria.png') });
   await frontReady();
+  await checkFrame('390×844 · lendária');
   assert.deepEqual(await page.evaluate(() => window.boosterReveals), [
     { rarity: 'baixa', animation: 'booster-quick', duration: '0.16s' },
     { rarity: 'baixa', animation: 'booster-quick', duration: '0.16s' },
@@ -149,6 +170,7 @@ async function run() {
   assert.equal(await page.locator('.title-booster-results').evaluate(node => node.getAnimations({ subtree: true }).filter(animation => animation.playState === 'running').length), 0, 'Nenhum efeito continua rodando depois da revelação.');
   assert.equal(await page.locator('.title-booster-card.is-front strong').innerText(), 'A Aranha');
   await page.screenshot({ path: path.join(output, 'carta-revelada.png') });
+  await page.waitForTimeout(600);
   const last = await page.locator('.title-booster-card.is-front').boundingBox();
   await startTouch(last.x + last.width / 2, last.y + last.height / 2);
   await moveTouch(last.x + last.width / 2, last.y + last.height / 2 - 100); await endTouch();
@@ -173,21 +195,32 @@ async function run() {
   await page.locator('.booster-scratch').focus(); await page.keyboard.press('Enter'); await frontReady();
   assert.equal(opened, 2);
   assert.equal(await page.locator('.title-booster-card.is-front').evaluate(node => getComputedStyle(node).animationName), 'none');
+  await checkFrame('1366×768 · baixa');
   await page.screenshot({ path: path.join(output, 'desktop-movimento-reduzido.png') });
+  await page.setViewportSize({ width: 320, height: 568 }); await frame();
+  await checkFrame('320×568 · baixa');
+  await page.screenshot({ path: path.join(output, 'moldura-celular-compacto.png') });
+  await page.setViewportSize({ width: 1366, height: 768 });
   for (let i = 0; i < 4; i++) {
     await page.getByRole('button', { name: 'PRÓXIMA CARTA', exact: false }).click(); await frontReady();
+    await checkFrame(`1366×768 · RaspCorp ${i + 2}`);
   }
+  await page.screenshot({ path: path.join(output, 'moldura-raspclay-desktop.png') });
+  await page.setViewportSize({ width: 320, height: 568 }); await frame();
+  await checkFrame('320×568 · RaspClay');
+  await page.screenshot({ path: path.join(output, 'moldura-raspclay-compacto.png') });
   assert.equal(await page.locator('.title-booster-results').evaluate(node => getComputedStyle(node, '::after').animationName), 'none');
   assert.equal(await page.evaluate(() => window.boosterReveals.slice(5).every(reveal => reveal.animation === 'none')), true, 'Todas as raridades respeitam movimento reduzido.');
-  assert.equal(await page.locator('.booster-cutin img').evaluate(node => getComputedStyle(node).animationName), 'none');
+  assert.equal(await page.locator('.booster-cutin img').count(), 0);
   assert.equal(await page.locator('.booster-cutin-sparks').evaluate(node => getComputedStyle(node).display), 'none');
   assert.equal(await page.evaluate(() => cyberduelAccount.boosters.length), 0);
   assert.equal(await page.evaluate(() => cyberduelAccount.currency), before.currency);
   checks.push('1366×768 e movimento reduzido: abertura por Enter, cinco revelações, duas aberturas únicas e saldo preservado.');
   checks.push('Cinco facções: arte inteira separada do lacre, nomes sem cortes, imagens WebP e carregamento somente da carta revelada; RaspCorp conferida em 320×568.');
   checks.push('Baixa 160 ms, média 380 ms, alta 700 ms e lendária 1150 ms com apresentação de 1800 ms: efeitos distintos, sem animação ociosa e com movimento reduzido respeitado.');
+  checks.push('Lendária sem arte ampliada. Moldura acompanha a proporção nativa com borda de 5px nos quatro lados, sem sobras ou cortes em 390×844, 320×568 e 1366×768.');
   assert.deepEqual(errors, []);
-  fs.writeFileSync(path.join(output, 'report.json'), JSON.stringify({ checks, errors, opened, animationStartedAt }, null, 2));
+  fs.writeFileSync(path.join(output, 'report.json'), JSON.stringify({ checks, frames, errors, opened, animationStartedAt, legendaryStartedAt }, null, 2));
   const video = page.video(); await context.close(); await video.saveAs(path.join(output, 'booster-abertura-arraste.webm'));
   console.log(checks.join('\n'));
 }

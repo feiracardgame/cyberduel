@@ -5,6 +5,7 @@ class Element {
   constructor(tag, cls = '', text = '') {
     this.tag = tag; this.children = []; this.textContent = text; this.dataset = {};
     this.attributes = {}; this.events = {};
+    if (tag === 'img') { this.naturalWidth = 720; this.naturalHeight = 1009; }
     const properties = new Map();
     this.style = { setProperty: (key, value) => properties.set(key, value), removeProperty: key => properties.delete(key), getPropertyValue: key => properties.get(key) || '' };
     this.clientWidth = 200;
@@ -20,7 +21,10 @@ class Element {
   setPointerCapture(id) { this.pointerId = id; }
   hasPointerCapture(id) { return this.pointerId === id; }
   releasePointerCapture() { this.pointerId = null; this.events.lostpointercapture?.(); }
-  querySelector(selector) { return this.children.find(x => selector.startsWith('.') ? x.classList.contains(selector.slice(1)) : x.tag === selector); }
+  querySelector(selector) {
+    return this.children.find(x => selector.startsWith('.') ? x.classList.contains(selector.slice(1)) : x.tag === selector)
+      || this.children.map(child => child.querySelector(selector)).find(Boolean);
+  }
   remove() { this.parent.children = this.parent.children.filter(x => x !== this); }
   click() { if (!this.disabled) return this.handler?.(); }
 }
@@ -37,11 +41,11 @@ context.window.CYBERDUEL_IMAGE_ASSETS = { testArt: 'assets/cartas/original.png' 
 context.window.CYBERDUEL_GAME_IMAGE_ASSETS = { testArt: 'assets/cartas/game/otimizada.webp' };
 ui.deckBuilder.getCatalogByKey = () => new Map([['monstro:Ilustrada', { imagem: 'testArt', nivel: 'baixa' }]]);
 const illustrated = ui.createBoosterResult({ tipo: 'monstro', nivel: 'baixa', nome: 'Ilustrada' });
-assert.equal(illustrated.children[0].src, undefined, 'Cartas viradas não carregam a ilustração.');
-assert.equal(illustrated.children[0].dataset.src, 'assets/cartas/game/otimizada.webp');
+assert.equal(illustrated.querySelector('img').src, undefined, 'Cartas viradas não carregam a ilustração.');
+assert.equal(illustrated.querySelector('img').dataset.src, 'assets/cartas/game/otimizada.webp');
 const optimizedAssets = context.window.CYBERDUEL_GAME_IMAGE_ASSETS;
 context.window.CYBERDUEL_GAME_IMAGE_ASSETS = undefined;
-assert.equal(ui.createBoosterResult({ tipo: 'monstro', nivel: 'baixa', nome: 'Ilustrada' }).children[0].dataset.src, 'assets/cartas/original.png', 'Mantém fallback quando o catálogo otimizado não está disponível.');
+assert.equal(ui.createBoosterResult({ tipo: 'monstro', nivel: 'baixa', nome: 'Ilustrada' }).querySelector('img').dataset.src, 'assets/cartas/original.png', 'Mantém fallback quando o catálogo otimizado não está disponível.');
 context.window.CYBERDUEL_GAME_IMAGE_ASSETS = optimizedAssets;
 ui.deckBuilder.getCatalogByKey = () => new Map();
 let purchases = 0;
@@ -67,7 +71,8 @@ assert.deepEqual(mixed.map(card => card.tipo === 'monstro' ? card.nivel : card.t
   ['baixa', 'media', 'alta', 'lendaria', 'terreno', 'efeito']);
 for (const tipo of ['terreno', 'efeito']) {
   const card = ui.createBoosterResult({ tipo, nivel: 'utilidade', nome: tipo });
-  assert.equal(card.children[0].textContent, `${tipo.toUpperCase()} · x1`);
+  assert.equal(card.querySelector('small').textContent, `${tipo.toUpperCase()} · x1`);
+  assert.ok(card.querySelector('.booster-card-art'), 'Cartas sem imagem mantêm a área da moldura.');
 }
 (async () => {
   ui.openBoosterShop();
@@ -164,7 +169,8 @@ for (const tipo of ['terreno', 'efeito']) {
     if (rarity === 'lendaria') {
       const legendary = rarityDialog.children.find(node => node.classList.contains('booster-cutin'));
       assert.ok(waits.includes(1800));
-      assert.equal(legendary.querySelector('img').src, 'assets/cartas/game/otimizada.webp', 'A apresentação usa a arte da lendária como fallback.');
+      assert.equal(legendary.querySelector('img'), undefined, 'A apresentação lendária contém apenas efeitos.');
+      assert.equal(rarityResults.children[0].style.getPropertyValue('--card-ratio'), 720 / 1009, 'A moldura segue a proporção da imagem decodificada.');
       assert.equal(legendary.querySelector('.booster-cutin-sparks').children.length, 10);
       assert.equal(legendary.hidden, true);
     }
