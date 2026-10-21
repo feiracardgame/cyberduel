@@ -3,16 +3,25 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const { EventEmitter } = require('node:events');
 class Element {
-  constructor() { this.children=[]; this.dataset={}; this.style={}; }
+  constructor() { this.children=[]; this.dataset={}; this.style={}; this.attributes={}; this.events={};
+    this.classList = { add: name => { this.className += ` ${name}`; }, remove() {} }; }
   append(...items) { this.children.push(...items); }
   replaceChildren(...items) { this.children = items; }
-  setAttribute() {}
+  setAttribute(name, value) { this.attributes[name] = value; }
+  addEventListener(name, handler) { this.events[name] = handler; }
+  focus() { this.focused = true; }
   remove() { this.removed=true; }
 }
-const document = { createElement: () => new Element(), body: new Element() };
+const document = { createElement: () => new Element(), body: new Element(), events: {},
+  addEventListener(name, handler) { this.events[name] = handler; },
+  removeEventListener(name, handler) { if (this.events[name] === handler) delete this.events[name]; } };
 const intervals = new Map();
-const context=vm.createContext({ window:{}, document,
- setInterval(callback) { intervals.set(1, callback); return 1; }, clearInterval(id) { intervals.delete(id); },
+let intervalId = 0;
+const volumes = { musicVolume: .75, effectsVolume: .9 };
+const context=vm.createContext({ window:{ cyberduelSettings: {
+  get: key => volumes[key], set: (key, value) => { volumes[key] = value; }, applyDomTextScale() {},
+} }, document, requestAnimationFrame: fn => fn(), setTimeout: fn => fn(), clearTimeout() {},
+ setInterval(callback) { const id = ++intervalId; intervals.set(id, callback); return id; }, clearInterval(id) { intervals.delete(id); },
  Phaser:{ Scene:class{}, Math:{Clamp:(n,min,max)=>Math.max(min,Math.min(max,n))} } });
 vm.runInContext(fs.readFileSync('js/title-ui.js','utf8'),context);
 vm.runInContext(fs.readFileSync('js/cenas/jogo.js','utf8'),context);
@@ -70,11 +79,32 @@ const rain = presentation.children[0];
 assert.equal(rain.className, 'title-matrix');
 assert.equal(rain.children.length, 24, 'A apresentação reutiliza a chuva de letras do menu.');
 const initialText = rain.children[0].children[0].textContent;
-intervals.get(1)();
+intervals.get(2)();
 assert.notEqual(rain.children[0].children[0].textContent, initialText);
 const centralCode = presentation.children[2].children[1];
 assert.equal(centralCode.textContent, 'CÓDIGO 123456', 'Código disponível desde a abertura.');
 assert.ok(presentation.children[1].children.every(seat => seat.children[2].textContent === '123456'));
+const audioButton = presentation.children[2].children[0].children[0];
+assert.equal(audioButton.attributes['aria-label'], 'Ajustar volume da apresentação');
+audioButton.onclick();
+const modal = presentation.children.at(-1);
+assert.equal(modal.children[0].attributes['aria-label'], 'Áudio da apresentação');
+const controls = modal.children[0].children[3].children;
+assert.equal(controls.length, 2, 'A apresentação contém apenas música e efeitos.');
+const [music, effects] = controls.map(row => row.children[1]);
+assert.deepEqual([music.value, effects.value], ['75', '90']);
+music.value = '67'; music.events.input();
+effects.value = '0'; effects.events.input();
+assert.deepEqual(volumes, { musicVolume: .67, effectsVolume: 0 });
+assert.equal(controls[0].children[0].children[1].textContent, '67%');
+assert.equal(controls[1].children[0].children[1].textContent, '0%');
+document.events.keydown({ key: 'Escape' });
+assert.equal(modal.removed, true);
+assert.equal(audioButton.focused, true, 'Fechar devolve o foco ao nome CYBERDUEL.');
+audioButton.onclick();
+assert.equal(presentation.children.at(-1).children[0].children[3].children[0].children[1].value, '67');
+showPresentation({ ...response, serverNow: Date.now(), seats: [{ player: 1, reservedUntil: Date.now() + 60_000 }, response.seats[1]] });
+assert.match(presentation.children[1].children[0].children[0].textContent, /RESERVADO · 60s/);
 showPresentation({ ...response, room: { code: '123456', players: 1 } });
 assert.equal(centralCode.textContent, 'CÓDIGO 123456', 'Entrar não esconde o código.');
 title.multiplayer.onReady();
@@ -83,4 +113,6 @@ assert.equal(document.body.children.at(-1), presentation, 'Código não é movid
 titleEvents.emit('shutdown');
 assert.equal(presentation.removed, true, 'A espera e seu código saem quando o duelo começa.');
 assert.equal(intervals.size, 0, 'A chuva para de atualizar ao sair da apresentação.');
+assert.equal(document.events.keydown, undefined, 'Sair da espera remove o atalho do modal de áudio.');
 console.log('Mesa: HUD atual, fases, espera e código apenas antes do duelo validados.');
+console.log('Áudio da apresentação: acesso pelo nome, sliders independentes, zero, fechamento e limpeza aprovados.');

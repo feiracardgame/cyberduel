@@ -3746,7 +3746,7 @@ class CenaJogo extends Phaser.Scene {
     this.modalAberto = true;
     this.travado = true;
 
-    this.zoomBloqueadoAte = this.time.now + 2000;
+    this.zoomBloqueadoAte = this.time.now + 200;
 
     let overlay = this.add.rectangle(
       LARGURA_LAYOUT / 2,
@@ -3789,142 +3789,138 @@ class CenaJogo extends Phaser.Scene {
     const habilidadeJaUsada =
       podeMostrarBotaoHabilidade && carta.usadaEsteTurno;
 
-    const PAINEL_LARGURA = 880;
-    const PAINEL_ALTURA = 1560;
+    const PAINEL_LARGURA = 980;
+    const PAINEL_ALTURA = 2080;
     const COR_DESTAQUE = 0x54ddff;
-    const MARGEM = 48;
+    const MARGEM = 52;
     const LARGURA_CONTEUDO = PAINEL_LARGURA - MARGEM * 2;
-    const CABECALHO_Y = -PAINEL_ALTURA / 2 + 66;
+    const CABECALHO_Y = -PAINEL_ALTURA / 2 + 58;
+    const escalaTexto = window.cyberduelSettings?.get("textScale") ?? 1;
 
     const painelBg = this.criarPlacaDuelo(0, 0, PAINEL_LARGURA, PAINEL_ALTURA, COR_DESTAQUE);
-    // Centraliza a área de toque do painel para não cobrir o botão de habilidade.
-    painelBg.setInteractive(
-      new Phaser.Geom.Rectangle(
-        -PAINEL_LARGURA / 2,
-        -PAINEL_ALTURA / 2,
-        PAINEL_LARGURA,
-        PAINEL_ALTURA,
-      ),
-      Phaser.Geom.Rectangle.Contains,
-    );
+    painelBg.setInteractive();
     painelBg.on("pointerup", () => {});
 
-    const JANELA_ARTE_W = LARGURA_CONTEUDO;
-    const JANELA_ARTE_H = 540;
+    const arquivoTexto = this.criarTextoUI(-LARGURA_CONTEUDO / 2, CABECALHO_Y, "VISUALIZAÇÃO AVANÇADA", {
+      fontSize: "24px", color: "#829ab4", letterSpacing: 2,
+    }).setOrigin(0, 0.5);
+    const nomeTexto = this.criarTextoUI(-LARGURA_CONTEUDO / 2, CABECALHO_Y + 50, carta.nome, {
+      fontFamily: "Rushblade, Arial, sans-serif",
+      fontSize: `${56 * escalaTexto}px`, color: "#f2f8ff",
+      wordWrap: { width: LARGURA_CONTEUDO }, lineSpacing: 4,
+    }).setOrigin(0, 0).setName("ficha-nome");
+    if (nomeTexto.width > LARGURA_CONTEUDO)
+      nomeTexto.setFontSize(Math.floor(56 * escalaTexto * LARGURA_CONTEUDO / nomeTexto.width));
+    const atributosY = nomeTexto.y + nomeTexto.height + 48;
+    const categoria = ehTerreno ? "CARTA DE TERRENO" : ehEfeito ? "CARTA DE EFEITO"
+      : `PERSONAGEM / ${{ baixa: "BAIXA", media: "MÉDIA", alta: "ALTA" }[carta.nivel] || "BAIXA"}`;
+    const corCategoria = ehTerreno ? "#8ce9bb" : ehEfeito ? "#ffd49b"
+      : carta.nivel === "alta" ? "#c4adff" : "#91deef";
+    const etiquetaTipo = this.criarTextoUI(-LARGURA_CONTEUDO / 2, atributosY, categoria, {
+      fontSize: `${25 * escalaTexto}px`, color: corCategoria, fontStyle: "bold", letterSpacing: 1,
+    }).setOrigin(0, 0.5).setName("ficha-tipo");
+    const poderPlaca = this.criarPlacaDuelo(LARGURA_CONTEUDO / 2 - 86, atributosY, 172, 72, COR_DESTAQUE);
+    const poderTexto = this.criarTextoUI(LARGURA_CONTEUDO / 2 - 86, atributosY,
+      ehEfeito || ehTerreno ? "— PA" : `${carta.poder} PA`, {
+        fontSize: "38px", fontStyle: "bold", color: ehEfeito || ehTerreno ? "#829ab4" : "#f2f8ff",
+      }).setOrigin(0.5).setName("ficha-poder");
+    if (poderTexto.width > 144) poderTexto.setScale(144 / poderTexto.width);
+    if (!ehEfeito && !ehTerreno) this.somPop.play();
+
+    const imagemTopo = atributosY + 76;
+    const descricaoLimiteY = PAINEL_ALTURA / 2 - (podeMostrarBotaoHabilidade ? 184 : 58);
+    const ARTE_MAX_H = Math.min(780, descricaoLimiteY - imagemTopo - 600);
+    let JANELA_ARTE_W = ARTE_MAX_H * .714;
+    let JANELA_ARTE_H = ARTE_MAX_H;
 
     let imagem, iconeImagem;
-    if (carta.imagem) {
-      imagem = this.add.image(0, 0, carta.imagem);
-      this.aplicarRecorteCover(
-        imagem,
-        JANELA_ARTE_W,
-        JANELA_ARTE_H,
-        carta.foco,
-      );
+    if (carta.imagem && this.textures.exists(carta.imagem)) {
+      imagem = this.add.image(0, 0, carta.imagem).setName("ficha-imagem");
+      imagem.setScale(Math.min(LARGURA_CONTEUDO / imagem.width, ARTE_MAX_H / imagem.height));
+      JANELA_ARTE_W = imagem.displayWidth;
+      JANELA_ARTE_H = imagem.displayHeight;
       iconeImagem = null;
     } else {
       imagem = this.add.rectangle(0, 0, JANELA_ARTE_W, JANELA_ARTE_H, corFundo);
       iconeImagem = this.criarTextoUI(
         0,
         0,
-        ehTerreno ? "⛰" : ehEfeito ? "⚡" : "⚔",
+        ehTerreno ? "TERRENO" : ehEfeito ? "EFEITO" : "PERSONAGEM",
         {
-          fontSize: "156px",
+          fontSize: "36px", color: "#c4d2e5", letterSpacing: 3,
         },
       ).setOrigin(0.5);
     }
     let moldura = this.add
-      .rectangle(0, 0, JANELA_ARTE_W, JANELA_ARTE_H)
-      .setStrokeStyle(1.5, COR_DESTAQUE, 0.5);
-    const cantosArte = this.criarMolduraCampo(0, 0, JANELA_ARTE_W + 12, JANELA_ARTE_H + 12, COR_DESTAQUE);
+      .rectangle(0, 0, JANELA_ARTE_W, JANELA_ARTE_H, 0xffffff, 0)
+      .setStrokeStyle(1.5, COR_DESTAQUE, 0.4);
+    const cantosArte = this.criarMolduraCampo(0, 0, JANELA_ARTE_W + 20, JANELA_ARTE_H + 20, COR_DESTAQUE);
 
     let containerImagem = this.add.container(
       0,
-      0,
+      imagemTopo + JANELA_ARTE_H / 2,
       [cantosArte, imagem, moldura, iconeImagem].filter(Boolean),
     );
 
-    if (carta.imagem) {
+    const dicaImagem = this.criarTextoUI(0, imagemTopo + JANELA_ARTE_H + 37,
+      imagem.type === "Image" ? "TOQUE NA CARTA PARA AMPLIAR" : "ILUSTRAÇÃO INDISPONÍVEL", {
+        fontSize: "22px", color: "#829ab4", letterSpacing: 1,
+      }).setOrigin(0.5);
+    if (imagem.type === "Image") {
       moldura.setInteractive({ useHandCursor: true });
-      moldura.on("pointerover", () => this.abrirZoomCarta(carta));
       moldura.on("pointerup", () => this.abrirZoomCarta(carta));
     }
 
-    let etiquetaTipo = this.criarTextoUI(
-      -LARGURA_CONTEUDO / 2,
-      CABECALHO_Y,
-      ehTerreno
-        ? "CARTA DE TERRENO"
-        : ehEfeito
-          ? "CARTA DE EFEITO"
-          : `CARTA ${(carta.nivel || "personagem").toUpperCase()}`,
-      {
-        fontSize: "24px",
-        color: "#91deef",
-        fontStyle: "bold",
-        letterSpacing: 2,
-      },
-    ).setOrigin(0, 0.5);
+    const elementosTopo = [containerImagem, arquivoTexto, etiquetaTipo, nomeTexto, poderPlaca, poderTexto, dicaImagem];
 
-    let nomeTexto = this.criarTextoUI(-LARGURA_CONTEUDO / 2, CABECALHO_Y + 58, carta.nome, {
-      fontSize: "54px",
-      color: "#f2f8ff",
-      fontStyle: "bold",
-      align: "left",
-      wordWrap: { width: LARGURA_CONTEUDO },
-    }).setOrigin(0, 0);
-    containerImagem.y = nomeTexto.y + nomeTexto.height + 34 + JANELA_ARTE_H / 2;
-
-    const elementosTopo = [containerImagem, etiquetaTipo, nomeTexto];
-
-    if (!ehEfeito && !ehTerreno) {
-      const poderTexto = this.criarTextoUI(PAINEL_LARGURA / 2 - 170, CABECALHO_Y, `${carta.poder} PA`, {
-        fontSize: "42px", fontStyle: "bold", color: "#f2f8ff", fontFamily: "Arial, sans-serif",
-      }).setOrigin(1, 0.5);
-      if (poderTexto.width > 160) poderTexto.setScale(160 / poderTexto.width);
-      elementosTopo.push(poderTexto);
-      this.somPop.play();
-    }
-
-    const painelDescY = containerImagem.y + JANELA_ARTE_H / 2 + 36;
-    const descricaoLimiteY = PAINEL_ALTURA / 2 - (podeMostrarBotaoHabilidade ? 192 : 44);
+    const painelDescY = imagemTopo + JANELA_ARTE_H + 76;
     const painelDescAltura = descricaoLimiteY - painelDescY;
     const placaDescricao = this.add.graphics();
-    placaDescricao.fillStyle(0x0a1930, 0.8);
-    placaDescricao.fillRect(
-      -LARGURA_CONTEUDO / 2,
-      painelDescY,
-      LARGURA_CONTEUDO,
-      painelDescAltura,
-    );
     placaDescricao.lineStyle(1.5, COR_DESTAQUE, 0.35);
     placaDescricao.lineBetween(-LARGURA_CONTEUDO / 2, painelDescY, LARGURA_CONTEUDO / 2, painelDescY);
-    const descY = painelDescY + 26;
-    const DESC_LARGURA = LARGURA_CONTEUDO - 52;
-    const DESC_ALTURA = painelDescAltura - 52;
+    const descY = painelDescY + 24;
+    const DESC_LARGURA = LARGURA_CONTEUDO - 32;
+    const DESC_ALTURA = painelDescAltura - 48;
 
-    // Mesma diferenciação de cor usada na carta lendária: flavor x efeito.
-    const GAP_PARTES_DESC = 24;
-    let textosDescricao = [];
+    const partes = carta.partesDescricao();
+    const efeitos = partes.filter(parte => parte.tipo === "efeito");
+    if (!efeitos.length) efeitos.push({ texto: "Esta carta não possui efeito.", tipo: "efeito" });
+    const blocos = [
+      { rotulo: carta.habilidadeAtiva ? "HABILIDADE ATIVA" : ehTerreno ? "EFEITO CONTÍNUO" : "EFEITO", partes: efeitos, efeito: true },
+      { rotulo: "DESCRIÇÃO", partes: partes.filter(parte => parte.tipo !== "efeito"), efeito: false },
+    ];
+    const destaqueEfeito = this.add.graphics();
+    const textosDescricao = [destaqueEfeito];
     let yParte = 0;
-    for (const parte of carta.partesDescricao()) {
-      let t = this.criarTextoUI(0, yParte, parte.texto, {
-        fontSize: "32px",
-        color: parte.tipo === "efeito" ? "#a7ebff" : "#c4d2e5",
-        fontStyle: parte.tipo === "efeito" ? "bold" : "normal",
-        align: "left",
-        wordWrap: { width: DESC_LARGURA },
-        lineSpacing: 10,
-      })
-        .setFixedSize(DESC_LARGURA, 0)
-        .setOrigin(0.5, 0);
-      textosDescricao.push(t);
-      yParte += t.height + GAP_PARTES_DESC;
+    for (const bloco of blocos) {
+      if (!bloco.partes.length) continue;
+      const topoBloco = yParte;
+      const titulo = this.criarTextoUI(-DESC_LARGURA / 2 + 26, yParte + 22, bloco.rotulo, {
+        fontSize: `${23 * escalaTexto}px`, color: bloco.efeito ? "#73def9" : "#829ab4",
+        fontStyle: "bold", letterSpacing: 2,
+      }).setOrigin(0, 0);
+      textosDescricao.push(titulo);
+      yParte = titulo.y + titulo.height + 16;
+      for (const parte of bloco.partes) {
+        const texto = this.criarTextoUI(-DESC_LARGURA / 2 + 26, yParte, parte.texto, {
+          fontSize: `${(bloco.efeito ? 36 : 34) * escalaTexto}px`,
+          color: bloco.efeito ? "#e6f8ff" : "#aab9cc", fontStyle: bloco.efeito ? "bold" : "italic",
+          wordWrap: { width: DESC_LARGURA - 52 }, lineSpacing: 10,
+        }).setOrigin(0, 0).setName(bloco.efeito ? "ficha-efeito" : "ficha-descricao");
+        textosDescricao.push(texto);
+        yParte += texto.height + 18;
+      }
+      if (bloco.efeito) {
+        destaqueEfeito.fillStyle(0x102b3d, 0.9);
+        destaqueEfeito.fillRect(-DESC_LARGURA / 2, topoBloco, DESC_LARGURA, yParte - topoBloco + 6);
+        destaqueEfeito.fillStyle(COR_DESTAQUE, 0.9);
+        destaqueEfeito.fillRect(-DESC_LARGURA / 2, topoBloco, 4, yParte - topoBloco + 6);
+      }
+      yParte += 20;
     }
 
-    let containerDescricao = this.add.container(0, descY, textosDescricao);
+    const containerDescricao = this.add.container(0, descY, textosDescricao).setName("ficha-textos");
 
-    // NOVO SISMETA DE MÁSCARA - PHASER 4
     const maskX = (LARGURA_LAYOUT - DESC_LARGURA) / 2;
     const maskY = ALTURA_LAYOUT / 2 + descY;
 
@@ -3936,7 +3932,7 @@ class CenaJogo extends Phaser.Scene {
       mascaraGraphics,
     );
 
-    const alturaTotalDescricao = Math.max(0, yParte - GAP_PARTES_DESC);
+    const alturaTotalDescricao = Math.max(0, yParte - 20);
     const alturaExcedente = alturaTotalDescricao - DESC_ALTURA;
     const elementosScroll = [];
     if (alturaExcedente > 0) {
@@ -3970,7 +3966,7 @@ class CenaJogo extends Phaser.Scene {
         .setOrigin(0.5, 0);
       // A área de toque e o indicador ficam fixos; só o texto é rolado.
       elementosScroll.push(
-        this.add.container(0, descY, [areaArraste, trilho, indicador]),
+        this.add.container(0, descY, [areaArraste, trilho, indicador]).setName("ficha-controles-scroll"),
       );
 
       this.habilitarScrollDescricao(
@@ -3980,6 +3976,9 @@ class CenaJogo extends Phaser.Scene {
         DESC_ALTURA,
         indicador,
       );
+      elementosScroll.push(this.criarTextoUI(LARGURA_CONTEUDO / 2, descricaoLimiteY + 2, "DESLIZE PARA CONTINUAR A LEITURA ↓", {
+        fontSize: "21px", color: "#829ab4", letterSpacing: 1,
+      }).setOrigin(1, 0));
     }
 
     const fecharBtn = this.criarBotaoFecharDetalhe(PAINEL_LARGURA / 2 - 68, CABECALHO_Y);
@@ -4452,8 +4451,7 @@ class CenaJogo extends Phaser.Scene {
     const painelZoomBg = this.criarPlacaDuelo(0, 0, largImg + PADDING, altImg + PADDING,
       carta.lendaria ? 0xffd966 : 0x54ddff);
     // Impede que o toque na própria arte "vaze" pro overlay e feche a janela
-    painelZoomBg.setInteractive(new Phaser.Geom.Rectangle(-(largImg + PADDING) / 2, -(altImg + PADDING) / 2,
-      largImg + PADDING, altImg + PADDING), Phaser.Geom.Rectangle.Contains);
+    painelZoomBg.setInteractive();
     painelZoomBg.on("pointerup", () => {});
 
     // Brilho que se desloca conforme o mouse, simulando reflexo de luz na superfície da carta (parte do efeito de "inclinar").
@@ -7786,6 +7784,7 @@ class CenaJogo extends Phaser.Scene {
   // Exibe uma única tela final com o resultado e a carta de destaque.
   mostrarTelaFimDeJogo(resultadoCombate) {
     if (!resultadoCombate || this.telaFinalExibida) return;
+    const apresentacao = this.multiplayer?.presentation;
     this.apresentarEventosEfeito();
     const camada = this.scene?.manager?.keys?.CenaEfeitos;
     if (camada?.executando || camada?.fila?.length) {
@@ -7811,7 +7810,7 @@ class CenaJogo extends Phaser.Scene {
     };
     // Mantém a ação junto do resultado, com espaço para a carta de destaque.
     const yVoltarMenu =
-      ALTURA_LAYOUT / 2 + (resultadoCombate.cartaDestaque ? 500 : 160);
+      ALTURA_LAYOUT / 2 + (!apresentacao && resultadoCombate.cartaDestaque ? 500 : 160);
     this.criarBotaoConfirmacao(
       LARGURA_LAYOUT / 2,
       yVoltarMenu,
@@ -7887,7 +7886,7 @@ class CenaJogo extends Phaser.Scene {
             ? "DERROTA"
             : "EMPATE";
 
-    if (this.multiplayer?.spectator && (vitoria || derrota)) {
+    if (this.multiplayer?.spectator && !apresentacao && (vitoria || derrota)) {
       const vencedor = vitoria ? this.multiplayer.localNickname : this.multiplayer.opponentNickname;
       const perdedor = vitoria ? this.multiplayer.opponentNickname : this.multiplayer.localNickname;
       const y = (vitoria ? this.layout.yJogadorFrente : this.layout.yInimigoTras) - this.layout.slotH / 2 - 80;
@@ -7928,6 +7927,25 @@ class CenaJogo extends Phaser.Scene {
       0.08,
     );
     corCamada.setDepth(5001);
+
+    if (apresentacao) {
+      for (const [lado, y, angulo] of [
+        ["inimigo", ALTURA_LAYOUT / 4, 180],
+        ["jogador", ALTURA_LAYOUT * 3 / 4, 0],
+      ]) {
+        const venceu = resultadoCombate.resultado === lado;
+        const texto = !vitoria && !derrota ? "EMPATE" : venceu ? "VENCEU" : "PERDEU";
+        const aviso = this.criarTextoUI(LARGURA_LAYOUT / 2, y, texto, {
+          fontFamily: "Rushblade, Arial, sans-serif",
+          fontSize: "104px",
+          color: !vitoria && !derrota ? "#eeeeee" : venceu ? "#afe5ce" : "#ffc0ca",
+          align: "center",
+        }).setOrigin(0.5).setAngle(angulo).setDepth(5200).setScale(0.7).setAlpha(0);
+        this.tweens.add({ targets: aviso, scale: 1, alpha: 1, duration: 500, delay: 150, ease: "Back.Out" });
+      }
+      if (!vitoria && !derrota) this.somBuff.play();
+      return;
+    }
 
     const filhos = [];
 

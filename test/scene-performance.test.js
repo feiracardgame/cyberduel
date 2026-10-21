@@ -124,7 +124,7 @@ for (const [index, layout] of layouts.entries()) {
   const scene = Object.assign(Object.create(Scene.prototype), {
     layout, maoEscondida: index === 1,
     partida: { turno: 1, maxTurnos: 7, rodadasJogador: 0, rodadasInimigo: 0 },
-    criarPlacaDuelo(x, y, width, height) { const panel = { x, y, width, height, add() {} }; panels.push(panel); return panel; },
+    criarPlacaDuelo(x, y, width, height) { const panel = { x, y, width, height, add() {}, setAngle() { return this; } }; panels.push(panel); return panel; },
     criarTextoUI() { return { setOrigin() { return this; } }; },
   });
   scene.desenharStatus();

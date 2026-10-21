@@ -5,7 +5,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
-COPY index.html leaderboard.html ./
+COPY index.html leaderboard.html manifest.json ./
 COPY server ./server
 COPY js/cartas.js js/main.js js/deck-builder.js js/multiplayer.js js/battle-announcements.js ./js/
 COPY assets/fotosdeperfil ./assets/fotosdeperfil

@@ -1,0 +1,11 @@
+{
+  "name": "Cyberduel",
+  "short_name": "Cyberduel",
+  "start_url": "./",
+  "display": "fullscreen",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "icons": [
+    { "src": "favicon.ico", "sizes": "800x800", "type": "image/png" }
+  ]
+}

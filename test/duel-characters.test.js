@@ -158,9 +158,9 @@ presentation.multiplayer.activePlayer = 2;
 displayObjects.length = 0;
 presentation.desenharMaoEmLeque(); presentation.desenharMaoInimigo();
 backs = displayObjects.filter(object => object.maoOcultaLado);
-assert.equal(backs.find(object => object.maoOcultaLado === 'jogador').angle, 180);
-assert.equal(backs.find(object => object.maoOcultaLado === 'inimigo').angle, 0,
-  'A orientação das mãos acompanha o jogador da vez.');
+assert.equal(backs.find(object => object.maoOcultaLado === 'jogador').angle, 0);
+assert.equal(backs.find(object => object.maoOcultaLado === 'inimigo').angle, 180,
+  'Cada mão mantém a orientação do próprio jogador.');
 const symmetricLayout = vm.runInContext('LAYOUT_CAMPO_APRESENTACAO', context);
 assert.equal(symmetricLayout.yInimigoTras + symmetricLayout.yJogadorTras, height);
 assert.equal(symmetricLayout.yInimigoFrente + symmetricLayout.yJogadorFrente, height);

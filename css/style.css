@@ -68,6 +68,10 @@ body {
 /* ========================================================================== */
 
 :root {
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-right: env(safe-area-inset-right, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-left: env(safe-area-inset-left, 0px);
   --forge-bg: #0b100e;
   --forge-panel: #101813;
   --forge-panel-solid: #101813;
@@ -3158,6 +3162,14 @@ body:has(> .booster-fullscreen) .title-matrix-stream { animation-play-state: pau
 .presentation-screen > .title-matrix { z-index: 0; }
 .presentation-center { position: absolute; z-index: 1; left: 5%; right: 5%; top: 50%; transform: translateY(-50%); }
 .presentation-center h1 { margin: 0 0 2cqw; font: calc(7.2cqw * var(--cyber-text-scale, 1)) "Rushblade", Arial, sans-serif; text-shadow: 0 2px 0 #02040b; }
+.presentation-center .presentation-audio-button { padding: 0; border: 0; background: transparent; color: inherit; clip-path: none; font: inherit; text-shadow: inherit; }
+.presentation-center .presentation-audio-button:hover { background: transparent; color: #54ddff; }
+.presentation-screen .title-modal { place-items: center; z-index: 10; }
+.presentation-screen .title-settings-dialog { box-sizing: border-box; width: min(92%, 540px); border: 1px solid #426c53; border-radius: 16px; padding: clamp(20px, 4cqw, 32px); text-align: left; }
+.presentation-screen .title-setting { font-size: clamp(14px, 3cqw, 18px); }
+.presentation-screen .title-setting__value { font-size: inherit; }
+.presentation-screen .title-setting__range { min-height: 44px; }
+.presentation-screen .title-settings-dialog button { width: 100%; }
 .presentation-center p { margin: 2cqw 0; color: #b8cde3; font-size: calc(3.6cqw * var(--cyber-text-scale, 1)); line-height: 1.4; }
 .presentation-code {
   display: block;

@@ -103,7 +103,15 @@ class CenaTitulo extends Phaser.Scene {
     root.className = "presentation-screen";
     root.dataset.responsiveText = "";
     const table = window.CYBERDUEL_TABLE;
-    const heading = document.createElement("h1"); heading.textContent = table === 5 ? "CYBERDUEL · CONSELHO" : table ? `CYBERDUEL · MESA ${table}` : "CYBERDUEL · ARENA";
+    const heading = document.createElement("h1");
+    const audioButton = document.createElement("button");
+    audioButton.type = "button";
+    audioButton.className = "presentation-audio-button";
+    audioButton.textContent = table === 5 ? "CYBERDUEL · CONSELHO" : table ? `CYBERDUEL · MESA ${table}` : "CYBERDUEL · ARENA";
+    audioButton.setAttribute("aria-label", "Ajustar volume da apresentação");
+    audioButton.setAttribute("aria-haspopup", "dialog");
+    audioButton.title = "Ajustar música e efeitos";
+    heading.append(audioButton);
     const code = document.createElement("strong"); code.className = "presentation-code";
     code.dataset.responsiveText = "";
     const status = document.createElement("p"); status.textContent = "Abra a arena para receber os jogadores.";
@@ -112,6 +120,20 @@ class CenaTitulo extends Phaser.Scene {
     const center = document.createElement("header"); center.className = "presentation-center";
     center.append(heading, code, status, start);
     const background = new CyberduelTitleUI({});
+    background.root = root;
+    let reservationLabels = [], serverOffset = 0;
+    const updateReservations = () => {
+      for (const { label, player, reservedUntil } of reservationLabels) {
+        const seconds = Math.max(0, Math.ceil((reservedUntil - Date.now() - serverOffset) / 1000));
+        label.textContent = `JOGADOR ${player} · ${seconds ? `RESERVADO · ${seconds}s` : "AGUARDANDO"}`;
+      }
+    };
+    const reservationTimer = setInterval(updateReservations, 1000);
+    audioButton.onclick = () => {
+      background.openSettingsDialog(true);
+      background.modalAfterClose = () => audioButton.focus();
+    };
+    document.addEventListener("keydown", background.handleKeydown);
     root.append(background.createMatrixRain(), seats, center); document.body.append(root);
     const show = response => {
       if (!this.scene.isActive()) return;
@@ -123,12 +145,16 @@ class CenaTitulo extends Phaser.Scene {
         ? `Jogadores prontos: ${response.room.players}/2 · Aguardando oponente`
         : "Cada jogador escaneia um QR code e entra com sua conta e seu deck.";
       seats.replaceChildren();
+      reservationLabels = [];
+      serverOffset = (response.serverNow || Date.now()) - Date.now();
       for (const invite of response.invitations || []) {
         const card = document.createElement("section");
         card.dataset.player = String(invite.player);
         const label = document.createElement("h2");
-        const connected = response.seats.find(seat => seat.player === invite.player)?.connected;
+        const seat = response.seats.find(seat => seat.player === invite.player);
+        const connected = seat?.connected;
         label.textContent = `JOGADOR ${invite.player} · ${connected ? "CONECTADO" : "AGUARDANDO"}`;
+        if (!connected && seat?.reservedUntil) reservationLabels.push({ label, player: invite.player, reservedUntil: seat.reservedUntil });
         card.append(label);
         if (connected) {
           const name = document.createElement("p"); name.textContent = `${response.nicknames[invite.player]} · Aguardando o outro jogador…`; card.append(name);
@@ -144,6 +170,7 @@ class CenaTitulo extends Phaser.Scene {
         }
         seats.append(card);
       }
+      updateReservations();
     };
     this.multiplayer.onReady = () => {
       if (!this.scene.isActive()) return;
@@ -155,7 +182,7 @@ class CenaTitulo extends Phaser.Scene {
       document.documentElement.requestFullscreen?.().catch(() => {});
       this.multiplayer.createPresentation(show);
     };
-    this.events.once("shutdown", () => { clearInterval(background.matrixTimer); root.remove(); });
+    this.events.once("shutdown", () => { clearInterval(reservationTimer); background.destroy(); });
     try {
       if (table || window.sessionStorage?.getItem("cyberduel.presentationRoom")) this.multiplayer.createPresentation(show);
     } catch {}
@@ -193,6 +220,8 @@ class CenaTitulo extends Phaser.Scene {
         onJoinRoom: (code) => this.entrarNaSala(code),
         onReserveCouncilSeat: (seat, done) => this.multiplayer.reserveCouncilSeat(seat, done),
         onReleaseCouncilSeat: () => this.multiplayer.releaseCouncilSeat(),
+        onReserveClubSeat: (table, seat, done) => this.multiplayer.reserveClubSeat(table, seat, done),
+        onReleaseClubSeat: table => this.multiplayer.releaseClubSeat(table),
         onRequestClubCode: (table, done) => this.multiplayer.requestClubCode(table, done),
         onJoinClubTable: (table, code, seat, done) => this.entrarNaSala(code, table, done, seat),
         onWatchClubTables: (listener) => {

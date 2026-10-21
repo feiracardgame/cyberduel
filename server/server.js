@@ -1455,6 +1455,7 @@ function serveGame(request, response) {
   const allowed =
     pathname === "/" ||
     pathname === "/index.html" ||
+    pathname === "/manifest.json" ||
     pathname === "/phaser.js" ||
     pathname === "/favicon.ico" ||
     pathname.startsWith("/css/") ||
@@ -1592,7 +1593,8 @@ function presentationState(snapshot) {
 function presentationInfo(room) {
   return { ok: true, room: publicRoom(room), ranked: !!room.ranked, displayKey: room.displayKey, invitations: room.invitations,
     nicknames: Object.fromEntries(room.nicknames), profiles: Object.fromEntries(room.profiles),
-    seats: [1, 2].map(player => ({ player, connected: !!room.players.get(player) })),
+    seats: [1, 2].map(player => ({ player, connected: !!room.players.get(player), reservedUntil: room.reservations?.get(player)?.expiresAt || null })),
+    serverNow: Date.now(),
     ...(room.state ? { update: { state: presentationState(room.state), ...phaseInfo(room), initial: true } } : {}) };
 }
 
@@ -1610,6 +1612,8 @@ function clubTables() {
     const room = clubTableRoom(table);
     return { table, players: room ? [...room.players.values()].filter(Boolean).length : 0,
       occupiedSeats: room ? [...room.players.keys()] : [],
+      reservations: room?.reservations ? [...room.reservations].map(([seat, r]) => ({ seat, expiresAt: r.expiresAt })) : [],
+      serverNow: Date.now(),
       available: !!room?.presentationHost && !room.state,
       locked: !!room?.state };
   });
@@ -1625,13 +1629,10 @@ function councilTable() {
 function notifyClubTables() {
   io.to("club-tables").emit("club-tables", { ok: true, tables: clubTables(), council: councilTable() });
 }
-const councilClock = setInterval(() => {
-  const room = clubTableRoom(5);
-  if (council.expire(room)) {
-    notifyPresentation(room);
-  }
+const reservationClock = setInterval(() => {
+  for (const room of rooms.values()) if (council.expire(room)) notifyPresentation(room);
 }, 1000);
-councilClock.unref();
+reservationClock.unref();
 
 function broadcastState(room, extra = {}, except = null) {
   settleMatch(room);
@@ -1911,24 +1912,44 @@ io.on("connection", (socket) => {
   });
   socket.on("unwatch-club-tables", () => socket.leave("club-tables"));
 
-  socket.on("reserve-council-seat", (payload = {}, ack = () => {}) => {
+  const reserveTableSeat = (table, payload, ack) => {
     const account = accountFromToken(payload.accountToken);
-    if (!council.isMember(account, Object.values(accountStore.accounts)))
+    if (table === 5 && !council.isMember(account, Object.values(accountStore.accounts)))
       return ack({ ok: false, error: "Somente o top 10 atual pode entrar no Conselho." });
+    if (!account) return ack({ ok: false, error: "Entre na conta antes de reservar um lugar." });
+    if (table !== 5 && !(account.humanWins >= 3))
+      return ack({ ok: false, error: "Conquiste 3 vitórias contra jogadores para entrar no Clube secreto." });
     if (socket.data.room || accountHasMatch(account.username))
       return ack({ ok: false, error: "Conclua sua partida antes de reservar um lugar." });
-    const room = clubTableRoom(5);
+    const room = clubTableRoom(table);
     if ([...room?.usernames?.values() || []].includes(account.username))
       return ack({ ok: false, error: "Sua conta já está nesta mesa." });
     const reservation = council.reserve(room, account.username, Number(payload.seat));
     if (!reservation) return ack({ ok: false, error: "Este canto está indisponível." });
+    for (const other of rooms.values()) if (other !== room) {
+      let changed = false;
+      for (const [seat, reserved] of other.reservations || []) if (reserved.owner === account.username) {
+        other.reservations.delete(seat); changed = true;
+      }
+      if (changed) notifyPresentation(other);
+    }
     notifyPresentation(room);
     ack({ ok: true, expiresAt: reservation.expiresAt, serverNow: Date.now() });
+  };
+  socket.on("reserve-council-seat", (payload = {}, ack = () => {}) => reserveTableSeat(5, payload, ack));
+  socket.on("reserve-club-seat", (payload = {}, ack = () => {}) => {
+    const table = Number(payload.table);
+    if (![1, 2, 3, 4].includes(table)) return ack({ ok: false, error: "Mesa inválida." });
+    reserveTableSeat(table, payload, ack);
   });
-  socket.on("release-council-seat", (payload = {}) => {
-    const account = accountFromToken(payload.accountToken), room = clubTableRoom(5);
+  const releaseTableSeat = (table, payload) => {
+    const account = accountFromToken(payload.accountToken), room = clubTableRoom(table);
     for (const [seat, reservation] of room?.reservations || []) if (reservation.owner === account?.username) room.reservations.delete(seat);
     if (room) notifyPresentation(room);
+  };
+  socket.on("release-council-seat", (payload = {}) => releaseTableSeat(5, payload));
+  socket.on("release-club-seat", (payload = {}) => {
+    if ([1, 2, 3, 4].includes(Number(payload.table))) releaseTableSeat(Number(payload.table), payload);
   });
 
   socket.on("request-club-code", (payload = {}, ack = () => {}) => {
@@ -2089,11 +2110,13 @@ io.on("connection", (socket) => {
       if ([1, 2, 3, 4].includes(room.table) && !(account.humanWins >= 3))
         return ack({ ok: false, error: "Conquiste 3 vitórias contra jogadores para entrar no Clube secreto." });
       if (room.table === 5) {
-        council.expire(room);
         if (!council.isMember(account, Object.values(accountStore.accounts)))
           return ack({ ok: false, error: "Somente o top 10 atual pode entrar no Conselho." });
+      }
+      if (room.table) {
+        council.expire(room);
         if (room.reservations?.get(player)?.owner !== account.username)
-          return ack({ ok: false, error: "Reserve este canto antes de inserir o código. A reserva dura 1 minuto." });
+          return ack({ ok: false, error: "Reserve este lugar antes de inserir o código. A reserva dura 1 minuto." });
       }
       const deck = sanitizeDeck(account.deck);
       if (!demoAllowsCards(deck)) return ack({ ok: false, error: DEMO_ERROR });

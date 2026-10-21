@@ -8,9 +8,14 @@
     />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Cyberduel" />
+    <meta name="theme-color" content="#000000" />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="apple-touch-icon" href="favicon.ico" />
     <title>Cyberduel</title>
     <link rel="preload" href="assets/fontes/Rushblade.ttf" as="font" type="font/ttf" crossorigin />
-    <link rel="stylesheet" type="text/css" href="css/style.css?v=20261020-apresentacao-matrix" />
+    <link rel="stylesheet" type="text/css" href="css/style.css?v=20261021-apresentacao" />
     <link rel="stylesheet" href="css/menu-cards.css?v=20261014" />
     <link rel="stylesheet" href="css/name-guard.css?v=20261015" />
     <link rel="stylesheet" href="css/server-notices.css?v=20261015" />
@@ -18,7 +23,7 @@
 
   <body>
     <div id="game-viewport" aria-label="Área do jogo"></div>
-    <script src="js/viewport.js?v=20260922-nitidez"></script>
+    <script src="js/viewport.js?v=20261021-mobile-fullscreen"></script>
     <script src="phaser.js"></script>
     <script src="js/vendor/socket.io.min.js?v=20260910-humbanet"></script>
     <script src="js/server-url.js?v=20260922-nitidez"></script>
@@ -30,16 +35,16 @@
     <script src="js/deck-builder.js?v=20261019-demo"></script>
     <script src="js/deck-builder-ui.js?v=20261005-deck-avisos"></script>
     <script src="js/battle-announcements.js?v=20261005"></script>
-    <script src="js/multiplayer.js?v=20261019-demo"></script>
+    <script src="js/multiplayer.js?v=20261021-reserva-mesa"></script>
     <script src="js/server-notices.js?v=20261015"></script>
     <script src="js/factions.js?v=20261014"></script>
-    <script src="js/title-ui.js?v=20261020-mesas-ranqueadas"></script>
+    <script src="js/title-ui.js?v=20261021-apresentacao"></script>
     <script src="js/tutorial.js?v=20261015-inline-name-errors"></script>
     <script src="js/cenas/efeitos.js?v=20261020-seguranca-x1-retorno"></script>
-    <script src="js/cenas/jogo.js?v=20261019-painel-turno"></script>
+    <script src="js/cenas/jogo.js?v=20261021-resultado-mesa"></script>
     <script src="js/cenas/deck-builder.js?v=20261014"></script>
     <script src="js/cenas/preload.js?v=20261020-seguranca-x1-cinema"></script>
-    <script src="js/cenas/titulo.js?v=20261020-apresentacao-matrix"></script>
+    <script src="js/cenas/titulo.js?v=20261021-apresentacao"></script>
     <script src="js/cenas/transicao.js?v=20261015-audio"></script>
     <script src="js/main.js?v=20261019-demo"></script>
     <script src="js/debug.js?v=20261019-demo"></script>

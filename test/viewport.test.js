@@ -1,18 +1,20 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
-const properties = {}, listeners = {}, viewportListeners = {};
+const properties = {}, listeners = {}, viewportListeners = {}, documentListeners = {}, insets = {};
 let pending, refreshes = 0;
 const window = {
   innerWidth: 390, innerHeight: 844,
   visualViewport: { width: 390, height: 700, offsetLeft: 0, offsetTop: 0,
     addEventListener: (key, callback) => viewportListeners[key] = callback },
   addEventListener: (key, callback) => listeners[key] = callback,
+  removeEventListener: (key, callback) => { if (listeners[key] === callback) delete listeners[key]; },
+  getComputedStyle: () => ({ getPropertyValue: key => insets[key] || '0px' }),
   requestAnimationFrame: callback => { pending = callback; return 1; },
 };
-vm.runInNewContext(fs.readFileSync('js/viewport.js', 'utf8'), {
-  window, document: { documentElement: { style: { setProperty: (k,v) => properties[k] = parseFloat(v) } } },
-});
+const document = { documentElement: { style: { setProperty: (k,v) => properties[k] = parseFloat(v) } },
+  addEventListener: (key, callback) => documentListeners[key] = callback };
+vm.runInNewContext(fs.readFileSync('js/viewport.js', 'utf8'), { window, document });
 const api = window.cyberduelViewport;
 api.configure(720,1480);
 api.attach({ isBooted: true, scale: { setParentSize: (width, height) => {
@@ -39,3 +41,73 @@ assert.equal(properties['--viewport-height'],390);
 assert.equal(properties['--viewport-top'],0);
 assert.ok(refreshes>=5);
 console.log('Viewport: barras móveis, teclado, orientação, deslocamento e fallback sem VisualViewport validados.');
+
+window.innerWidth = 390; window.innerHeight = 844;
+Object.assign(insets, { '--safe-area-top': '47px', '--safe-area-bottom': '34px' });
+api.update();
+assert.equal(properties['--viewport-top'], 47);
+assert.equal(properties['--viewport-height'], 763, 'O jogo respeita notch e área do gesto inferior.');
+window.innerWidth = 844; window.innerHeight = 390;
+Object.assign(insets, { '--safe-area-top': '0px', '--safe-area-bottom': '21px', '--safe-area-left': '47px', '--safe-area-right': '47px' });
+api.update();
+assert.equal(properties['--viewport-left'], 47);
+assert.equal(properties['--viewport-width'], 750);
+assert.equal(properties['--viewport-height'], 369);
+for (const key of Object.keys(insets)) delete insets[key];
+
+(async () => {
+  const touch = listeners.pointerup, root = document.documentElement;
+  let requests = 0;
+  window.matchMedia = query => ({ matches: query === '(pointer: coarse)' });
+  root.requestFullscreen = function (options) {
+    assert.equal(this, root); assert.equal(options.navigationUI, 'hide');
+    requests++; return Promise.resolve();
+  };
+  const event = { target: { closest: () => false } };
+  await touch({ target: { closest: () => true } });
+  assert.equal(requests, 0, 'Editar texto ou usar login não ativa fullscreen.');
+  window.matchMedia = () => ({ matches: false });
+  await touch(event);
+  assert.equal(requests, 0, 'Desktop não entra automaticamente em fullscreen.');
+  window.matchMedia = () => ({ matches: true });
+  await touch(event);
+  assert.equal(requests, 0, 'App instalado não precisa de uma nova solicitação.');
+  window.matchMedia = query => ({ matches: query === '(pointer: coarse)' });
+  document.fullscreenElement = root;
+  await touch(event);
+  assert.equal(requests, 0, 'Não solicita novamente quando já está em fullscreen.');
+  document.fullscreenElement = null;
+  window.navigator = { standalone: true };
+  await touch(event);
+  assert.equal(requests, 0);
+  window.navigator.standalone = false;
+  const request = root.requestFullscreen;
+  delete root.requestFullscreen;
+  await touch(event);
+  assert.equal(requests, 0, 'Navegador sem API continua funcionando.');
+  let legacyRequests = 0;
+  root.webkitRequestFullscreen = function () { assert.equal(this, root); legacyRequests++; throw Error('Bloqueado'); };
+  await touch(event);
+  assert.equal(legacyRequests, 1, 'Fallback WebKit é chamado com o elemento correto.');
+  delete root.webkitRequestFullscreen;
+  root.requestFullscreen = () => Promise.reject(Error('Bloqueado'));
+  await touch(event);
+  assert.equal(listeners.pointerup, touch, 'Bloqueio permite tentar no próximo toque.');
+  root.requestFullscreen = request;
+  await touch(event);
+  assert.equal(requests, 1);
+  assert.equal(listeners.pointerup, undefined, 'Depois de entrar, remove o listener de toque.');
+  await touch(event);
+  assert.equal(requests, 1, 'Sair do fullscreen não força uma nova entrada.');
+  window.innerHeight = 900;
+  documentListeners.fullscreenchange(); pending();
+  assert.equal(properties['--viewport-height'], 900);
+  window.innerHeight = 700;
+  documentListeners.webkitfullscreenchange(); pending();
+  assert.equal(properties['--viewport-height'], 700);
+  const manifest = JSON.parse(fs.readFileSync('manifest.json', 'utf8'));
+  assert.equal(manifest.display, 'fullscreen');
+  assert.equal(manifest.start_url, './');
+  assert.ok(fs.existsSync(manifest.icons[0].src));
+  console.log('Fullscreen móvel: toque único, desktop, edição, app instalado, WebKit, falhas, saída, recálculo e áreas seguras validados.');
+})().catch(error => { console.error(error); process.exitCode = 1; });

@@ -161,6 +161,20 @@ async function run() {
   assert.equal((await ack(restoredHost, 'create-presentation', { table: 1, code: firstHostCode, displayKey: tables[0].displayKey })).ok, true);
   const tableAccounts = fixtures.slice(2);
   for (const account of tableAccounts) await api('account/faction', account.token, { faction: 'echossystem' });
+  const reservationPayload = { table: 1, seat: 1, accountToken: tableAccounts[0].token };
+  assert.equal((await ack(intruder, 'reserve-club-seat', { ...reservationPayload, accountToken: null })).ok, false);
+  assert.equal((await ack(intruder, 'reserve-club-seat', { ...reservationPayload, accountToken: accounts[0].token })).ok, false);
+  assert.equal((await ack(intruder, 'reserve-club-seat', { ...reservationPayload, table: 5 })).ok, false, 'Não usar a reserva do Clube para entrar no Conselho.');
+  assert.equal((await ack(intruder, 'reserve-club-seat', { ...reservationPayload, seat: 3 })).ok, false);
+  assert.equal((await ack(intruder, 'reserve-club-seat', reservationPayload)).ok, true);
+  assert.equal((await ack(intruder, 'reserve-club-seat', { ...reservationPayload, table: 2 })).ok, true);
+  const movedReservation = await ack(lobby, 'watch-club-tables');
+  assert.equal(movedReservation.tables[0].reservations.length, 0, 'A conta reserva uma mesa por vez.');
+  assert.equal(movedReservation.tables[1].reservations.length, 1);
+  intruder.emit('release-club-seat', { table: 2, accountToken: tableAccounts[1].token });
+  assert.equal((await ack(intruder, 'watch-club-tables')).tables[1].reservations.length, 1, 'Outra conta não pode cancelar a reserva.');
+  intruder.emit('release-club-seat', { table: 2, accountToken: tableAccounts[0].token });
+  assert.equal((await ack(intruder, 'watch-club-tables')).tables[1].reservations.length, 0);
   for (const [index, table] of tables.entries()) {
     const firstPlayer = await connect(), secondPlayer = await connect();
     const reveal = event(hosts[index], 'presentation-room', response => response.room.code === table.room.code);
@@ -170,6 +184,15 @@ async function run() {
     const firstPayload = { table: index + 1, code: table.room.code, seat: 2, accountToken: tableAccounts[index * 2].token };
     for (const seat of [null, 0, 3])
       assert.equal((await ack(firstPlayer, 'join-room', { ...firstPayload, seat })).ok, false, 'Exigir escolha válida de jogador.');
+    assert.equal((await ack(firstPlayer, 'join-room', firstPayload)).ok, false, 'Exige reserva antes da entrada na mesa.');
+    const reserved = await ack(firstPlayer, 'reserve-club-seat', firstPayload);
+    assert.equal(reserved.ok, true);
+    assert.ok(reserved.expiresAt - reserved.serverNow <= 60_000 && reserved.expiresAt > reserved.serverNow + 59_000);
+    assert.equal((await ack(firstPlayer, 'reserve-club-seat', firstPayload)).expiresAt, reserved.expiresAt, 'Repetir não renova o minuto.');
+    assert.equal((await ack(secondPlayer, 'reserve-club-seat', { ...firstPayload, accountToken: tableAccounts[index * 2 + 1].token })).ok, false, 'Reserva exclusiva do jogador escolhido.');
+    const reservedState = (await ack(lobby, 'watch-club-tables')).tables[index].reservations;
+    assert.equal(reservedState.length, 1); assert.equal(reservedState[0].seat, 2);
+    assert.equal(reservedState[0].owner, undefined);
     const changed = event(lobby, 'club-tables', response => response.tables[index].players === 1);
     const joined = await ack(firstPlayer, 'join-room', firstPayload);
     assert.equal(joined.waiting, true); assert.equal(joined.player, 2);
@@ -182,12 +205,15 @@ async function run() {
       assert.equal(remaining.players, 0); assert.equal(remaining.available, true, 'Sair da espera mantém a apresentação aberta.');
       const waitingAccount = JSON.parse(fs.readFileSync(accountsFile)).accounts[tableAccounts[0].accountKey];
       assert.equal(waitingAccount.rating, 1000); assert.equal(waitingAccount.rankedGames, 0, 'Sair antes do duelo não altera o rank.');
+      assert.equal((await ack(firstPlayer, 'reserve-club-seat', firstPayload)).ok, true);
       assert.equal((await ack(firstPlayer, 'join-room', firstPayload)).waiting, true);
     }
     const readyFirst = event(firstPlayer, 'match-ready'), readySecond = event(secondPlayer, 'match-ready');
     const locked = event(lobby, 'club-tables', response => response.tables[index].locked);
     const display = event(hosts[index], 'presentation-room', response => !!response.update);
-    const joinedSecond = await ack(secondPlayer, 'join-room', { table: index + 1, code: table.room.code, seat: 1, accountToken: tableAccounts[index * 2 + 1].token });
+    const secondPayload = { table: index + 1, code: table.room.code, seat: 1, accountToken: tableAccounts[index * 2 + 1].token };
+    assert.equal((await ack(secondPlayer, 'reserve-club-seat', secondPayload)).ok, true);
+    const joinedSecond = await ack(secondPlayer, 'join-room', secondPayload);
     assert.equal(joinedSecond.ok, true); assert.equal(joinedSecond.waiting, false);
     const [firstMatch, secondMatch, lockState, shown] = await Promise.all([readyFirst, readySecond, locked, display]);
     assert.equal(firstMatch.room, table.room.code); assert.equal(secondMatch.room, table.room.code);
@@ -224,6 +250,7 @@ async function run() {
   assert.equal(replacement.ok, true); assert.notEqual(replacement.room.code, tables[3].room.code);
   assert.equal((await ack(lobby, 'watch-club-tables')).tables[3].available, true);
   console.log('Clube: quatro rotas, códigos distintos, ocupação ao vivo, isolamento, espera, saída, reconexão e bloqueio de quatro partidas simultâneas aprovados.');
+  console.log('Mesas: reserva exclusiva de 60s, repetição sem renovar, troca de mesa, cancelamento autenticado e entrada com reserva aprovados.');
   console.log('Apresentação: página separada, QR codes, lugares, privacidade, reconexão, identificação do Clube e estatísticas persistidas validados.');
 }
 run().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => {

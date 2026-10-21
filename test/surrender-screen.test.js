@@ -46,21 +46,35 @@ for (const player of [1, 2]) {
 }
 console.log('Desistência: derrota dos dois jogadores preservada após confirmação e redesenhos tardios.');
 
-for (const spectator of [false, true]) for (const winner of ['jogador', 'inimigo', 'empate']) {
-  const texts = [], sounds = [];
-  const object = () => ({ setDepth() { return this; }, setOrigin() { return this; }, setScale() { return this; }, setAlpha() { return this; } });
+for (const mode of ['jogador', 'espectador', 'apresentacao']) for (const winner of ['jogador', 'inimigo', 'empate']) {
+  const spectator = mode !== 'jogador', presentation = mode === 'apresentacao';
+  const texts = [], sounds = [], buttons = [];
+  const object = () => ({ setDepth() { return this; }, setOrigin() { return this; }, setScale() { return this; }, setAlpha() { return this; }, setAngle(value) { this.angle = value; return this; } });
   const game = Object.assign(Object.create(Game.prototype), {
-    multiplayer: { spectator, localNickname: 'Primeiro', opponentNickname: 'Segundo' },
+    multiplayer: { spectator, presentation, localNickname: 'Primeiro', opponentNickname: 'Segundo' },
     partida: { partidaEncerrada: true }, layout: { yJogadorFrente: 1200, yInimigoTras: 560, slotH: 270 },
-    criarTextoUI(x, y, text) { texts.push({ y, text }); return object(); }, criarBotaoConfirmacao: object,
+    criarTextoUI(x, y, text, style) { const node = Object.assign(object(), { x, y, text, style }); texts.push(node); return node; },
+    criarBotaoConfirmacao(x, y) { buttons.push({ x, y }); return object(); },
     add: { rectangle: object, container: object }, cameras: { main: { flash() {} } },
     sound: { play(key) { sounds.push(key); } }, somBuff: { play() {} },
     time: { delayedCall() { return {}; } }, tweens: { add() {} },
   });
-  game.mostrarTelaFimDeJogo({ resultado: winner, poderJogador: 0, poderInimigo: 0 });
+  game.mostrarTelaFimDeJogo({ resultado: winner, poderJogador: 0, poderInimigo: 0, cartaDestaque: presentation ? { nome: 'Destaque' } : null });
+  if (presentation) {
+    const labels = texts.filter(item => ['VENCEU', 'PERDEU', 'EMPATE'].includes(item.text));
+    assert.deepEqual(labels.map(item => ({ text: item.text, x: item.x, y: item.y, angle: item.angle })), [
+      { text: winner === 'empate' ? 'EMPATE' : winner === 'inimigo' ? 'VENCEU' : 'PERDEU', x: 540, y: 555, angle: 180 },
+      { text: winner === 'empate' ? 'EMPATE' : winner === 'jogador' ? 'VENCEU' : 'PERDEU', x: 540, y: 1665, angle: 0 },
+    ]);
+    for (const label of labels)
+      assert.equal(label.style.color, label.text === 'EMPATE' ? '#eeeeee' : label.text === 'VENCEU' ? '#afe5ce' : '#ffc0ca');
+    assert.ok(!texts.some(item => /VITÓRIA|DERROTA|Você:/.test(item.text)), 'A apresentação mostra um resultado para cada lado.');
+    assert.deepEqual(buttons, [{ x: 540, y: 1270 }], 'Voltar fica no centro, sem cobrir o resultado inferior mesmo com carta de destaque.');
+  }
   if (winner === 'empate') assert.deepEqual(sounds, []);
   else {
     assert.deepEqual(sounds, [spectator || winner === 'jogador' ? 'somVitoria' : 'somDerrota']);
+    if (presentation) continue;
     if (!spectator) {
       assert.ok(texts.some(item => item.text === (winner === 'jogador' ? 'VITÓRIA' : 'DERROTA')));
       continue;
@@ -72,3 +86,4 @@ for (const spectator of [false, true]) for (const winner of ['jogador', 'inimigo
   }
 }
 console.log('Espectador: resultados sobre o campo vencedor, áudio de vitória e empate sem voz aprovados.');
+console.log('Apresentação: VENCEU/PERDEU no próprio lado, orientação dos dois jogadores e empate aprovados.');

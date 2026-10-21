@@ -1037,7 +1037,7 @@ class CyberduelTitleUI {
     input.maxLength = 6;
     input.placeholder = "000000";
     input.autocomplete = "one-time-code";
-    const seatLabel = this.element("label", "title-room-label", "Qual jogador você quer ser?");
+    const seatLabel = this.element("label", "title-room-label", "Escolha seu jogador para reservar por 1 minuto");
     seatLabel.htmlFor = "club-table-player";
     const seat = this.element("select", "title-auth-input");
     seat.id = "club-table-player";
@@ -1060,12 +1060,15 @@ class CyberduelTitleUI {
     error.setAttribute("role", "alert");
     const status = this.element("p", "club-tables-status", "Carregando mesas…");
     status.setAttribute("role", "status");
-    let selected = null, busy = false;
+    let selected = null, busy = false, reservedSeat = null, expiresAt = 0, offset = 0;
     let tables = [1, 2, 3, 4].map(table => ({ table, players: 0, available: false, locked: false }));
     const buttons = tables.map(({ table }) => {
       const button = this.button("club-table", "", () => {
         if (busy) return;
+        if (selected) this.callbacks.onReleaseClubSeat(selected);
         selected = table;
+        reservedSeat = null;
+        expiresAt = 0;
         busy = true;
         form.hidden = true;
         label.textContent = `Código exibido na apresentação da Mesa ${table}`;
@@ -1098,19 +1101,58 @@ class CyberduelTitleUI {
         button.children[1].textContent = `Jogadores prontos: ${table.players}/2`;
         button.children[2].textContent = table.locked ? "TRANCADA · EM PARTIDA" : table.available ? "ENTRAR NA MESA" : "APRESENTAÇÃO OFFLINE";
       });
-      submit.disabled = busy || !tables.find(table => table.table === selected)?.available;
-      const occupied = tables.find(table => table.table === selected)?.occupiedSeats || [];
-      seatOptions.forEach((option, index) => { option.disabled = occupied.includes(index + 1); });
+      const table = tables.find(table => table.table === selected);
+      const occupied = table?.occupiedSeats || [];
+      const remaining = Math.max(0, Math.ceil((expiresAt - Date.now() - offset) / 1000));
+      if (reservedSeat && (!remaining || !table?.available || occupied.includes(reservedSeat))) {
+        reservedSeat = null;
+        expiresAt = 0;
+        seat.value = input.value = "";
+      }
+      submit.disabled = busy || !table?.available || !reservedSeat;
+      seatOptions.forEach((option, index) => {
+        const player = index + 1;
+        const reserved = table?.reservations?.some(r => r.seat === player && r.expiresAt > Date.now() + offset);
+        option.disabled = occupied.includes(player) || (reserved && reservedSeat !== player);
+        option.textContent = `Jogador ${player}${occupied.includes(player) ? " · OCUPADO" : reserved ? " · RESERVADO" : ""}`;
+      });
       if (occupied.includes(Number(seat.value))) seat.value = "";
-      close.disabled = input.disabled = seat.disabled = busy;
+      input.disabled = busy || !reservedSeat;
+      close.disabled = seat.disabled = busy;
       this.modalRequired = busy;
+      if (reservedSeat) status.textContent = `Seu lugar está reservado por ${remaining}s. Insira o código da apresentação.`;
+      else if (selected && !busy && !form.hidden && table?.available) status.textContent = "Escolha seu jogador. Você terá 1 minuto para inserir o código.";
     };
+    seat.addEventListener("change", () => {
+      const player = Number(seat.value);
+      if (busy || !selected || ![1, 2].includes(player)) return;
+      busy = true;
+      error.textContent = "";
+      render();
+      const table = selected;
+      this.callbacks.onReserveClubSeat(table, player, response => {
+        if (this.modal !== overlay) {
+          if (response.ok) this.callbacks.onReleaseClubSeat(table);
+          return;
+        }
+        busy = false;
+        if (response.ok) {
+          reservedSeat = player;
+          expiresAt = response.expiresAt;
+          offset = response.serverNow - Date.now();
+          input.value = "";
+          input.focus();
+        } else { error.textContent = response.error; seat.value = reservedSeat ? String(reservedSeat) : ""; }
+        render();
+      });
+    });
     input.addEventListener("input", () => {
       input.value = this.sanitizeRoomCode(input.value);
       error.textContent = "";
     });
     form.addEventListener("submit", event => {
       event.preventDefault();
+      render();
       if (submit.disabled) return;
       const code = this.sanitizeRoomCode(input.value);
       if (code.length !== 6) {
@@ -1140,18 +1182,27 @@ class CyberduelTitleUI {
     dialog.append(
       this.element("small", "player-id__brand", "CYBERDUEL / NEOFLORIPA"),
       this.element("h2", "", "Clube secreto"),
-      this.element("p", "", "Mesas ranqueadas: +25% nos pontos de vitória. Escolha sua mesa e digite o código exibido na apresentação correspondente."),
+      this.element("p", "", "Mesas ranqueadas: +25% nos pontos de vitória. Escolha sua mesa e reserve um jogador por 1 minuto para digitar o código da apresentação."),
       list, form, error, status, close,
     );
     overlay.append(dialog);
     render();
-    this.clubTablesCleanup = this.callbacks.onWatchClubTables(response => {
+    const unwatch = this.callbacks.onWatchClubTables(response => {
       if (this.modal !== overlay) return;
       if (!response.ok) { status.textContent = response.error; return; }
       tables = response.tables;
+      const table = tables.find(table => table.table === selected);
+      if (table?.serverNow) offset = table.serverNow - Date.now();
       status.textContent = "O duelo começa automaticamente com dois jogadores.";
       render();
     });
+    const timer = setInterval(render, 250);
+    this.clubTablesCleanup = () => {
+      clearInterval(timer);
+      unwatch?.();
+      if (selected) this.callbacks.onReleaseClubSeat(selected);
+      this.clubTablesCleanup = null;
+    };
     this.modalAfterClose = () => {
       this.clubTablesCleanup?.();
       this.clubTablesCleanup = null;
@@ -1479,7 +1530,7 @@ class CyberduelTitleUI {
     return topbar;
   }
 
-  openSettingsDialog() {
+  openSettingsDialog(audioOnly = false) {
     if (this.modal || !this.settings) return;
     const overlay = this.createModal("settings");
     const dialog = this.element(
@@ -1488,9 +1539,10 @@ class CyberduelTitleUI {
     );
     dialog.setAttribute("role", "dialog");
     dialog.setAttribute("aria-modal", "true");
+    dialog.setAttribute("aria-label", audioOnly ? "Áudio da apresentação" : "Configurações");
     dialog.append(
       this.element("span", "title-kicker", "PAINEL DO OPERADOR"),
-      this.element("h2", "", "Configurações"),
+      this.element("h2", "", audioOnly ? "Som da apresentação" : "Configurações"),
       this.element(
         "p",
         "",
@@ -1508,6 +1560,7 @@ class CyberduelTitleUI {
       input.min = String(minimum);
       input.max = String(maximum);
       input.step = "1";
+      input.setAttribute("aria-label", label);
       input.value = String(Math.round(this.settings.get(key) * 100));
       const updateLabel = () => {
         value.textContent = `${input.value}%`;
@@ -1524,17 +1577,27 @@ class CyberduelTitleUI {
       return input;
     };
 
-    const ranges = [
-      createRange({ key: "masterVolume", label: "VOLUME GERAL" }),
+    const ranges = [];
+    if (!audioOnly) ranges.push(createRange({ key: "masterVolume", label: "VOLUME GERAL" }));
+    ranges.push(
       createRange({ key: "musicVolume", label: "MÚSICA" }),
       createRange({ key: "effectsVolume", label: "EFEITOS" }),
+    );
+    if (audioOnly) {
+      dialog.append(controls, this.button("title-dialog__confirm", "CONCLUIR", () => this.closeModal()));
+      overlay.append(dialog);
+      this.settings.applyDomTextScale(overlay);
+      requestAnimationFrame(() => { overlay.classList.add("is-visible"); ranges[0].focus(); });
+      return;
+    }
+    ranges.push(
       createRange({
         key: "textScale",
         label: "ESCALA DOS TEXTOS",
         minimum: 100,
         maximum: 135,
       }),
-    ];
+    );
     const backgroundRow = this.element(
       "label",
       "title-setting title-setting--toggle",

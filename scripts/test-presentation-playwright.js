@@ -12,7 +12,7 @@ const accountsFile = path.join(dataDir, 'accounts.json');
 const store = JSON.parse(fs.readFileSync(accountsFile));
 for (const user of users) Object.assign(store.accounts[user.accountKey], {
   humanGames: 3, humanWins: 3,
-  tutorial: { introSeen: true, named: true, completed: true, wantsTutorial: false, farewellSeen: true, seen: [] },
+  tutorial: { introSeen: true, named: true, completed: true, wantsTutorial: false, farewellSeen: true, seen: ['club'] },
 });
 fs.writeFileSync(accountsFile, JSON.stringify(store));
 const base = 'http://127.0.0.1:31982';
@@ -56,6 +56,38 @@ const event = (socket, name) => new Promise((resolve, reject) => {
   assert.equal(await page.locator('.title-matrix').isVisible(), false, 'A chuva respeita movimento reduzido.');
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   checks.push('Fundo preto com a chuva verde do menu, sem cenário ou molduras de fundo, respeitando movimento reduzido.');
+  const audioButton = page.getByRole('button', { name: 'Ajustar volume da apresentação' });
+  await audioButton.click();
+  const audioDialog = page.getByRole('dialog', { name: 'Áudio da apresentação' });
+  assert.equal(await audioDialog.isVisible(), true);
+  assert.equal(await audioDialog.getByRole('slider').count(), 2);
+  const audioBounds = await audioDialog.boundingBox();
+  const gameBounds = await page.locator('.presentation-screen').boundingBox();
+  assert.ok(audioBounds.x >= gameBounds.x && audioBounds.x + audioBounds.width <= gameBounds.x + gameBounds.width + 1, 'Modal de áudio cabe na apresentação.');
+  for (const [name, value] of [['MÚSICA', '67'], ['EFEITOS', '32']]) {
+    const slider = audioDialog.getByRole('slider', { name, exact: true });
+    await slider.evaluate((node, volume) => { node.value = volume; node.dispatchEvent(new Event('input', { bubbles: true })); }, value);
+    assert.equal(await slider.inputValue(), value);
+  }
+  assert.deepEqual(await page.evaluate(() => [cyberduelSettings.get('musicVolume'), cyberduelSettings.get('effectsVolume')]), [.67, .32]);
+  const playback = await page.evaluate(() => ({
+    volume: cyberduelSettings.musicScene.cyberMusic.volume,
+    expected: cyberduelSettings.musicForTrack('musicaMenu'),
+    key: cyberduelSettings.musicScene.cyberMusic.key,
+  }));
+  assert.ok(Math.abs(playback.volume - playback.expected) < .000001, `Volume da música em reprodução: ${JSON.stringify(playback)}`);
+  await page.screenshot({ path: path.join(output, 'audio-apresentacao.png') });
+  await page.keyboard.press('Escape');
+  await audioDialog.waitFor({ state: 'detached' });
+  assert.equal(await audioButton.evaluate(node => node === document.activeElement), true);
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => /^CÓDIGO \d{6}$/.test(document.querySelector('.presentation-center .presentation-code')?.textContent));
+  await audioButton.click();
+  assert.equal(await audioDialog.getByRole('slider', { name: 'MÚSICA', exact: true }).inputValue(), '67');
+  assert.equal(await audioDialog.getByRole('slider', { name: 'EFEITOS', exact: true }).inputValue(), '32');
+  await audioDialog.getByRole('button', { name: 'CONCLUIR' }).click();
+  await audioDialog.waitFor({ state: 'detached' });
+  checks.push('Nome CYBERDUEL abre música/efeitos, aplica os volumes, salva após recarga e fecha com Escape ou Concluir.');
   const code = await page.evaluate(() => window.cyberduelMultiplayer.room);
   const codeLabel = page.getByText(`CÓDIGO ${code}`, { exact: true });
   assert.equal(await codeLabel.isVisible(), true, 'Código visível sem solicitar a mesa.');
@@ -80,10 +112,35 @@ const event = (socket, name) => new Promise((resolve, reject) => {
       });
       assert.equal(response.status(), 200);
     }
+    if (index === 0) {
+      const controller = await browser.newPage({ viewport: { width: 720, height: 1480 } });
+      controller.on('pageerror', error => errors.push(error.message));
+      await controller.addInitScript(token => localStorage.setItem('cyberduel.account.token.v1', token), user.token);
+      await controller.goto(base, { waitUntil: 'domcontentloaded' });
+      await controller.waitForFunction(() => typeof game !== 'undefined' && game.scene.getScene('CenaTitulo')?.titleUI?.account?.clubUnlocked);
+      await controller.evaluate(() => {
+        const ui = game.scene.getScene('CenaTitulo').titleUI;
+        ui.closeModal(true); ui.openSecretClub();
+      });
+      await controller.getByRole('button', { name: 'Mesa 1', exact: true }).click();
+      await controller.getByLabel('Escolher jogador', { exact: true }).selectOption('1');
+      await controller.waitForFunction(() => /reservado por \d+s/.test(document.querySelector('.club-tables-status')?.textContent));
+      await page.waitForFunction(() => document.querySelector('.presentation-seats section[data-player="1"] h2')?.textContent.includes('RESERVADO'));
+      await controller.screenshot({ path: path.join(output, 'reserva-menu.png') });
+      await page.screenshot({ path: path.join(output, 'reserva-apresentacao.png') });
+      await controller.getByRole('button', { name: 'VOLTAR', exact: true }).click();
+      await page.waitForFunction(() => document.querySelector('.presentation-seats section[data-player="1"] h2')?.textContent.includes('AGUARDANDO'));
+      await controller.close();
+      checks.push('Menu do Clube reserva o jogador por 60s, mostra a contagem na apresentação e libera ao voltar.');
+    }
     const socket = io(base, { transports: ['websocket'], forceNew: true });
     sockets.push(socket);
     await event(socket, 'connect');
     ready.push(event(socket, 'match-ready'));
+    const reserved = await ack(socket, 'reserve-club-seat', { table: 1, seat: index + 1, accountToken: user.token });
+    assert.equal(reserved.ok, true);
+    assert.ok(reserved.expiresAt - reserved.serverNow <= 60_000);
+    await page.waitForFunction(player => document.querySelector(`.presentation-seats section[data-player="${player}"] h2`)?.textContent.includes('RESERVADO'), index + 1);
     assert.equal((await ack(socket, 'join-room', {
       code, table: 1, seat: index + 1, accountToken: user.token,
     })).ok, true);
@@ -190,6 +247,19 @@ const event = (socket, name) => new Promise((resolve, reject) => {
   assert.equal((await ack(sockets[0], 'decline-match', { room: code, accountToken: users[0].token })).ok, true);
   await page.waitForFunction(() => game.scene.getScene('CenaJogo').telaFinalExibida);
   assert.equal(await codeLabel.count(), 0, 'Resultado mantém código oculto.');
+  const results = await page.evaluate(() => game.scene.getScene('CenaJogo').children.list
+    .filter(node => node.text === 'VENCEU' || node.text === 'PERDEU')
+    .map(node => ({ text: node.text, y: node.y, angle: Math.abs(node.angle) })));
+  assert.deepEqual(results, [
+    { text: 'VENCEU', y: 555, angle: 180 },
+    { text: 'PERDEU', y: 1665, angle: 0 },
+  ], 'Quem desistiu perde no lado inferior; o vencedor lê VENCEU do lado superior.');
+  checks.push('VENCEU em verde e PERDEU em vermelho, cada um no próprio lado e orientado para seu jogador.');
+  await page.waitForFunction(() => {
+    const scene = game.scene.getScene('CenaJogo');
+    return !scene.cameras.main.flashEffect.isRunning && scene.children.list
+      .filter(node => node.text === 'VENCEU' || node.text === 'PERDEU').every(node => node.alpha === 1);
+  });
   await page.screenshot({ path: path.join(output, 'codigo-resultado.png') });
   await page.keyboard.press('Escape');
   await page.waitForFunction(() => typeof game !== 'undefined' && game.scene.isActive('CenaTitulo'));
