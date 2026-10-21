@@ -1087,7 +1087,7 @@ body.deck-forge-open #game-viewport canvas {
 }
 
 .forge-modal {
-  position: fixed;
+  position: absolute;
   inset: 0;
   z-index: 100;
   display: grid;
@@ -1796,7 +1796,6 @@ body.deck-forge-open #game-viewport canvas {
   }
 
   .forge-modal {
-    position: fixed;
     align-items: end;
     padding: 0;
   }
@@ -2664,6 +2663,8 @@ body.title-terminal-open #game-viewport canvas {
   z-index: 100;
   display: grid;
   align-items: end;
+  overflow-y: auto;
+  touch-action: pan-y;
   background: rgba(0, 7, 2, 0.84);
   opacity: 0;
   transition: opacity 0.18s;
@@ -2675,6 +2676,8 @@ body.title-terminal-open #game-viewport canvas {
 
 .title-dialog {
   width: 100%;
+  max-height: 100%;
+  overflow-y: auto;
   padding: 28px 22px calc(24px + env(safe-area-inset-bottom));
   border: 1px solid rgba(35, 255, 108, 0.38);
   border-right: 0;
@@ -2940,6 +2943,15 @@ body.title-terminal-open #game-viewport canvas {
   height: var(--game-display-height, min(100dvh, 205.555556vw));
 }
 
+input, textarea, [contenteditable="true"] { scroll-margin-block: 16px; }
+@media (pointer: coarse) {
+  .title-terminal:has(.title-modal :is(input:not([type="range"], [type="checkbox"], [type="radio"], [type="hidden"]), textarea)) {
+    width: var(--viewport-width, 100vw);
+  }
+  .title-terminal .title-auth-input, .title-modal .title-auth-input,
+  .elenai-dialogue .title-auth-input, .deck-forge .forge-search__input { font-size: 16px; }
+}
+
 /* Abertura por gesto e revelação individual do booster. */
 .title-booster-dialog { position: relative; }
 .booster-scratch { position: absolute; z-index: 6; inset: auto 8px 5px; width: calc(100% - 16px); min-height: 44px; overflow: hidden; isolation: isolate; border: 0; border-top: 1px dashed color-mix(in srgb, var(--pack-color), transparent 35%); background: #ffffff06; color: var(--pack-color); font-size: calc(clamp(7px, 3.5cqw, 9px) * var(--cyber-text-scale, 1)); font-weight: 900; letter-spacing: .06em; touch-action: none; cursor: ew-resize; }
@@ -3067,7 +3079,7 @@ body:has(> .booster-fullscreen) .title-matrix-stream { animation-play-state: pau
 }
 
 /* Perfil da conta: identidade editável sem alterar o usuário de login. */
-.title-modal.profile-screen { position: fixed; inset: 0; z-index: 10000; display: grid; place-items: center; overflow-y: auto; background: radial-gradient(ellipse at top, #153a21, #05130a 70%); color: #e2f4e8; font-family: Arial, sans-serif; padding: 24px; box-sizing: border-box; }
+.title-modal.profile-screen { position: fixed; inset: auto; left: var(--viewport-left, 0px); top: var(--viewport-top, 0px); width: var(--viewport-width, 100vw); height: var(--viewport-height, 100dvh); z-index: 10000; display: grid; place-items: center; overflow-y: auto; background: radial-gradient(ellipse at top, #153a21, #05130a 70%); color: #e2f4e8; font-family: Arial, sans-serif; padding: 24px; box-sizing: border-box; }
 .profile-panel { width: min(100%, 420px); margin: auto; }
 .profile-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; }
 .profile-header h2 { margin: 0; font-size: 30px; letter-spacing: -.04em; }
@@ -3250,7 +3262,7 @@ body:has(> .booster-fullscreen) .title-matrix-stream { animation-play-state: pau
 .deck-forge { overflow-anchor: none; }
 
 .forge-header-actions { display: grid; gap: 12px; justify-items: end; }
-.forge-builds { max-height: 85dvh; overflow-y: auto; }
+.forge-builds { max-height: min(85dvh, calc(var(--viewport-height, 100dvh) - 48px)); overflow-y: auto; }
 .forge-build-list { display: grid; gap: 14px; margin-top: 20px; }
 .forge-build-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .forge-build-row strong { flex: 1 1 100%; overflow-wrap: anywhere; }
@@ -3371,13 +3383,16 @@ body:has(> .booster-fullscreen) .title-matrix-stream { animation-play-state: pau
 .elenai-story .card-menu,
 .elenai-story .card-menu__shortcuts { visibility: hidden; }
 .elenai-dialogue {
-  position: fixed; inset: 0; margin: auto;
-  width: min(100vw, var(--game-width-vh)); height: min(100vh, var(--game-height-vw));
+  position: fixed; inset: auto; margin: 0;
+  left: calc(var(--viewport-left, 0px) + var(--viewport-width, 100vw) / 2);
+  top: calc(var(--viewport-top, 0px) + var(--viewport-height, 100dvh) / 2);
+  transform: translate(-50%, -50%);
+  width: min(var(--viewport-width, 100vw), var(--game-width-vh)); height: min(var(--viewport-height, 100dvh), var(--game-height-vw));
   z-index: 15000; background: rgba(1, 8, 7, .82); color: #eaffdf;
   overflow: hidden; font-family: Arial, sans-serif;
   display: flex; flex-direction: column; justify-content: flex-end;
   box-sizing: border-box;
-  padding: calc(min(100vh, var(--game-height-vw)) * .04) calc(min(100vw, var(--game-width-vh)) * .05);
+  padding: calc(min(var(--viewport-height, 100dvh), var(--game-height-vw)) * .04) calc(min(var(--viewport-width, 100vw), var(--game-width-vh)) * .05);
 }
 .elenai-dialogue--training { background: rgba(1, 8, 7, .52); }
 .elenai-portrait-frame {

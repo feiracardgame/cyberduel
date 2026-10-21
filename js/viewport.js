@@ -30,6 +30,11 @@
     for (const [name, value] of Object.entries(values))
       document.documentElement.style.setProperty(name, `${value}px`);
     if (game?.isBooted) game.scale?.setParentSize(width, height);
+    const input = document.activeElement;
+    const editing = input?.isContentEditable || input?.tagName === "TEXTAREA" ||
+      (input?.tagName === "INPUT" && ["text", "search", "email", "password", "tel", "url", "number"].includes(input.type));
+    if (editing && !input.readOnly && !input.disabled)
+      input.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "instant" });
   }
 
   function schedule() {
@@ -59,6 +64,7 @@
   global.addEventListener("pointerup", fullscreenOnTouch, { capture: true, passive: true });
   document.addEventListener("fullscreenchange", schedule);
   document.addEventListener("webkitfullscreenchange", schedule);
+  document.addEventListener("focusin", schedule);
   global.visualViewport?.addEventListener("resize", schedule);
   global.visualViewport?.addEventListener("scroll", schedule);
   global.cyberduelViewport = {

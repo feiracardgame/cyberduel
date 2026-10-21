@@ -21,7 +21,8 @@
     "test:learning:browser": "node scripts/test-learning-playwright.js",
     "test:security-x1:browser": "node scripts/test-security-x1-playwright.js",
     "test:boosters:browser": "node scripts/test-booster-playwright.js",
-    "test:card-detail:browser": "node scripts/test-card-detail-playwright.js"
+    "test:card-detail:browser": "node scripts/test-card-detail-playwright.js",
+    "test:keyboard:browser": "node scripts/test-keyboard-playwright.js"
   },
   "dependencies": {
     "google-auth-library": "^11.1.0",

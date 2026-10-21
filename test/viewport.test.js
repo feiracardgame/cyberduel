@@ -55,6 +55,38 @@ assert.equal(properties['--viewport-width'], 750);
 assert.equal(properties['--viewport-height'], 369);
 for (const key of Object.keys(insets)) delete insets[key];
 
+window.innerWidth = 390; window.innerHeight = 844;
+window.visualViewport = { width: 390, height: 410, offsetTop: 30, offsetLeft: 0 };
+let scrolls = 0;
+const input = { tagName: 'INPUT', type: 'text',
+  scrollIntoView(options) { assert.equal(options.block, 'nearest'); assert.equal(options.behavior, 'instant'); scrolls++; } };
+document.activeElement = input;
+for (const type of ['text', 'search', 'email', 'password', 'tel', 'url', 'number']) {
+  input.type = type;
+  const before = scrolls;
+  documentListeners.focusin(); pending();
+  assert.equal(scrolls, before + 1, `${type}: foco mantém o campo acima do teclado.`);
+}
+api.update();
+assert.equal(scrolls, 8, 'Confere também campos dentro de painéis com rolagem própria.');
+viewportListeners.scroll(); pending();
+assert.equal(scrolls, 9, 'Recalcula após o deslocamento vertical do viewport.');
+for (const type of ['range', 'checkbox', 'radio', 'file', 'button', 'submit']) {
+  input.type = type; api.update();
+}
+assert.equal(scrolls, 9, 'Sliders e botões não acionam rolagem de texto.');
+input.type = 'text'; input.readOnly = true; api.update();
+input.readOnly = false; input.disabled = true; api.update();
+assert.equal(scrolls, 9, 'Ignora campos bloqueados.');
+input.disabled = false; input.tagName = 'TEXTAREA'; api.update();
+input.tagName = 'DIV'; input.isContentEditable = true; api.update();
+assert.equal(scrolls, 11, 'Textareas e conteúdo editável também ficam visíveis.');
+window.innerHeight = 410; api.update();
+assert.equal(scrolls, 12, 'Funciona quando o teclado redimensiona também a janela.');
+delete document.activeElement;
+window.visualViewport = null;
+console.log('Teclado: foco global, campos de texto, área visível, deslocamento, textarea, edição e controles ignorados validados.');
+
 (async () => {
   const touch = listeners.pointerup, root = document.documentElement;
   let requests = 0;
