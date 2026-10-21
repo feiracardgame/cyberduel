@@ -12,8 +12,9 @@ function match(players = accounts(), patch = {}) {
 
 for (const [mode, expected] of [
   [{}, [20, 10]],
-  [{ ranked: false, presentation: true, table: 1 }, [50, 25]],
-  [{ ranked: false, presentation: true, table: 5 }, [100, 50]],
+  [{ ranked: false, presentation: true }, [50, 25]],
+  [{ ranked: true, presentation: true, table: 1 }, [50, 25]],
+  [{ ranked: true, presentation: true, table: 5 }, [100, 50]],
 ]) {
   const players = accounts();
   for (let repetition = 0; repetition < 9; repetition++) {

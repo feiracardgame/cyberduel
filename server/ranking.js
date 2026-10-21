@@ -16,13 +16,12 @@ function chooseOpponent(entry, entries, now = Date.now(), draw = randomInt) {
   return candidates.length ? candidates[draw(candidates.length)] : null;
 }
 
-function applyResult(first, second, winner) {
+function applyResult(first, second, winner, winMultiplier = 1) {
   const expected = 1 / (1 + 10 ** ((second.rating - first.rating) / 400));
   const score = winner === 'empate' ? 0.5 : winner === 'jogador' ? 1 : 0;
   const delta = Math.round(32 * (score - expected));
-  first.rating = Math.max(0, first.rating + delta);
-  second.rating = Math.max(0, second.rating - delta);
-  for (const [account, side] of [[first, 'jogador'], [second, 'inimigo']]) {
+  for (const [account, side, change] of [[first, 'jogador', delta], [second, 'inimigo', -delta]]) {
+    account.rating = Math.max(0, account.rating + (winner === side ? Math.round(change * winMultiplier) : change));
     account.rankedGames++;
     if (winner === side) account.rankedWins++;
     else if (winner !== 'empate') account.rankedLosses++;

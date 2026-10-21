@@ -1590,7 +1590,7 @@ function presentationState(snapshot) {
 }
 
 function presentationInfo(room) {
-  return { ok: true, room: publicRoom(room), displayKey: room.displayKey, invitations: room.invitations,
+  return { ok: true, room: publicRoom(room), ranked: !!room.ranked, displayKey: room.displayKey, invitations: room.invitations,
     nicknames: Object.fromEntries(room.nicknames), profiles: Object.fromEntries(room.profiles),
     seats: [1, 2].map(player => ({ player, connected: !!room.players.get(player) })),
     ...(room.state ? { update: { state: presentationState(room.state), ...phaseInfo(room), initial: true } } : {}) };
@@ -1803,7 +1803,8 @@ function settleMatch(room) {
   if (!["jogador", "inimigo", "empate"].includes(winner)) return;
   const accounts = [1, 2].map(player => room.accounts.get(player));
   const rewards = onlineRewards(room);
-  if (room.ranked && accounts.every(Boolean)) ranking.applyResult(...accounts, winner);
+  if (room.ranked && !room.debugFinal && accounts.every(Boolean))
+    ranking.applyResult(...accounts, winner, room.table === 5 ? 1.5 : room.table ? 1.25 : 1);
   if (!room.debugFinal) [...new Set(accounts.filter(Boolean))].forEach(account => {
     ensureAccountDefaults(account);
     const player = accounts.indexOf(account) + 1;
@@ -1973,6 +1974,7 @@ io.on("connection", (socket) => {
     const room = createRoomRecord(socket, [], null);
     room.presentation = true;
     room.table = table;
+    room.ranked = table !== null;
     room.displayKey = randomBytes(32).toString("hex");
     room.presentationHost = socket.id;
     for (const key of ["players", "decks", "usernames", "nicknames", "profiles", "resumeTokens"]) room[key].clear();

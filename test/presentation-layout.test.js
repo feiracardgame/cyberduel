@@ -3,14 +3,18 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const { EventEmitter } = require('node:events');
 class Element {
-  constructor() { this.children=[]; this.dataset={}; }
+  constructor() { this.children=[]; this.dataset={}; this.style={}; }
   append(...items) { this.children.push(...items); }
   replaceChildren(...items) { this.children = items; }
   setAttribute() {}
   remove() { this.removed=true; }
 }
 const document = { createElement: () => new Element(), body: new Element() };
-const context=vm.createContext({ window:{}, document, Phaser:{ Scene:class{}, Math:{Clamp:(n,min,max)=>Math.max(min,Math.min(max,n))} } });
+const intervals = new Map();
+const context=vm.createContext({ window:{}, document,
+ setInterval(callback) { intervals.set(1, callback); return 1; }, clearInterval(id) { intervals.delete(id); },
+ Phaser:{ Scene:class{}, Math:{Clamp:(n,min,max)=>Math.max(min,Math.min(max,n))} } });
+vm.runInContext(fs.readFileSync('js/title-ui.js','utf8'),context);
 vm.runInContext(fs.readFileSync('js/cenas/jogo.js','utf8'),context);
 vm.runInContext(fs.readFileSync('js/cenas/titulo.js','utf8'),context);
 const Scene=vm.runInContext('CenaJogo',context), Title=vm.runInContext('CenaTitulo',context);
@@ -62,9 +66,15 @@ Object.assign(title, { scene: { isActive: () => true, get: () => ({ events: duel
 } });
 title.montarApresentacao();
 const presentation = document.body.children.at(-1);
-const centralCode = presentation.children[1].children[1];
+const rain = presentation.children[0];
+assert.equal(rain.className, 'title-matrix');
+assert.equal(rain.children.length, 24, 'A apresentação reutiliza a chuva de letras do menu.');
+const initialText = rain.children[0].children[0].textContent;
+intervals.get(1)();
+assert.notEqual(rain.children[0].children[0].textContent, initialText);
+const centralCode = presentation.children[2].children[1];
 assert.equal(centralCode.textContent, 'CÓDIGO 123456', 'Código disponível desde a abertura.');
-assert.ok(presentation.children[0].children.every(seat => seat.children[2].textContent === '123456'));
+assert.ok(presentation.children[1].children.every(seat => seat.children[2].textContent === '123456'));
 showPresentation({ ...response, room: { code: '123456', players: 1 } });
 assert.equal(centralCode.textContent, 'CÓDIGO 123456', 'Entrar não esconde o código.');
 title.multiplayer.onReady();
@@ -72,4 +82,5 @@ assert.equal(started, 'CenaJogo');
 assert.equal(document.body.children.at(-1), presentation, 'Código não é movido para fora da espera.');
 titleEvents.emit('shutdown');
 assert.equal(presentation.removed, true, 'A espera e seu código saem quando o duelo começa.');
+assert.equal(intervals.size, 0, 'A chuva para de atualizar ao sair da apresentação.');
 console.log('Mesa: HUD atual, fases, espera e código apenas antes do duelo validados.');

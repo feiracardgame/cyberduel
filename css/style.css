@@ -3154,15 +3154,9 @@ body:has(> .booster-fullscreen) .title-matrix-stream { animation-play-state: pau
   text-align: center;
   overflow: hidden;
 }
-.presentation-screen::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: url("../assets/profiles/duel_corner_opponent.png") left top / 100% 24% no-repeat,
-    url("../assets/profiles/duel_corner.png") right bottom / 100% 24% no-repeat;
-  pointer-events: none;
-}
-.presentation-center { position: absolute; left: 5%; right: 5%; top: 50%; transform: translateY(-50%); }
+.presentation-screen { background: #000; }
+.presentation-screen > .title-matrix { z-index: 0; }
+.presentation-center { position: absolute; z-index: 1; left: 5%; right: 5%; top: 50%; transform: translateY(-50%); }
 .presentation-center h1 { margin: 0 0 2cqw; font: calc(7.2cqw * var(--cyber-text-scale, 1)) "Rushblade", Arial, sans-serif; text-shadow: 0 2px 0 #02040b; }
 .presentation-center p { margin: 2cqw 0; color: #b8cde3; font-size: calc(3.6cqw * var(--cyber-text-scale, 1)); line-height: 1.4; }
 .presentation-code {
@@ -3179,7 +3173,7 @@ body:has(> .booster-fullscreen) .title-matrix-stream { animation-play-state: pau
   background: #061027f0;
   clip-path: polygon(3cqw 0, 100% 0, 100% calc(100% - 3cqw), calc(100% - 3cqw) 100%, 0 100%, 0 3cqw);
 }
-.presentation-seats { position: absolute; inset: 0; }
+.presentation-seats { position: absolute; z-index: 1; inset: 0; }
 .presentation-seats section {
   --seat-color: #54ddff;
   position: absolute;

@@ -111,7 +111,8 @@ class CenaTitulo extends Phaser.Scene {
     const start = document.createElement("button"); start.textContent = "ABRIR ARENA";
     const center = document.createElement("header"); center.className = "presentation-center";
     center.append(heading, code, status, start);
-    root.append(seats, center); document.body.append(root);
+    const background = new CyberduelTitleUI({});
+    root.append(background.createMatrixRain(), seats, center); document.body.append(root);
     const show = response => {
       if (!this.scene.isActive()) return;
       start.disabled = false;
@@ -154,7 +155,7 @@ class CenaTitulo extends Phaser.Scene {
       document.documentElement.requestFullscreen?.().catch(() => {});
       this.multiplayer.createPresentation(show);
     };
-    this.events.once("shutdown", () => { root.remove(); });
+    this.events.once("shutdown", () => { clearInterval(background.matrixTimer); root.remove(); });
     try {
       if (table || window.sessionStorage?.getItem("cyberduel.presentationRoom")) this.multiplayer.createPresentation(show);
     } catch {}

@@ -33,7 +33,7 @@ const fixtures = require('./account-fixture')(directory, Array.from({ length: 12
 const file = path.join(directory, 'accounts.json');
 const store = JSON.parse(fs.readFileSync(file));
 for (const [i, fixture] of fixtures.entries()) Object.assign(store.accounts[fixture.accountKey], {
-  rating: 2000 - i * 10, humanGames: 5, humanWins: 3, rankedGames: 5, rankedWins: 3, councilReached: true,
+  rating: (i < 2 ? 2200 : 2000) - i * 10, humanGames: 5, humanWins: 3, rankedGames: 5, rankedWins: 3, councilReached: true,
 });
 fs.writeFileSync(file, JSON.stringify(store));
 const server = spawn(process.execPath, ['server/server.js'], {
@@ -73,6 +73,7 @@ async function run() {
   const [screen, one, two, outsider, otherTab] = await Promise.all(Array.from({ length: 5 }, connect));
   const presentation = await ack(screen, 'create-presentation', { table: 5 });
   assert.equal(presentation.ok, true);
+  assert.equal(presentation.ranked, true, 'Conselho é ranqueado.');
   const code = presentation.room.code;
   const first = { accountToken: fixtures[0].token, seat: 1 };
   const second = { accountToken: fixtures[1].token, seat: 2 };
@@ -91,17 +92,26 @@ async function run() {
   assert.equal((await ack(one, 'join-room', { ...first, code, table: 5 })).waiting, true);
   assert.equal((await ack(two, 'reserve-council-seat', second)).ok, true);
   assert.equal((await ack(two, 'join-room', { ...second, code, table: 5 })).ok, true);
+  const debug = await ack(one, 'debug-finish-match', { resultado: 'vitoria' });
+  assert.equal(debug.ok, false); assert.match(debug.error, /ranqueadas/);
   assert.equal((await ack(outsider, 'watch-club-tables')).council.locked, true);
   assert.equal((await ack(otherTab, 'reserve-council-seat', first)).ok, false);
   assert.equal((await ack(one, 'decline-match', { room: code, accountToken: first.accountToken })).ok, true);
   for (const [index, fixture] of fixtures.slice(0, 2).entries()) {
     const response = await fetch(url + '/api/auth/session', { headers: { Authorization: `Bearer ${fixture.token}` } });
-    assert.equal((await response.json()).currency, index === 0 ? 550 : 600, 'Primeira desistência no Conselho paga os valores normais.');
+    const account = await response.json();
+    assert.equal(account.currency, index === 0 ? 550 : 600, 'Primeira desistência no Conselho paga os valores normais.');
+    assert.equal(account.rating, index === 0 ? 2184 : 2214, 'Conselho aumenta o ganho de 16 para 24 pontos.');
+    assert.equal(account.rankedGames, 6);
+    assert.equal(account.rankedWins, index === 0 ? 3 : 4);
+    assert.equal(account.rankedLosses, index === 0 ? 1 : 0);
   }
   assert.equal((await ack(one, 'decline-match', { room: code, accountToken: first.accountToken })).ok, false);
   const saved = JSON.parse(fs.readFileSync(file)).accounts;
   assert.equal(saved[fixtures[0].accountKey].currency, 550);
   assert.equal(saved[fixtures[1].accountKey].currency, 600, 'Primeira desistência no Conselho paga uma única vez.');
+  assert.equal(saved[fixtures[0].accountKey].rating, 2184);
+  assert.equal(saved[fixtures[1].accountKey].rating, 2214, 'Bônus de rank é persistido uma única vez.');
   let loserBalance = 550, winnerBalance = 600;
   for (let repetition = 1; repetition <= 7; repetition++) {
     one.emit('leave-room'); two.emit('leave-room'); screen.emit('leave-room');

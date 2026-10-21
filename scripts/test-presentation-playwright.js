@@ -44,6 +44,18 @@ const event = (socket, name) => new Promise((resolve, reject) => {
   page.on('pageerror', error => errors.push(error.message));
   await page.goto(base + '/apresentacao1', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => /^CÓDIGO \d{6}$/.test(document.querySelector('.presentation-center .presentation-code')?.textContent));
+  const backgroundStyle = await page.locator('.presentation-screen').evaluate(node => ({
+    color: getComputedStyle(node).backgroundColor,
+    image: getComputedStyle(node).backgroundImage,
+    decoration: getComputedStyle(node, '::before').content,
+  }));
+  assert.deepEqual(backgroundStyle, { color: 'rgb(0, 0, 0)', image: 'none', decoration: 'none' });
+  assert.equal(await page.locator('.presentation-screen .title-matrix-stream').count(), 24);
+  assert.equal(await page.locator('.title-matrix-stream').first().evaluate(node => getComputedStyle(node).animationName), 'title-matrix-fall');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  assert.equal(await page.locator('.title-matrix').isVisible(), false, 'A chuva respeita movimento reduzido.');
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  checks.push('Fundo preto com a chuva verde do menu, sem cenário ou molduras de fundo, respeitando movimento reduzido.');
   const code = await page.evaluate(() => window.cyberduelMultiplayer.room);
   const codeLabel = page.getByText(`CÓDIGO ${code}`, { exact: true });
   assert.equal(await codeLabel.isVisible(), true, 'Código visível sem solicitar a mesa.');
@@ -79,6 +91,7 @@ const event = (socket, name) => new Promise((resolve, reject) => {
   }
   const matches = await Promise.all(ready);
   await page.waitForFunction(() => typeof game !== 'undefined' && game.scene.isActive('CenaJogo'));
+  assert.equal(await page.locator('.presentation-screen .title-matrix').count(), 0, 'A chuva sai junto com a tela de espera.');
   await page.waitForTimeout(1000);
   await page.screenshot({ path: path.join(output, 'arena-desktop.png') });
   async function inspect() {

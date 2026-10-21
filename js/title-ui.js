@@ -330,14 +330,14 @@ class CyberduelTitleUI {
           ],
           [
             "Clube secreto",
-            this.account?.clubUnlocked ? "Escolha uma das quatro mesas e insira o código da apresentação" : "BLOQUEADO · Conquiste 3 vitórias contra jogadores",
+            this.account?.clubUnlocked ? "Ranqueada · +25% nos pontos de vitória" : "BLOQUEADO · Conquiste 3 vitórias contra jogadores",
             "clube_secreto",
             this.account?.clubUnlocked ? () => this.openSecretClub() : null,
             "account",
           ],
           [
             "Partida do Conselho",
-            this.account?.councilMember ? "Reserve um canto da mesa por 1 minuto e insira o código" : "BLOQUEADO · Entre no top 10 do ranking para fazer parte do Conselho",
+            this.account?.councilMember ? "Ranqueada · +50% nos pontos de vitória" : "BLOQUEADO · Entre no top 10 do ranking para fazer parte do Conselho",
             "conselho",
             this.account?.councilMember ? () => this.openCouncil() : null,
             "account",
@@ -364,13 +364,6 @@ class CyberduelTitleUI {
             "Pacotes para sua coleção",
             "comprar_booster",
             () => this.openBoosterShop(),
-          ],
-          [
-            "Resgatar carta física",
-            "Digite o código de 8 dígitos da sua carta",
-            "carta",
-            () => this.openCardRedemptionDialog(),
-            "account",
           ],
           [
             "Anunciar cartas",
@@ -997,7 +990,8 @@ class CyberduelTitleUI {
         render();
       });
     });
-    dialog.append(this.element("h2", "", "Partida do Conselho"), table, form, error, status, close);
+    dialog.append(this.element("h2", "", "Partida do Conselho"),
+      this.element("p", "", "Partida ranqueada: +50% nos pontos de vitória."), table, form, error, status, close);
     overlay.append(dialog);
     const unwatch = this.callbacks.onWatchClubTables(response => {
       if (this.modal !== overlay) return;
@@ -1146,7 +1140,7 @@ class CyberduelTitleUI {
     dialog.append(
       this.element("small", "player-id__brand", "CYBERDUEL / NEOFLORIPA"),
       this.element("h2", "", "Clube secreto"),
-      this.element("p", "", "Escolha sua mesa e digite o código exibido na apresentação correspondente."),
+      this.element("p", "", "Mesas ranqueadas: +25% nos pontos de vitória. Escolha sua mesa e digite o código exibido na apresentação correspondente."),
       list, form, error, status, close,
     );
     overlay.append(dialog);

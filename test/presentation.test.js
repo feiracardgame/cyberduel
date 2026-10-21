@@ -41,6 +41,7 @@ async function run() {
   const screen = await connect(), one = await connect(), two = await connect(), outsider = await connect();
   const room = await ack(screen, 'create-presentation');
   assert.equal(room.ok, true); assert.equal(room.room.players, 0);
+  assert.equal(room.ranked, false, 'A apresentação avulsa continua casual.');
   assert.equal(room.room.club, true, 'A apresentação identifica uma sala do Clube no servidor.');
   assert.equal(room.invitations.length, 2);
   const invitations = room.invitations.map(invite => {
@@ -65,6 +66,7 @@ async function run() {
   assert.equal(joined.ok, true);
   const [first, second, shown] = await Promise.all([readyOne, readyTwo, display]);
   assert.equal(first.player, 1); assert.equal(second.player, 2);
+  assert.equal(first.ranked, false); assert.equal(second.ranked, false);
   for (const side of ['jogador', 'inimigo']) {
     assert.ok(first.update.state[side].hand.length > 0);
     assert.deepEqual(shown.update.state[side].hand, first.update.state[side].hand);
@@ -106,6 +108,7 @@ async function run() {
     assert.equal(profile.currency, index === 0 ? 525 : 550, "Primeira desistência no Clube paga os valores normais.");
     assert.equal(profile.clubGames, 1); assert.equal(profile.humanGames, 1);
     assert.equal(profile.clubWins, index); assert.equal(profile.humanWins, index);
+    assert.equal(profile.rating, 1000); assert.equal(profile.rankedGames, 0, 'Apresentação avulsa não altera rank.');
   }
   one.emit('surrender');
   assert.equal((await ack(one, 'decline-match', { room: room.room.code, accountToken: accounts[0].token })).ok, false);
@@ -131,6 +134,7 @@ async function run() {
     const host = await connect(); hosts.push(host);
     const created = await ack(host, 'create-presentation', { table });
     assert.equal(created.ok, true); assert.equal(created.room.table, table);
+    assert.equal(created.ranked, true, 'Todas as quatro mesas são ranqueadas.');
     assert.match(created.room.code, /^\d{6}$/, 'Código disponível desde a abertura da mesa.');
     tables.push(created);
   }
@@ -176,6 +180,8 @@ async function run() {
       firstPlayer.emit('leave-room');
       const remaining = (await vacant).tables[0];
       assert.equal(remaining.players, 0); assert.equal(remaining.available, true, 'Sair da espera mantém a apresentação aberta.');
+      const waitingAccount = JSON.parse(fs.readFileSync(accountsFile)).accounts[tableAccounts[0].accountKey];
+      assert.equal(waitingAccount.rating, 1000); assert.equal(waitingAccount.rankedGames, 0, 'Sair antes do duelo não altera o rank.');
       assert.equal((await ack(firstPlayer, 'join-room', firstPayload)).waiting, true);
     }
     const readyFirst = event(firstPlayer, 'match-ready'), readySecond = event(secondPlayer, 'match-ready');
@@ -186,6 +192,11 @@ async function run() {
     const [firstMatch, secondMatch, lockState, shown] = await Promise.all([readyFirst, readySecond, locked, display]);
     assert.equal(firstMatch.room, table.room.code); assert.equal(secondMatch.room, table.room.code);
     assert.equal(firstMatch.player, 2); assert.equal(secondMatch.player, 1);
+    assert.equal(firstMatch.ranked, true); assert.equal(secondMatch.ranked, true); assert.equal(shown.ranked, true);
+    const resumedPlayer = await ack(firstPlayer, 'resume-match', { resumeToken: firstMatch.resumeToken });
+    assert.equal(resumedPlayer.ranked, true, 'Retorno à mesa mantém a modalidade ranqueada.');
+    const debug = await ack(firstPlayer, 'debug-finish-match', { resultado: 'vitoria' });
+    assert.equal(debug.ok, false); assert.match(debug.error, /ranqueadas/);
     assert.equal(shown.room.code, table.room.code, 'Código disponível depois da entrada.');
     assert.equal((await ack(intruder, 'request-club-code', { table: index + 1, accountToken: accounts[0].token })).ok, false, 'Mesa em partida não exibe código.');
     assert.equal(firstMatch.arena, true); assert.equal(shown.room.table, index + 1);
@@ -200,6 +211,12 @@ async function run() {
   const settled = JSON.parse(fs.readFileSync(accountsFile)).accounts;
   assert.equal(settled[tableAccounts[0].accountKey].currency, 525, 'Primeira desistência na mesa paga ao jogador 2.');
   assert.equal(settled[tableAccounts[1].accountKey].currency, 550, 'Primeira desistência na mesa paga ao jogador 1.');
+  assert.equal(settled[tableAccounts[0].accountKey].rating, 984);
+  assert.equal(settled[tableAccounts[1].accountKey].rating, 1020, 'Vitória na mesa rende 25% a mais de rank.');
+  assert.equal(settled[tableAccounts[0].accountKey].rankedLosses, 1);
+  assert.equal(settled[tableAccounts[1].accountKey].rankedWins, 1);
+  assert.equal((await ack(lobby, 'decline-match', { room: tables[0].room.code, accountToken: tableAccounts[0].token })).ok, false);
+  assert.deepEqual(JSON.parse(fs.readFileSync(accountsFile)).accounts, settled, 'Repetir o final não reaplica rank nem recompensas.');
   const released = event(lobby, 'club-tables');
   hosts[3].emit('leave-room');
   assert.equal((await released).tables[3].available, false);

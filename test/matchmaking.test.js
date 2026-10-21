@@ -18,6 +18,28 @@ const a = stats(), b = stats(); applyResult(a, b, 'jogador');
 assert.equal(a.rating, 1016); assert.equal(b.rating, 984);
 const c = stats(), d = stats(); applyResult(c, d, 'empate');
 assert.equal(c.rating, 1000); assert.equal(c.rankedGames, 1); assert.equal(c.rankedLosses, 0);
+for (const [multiplier, gain] of [[1, 16], [1.25, 20], [1.5, 24]]) {
+  for (const winner of ['jogador', 'inimigo']) {
+    const players = [stats(), stats()];
+    applyResult(...players, winner, multiplier);
+    const victor = winner === 'jogador' ? 0 : 1;
+    assert.equal(players[victor].rating, 1000 + gain);
+    assert.equal(players[1 - victor].rating, 984, 'Bônus da vitória não aumenta a perda do oponente.');
+    assert.equal(players[victor].rankedWins, 1);
+    assert.equal(players[1 - victor].rankedLosses, 1);
+    assert.ok(players.every(player => player.rankedGames === 1));
+  }
+  const draw = [stats(), { ...stats(), rating: 1100 }];
+  applyResult(...draw, 'empate', multiplier);
+  assert.deepEqual(draw.map(player => player.rating), [1004, 1096], 'Empate mantém o Elo normal mesmo com diferença de rank.');
+  assert.ok(draw.every(player => player.rankedGames === 1 && player.rankedWins === 0 && player.rankedLosses === 0));
+}
+const rounded = [stats(), { ...stats(), rating: 1050 }];
+applyResult(...rounded, 'jogador', 1.25);
+assert.deepEqual(rounded.map(player => player.rating), [1023, 1032], 'Ganho de 18 com bônus de 25% arredonda 22,5 para 23.');
+const minimum = [{ ...stats(), rating: 1 }, { ...stats(), rating: 1 }];
+applyResult(...minimum, 'inimigo', 1.5);
+assert.deepEqual(minimum.map(player => player.rating), [0, 25], 'Pontuação não fica negativa.');
 
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cyberduel-ranked-'));
 const fixtures = require('./account-fixture')(dataDir, ['RankOne', 'RankTwo']);
