@@ -78,3 +78,11 @@ assert.equal(loads, 2);
 timers.at(-1).fn(); // Vídeo que não inicia: timeout libera a aplicação.
 assert.equal(loads, 3);
 console.log('Carregamento: vídeo antes dos assets, cache quente, loop, proporção, progresso, erro, timeout e saída validados.');
+
+context.window.CYBERDUEL_TABLE = 5;
+scene.criarBarraDeCarregamento();
+const councilVideo = scene.videoCarregamento;
+assert.equal(councilVideo.url, 'assets/fundo/fundo_humbanet.mp4');
+assert.ok(fs.existsSync(councilVideo.url));
+assert.equal(councilVideo.loop, true);
+assert.equal(councilVideo.muted, true);

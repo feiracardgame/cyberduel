@@ -8,19 +8,21 @@ class CenaTransicao extends Phaser.Scene {
     configurarCameraLogica(this);
     this.cameras.main.setBackgroundColor("#000000");
 
+    const multiplayer = window.cyberduelMultiplayer;
+    const conselho = multiplayer?.active && multiplayer.table === 5;
     const campo = window.cyberduelSettings?.get("battlefield");
     const abertura = { 1: "carregamento_echorasp.mp4", 2: "carregamento_sindicato.mp4",
-      3: "carregamento_echorasp.mp4", 4: "carregamento_remanescentes.mp4" }[campo] || this.registry.get("aberturaTransicao");
-    const chave = { "carregamento_echorasp.mp4": "videoAberturaEchoRasp", "carregamento_sindicato.mp4": "videoAberturaSindicato",
+      4: "carregamento_remanescentes.mp4" }[campo] || this.registry.get("aberturaTransicao");
+    const chave = conselho ? "videoHumbaNet" : { "carregamento_echorasp.mp4": "videoAberturaEchoRasp", "carregamento_sindicato.mp4": "videoAberturaSindicato",
       "carregamento_remanescentes.mp4": "videoAberturaRemanescentes" }[abertura] || "videoTransicao";
-    this.fundoTransicao = { "carregamento_echorasp.mp4": "jogoFundo", "carregamento_sindicato.mp4": "videoParte3",
+    this.fundoTransicao = conselho ? "videoHumbaNet" : { "carregamento_echorasp.mp4": "jogoFundo", "carregamento_sindicato.mp4": "videoParte3",
       "carregamento_remanescentes.mp4": "videoDeserto" }[abertura];
     const video = this.add.video(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, chave);
     video.setOrigin(0.5);
     // As aberturas têm áudios diferentes (Echo/Rasp não tem faixa de áudio).
     // Usa a trilha da facção em todas, no mesmo nível da partida.
     video.setMute(true);
-    const musica = window.cyberduelSettings?.get("battlefield") === 3 ? "musicaHumbaNet"
+    const musica = conselho ? "musicaHumbaNet"
       : { "carregamento_sindicato.mp4": "musicaFundo", "carregamento_remanescentes.mp4": "musicaRemanescentes" }[abertura] || "musicaPadrao";
     window.cyberduelSettings?.playMusic(this, musica);
     video.setVisible(false);
@@ -37,6 +39,10 @@ class CenaTransicao extends Phaser.Scene {
     video.once("error", () => this.pularParaJogo(video));
     // Um vídeo que não inicia ou não termina não pode prender a partida.
     this.time.delayedCall(20000, () => this.pularParaJogo(video));
+    if (conselho) this.time.delayedCall(
+      Math.max(0, (multiplayer.phaseStartsAt || 0) - Date.now() - (multiplayer.clockOffset || 0)),
+      () => this.pularParaJogo(video),
+    );
     this.events.once("shutdown", () => video.destroy());
 
     this.criarSkip(video);

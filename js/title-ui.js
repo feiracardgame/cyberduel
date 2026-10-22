@@ -1615,9 +1615,9 @@ class CyberduelTitleUI {
     controls.append(backgroundRow);
     const battlefieldRow = this.element("label", "title-setting");
     const battlefield = this.element("select", "title-auth-input");
-    ["Alternar cenários", "Padrão", "Sindicato", "HumbaNet", "Remanescentes"].forEach((name, index) => {
+    [[0, "Alternar cenários"], [1, "Padrão"], [2, "Sindicato"], [4, "Remanescentes"]].forEach(([value, name]) => {
       const option = this.element("option", "", name);
-      option.value = String(index); battlefield.append(option);
+      option.value = String(value); battlefield.append(option);
     });
     battlefield.value = String(this.settings.get("battlefield") || 0);
     battlefield.addEventListener("change", () => this.settings.set("battlefield", Number(battlefield.value)));

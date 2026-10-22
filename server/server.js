@@ -1790,7 +1790,7 @@ function createRoomRecord(socket, deck, account) {
 
 function emitMatchReady(room) {
   for (const [player, id] of room.players) io.to(id).emit("match-ready", {
-    room: room.code, player, resumeToken: room.resumeTokens.get(player), ranked: !!room.ranked, arena: !!room.presentation,
+    room: room.code, player, table: room.table || null, resumeToken: room.resumeTokens.get(player), ranked: !!room.ranked, arena: !!room.presentation,
     profiles: Object.fromEntries(room.profiles), ...phaseInfo(room),
     decks: Object.fromEntries(room.decks), usernames: Object.fromEntries(room.usernames),
     nicknames: Object.fromEntries(room.nicknames),

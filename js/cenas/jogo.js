@@ -132,6 +132,7 @@ class CenaJogo extends Phaser.Scene {
     this.partidaRegistradaNaConta = !!dados.debug || this.tutorial;
     configurarCameraLogica(this);
     const sessao = window.cyberduelMultiplayer;
+    this.conselho = !this.tutorial && sessao?.active === true && sessao.table === 5;
     if (sessao?.presentation) this.input.keyboard.on("keydown-ESC", () => {
       sessao.leaveRoom();
       this.scene.start("CenaTitulo");
@@ -904,37 +905,6 @@ class CenaJogo extends Phaser.Scene {
       0x345e42,
     ];
     return cores[id % cores.length];
-  }
-
-  // Recorta a arte como cover, respeitando o foco de 0 a 1.
-  aplicarRecorteCover(imagem, larguraJanela, alturaJanela, foco) {
-    const f = foco || { x: 0.5, y: 0.5 };
-    const nativoW = imagem.width;
-    const nativoH = imagem.height;
-    const escala = Math.max(larguraJanela / nativoW, alturaJanela / nativoH);
-
-    // Tamanho (em pixels da textura ORIGINAL) da fatia que, nessa escala, preenche exatamente a janela — nunca maior que a imagem inteira.
-    const cropW = Math.min(nativoW, larguraJanela / escala);
-    const cropH = Math.min(nativoH, alturaJanela / escala);
-
-    // Desloca a fatia dentro da imagem conforme o foco, sempre dentro dos limites da própria imagem (então nunca sobra borda vazia).
-    const cropX = Phaser.Math.Clamp(
-      (nativoW - cropW) * f.x,
-      0,
-      nativoW - cropW,
-    );
-    const cropY = Phaser.Math.Clamp(
-      (nativoH - cropH) * f.y,
-      0,
-      nativoH - cropH,
-    );
-
-    imagem.setCrop(cropX, cropY, cropW, cropH);
-    imagem.setScale(escala);
-
-    // Compensa a origem: setCrop não altera a caixa da imagem.
-    imagem.x = (nativoW * escala) / 2 - cropX * escala - larguraJanela / 2;
-    imagem.y = (nativoH * escala) / 2 - cropY * escala - alturaJanela / 2;
   }
 
   // Encurta nomes longos sem alterar o texto original.
@@ -2606,9 +2576,10 @@ class CenaJogo extends Phaser.Scene {
   }
 
   escolherFundoBatalha() {
+    if (this.conselho) { this.fundoBatalha = "videoHumbaNet"; return; }
     if (this.fundoBatalha) return;
     const campo = window.cyberduelSettings?.get("battlefield") || 0;
-    if (this.tutorial || campo === 1 || campo === 3) {
+    if (this.tutorial || campo === 1) {
       this.fundoBatalha = "jogoFundo";
     } else if (campo === 2 || campo === 4) {
       this.fundoBatalha = campo === 2 ? "videoParte3" : "videoDeserto";
@@ -2623,7 +2594,7 @@ class CenaJogo extends Phaser.Scene {
 
   chaveMusicaBatalha() {
     if (this.tutorial) return "musicaIA";
-    if (window.cyberduelSettings?.get("battlefield") === 3) return "musicaHumbaNet";
+    if (this.conselho) return "musicaHumbaNet";
     return { videoParte3: "musicaFundo", videoDeserto: "musicaRemanescentes" }[this.fundoBatalha] || "musicaPadrao";
   }
 
@@ -4019,7 +3990,7 @@ class CenaJogo extends Phaser.Scene {
     this.elevarModalCarta(overlay, painel);
   }
 
-  // Ficha lendária com arte inteira e textos sobrepostos.
+  // A ficha lendária separa título, arte inteira e descrição.
   mostrarDetalheCartaLendaria(carta) {
     this.modalAberto = true;
     this.travado = true;
@@ -4093,7 +4064,7 @@ class CenaJogo extends Phaser.Scene {
       }),
     );
 
-    // Moldura dupla (borda grossa + fina por dentro), tipo quadro emoldurado — a área de dentro é quase inteira ocupada pela arte.
+    // Moldura dupla da ficha.
     let painelBg = this.criarPlacaDuelo(0, 0, PAINEL_LARGURA, PAINEL_ALTURA, 0xffd966);
     painelBg.setInteractive(new Phaser.Geom.Rectangle(-PAINEL_LARGURA / 2, -PAINEL_ALTURA / 2,
       PAINEL_LARGURA, PAINEL_ALTURA), Phaser.Geom.Rectangle.Contains);
@@ -4104,16 +4075,12 @@ class CenaJogo extends Phaser.Scene {
 
     // Mostra a arte inteira; o fundo cobre as margens restantes.
     const IMG_W = PAINEL_LARGURA - 52;
-    const IMG_H = PAINEL_ALTURA - 52;
-
-    let fundoArte = this.add.graphics();
-    fundoArte.fillGradientStyle(corFundo, corFundo, 0x000000, 0x000000, 1);
-    fundoArte.fillRect(-IMG_W / 2, -IMG_H / 2, IMG_W, IMG_H);
+    const IMG_H = 820;
 
     let imagem, iconeImagem;
-    if (carta.imagem) {
-      imagem = this.add.image(0, 0, carta.imagem);
-      this.aplicarRecorteCover(imagem, IMG_W, IMG_H, carta.foco);
+    if (carta.imagem && this.textures.exists(carta.imagem)) {
+      imagem = this.add.image(0, 0, carta.imagem).setName("ficha-imagem");
+      imagem.setScale(Math.min(IMG_W / imagem.width, IMG_H / imagem.height));
       iconeImagem = null;
     } else {
       imagem = this.add.rectangle(0, 0, IMG_W, IMG_H, corFundo);
@@ -4124,10 +4091,12 @@ class CenaJogo extends Phaser.Scene {
         .setOrigin(0.5);
     }
 
-    // Losangos dourados nos 4 cantos da arte — acabamento de moldura ornamentada, tipo carta colecionável.
+    const arteLargura = imagem.displayWidth + 24;
+    const arteAltura = imagem.displayHeight + 24;
+    const fundoArte = this.criarMolduraCampo(0, 0, arteLargura, arteAltura, 0xffd966);
     let ornamentosCantos = [];
-    for (const cx of [-IMG_W / 2, IMG_W / 2]) {
-      for (const cy of [-IMG_H / 2, IMG_H / 2]) {
+    for (const cx of [-arteLargura / 2, arteLargura / 2]) {
+      for (const cy of [-arteAltura / 2, arteAltura / 2]) {
         ornamentosCantos.push(this.add.star(cx, cy, 4, 6, 15, 0xffd966, 1));
       }
     }
@@ -4136,7 +4105,7 @@ class CenaJogo extends Phaser.Scene {
       0,
       0,
       [fundoArte, imagem, ...ornamentosCantos, iconeImagem].filter(Boolean),
-    );
+    ).setName("ficha-arte");
 
     // Mede os textos antes de dimensionar a placa do título.
     let etiquetaTipo = this.add
@@ -4147,8 +4116,8 @@ class CenaJogo extends Phaser.Scene {
         fontStyle: "bold",
         letterSpacing: 6,
       })
-      .setOrigin(0.5, 0);
-    etiquetaTipo.setShadow(0, 0, "#ffcc33", 10, false, true);
+      .setOrigin(0.5, 0).setName("ficha-tipo");
+    etiquetaTipo.setShadow(0, 2, "#000000", 4, false, true);
 
     let nomeTexto = this.add
       .text(0, 0, carta.nome, {
@@ -4160,8 +4129,8 @@ class CenaJogo extends Phaser.Scene {
         wordWrap: { width: PAINEL_LARGURA - 220 },
         letterSpacing: 1,
       })
-      .setOrigin(0.5, 0);
-    nomeTexto.setShadow(0, 0, "#ffcc33", 18, false, true);
+      .setOrigin(0.5, 0).setName("ficha-nome");
+    nomeTexto.setShadow(0, 2, "#000000", 4, false, true);
 
     const PLACA_PAD_V = 22;
     const PLACA_PAD_H = 40;
@@ -4208,13 +4177,17 @@ class CenaJogo extends Phaser.Scene {
 
     const fecharBtn = this.criarBotaoFecharDetalhe(PAINEL_LARGURA / 2 - 76, CANTO_Y, 0xffd966);
 
-    // PLACA DA DESCRIÇÃO, sobreposta perto do rodapé
+    // Descrição abaixo da arte, com uma área de leitura própria.
     const DESC_PLACA_LARGURA = PAINEL_LARGURA - 80;
     const DESC_PLACA_ALTURA = 420;
     const DESC_PLACA_TOPO_Y = PAINEL_ALTURA / 2 - DESC_PLACA_ALTURA - 46;
     const DESC_PAD = 34;
     const DESC_LARGURA = DESC_PLACA_LARGURA - DESC_PAD * 2;
     const DESC_ALTURA = DESC_PLACA_ALTURA - DESC_PAD * 2;
+    const arteTopo = placaTituloTopoY + placaTituloAltura + 30;
+    const arteBase = DESC_PLACA_TOPO_Y - 30;
+    containerImagem.setY((arteTopo + arteBase) / 2)
+      .setScale(Math.min(1, (arteBase - arteTopo) / IMG_H));
 
     const placaDescricao = this.criarPlacaDuelo(0, DESC_PLACA_TOPO_Y + DESC_PLACA_ALTURA / 2,
       DESC_PLACA_LARGURA, DESC_PLACA_ALTURA, 0xffd966);
@@ -4242,7 +4215,7 @@ class CenaJogo extends Phaser.Scene {
     }
     const alturaTotalDescricao = Math.max(0, yParte - GAP_PARTES_DESC);
 
-    let containerDescricao = this.add.container(0, descY, textosDescricao);
+    let containerDescricao = this.add.container(0, descY, textosDescricao).setName("ficha-textos");
 
     // MÁSCARA (mesmo esquema usado no modal normal)
     const maskX = (LARGURA_LAYOUT - DESC_LARGURA) / 2;
@@ -4303,7 +4276,7 @@ class CenaJogo extends Phaser.Scene {
       glowAnel,
       painelBg,
       painelBgInterno,
-      containerImagem, // a arte fica embaixo — placa/texto da descrição têm que aparecer por cima dela
+      containerImagem,
       placaDescricao,
       containerDescricao,
       ...elementosTopo,
@@ -7511,12 +7484,13 @@ class CenaJogo extends Phaser.Scene {
             duration: 200,
             onComplete: () => {
               texto.destroy();
-              aoTerminar();
             },
           });
         });
       },
     });
+    // Redesenhos cancelam tweens; a continuação da partida precisa sobreviver.
+    this.time.delayedCall(180 + 650 + 200, aoTerminar);
   }
 
   // Handler do botão "Desistir": pede confirmação (ação irreversível) antes de encerrar a partida como derrota do jogador.

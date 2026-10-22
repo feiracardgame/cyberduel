@@ -91,7 +91,11 @@ async function run() {
   assert.equal((await ack(two, 'join-room', { ...second, code, table: 5, seat: 1 })).ok, false);
   assert.equal((await ack(one, 'join-room', { ...first, code, table: 5 })).waiting, true);
   assert.equal((await ack(two, 'reserve-council-seat', second)).ok, true);
+  const ready = new Promise(resolve => one.once('match-ready', resolve));
   assert.equal((await ack(two, 'join-room', { ...second, code, table: 5 })).ok, true);
+  assert.equal((await ready).table, 5, 'A identificação do Conselho chega aos jogadores para selecionar o cenário.');
+  assert.equal((await ack(one, 'resume-match', { accountToken: first.accountToken })).room.table, 5);
+  assert.equal((await ack(outsider, 'spectate-room', { code })).room.table, 5);
   const debug = await ack(one, 'debug-finish-match', { resultado: 'vitoria' });
   assert.equal(debug.ok, false); assert.match(debug.error, /ranqueadas/);
   assert.equal((await ack(outsider, 'watch-club-tables')).council.locked, true);

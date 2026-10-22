@@ -209,10 +209,34 @@ async function run() {
   assert.equal(await page.evaluate(() => !!game.scene.getScene('CenaJogo').handlersScrollDescAtual), false);
   checks.push('Toque na arte abre o zoom; fechar o zoom mantém a ficha; fechar a ficha limpa a rolagem.');
 
-  await openCard('RaspClay MonteCorp');
-  assert.equal(await page.evaluate(() => game.scene.getScene('CenaJogo').tweensLendariaAtual.length), 3);
-  await page.screenshot({ path: path.join(output, 'modal-lendaria-preservada.png') });
-  checks.push('Ficha lendária mantém a apresentação e as animações existentes.');
+  const legendaries = await page.evaluate(() => POOL_CARTAS_MONSTRO.filter(card => card.lendaria).map(card => card.nome));
+  await page.evaluate(() => document.fullscreenElement ? document.exitFullscreen() : undefined);
+  for (const viewport of [{ width: 390, height: 844 }, { width: 320, height: 568 }, { width: 1366, height: 768 }]) {
+    await page.setViewportSize(viewport);
+    for (const [index, name] of legendaries.entries()) {
+      await openCard(name);
+      const geometry = await page.evaluate(() => {
+        const scene = game.scene.getScene('CenaJogo'), nodes = scene.painelDetalheAtual.list;
+        const art = nodes.find(node => node.name === 'ficha-arte');
+        const image = art.list.find(node => node.name === 'ficha-imagem');
+        const title = nodes.find(node => node.name === 'ficha-nome').getBounds();
+        const description = nodes.find(node => node.name === 'ficha-textos').getBounds();
+        const bounds = image.getBounds();
+        return { cropped: image.isCropped, ratio: image.displayWidth / image.displayHeight,
+          nativeRatio: image.width / image.height, separate: title.bottom < bounds.top && bounds.bottom < description.top,
+          inside: bounds.left >= 0 && bounds.right <= LARGURA_LAYOUT && bounds.top >= 0 && bounds.bottom <= ALTURA_LAYOUT,
+          animations: scene.tweensLendariaAtual.length };
+      });
+      assert.equal(geometry.cropped, false, name);
+      assert.ok(Math.abs(geometry.ratio - geometry.nativeRatio) < 0.001, name);
+      assert.equal(geometry.separate, true, `${name}: título e descrição ficam fora da arte.`);
+      assert.equal(geometry.inside, true, name);
+      assert.equal(geometry.animations, 3);
+      await page.screenshot({ path: path.join(output, `lendaria-${viewport.width}-${index}.png`) });
+    }
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+  checks.push('Todas as lendárias: arte inteira e proporcional, título acima e descrição abaixo em celular pequeno, celular e desktop.');
 
   await openCard('HAL 9001');
   const button = await page.evaluate(() => {

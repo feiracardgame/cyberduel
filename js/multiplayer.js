@@ -3,6 +3,7 @@ class CyberduelMultiplayer {
   constructor() {
     this.socket = null;
     this.room = null;
+    this.table = null;
     this.player = null;
     this.active = false;
     this.activePlayer = 1;
@@ -71,7 +72,7 @@ class CyberduelMultiplayer {
       const destino = serverUrl || location.origin;
       this.status(`Servidor multiplayer indisponível em ${destino}.`);
     });
-    this.socket.on("match-ready", ({ room, player, resumeToken, ranked, arena, profiles, update, decks, usernames, nicknames, ...phase }) => {
+    this.socket.on("match-ready", ({ room, player, table, resumeToken, ranked, arena, profiles, update, decks, usernames, nicknames, ...phase }) => {
       this.applyPhase(phase);
       if (player) this.player = player;
       if (resumeToken) this.saveResumeToken(resumeToken);
@@ -84,6 +85,7 @@ class CyberduelMultiplayer {
       this.presentation = false;
       this.waitingInvitation = null;
       this.room = room;
+      this.table = table || null;
       this.active = true;
       this.localDeck = decks?.[this.player] || this.localDeck;
       this.opponentDeck = decks?.[this.player === 1 ? 2 : 1] || [];
@@ -362,6 +364,7 @@ class CyberduelMultiplayer {
 
   enterExisting(response) {
     this.room = response.room.code; this.active = true; this.initialized = true;
+    this.table = response.room.table || null;
     this.arena = !!response.arena;
     this.ranked = !!response.ranked; this.profiles = response.profiles || {};
     this.needsIntroduction = false;
@@ -380,6 +383,7 @@ class CyberduelMultiplayer {
     this.active = false; this.initialized = false; this.pendingUpdate = null;
     if (!this.presentation) this.saveResumeToken(null);
     this.presentation = false; this.waitingInvitation = null; this.displayKey = null; this.room = null;
+    this.table = null;
     try { window.sessionStorage?.removeItem("cyberduel.presentationRoom" + this.presentationScope); window.sessionStorage?.removeItem("cyberduel.presentationKey" + this.presentationScope); } catch {}
     this.spectator = false; this.lastLiveState = null;
     this.effectsPaused = false; this.effectsAck = null;

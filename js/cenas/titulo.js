@@ -174,7 +174,7 @@ class CenaTitulo extends Phaser.Scene {
     };
     this.multiplayer.onReady = () => {
       if (!this.scene.isActive()) return;
-      this.scene.start("CenaJogo");
+      this.scene.start(this.multiplayer.table === 5 && this.multiplayer.announcementPending() ? "CenaTransicao" : "CenaJogo");
     };
     this.multiplayer.onStatus = message => { status.textContent = message; };
     start.onclick = () => {
@@ -248,7 +248,8 @@ class CenaTitulo extends Phaser.Scene {
   iniciarPartida(multiplayer) {
     if (multiplayer && this.multiplayer.initialized) {
       this.titleUI?.destroy(); this.titleUI = null;
-      this.scene.start((this.multiplayer.ranked || this.multiplayer.arena) ? "CenaJogo" : "CenaTransicao");
+      this.scene.start(this.multiplayer.table === 5 && this.multiplayer.announcementPending() ? "CenaTransicao"
+        : (this.multiplayer.ranked || this.multiplayer.arena) ? "CenaJogo" : "CenaTransicao");
       return;
     }
     if (!this.account?.user || this.account.needsRegistration || !this.account?.faction) {

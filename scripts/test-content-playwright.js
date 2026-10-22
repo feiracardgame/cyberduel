@@ -77,7 +77,7 @@ async function run() {
   await page.evaluate(() => game.scene.getScene('CenaTitulo').scene.start('CenaDeckBuilder'));
   await page.waitForFunction(() => game.scene.getScene('CenaDeckBuilder').cyberMusic?.isPlaying);
   assert.equal(await page.evaluate(() => game.scene.getScene('CenaDeckBuilder').cyberMusic.key), 'musicaDeck');
-  for (const [field, music] of [[1, 'musicaPadrao'], [2, 'musicaFundo'], [3, 'musicaHumbaNet'], [4, 'musicaRemanescentes']]) {
+  for (const [field, music] of [[1, 'musicaPadrao'], [2, 'musicaFundo'], [4, 'musicaRemanescentes']]) {
     await page.evaluate(field => {
       window.cyberduelSettings.set('battlefield', field); window.cyberduelSettings.set('skipBattleAnnouncements', 1);
       // A conta de teste começa sem os desbloqueios de avatar; verifica o mapeamento do busto diretamente.

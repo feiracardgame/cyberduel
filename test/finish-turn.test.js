@@ -50,6 +50,23 @@ assert.equal(game.travado, true, 'Resposta antiga não destrava outra fase.');
 assert.equal(resets, 1);
 console.log('Passagem de turno: efeitos, recusa, nova tentativa e resposta antiga validados.');
 
+// Um redesenho pode cancelar todos os tweens do aviso, inclusive na última rodada solo.
+{
+  let continued = 0;
+  const callbacks = [];
+  const label = { setOrigin() { return this; }, setDepth() { return this; },
+    setAlpha() { return this; }, setScale() { return this; } };
+  const scene = Object.assign(Object.create(Game.prototype), {
+    add: { text: () => label },
+    tweens: { add() {} },
+    time: { delayedCall(delay, callback) { callbacks.push(callback); } },
+  });
+  scene.mostrarBannerRodada({ vencedor: 'jogador' }, () => continued++);
+  assert.equal(continued, 0);
+  callbacks.forEach(callback => callback());
+  assert.equal(continued, 1, 'O fim da rodada e o pagamento solo continuam mesmo com a animação cancelada.');
+}
+
 client.step--;
 response(new Error('timeout'));
 assert.equal(game.travado, false);

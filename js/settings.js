@@ -39,6 +39,7 @@
       this.values.animatedBackground = this.values.animatedBackground === 0 ? 0 : 1;
       this.values.skipBattleAnnouncements = this.values.skipBattleAnnouncements === 1 ? 1 : 0;
       this.values.battlefield = Math.round(clamp(this.values.battlefield, 0, 4));
+      if (this.values.battlefield === 3) this.values.battlefield = 0;
       for (const [key, fallback] of Object.entries(DEFAULTS)) {
         if (!Number.isFinite(this.values[key])) this.values[key] = fallback;
       }

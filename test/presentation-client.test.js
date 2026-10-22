@@ -77,3 +77,12 @@ tableMulti.unwatchClubTables();
 listeners['club-tables']({ ok: true, tables: [] });
 assert.equal(tableUpdates, 2);
 console.log('Cliente: criação única, espera, reconexão da tela, início, limpeza e convite por lugar validados.');
+
+listeners['match-ready']({ room: '555555', table: 5, player: 1 });
+assert.equal(tableMulti.table, 5);
+tableMulti.enterExisting({ room: { code: '555555', table: 5 }, update: { state: {} } });
+assert.equal(tableMulti.table, 5, 'Reconexão e espectadores preservam a mesa.');
+tableMulti.leaveRoom();
+assert.equal(tableMulti.table, null, 'O tema do Conselho não vaza para o próximo solo.');
+listeners['match-ready']({ room: '111111', player: 1 });
+assert.equal(tableMulti.table, null, 'Partida aleatória não herda a mesa anterior.');

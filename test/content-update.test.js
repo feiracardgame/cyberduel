@@ -145,11 +145,23 @@ const phaseDuration = vm.runInContext('phaseDuration', context);
   settings.set('musicVolume', 0); assert.equal(sounds[1].volume, 0);
   settings.playMusic(scene, 'musicaMenu'); events.emit('shutdown');
   assert.equal(sounds[2].destroyed, 1); assert.equal(scene.cyberMusic, null);
-  for (const [field, expected] of [[1, 'musicaPadrao'], [2, 'musicaFundo'], [3, 'musicaHumbaNet'], [4, 'musicaRemanescentes']]) {
+  for (const [field, expected] of [[1, 'musicaPadrao'], [2, 'musicaFundo'], [4, 'musicaRemanescentes']]) {
     settings.set('battlefield', field);
     const game = Object.create(Scene.prototype); game.escolherFundoBatalha();
     assert.equal(game.chaveMusicaBatalha(), expected);
     game.tutorial = true; assert.equal(game.chaveMusicaBatalha(), 'musicaIA');
+  }
+  settings.set('battlefield', 3);
+  assert.equal(settings.get('battlefield'), 0, 'A antiga preferência HumbaNet passa a alternar cenários comuns.');
+  for (const field of [0, 1, 2, 4]) {
+    settings.set('battlefield', field);
+    const game = Object.assign(Object.create(Scene.prototype), { conselho: true, fundoBatalha: 'videoDeserto' });
+    game.escolherFundoBatalha();
+    assert.equal(game.fundoBatalha, 'videoHumbaNet', 'O Conselho prevalece sobre preferências e dados de cenas anteriores.');
+    assert.equal(game.chaveMusicaBatalha(), 'musicaHumbaNet');
+    const normal = Object.create(Scene.prototype); normal.escolherFundoBatalha();
+    assert.notEqual(normal.fundoBatalha, 'videoHumbaNet');
+    assert.notEqual(normal.chaveMusicaBatalha(), 'musicaHumbaNet');
   }
 }
 assert.equal(Object.keys(context.window.CYBERDUEL_FACTIONS).length, 5);

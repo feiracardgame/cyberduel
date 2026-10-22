@@ -197,7 +197,7 @@ class CenaPreload extends Phaser.Scene {
     // videos
     const campo = window.cyberduelSettings?.get("battlefield");
     const abertura = { 1: "carregamento_echorasp.mp4", 2: "carregamento_sindicato.mp4",
-      3: "carregamento_echorasp.mp4", 4: "carregamento_remanescentes.mp4" }[campo]
+      4: "carregamento_remanescentes.mp4" }[campo]
       || this.aberturaEscolhida || "carregamento_remanescentes.mp4";
     this.registry?.set("aberturaTransicao", abertura);
     this.load.video("videoTransicao", `assets/videos/${abertura}`);
@@ -210,6 +210,7 @@ class CenaPreload extends Phaser.Scene {
       "assets/videos/background_cidade.mp4?v=20260923-cidade",
     );
     this.load.video("videoDeserto", "assets/videos/background_deserto.mp4");
+    this.load.video("videoHumbaNet", "assets/fundo/fundo_humbanet.mp4");
     // efeitos
     this.load.video(
       "efeitoRaspClayVertical",
@@ -242,6 +243,12 @@ class CenaPreload extends Phaser.Scene {
     });
     const aberturas = ["carregamento_echorasp.mp4", "carregamento_remanescentes.mp4", "carregamento_sindicato.mp4"];
     const proximaAbertura = () => {
+      if (window.CYBERDUEL_TABLE === 5) {
+        video.loadURL("assets/fundo/fundo_humbanet.mp4", true);
+        video.setMute(true);
+        video.play(true);
+        return;
+      }
       let anterior = this.aberturaEscolhida;
       try { anterior ||= sessionStorage.getItem("cyberduel.ultimaAbertura"); } catch {}
       const candidatas = aberturas.filter((nome) => nome !== anterior);

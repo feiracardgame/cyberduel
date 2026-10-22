@@ -18,9 +18,9 @@ No Windows com Google Chrome instalado, o teste usa esse navegador. Nas demais i
 
 Execute `npm run test:content:browser` para conferir as cinco análises de facção em celular e desktop, músicas do menu, editor, campos e tutorial, retorno da música após as falas, áudio de abertura de booster e o retrato do HumbaBrain. O servidor usa dados temporários e a porta 31974; as capturas e o relatório ficam em `output/sindicato/content-update/`. O `npm test` também compara as 54 cartas com `markdown/Cartas e boosters.md` e verifica as regras atualizadas, incluindo alcance, bônus, Override, despertar do Dragão e tempos solo/online.
 
-Em Ajustes, o campo da partida pode alternar os cenários existentes ou usar Padrão, Sindicato, HumbaNet ou Remanescentes. Sindicato usa o cenário da cidade; Remanescentes usa o deserto. Padrão e HumbaNet usam o fundo estático disponível, cada um com sua música. O áudio do Sindicato foi convertido de `jogo-musica.wav` para `jogo-musica.mp3`. Os avatares de Advogado e Diego usam o retrato padrão enquanto não houver bustos correspondentes.
+Em Ajustes, o campo da partida pode alternar os cenários existentes ou usar Padrão, Sindicato ou Remanescentes. Sindicato usa o cenário da cidade; Remanescentes usa o deserto; Padrão usa o fundo estático. O Conselho usa exclusivamente o vídeo `assets/fundo/fundo_humbanet.mp4` no carregamento e no campo, com a música `assets/sons/jogo-humbanet.mp3`, independentemente da preferência de cenário. Volume e opção de fundo animado continuam respeitados. Os avatares de Advogado e Diego usam o retrato padrão enquanto não houver bustos correspondentes.
 
-As três aberturas disponíveis (Echo/Rasp, Remanescentes e Sindicato) participam da rotação inicial. Antes da partida, a abertura acompanha o campo escolhido, inclusive quando os ajustes são alterados depois do preload. A transição usa uma trilha explícita da facção, pois Echo/Rasp não tem áudio e as outras duas têm faixas praticamente silenciosas. O campo sorteado pela transição é mantido ao entrar na partida. Padrão e HumbaNet compartilham a abertura Echo/Rasp e o fundo estático; cada opção tem sua música própria.
+As três aberturas comuns (Echo/Rasp, Remanescentes e Sindicato) participam da rotação inicial. Antes da partida, a abertura acompanha o campo escolhido, inclusive quando os ajustes são alterados depois do preload. A transição usa uma trilha explícita da facção, pois Echo/Rasp não tem áudio e as outras duas têm faixas praticamente silenciosas. O campo sorteado pela transição é mantido ao entrar na partida. No Conselho, a abertura HumbaNet termina até o início da fase sincronizada pelo servidor, sem consumir o tempo de jogo.
 
 Músicas, efeitos, avisos, menu e booster usam ganhos medidos por arquivo em `js/audio-levels.js`, respeitando os volumes do jogador. Para recalibrar após trocar os sons, execute `node scripts/calibrate-audio.js`; a medição usa RMS em blocos, ignora silêncio e preserva margem de pico, sem regravar os originais. O relatório fica em `output/sindicato/audio/measurements.json`.
 
@@ -454,6 +454,8 @@ Conclua ou feche salas online com cartas de outros boosters antes de ativar: o s
 ### Recompensas solo contra o bot
 
 Cada partida solo normal de uma conta autenticada concede **10 tijolinhos por vitória** e **zero por derrota**; empate concede zero. A tela final mostra o crédito confirmado e permite tentar novamente se houver falha de comunicação. Partidas de teste/atalhos de admin não concedem esse bônus.
+
+Redesenhar o campo durante o aviso da última rodada não cancela mais o encerramento nem o registro da recompensa.
 
 O servidor fixa o valor, vincula o ID da partida à conta e impede pagamento duplicado, inclusive após reiniciar. Mantém os últimos 100 registros solo por conta; IDs antigos são recusados. O combate solo ainda acontece no navegador, portanto o resultado informado pelo cliente não tem validação contra manipulação do jogo.
 
