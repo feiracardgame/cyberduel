@@ -27,6 +27,19 @@ const flush = () => new Promise(resolve => setImmediate(resolve));
   assert.equal(await scene.registrarRecompensaSolo(result.resultadoCombate), 10);
   assert.equal(payments, 1, 'Abrir a tela final não registra nem paga uma segunda vez.');
 
+  context.window.cyberduelAccount.isAdmin = true;
+  context.window.cyberduelAccount.segurancaX1 = true;
+  const security = Object.assign(Object.create(Game.prototype), {
+    soloMatchStart: Promise.resolve({ matchId: 'solo-id' }),
+    partida: { executarSegurancaX1: () => result.resultadoCombate },
+    desenharInterface() {}, mostrarTelaFimDeJogo() {},
+  });
+  assert.equal(security.ativarSegurancaX1({}), true);
+  await flush();
+  assert.equal(security.recompensaRecebida, 10, 'Vitória do Segurança X1 registra o crédito antes da animação.');
+  assert.equal(await security.registrarRecompensaSolo(result.resultadoCombate), 10);
+  assert.equal(payments, 2, 'O final especial também paga apenas uma vez.');
+
   let finish;
   context.window.cyberduelAccount.recordMatch = () => new Promise(resolve => { finish = resolve; payments++; });
   const concurrent = Object.assign(Object.create(Game.prototype), { soloMatchStart: Promise.resolve({ matchId: 'solo-id' }) });
@@ -35,7 +48,7 @@ const flush = () => new Promise(resolve => setImmediate(resolve));
   await flush();
   assert.equal(first, second, 'Duas chamadas compartilham o mesmo pagamento pendente.');
   finish(10); await first;
-  assert.equal(payments, 2);
+  assert.equal(payments, 3);
 
   let starts = 0, attempts = 0;
   context.window.cyberduelAccount.startSoloMatch = async () => { starts++; return 'retry-id'; };
@@ -57,8 +70,10 @@ const flush = () => new Promise(resolve => setImmediate(resolve));
   });
   assert.equal(await excluded.registrarRecompensaSolo(result.resultadoCombate), null, 'Atalhos de teste continuam sem recompensa.');
   const cards = [];
+  let dismiss;
   context.document = {
     createElement: () => ({ children: [], style: { setProperty() {} }, setAttribute() {},
+      addEventListener(name, callback) { if (name === 'animationend') dismiss = callback; },
       append(...items) { this.children.push(...items); }, remove() { cards.splice(cards.indexOf(this), 1); } }),
     body: { append(card) { cards.push(card); } },
   };
@@ -72,10 +87,20 @@ const flush = () => new Promise(resolve => setImmediate(resolve));
   assert.equal(cards[0].children[1].children[3].textContent, 'Saldo: 777');
   animation.mostrarAnimacaoRecompensa(67);
   assert.equal(cards.length, 1, 'A confirmação repetida não duplica a animação.');
-  cleanup(); assert.equal(cards.length, 0);
+  dismiss({ target: cards[0].children[0], animationName: 'reward-dismiss' });
+  assert.equal(cards.length, 1, 'Animações das peças não removem a recompensa.');
+  dismiss({ target: cards[0], animationName: 'reward-connect' });
+  assert.equal(cards.length, 1, 'A abertura preserva o tempo de leitura.');
+  dismiss({ target: cards[0], animationName: 'reward-dismiss' });
+  assert.equal(cards.length, 0, 'A saída remove o painel do DOM.');
   animation.recompensaMostrada = false;
   animation.mostrarAnimacaoRecompensa(0, -16);
   assert.equal(cards[0].children[1].children[2].textContent, '-16 pontos de influência');
+  assert.ok(cards[0].children[1].children[2].className.includes('match-reward__influence--loss'));
+  cleanup();
+  animation.recompensaMostrada = false;
+  animation.mostrarAnimacaoRecompensa(1, 0);
+  assert.equal(cards[0].children[1].children[1].textContent, '+1 tijolinho');
   cleanup();
   console.log('Solo: crédito antes da interface, concorrência, repetição, falha, reutilização do ID, derrota e exclusão de testes validados.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

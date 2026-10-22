@@ -129,7 +129,7 @@ class CenaJogo extends Phaser.Scene {
     this.baseCampo = null;
     this.layoutBaseCampo = null;
     this.gestosMaoConfigurados = false;
-    this.partidaRegistradaNaConta = !!dados.debug || this.tutorial;
+    this.partidaRegistradaNaConta = this.tutorial;
     this.registroSolo = null;
     this.recompensaRecebida = null;
     this.influenciaRecebida = 0;
@@ -304,7 +304,6 @@ class CenaJogo extends Phaser.Scene {
 
     window.puxarCarta = (busca) => {
       requireAdminAccount();
-      this.partidaRegistradaNaConta = true;
       const termo = (busca || "").toString().toLowerCase();
       const deck = this.partida.jogador.deck.cartas;
       const indice = deck.findIndex((c) =>
@@ -366,7 +365,6 @@ class CenaJogo extends Phaser.Scene {
     // Debug: coloca uma carta inimiga sem validar turno nem aplicar invocação.
     window.invocarCartaInimigo = (busca, posicao) => {
       requireAdminAccount();
-      this.partidaRegistradaNaConta = true;
       if (posicao === undefined || posicao === null) {
         console.warn(
           'invocarCartaInimigo: informe a posição (0-9). Ex: invocarCartaInimigo("juggernaut", 6)',
@@ -486,7 +484,7 @@ class CenaJogo extends Phaser.Scene {
     this.multiplayer = window.cyberduelMultiplayer;
     this.multiplayerAtivo = !this.tutorial && !!this.multiplayer?.active;
     this.carregarRetratosDuelo();
-    this.soloMatchStart = !this.multiplayerAtivo && !dados.debug && !this.tutorial
+    this.soloMatchStart = !this.multiplayerAtivo && !this.tutorial
       ? window.cyberduelAccount.startSoloMatch().then(matchId => ({ matchId }), error => ({ error }))
       : null;
     if (this.multiplayerAtivo) {
@@ -7733,7 +7731,7 @@ class CenaJogo extends Phaser.Scene {
     if (this.tutorial || this.multiplayerAtivo || !account?.isAdmin || !account.segurancaX1) return false;
     const resultado = this.partida.executarSegurancaX1(carta);
     if (!resultado) return false;
-    this.partidaRegistradaNaConta = true;
+    this.registrarRecompensaSolo(resultado).catch(() => {});
     this.travado = true;
     this.desenharInterface();
     this.mostrarTelaFimDeJogo(resultado);
@@ -7799,30 +7797,38 @@ class CenaJogo extends Phaser.Scene {
     card.className = "match-reward";
     card.setAttribute("role", "status");
     card.setAttribute("aria-live", "polite");
-    const mascot = document.createElement("span");
-    mascot.className = "match-reward__brick";
-    mascot.setAttribute("aria-hidden", "true");
-    mascot.append(document.createElement("i"));
+    const brick = document.createElement("span");
+    brick.className = "match-reward__brick";
+    brick.setAttribute("aria-hidden", "true");
+    for (let i = 0; i < 3; i++) brick.append(document.createElement("i"));
     const copy = document.createElement("div");
     const title = document.createElement("small");
     title.textContent = "RECOMPENSAS DA PARTIDA";
     const value = document.createElement("strong");
-    value.textContent = `+${amount.toLocaleString("pt-BR")} tijolinhos`;
+    value.textContent = `+${amount.toLocaleString("pt-BR")} ${amount === 1 ? "tijolinho" : "tijolinhos"}`;
     const influenceText = document.createElement("span");
-    influenceText.className = "match-reward__influence";
+    influenceText.className = `match-reward__influence${influence < 0 ? " match-reward__influence--loss" : ""}`;
     influenceText.textContent = `${influence >= 0 ? "+" : ""}${influence.toLocaleString("pt-BR")} pontos de influência`;
     const balance = document.createElement("span");
     balance.textContent = `Saldo: ${window.cyberduelAccount.currency.toLocaleString("pt-BR")}`;
     copy.append(title, value, influenceText, balance);
-    card.append(mascot, copy);
-    for (let i = 0; i < 6; i++) {
-      const confetti = document.createElement("span");
-      confetti.className = "match-reward__confetti";
-      confetti.setAttribute("aria-hidden", "true");
-      confetti.style.setProperty("--x", `${(i - 2.5) * 42}px`);
-      confetti.style.setProperty("--turn", `${(i % 2 ? 1 : -1) * 110}deg`);
-      card.append(confetti);
+    card.append(brick, copy);
+    const cipher = document.createElement("span");
+    cipher.className = "match-reward__cipher";
+    cipher.setAttribute("aria-hidden", "true");
+    cipher.textContent = "01 B7 10 FF 67 01";
+    card.append(cipher);
+    for (let i = 0; i < 12; i++) {
+      const stream = document.createElement("span");
+      stream.className = "match-reward__stream";
+      stream.setAttribute("aria-hidden", "true");
+      stream.textContent = (i % 2 ? "1 0 F 1 0 B 7 0" : "0 1 0 C 1 0 A 1").replaceAll(" ", "\n");
+      stream.style.setProperty("--column", i);
+      card.append(stream);
     }
+    card.addEventListener("animationend", event => {
+      if (event.target === card && event.animationName === "reward-dismiss") card.remove();
+    });
     document.body.append(card);
     this.events.once("shutdown", () => card.remove());
   }
@@ -7876,6 +7882,11 @@ class CenaJogo extends Phaser.Scene {
       .setOrigin(0.5)
       .setDepth(5100);
     this.retornoMenuTimer = this.time.delayedCall(10000, voltar);
+    if (!this.multiplayerAtivo && !this.tutorial && this.partidaRegistradaNaConta && this.recompensaRecebida === null) {
+      this.criarTextoUI(LARGURA_LAYOUT / 2, yVoltarMenu - 85,
+        "Partida encerrada por atalho de teste: sem recompensa.",
+        { fontSize: "28px", color: "#ff79b0", align: "center" }).setOrigin(0.5).setDepth(5100);
+    }
     if (this.multiplayerAtivo && !this.multiplayer?.spectator) {
       if (Number.isSafeInteger(this.recompensaRecebida)) this.mostrarAnimacaoRecompensa(this.recompensaRecebida, this.influenciaRecebida);
       else window.cyberduelAccount?.restore().catch(() => {});

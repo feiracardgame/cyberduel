@@ -41,7 +41,6 @@ async function arena() {
       const base = [...POOL_CARTAS_MONSTRO, ...POOL_CARTAS_TERRENO].find(card => card.nome === name);
       return new Carta(++id, base.poder || 0, type, JSON.parse(JSON.stringify(base)));
     };
-    window.qaDragon = make('Dragão das Comunicações Móveis'); match.jogador.mao.adicionarCarta(qaDragon);
     ['O Porco', 'O Tigre', 'HAL 9001', 'A Aranha', 'HumbaBrain', 'O Boi', 'A Cobra', 'O Bom'].forEach((name, index) => match.inimigo.campo.adicionarCarta(make(name), index));
     match.inimigo.campo.adicionarCarta(make('Saloon', 'terreno'), 8);
     match.inimigo.campo.adicionarCarta(make('Terras Desertas', 'terreno'), 9);
@@ -50,6 +49,7 @@ async function arena() {
     scene.travado = false; scene.avisoLocal = null; scene.prazoFaseLocal = Date.now() + 600000;
     scene.timerTurnoExpirado = false; scene.finalDebug = false;
     const effects = game.scene.getScene('CenaEfeitos'); effects.ultimoEvento = 0; effects.fila = [];
+    window.qaDragon = puxarCarta('Dragão das Comunicações Móveis');
     scene.desenharInterface(); scene.cameras.main.setAlpha(1);
   });
   await page.waitForFunction(() => {
@@ -110,6 +110,10 @@ async function run() {
   await page.screenshot({ path: path.join(output, 'dragao-retorno-explosivo.png') });
   assert.equal(await page.evaluate(() => game.scene.getScene('CenaJogo').telaFinalExibida), false, 'Vitória aguarda a animação terminar.');
   await page.waitForFunction(() => game.scene.getScene('CenaJogo').telaFinalExibida);
+  await page.waitForFunction(() => cyberduelAccount.currency === 510 && document.querySelector('.match-reward'));
+  assert.match(await page.locator('.match-reward').innerText(), /\+10 tijolinhos/);
+  assert.equal(JSON.parse(fs.readFileSync(accountsPath)).accounts[fixture.accountKey].currency, 510,
+    'Vitória com Segurança X1 paga uma vez e persiste no servidor.');
   assert.equal(await page.evaluate(() => partida.rodadasJogador), 4);
   assert.equal(await page.evaluate(() => game.scene.getScene('CenaEfeitos').children.list.filter(object => object.name?.startsWith('seguranca-x1-')).length), 0);
   await page.screenshot({ path: path.join(output, 'vitoria.png') });
