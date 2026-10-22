@@ -68,7 +68,7 @@ Descrição de como será feito o tutorial do jogo
  - ElenAI(sprite 3) -> "Dessa forma, a plateia reage diferentemente quando cada carta entra em campo, experimenta lançar essa carta:
  -> Aparece pro jogador invocar o Estagiário de Machine Learning em campo
 
- - ElenAI (sprite 13) -> "Essa carta te deu PA (Pontos de Audiência), como você pode ver aqui na lateral. Como precisamos da vibração da plateia para manter nossa simulação, nada mais justo do que dar a vitória para quem mais movimentá-la."
+ - ElenAI (sprite 13) -> "Essa carta te deu PA (Pontos de Audiência), como você pode ver aqui na lateral. Como precisamos da vibração da plateia, que serve de fonte de energia cinética e sonora para alimentar nossa simulação, nada mais justo do que dar a vitória para quem mais movimentá-la."
  - ElenAI (sprite 1) -> "Ao todo, temos 7 rodadas. Cada rodada consiste em um turno de posicionamento (em que se invocam cartas) e um turno de habilidades (em que se ativam habilidades das cartas que as possuem) de cada jogador."
  - ElenAI (sprite 1) -> "Ao final de cada rodada, os PA de cada jogador são comparados, dando a vitória para quem mais os tiver. O jogador que vencer mais rodadas vence também o jogo"
 
