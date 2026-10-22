@@ -1151,8 +1151,6 @@ class Carta {
           "EFEITOS DESABILITADOS — " +
           (this.silenciadaPorNome || "Controle de Risco"),
       });
-    if (this.descricaoFlavor)
-      partes.push({ texto: this.descricaoFlavor, tipo: "flavor" });
     const textoEfeito = descreverEfeito(
       this.efeito || this.efeitosSuspensos?.efeito,
     );
@@ -1167,6 +1165,8 @@ class Carta {
     );
     if (textoEfeitoContinuo)
       partes.push({ texto: textoEfeitoContinuo, tipo: "efeito" });
+    if (this.descricaoFlavor)
+      partes.push({ texto: this.descricaoFlavor, tipo: "flavor" });
     if (partes.length === 0)
       partes.push({
         texto: "Uma unidade de combate padrão, sem habilidades especiais.",

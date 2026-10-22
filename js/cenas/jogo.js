@@ -909,6 +909,18 @@ class CenaJogo extends Phaser.Scene {
     return cores[id % cores.length];
   }
 
+  // Mantém o enquadramento da ficha original, respeitando o foco da carta.
+  aplicarRecorteCover(imagem, largura, altura, foco = { x: 0.5, y: 0.5 }) {
+    const escala = Math.max(largura / imagem.width, altura / imagem.height);
+    const cropW = Math.min(imagem.width, largura / escala);
+    const cropH = Math.min(imagem.height, altura / escala);
+    const cropX = Phaser.Math.Clamp((imagem.width - cropW) * foco.x, 0, imagem.width - cropW);
+    const cropY = Phaser.Math.Clamp((imagem.height - cropH) * foco.y, 0, imagem.height - cropH);
+    imagem.setCrop(cropX, cropY, cropW, cropH).setScale(escala);
+    imagem.setPosition((imagem.width / 2 - cropX) * escala - largura / 2,
+      (imagem.height / 2 - cropY) * escala - altura / 2);
+  }
+
   // Encurta nomes longos sem alterar o texto original.
   truncarTexto(texto, maximo) {
     if (texto.length <= maximo) return texto;
@@ -3731,7 +3743,7 @@ class CenaJogo extends Phaser.Scene {
     );
     overlay.setDepth(4000);
     overlay.setInteractive();
-    overlay.on("pointerup", () => this.fecharDetalheCarta());
+    overlay.on("pointerup", () => { if (!this.arteSemTextoAtiva) this.fecharDetalheCarta(); });
 
     const corFundo = this.obterCorPorId(carta.id);
     const ehEfeito = carta.tipo === "efeito";
@@ -3833,15 +3845,15 @@ class CenaJogo extends Phaser.Scene {
       0,
       imagemTopo + JANELA_ARTE_H / 2,
       [cantosArte, imagem, moldura, iconeImagem].filter(Boolean),
-    );
+    ).setName("ficha-arte");
 
     const dicaImagem = this.criarTextoUI(0, imagemTopo + JANELA_ARTE_H + 37,
-      imagem.type === "Image" ? "TOQUE NA CARTA PARA AMPLIAR" : "ILUSTRAÇÃO INDISPONÍVEL", {
+      imagem.type === "Image" ? "TOQUE: AMPLIAR / SEGURE: SÓ A ARTE" : "ILUSTRAÇÃO INDISPONÍVEL", {
         fontSize: "22px", color: "#829ab4", letterSpacing: 1,
       }).setOrigin(0.5);
     if (imagem.type === "Image") {
       moldura.setInteractive({ useHandCursor: true });
-      moldura.on("pointerup", () => this.abrirZoomCarta(carta));
+      moldura.on("pointerup", () => { if (!this.arteSemTextoAtiva) this.abrirZoomCarta(carta); });
     }
 
     const elementosTopo = [containerImagem, arquivoTexto, etiquetaTipo, nomeTexto, poderPlaca, poderTexto, dicaImagem];
@@ -3990,9 +4002,11 @@ class CenaJogo extends Phaser.Scene {
     this.overlayDetalheAtual = overlay;
     this.painelDetalheAtual = painel;
     this.elevarModalCarta(overlay, painel);
+    this.habilitarInspecaoArte(moldura, filhosPainel.filter(objeto =>
+      ![painelBg, containerImagem, fecharBtn].includes(objeto)));
   }
 
-  // A ficha lendária separa título, arte inteira e descrição.
+  // Ficha original com arte ampliada e nome acima da moldura.
   mostrarDetalheCartaLendaria(carta) {
     this.modalAberto = true;
     this.travado = true;
@@ -4008,7 +4022,7 @@ class CenaJogo extends Phaser.Scene {
     );
     overlay.setDepth(4000);
     overlay.setInteractive();
-    overlay.on("pointerup", () => this.fecharDetalheCarta());
+    overlay.on("pointerup", () => { if (!this.arteSemTextoAtiva) this.fecharDetalheCarta(); });
 
     const corFundo = this.obterCorPorId(carta.id);
     const ehEfeito = carta.tipo === "efeito";
@@ -4075,14 +4089,14 @@ class CenaJogo extends Phaser.Scene {
       .rectangle(0, 0, PAINEL_LARGURA - 26, PAINEL_ALTURA - 26)
       .setStrokeStyle(2, 0xffd966, 0.7);
 
-    // Mostra a arte inteira; o fundo cobre as margens restantes.
+    // Arte ampliada até as bordas, com o enquadramento original da carta.
     const IMG_W = PAINEL_LARGURA - 52;
-    const IMG_H = 820;
+    const IMG_H = PAINEL_ALTURA - 52;
 
     let imagem, iconeImagem;
     if (carta.imagem && this.textures.exists(carta.imagem)) {
       imagem = this.add.image(0, 0, carta.imagem).setName("ficha-imagem");
-      imagem.setScale(Math.min(IMG_W / imagem.width, IMG_H / imagem.height));
+      this.aplicarRecorteCover(imagem, IMG_W, IMG_H, carta.foco);
       iconeImagem = null;
     } else {
       imagem = this.add.rectangle(0, 0, IMG_W, IMG_H, corFundo);
@@ -4093,12 +4107,12 @@ class CenaJogo extends Phaser.Scene {
         .setOrigin(0.5);
     }
 
-    const arteLargura = imagem.displayWidth + 24;
-    const arteAltura = imagem.displayHeight + 24;
-    const fundoArte = this.criarMolduraCampo(0, 0, arteLargura, arteAltura, 0xffd966);
+    const fundoArte = this.add.graphics();
+    fundoArte.fillGradientStyle(corFundo, corFundo, 0x000000, 0x000000, 1);
+    fundoArte.fillRect(-IMG_W / 2, -IMG_H / 2, IMG_W, IMG_H);
     let ornamentosCantos = [];
-    for (const cx of [-arteLargura / 2, arteLargura / 2]) {
-      for (const cy of [-arteAltura / 2, arteAltura / 2]) {
+    for (const cx of [-IMG_W / 2, IMG_W / 2]) {
+      for (const cy of [-IMG_H / 2, IMG_H / 2]) {
         ornamentosCantos.push(this.add.star(cx, cy, 4, 6, 15, 0xffd966, 1));
       }
     }
@@ -4107,20 +4121,9 @@ class CenaJogo extends Phaser.Scene {
       0,
       0,
       [fundoArte, imagem, ...ornamentosCantos, iconeImagem].filter(Boolean),
-    ).setName("ficha-arte");
+    ).setSize(IMG_W, IMG_H).setName("ficha-arte");
 
     // Mede os textos antes de dimensionar a placa do título.
-    let etiquetaTipo = this.add
-      .text(0, 0, "CARTA LENDÁRIA", {
-        fontFamily: FONTE_LENDARIA,
-        fontSize: "30px",
-        color: "#ffd966",
-        fontStyle: "bold",
-        letterSpacing: 6,
-      })
-      .setOrigin(0.5, 0).setName("ficha-tipo");
-    etiquetaTipo.setShadow(0, 2, "#000000", 4, false, true);
-
     let nomeTexto = this.add
       .text(0, 0, carta.nome, {
         fontFamily: FONTE_LENDARIA,
@@ -4132,42 +4135,26 @@ class CenaJogo extends Phaser.Scene {
         letterSpacing: 1,
       })
       .setOrigin(0.5, 0).setName("ficha-nome");
-    nomeTexto.setShadow(0, 2, "#000000", 4, false, true);
+    nomeTexto.setShadow(0, 0, "#ffcc33", 18, false, true);
 
     const PLACA_PAD_V = 22;
     const PLACA_PAD_H = 40;
-    const GAP_ETQ_NOME = 10;
     const placaTituloAltura =
-      etiquetaTipo.height + GAP_ETQ_NOME + nomeTexto.height + PLACA_PAD_V * 2;
+      nomeTexto.height + PLACA_PAD_V * 2;
     const placaTituloLargura = Math.min(
       PAINEL_LARGURA - 220,
-      Math.max(etiquetaTipo.width, nomeTexto.width) + PLACA_PAD_H * 2,
+      nomeTexto.width + PLACA_PAD_H * 2,
     );
-    const placaTituloTopoY = -PAINEL_ALTURA / 2 + 150;
+    const placaTituloTopoY = -PAINEL_ALTURA / 2 - placaTituloAltura - 20;
 
     const placaTitulo = this.criarPlacaDuelo(0, placaTituloTopoY + placaTituloAltura / 2,
       placaTituloLargura, placaTituloAltura, 0xffd966);
 
-    etiquetaTipo.setPosition(0, placaTituloTopoY + PLACA_PAD_V);
-    nomeTexto.setPosition(
-      0,
-      placaTituloTopoY + PLACA_PAD_V + etiquetaTipo.height + GAP_ETQ_NOME,
-    );
-
-    tweensLendaria.push(
-      this.tweens.add({
-        targets: etiquetaTipo,
-        alpha: { from: 0.75, to: 1 },
-        duration: 900,
-        yoyo: true,
-        repeat: -1,
-        ease: "Sine.easeInOut",
-      }),
-    );
+    nomeTexto.setPosition(0, placaTituloTopoY + PLACA_PAD_V);
 
     // CANTO SUPERIOR: selo de poder (esq.) e botão de fechar (dir.)
     const CANTO_Y = -PAINEL_ALTURA / 2 + 66;
-    const elementosTopo = [placaTitulo, etiquetaTipo, nomeTexto];
+    const elementosTopo = [placaTitulo, nomeTexto];
 
     if (!ehEfeito && !ehTerreno) {
       const poderTexto = this.criarTextoUI(-PAINEL_LARGURA / 2 + 62, CANTO_Y, `${carta.poder} PA`, {
@@ -4179,18 +4166,13 @@ class CenaJogo extends Phaser.Scene {
 
     const fecharBtn = this.criarBotaoFecharDetalhe(PAINEL_LARGURA / 2 - 76, CANTO_Y, 0xffd966);
 
-    // Descrição abaixo da arte, com uma área de leitura própria.
+    // Descrição sobre a arte no rodapé, como na ficha original.
     const DESC_PLACA_LARGURA = PAINEL_LARGURA - 80;
     const DESC_PLACA_ALTURA = 420;
     const DESC_PLACA_TOPO_Y = PAINEL_ALTURA / 2 - DESC_PLACA_ALTURA - 46;
     const DESC_PAD = 34;
     const DESC_LARGURA = DESC_PLACA_LARGURA - DESC_PAD * 2;
     const DESC_ALTURA = DESC_PLACA_ALTURA - DESC_PAD * 2;
-    const arteTopo = placaTituloTopoY + placaTituloAltura + 30;
-    const arteBase = DESC_PLACA_TOPO_Y - 30;
-    containerImagem.setY((arteTopo + arteBase) / 2)
-      .setScale(Math.min(1, (arteBase - arteTopo) / IMG_H));
-
     const placaDescricao = this.criarPlacaDuelo(0, DESC_PLACA_TOPO_Y + DESC_PLACA_ALTURA / 2,
       DESC_PLACA_LARGURA, DESC_PLACA_ALTURA, 0xffd966);
 
@@ -4310,11 +4292,68 @@ class CenaJogo extends Phaser.Scene {
     this.overlayDetalheAtual = overlay;
     this.painelDetalheAtual = painel;
     this.elevarModalCarta(overlay, painel);
+    this.habilitarInspecaoArte(painelBg, filhosPainel.filter(objeto =>
+      ![sunburst, glowAnel, painelBg, painelBgInterno, containerImagem, fecharBtn].includes(objeto)));
     // Para os tweens contínuos ao fechar a ficha.
     this.tweensLendariaAtual = tweensLendaria;
   }
 
+  habilitarInspecaoArte(area, elementos) {
+    this.limparInspecaoArte?.();
+    let ponteiro = null, inicioX = 0, inicioY = 0, timer = null;
+    const visibilidade = elementos.map(objeto => objeto.visible);
+    const restaurar = (pointer) => {
+      if (pointer && ponteiro && pointer.id !== ponteiro.id) return;
+      timer?.remove();
+      timer = null;
+      ponteiro = null;
+      if (this.arteSemTextoAtiva) elementos.forEach((objeto, i) => {
+        if (objeto.active) objeto.setVisible(visibilidade[i]);
+      });
+      this.arteSemTextoAtiva = false;
+    };
+    const iniciar = (pointer, objetos) => {
+      if (ponteiro || !this.modalAberto || this.zoomAberto ||
+          objetos.some(objeto => ["fechar-detalhe-carta", "ativar-habilidade"].includes(objeto.name))) return;
+      const ponto = this.pontoDoPonteiro(pointer);
+      const local = area.getWorldTransformMatrix().applyInverse(ponto.x, ponto.y);
+      if (Math.abs(local.x) > area.width / 2 || Math.abs(local.y) > area.height / 2) return;
+      ponteiro = pointer;
+      inicioX = pointer.x;
+      inicioY = pointer.y;
+      timer = this.time.delayedCall(320, () => {
+        timer = null;
+        this.arteSemTextoAtiva = true;
+        elementos.forEach(objeto => objeto.setVisible(false));
+      });
+    };
+    const mover = (pointer) => {
+      // Um arraste continua rolando a descrição, sem virar um gesto de inspeção.
+      if (timer && pointer.id === ponteiro?.id && Math.hypot(pointer.x - inicioX, pointer.y - inicioY) > 12) restaurar(pointer);
+    };
+    const cancelar = () => restaurar();
+    this.input.on("pointerdown", iniciar);
+    this.input.on("pointermove", mover);
+    this.input.on("pointerup", restaurar);
+    this.input.on("pointerupoutside", restaurar);
+    this.input.on("gameout", cancelar);
+    this.game.events.on("blur", cancelar);
+    this.game.canvas.addEventListener("pointercancel", cancelar);
+    this.limparInspecaoArte = () => {
+      restaurar();
+      this.input.off("pointerdown", iniciar);
+      this.input.off("pointermove", mover);
+      this.input.off("pointerup", restaurar);
+      this.input.off("pointerupoutside", restaurar);
+      this.input.off("gameout", cancelar);
+      this.game.events.off("blur", cancelar);
+      this.game.canvas.removeEventListener("pointercancel", cancelar);
+      this.limparInspecaoArte = null;
+    };
+  }
+
   limparEventosDescricao() {
+    this.limparInspecaoArte?.();
     const handlers = this.handlersScrollDescAtual;
     if (!handlers) return;
     this.input.off("pointermove", handlers.handlerMove);

@@ -101,6 +101,31 @@ async function run() {
     localStorage.setItem('cyberduel.settings.v1', JSON.stringify({ skipBattleAnnouncements: 1, animatedBackground: 0, masterVolume: 0 }));
   }, fixture.token);
   page = await context.newPage(); page.setDefaultTimeout(20000);
+  const touch = await context.newCDPSession(page);
+  const holdArt = async (name, mobile) => {
+    await openCard(name);
+    const point = await page.evaluate(() => {
+      const art = game.scene.getScene('CenaJogo').painelDetalheAtual.getByName('ficha-arte');
+      const matrix = art.getWorldTransformMatrix(); return { x: matrix.tx, y: matrix.ty };
+    });
+    const screen = await screenPoint(point.x, point.y);
+    if (mobile) await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [screen] });
+    else { await page.mouse.move(screen.x, screen.y); await page.mouse.down(); }
+    await page.waitForFunction(() => game.scene.getScene('CenaJogo').arteSemTextoAtiva);
+    assert.deepEqual(await page.evaluate(() => {
+      const scene = game.scene.getScene('CenaJogo'), panel = scene.painelDetalheAtual;
+      return { art: panel.getByName('ficha-arte').visible, name: panel.getByName('ficha-nome').visible,
+        text: panel.getByName('ficha-textos').visible, zoom: !!scene.zoomAberto };
+    }), { art: true, name: false, text: false, zoom: false });
+    await page.screenshot({ path: path.join(output, `arte-sem-texto-${mobile ? 'toque' : 'mouse'}.png`) });
+    if (mobile) await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    else await page.mouse.up();
+    assert.equal(await page.evaluate(() => {
+      const scene = game.scene.getScene('CenaJogo'), panel = scene.painelDetalheAtual;
+      return scene.modalAberto && !scene.zoomAberto && !scene.arteSemTextoAtiva &&
+        panel.getByName('ficha-nome').visible && panel.getByName('ficha-textos').visible;
+    }), true, 'Soltar restaura os textos e mantém a ficha aberta.');
+  };
   page.on('pageerror', error => errors.push(error.message));
   await page.goto(base, { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => typeof game !== 'undefined' && game.scene.isActive('CenaTitulo') &&
@@ -220,23 +245,33 @@ async function run() {
         const art = nodes.find(node => node.name === 'ficha-arte');
         const image = art.list.find(node => node.name === 'ficha-imagem');
         const title = nodes.find(node => node.name === 'ficha-nome').getBounds();
-        const description = nodes.find(node => node.name === 'ficha-textos').getBounds();
-        const bounds = image.getBounds();
+        const matrix = art.getWorldTransformMatrix();
+        const top = matrix.transformPoint(-art.width / 2, -art.height / 2);
+        const bottom = matrix.transformPoint(art.width / 2, art.height / 2);
+        const bounds = { left: top.x, top: top.y, right: bottom.x, bottom: bottom.y };
         return { cropped: image.isCropped, ratio: image.displayWidth / image.displayHeight,
-          nativeRatio: image.width / image.height, separate: title.bottom < bounds.top && bounds.bottom < description.top,
+          nativeRatio: image.width / image.height, separate: title.bottom < bounds.top,
+          fillsFrame: Math.abs(image._crop.width * image.scaleX - art.width) < .01 &&
+            Math.abs(image._crop.height * image.scaleY - art.height) < .01,
+          titleInside: title.top >= 0 && title.left >= 0 && title.right <= LARGURA_LAYOUT,
           inside: bounds.left >= 0 && bounds.right <= LARGURA_LAYOUT && bounds.top >= 0 && bounds.bottom <= ALTURA_LAYOUT,
           animations: scene.tweensLendariaAtual.length };
       });
-      assert.equal(geometry.cropped, false, name);
+      assert.equal(geometry.cropped, true, name);
       assert.ok(Math.abs(geometry.ratio - geometry.nativeRatio) < 0.001, name);
-      assert.equal(geometry.separate, true, `${name}: título e descrição ficam fora da arte.`);
+      assert.equal(geometry.separate, true, `${name}: nome acima da arte.`);
+      assert.equal(geometry.fillsFrame, true, `${name}: arte preenche a moldura original.`);
+      assert.equal(geometry.titleInside, true, `${name}: nome inteiro na tela.`);
       assert.equal(geometry.inside, true, name);
-      assert.equal(geometry.animations, 3);
+      assert.equal(geometry.animations, 2);
       await page.screenshot({ path: path.join(output, `lendaria-${viewport.width}-${index}.png`) });
     }
   }
   await page.setViewportSize({ width: 390, height: 844 });
-  checks.push('Todas as lendárias: arte inteira e proporcional, título acima e descrição abaixo em celular pequeno, celular e desktop.');
+  checks.push('Todas as lendárias: enquadramento original preenchendo a moldura, nome acima e descrição no rodapé em celular pequeno, celular e desktop.');
+  await holdArt('RaspClay MonteCorp', true);
+  await holdArt('HAL 9001', false);
+  checks.push('Segurar com toque ou mouse oculta os textos; soltar restaura, preserva a arte e não abre o zoom.');
 
   await openCard('HAL 9001');
   const button = await page.evaluate(() => {
