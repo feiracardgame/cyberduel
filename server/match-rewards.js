@@ -17,8 +17,13 @@ function onlineRewards(room) {
       entry = { opponent: identities[1 - index], count: 0 };
       history.push(entry);
     }
+    const now = Date.now();
+    if (!Number.isFinite(entry.lastSurrenderAt) || now - entry.lastSurrenderAt >= 30 * 60 * 1000) {
+      entry.count = 0;
+    }
     const divisor = 2 ** entry.count;
     entry.count++;
+    entry.lastSurrenderAt = now;
     return rewards.map(amount => Math.floor(amount / divisor));
   }
   return rewards;

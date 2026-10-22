@@ -58,4 +58,22 @@ assert.deepEqual(onlineRewards(match([players[0], { username: 'Three', googleSub
 const opposite = match(players, { surrenderedBy: 1 });
 opposite.result.resultadoCombate.resultado = 'inimigo';
 assert.deepEqual(onlineRewards(opposite), [10, 20], 'A primeira desistência da outra conta tem contador próprio.');
-console.log('Recompensas: redução sucessiva até zero, turnos 1–3, valores normais após o terceiro, modalidades, arredondamento e persistência validados.');
+const realNow = Date.now;
+let now = realNow();
+Date.now = () => now;
+try {
+  const timedPlayers = accounts();
+  const surrender = () => onlineRewards(match(timedPlayers, { surrenderedBy: 2 }));
+  assert.deepEqual(surrender(), [20, 10]);
+  now += 30 * 60 * 1000 - 1;
+  assert.deepEqual(surrender(), [10, 5], 'Antes de 30 minutos a punição continua e renova o prazo.');
+  const restored = JSON.parse(JSON.stringify(timedPlayers));
+  now += 30 * 60 * 1000;
+  assert.deepEqual(onlineRewards(match(restored, { surrenderedBy: 2 })), [20, 10], 'Após 30 minutos da última desistência a punição expira, inclusive depois de reiniciar.');
+  assert.equal(restored[1].earlySurrenders[0].count, 1);
+  restored[1].earlySurrenders = [{ opponent: restored[0].googleSub, count: 99 }];
+  assert.deepEqual(onlineRewards(match(restored, { surrenderedBy: 2 })), [20, 10], 'Histórico antigo sem data não mantém punição permanente.');
+} finally {
+  Date.now = realNow;
+}
+console.log('Recompensas: redução sucessiva, expiração em 30 minutos, modalidades e persistência validadas.');
