@@ -82,7 +82,7 @@ console.log('Carregamento: vídeo antes dos assets, cache quente, loop, proporç
 context.window.CYBERDUEL_TABLE = 5;
 scene.criarBarraDeCarregamento();
 const councilVideo = scene.videoCarregamento;
-assert.equal(councilVideo.url, 'assets/fundo/fundo_humbanet.mp4');
+assert.equal(councilVideo.url, 'assets/videos/carregamento_humbanet.mp4');
 assert.ok(fs.existsSync(councilVideo.url));
 assert.equal(councilVideo.loop, true);
 assert.equal(councilVideo.muted, true);

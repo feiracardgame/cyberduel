@@ -74,7 +74,7 @@ const errors = [], checks = [];
   assert.deepEqual(JSON.parse(fs.readFileSync(file)).accounts, before, 'Recusas não alteram os dados.');
   checks.push('Permissões no navegador e servidor; argumentos inválidos e conta inexistente.');
 
-  assert.match(await admin.evaluate(() => diminuirPontos(' duelistaqa ', 200)), /-200 pontos para DuelistaQA. Total: 1400/);
+  assert.match(await admin.evaluate(() => diminuirPontos(' duelistaqa ', 200)), /-200 pontos de influência para DuelistaQA. Total: 1400/);
   await board.waitForFunction(() => document.querySelector('[data-username="DuelistaQA"] .influence-value')?.textContent === '1.400');
   await board.screenshot({ path: path.join(output, 'depois-desconto.png') });
   assert.match(await admin.evaluate(() => diminuirPontos('DuelistaQA', 9999)), /-1400 pontos.*Total: 0/);
@@ -90,7 +90,7 @@ const errors = [], checks = [];
   assert.equal(await target.evaluate(async () => (await cyberduelAccount.request('/api/auth/session')).rating), 0);
   checks.push('Desconto persistido, limite zero, conta própria e offline, painel atualizado e recarga.');
 
-  assert.match(await admin.evaluate(() => resetarPontosLeaderboard()), /3 conta\(s\) resetada para 1000 pontos/);
+  assert.match(await admin.evaluate(() => resetarPontosLeaderboard()), /3 conta\(s\) resetados para 1000 pontos de influência/);
   await board.waitForFunction(() => {
     const scores = [...document.querySelectorAll('[data-username] .influence-value')];
     return scores.length === 3 && scores.every(node => node.textContent === '1.000');

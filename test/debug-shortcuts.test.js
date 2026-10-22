@@ -35,7 +35,7 @@ vm.runInContext(fs.readFileSync('js/debug.js', 'utf8'), context);
   assert.match(await context.window.modoDemo(false), /desativado para todos/);
   await assert.rejects(context.window.modoDemo('true'), /Use modoDemo/);
   context.window.cyberduelAccount.resetLeaderboardRating = async () => ({ count: 2 });
-  assert.match(await context.window.resetarPontosLeaderboard(), /2 conta\(s\) resetada para 1000 pontos/);
+  assert.match(await context.window.resetarPontosLeaderboard(), /2 conta\(s\) resetados para 1000 pontos de influência/);
   context.window.cyberduelAccount.broadcastMessage = async message => {
     assert.equal(message, 'Aviso de teste');
     return { connections: 3 };

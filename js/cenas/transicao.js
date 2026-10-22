@@ -13,7 +13,7 @@ class CenaTransicao extends Phaser.Scene {
     const campo = window.cyberduelSettings?.get("battlefield");
     const abertura = { 1: "carregamento_echorasp.mp4", 2: "carregamento_sindicato.mp4",
       4: "carregamento_remanescentes.mp4" }[campo] || this.registry.get("aberturaTransicao");
-    const chave = conselho ? "videoHumbaNet" : { "carregamento_echorasp.mp4": "videoAberturaEchoRasp", "carregamento_sindicato.mp4": "videoAberturaSindicato",
+    const chave = conselho ? "videoAberturaHumbaNet" : { "carregamento_echorasp.mp4": "videoAberturaEchoRasp", "carregamento_sindicato.mp4": "videoAberturaSindicato",
       "carregamento_remanescentes.mp4": "videoAberturaRemanescentes" }[abertura] || "videoTransicao";
     this.fundoTransicao = conselho ? "videoHumbaNet" : { "carregamento_echorasp.mp4": "jogoFundo", "carregamento_sindicato.mp4": "videoParte3",
       "carregamento_remanescentes.mp4": "videoDeserto" }[abertura];

@@ -68,6 +68,21 @@ const begin = async () => {
     assert.equal(replay.body.currency, currency); assert.equal(replay.body.gamesPlayed, games);
   }
   assert.equal((await api("auth/session")).body.isAdmin, true);
+  const interrupted = await begin();
+  const blocked = path.join(dir, `accounts.json.${server.pid}.tmp`);
+  fs.mkdirSync(blocked);
+  const failed = await api("account/match-complete", { matchId: interrupted, result: "jogador" });
+  assert.equal(failed.status, 500);
+  assert.match(failed.body.error, /salvar sua recompensa/);
+  assert.equal((await api("auth/session")).body.currency, currency, 'Falha de gravação desfaz o crédito em memória.');
+  assert.equal((await api("auth/session")).body.gamesPlayed, games);
+  fs.rmdirSync(blocked);
+  const retried = await api("account/match-complete", { matchId: interrupted, result: "jogador" });
+  assert.equal(retried.status, 200);
+  currency += 10; games++;
+  assert.equal(retried.body.currency, currency);
+  await stop(); await start("SoloPlayer");
+  assert.equal((await api("auth/session")).body.currency, currency, 'A tentativa após falha grava o crédito de verdade no disco.');
   await stop(); await start();
   assert.equal((await api("auth/session")).body.isAdmin, false, "Remover username revoga o papel com a mesma sessão.");
   const pending = await begin();

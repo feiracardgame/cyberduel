@@ -88,7 +88,7 @@ Descrição de como será feito o tutorial do jogo
 -> Usuário recebe o Agente da DIPSP na mão e aparece brilhando pra ele invocar o DIPSP em um dos espaços da frente. Ele invoca lá e brilha pra passar o turno. Agora, o DIPSP brilha e ele tem que usar a habilidade para acertar o rato.
 
 - ElenAI (sprite 16) -> "Estou impressionada, você é profissional já!"
-- ElenAI (sprite 2) -> "Siga jogando, aprendendo e vencedendo, assim você ganhará pontos no ranking oficial do jogo e, estando alto o suficiente, poderá se tornar um membro do Conselho"
+- ElenAI (sprite 2) -> "Siga jogando, aprendendo e vencendo, assim você ganhará pontos de influência no ranking oficial do jogo e, estando alto o suficiente, poderá se tornar um membro do Conselho"
 - ElenAI (sprite 2) -> "Lembre-se de sempre fazer as melhores jogadas, porém seja rápido, já que a audiência não gosta de ficar esperando pela sua jogada."
 
 -> Vai para a Aba de escolha de deck

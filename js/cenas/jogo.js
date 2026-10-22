@@ -130,6 +130,10 @@ class CenaJogo extends Phaser.Scene {
     this.layoutBaseCampo = null;
     this.gestosMaoConfigurados = false;
     this.partidaRegistradaNaConta = !!dados.debug || this.tutorial;
+    this.registroSolo = null;
+    this.recompensaRecebida = null;
+    this.influenciaRecebida = 0;
+    this.recompensaMostrada = false;
     configurarCameraLogica(this);
     const sessao = window.cyberduelMultiplayer;
     this.conselho = !this.tutorial && sessao?.active === true && sessao.table === 5;
@@ -482,7 +486,7 @@ class CenaJogo extends Phaser.Scene {
     this.multiplayer = window.cyberduelMultiplayer;
     this.multiplayerAtivo = !this.tutorial && !!this.multiplayer?.active;
     this.carregarRetratosDuelo();
-    this.soloMatchStart = !this.multiplayerAtivo && !dados.debug && !this.tutorial && window.cyberduelAccount?.user
+    this.soloMatchStart = !this.multiplayerAtivo && !dados.debug && !this.tutorial
       ? window.cyberduelAccount.startSoloMatch().then(matchId => ({ matchId }), error => ({ error }))
       : null;
     if (this.multiplayerAtivo) {
@@ -6872,6 +6876,8 @@ class CenaJogo extends Phaser.Scene {
     let result = null;
     if (this.soloStep === 4) {
       result = this.partida.fimTurno({ semIA: true });
+      if (result?.fimDeJogo)
+        this.registrarRecompensaSolo(result.resultadoCombate).catch(() => {});
       this.soloStep = 0;
       this.soloStarter = 3 - this.soloStarter;
     }
@@ -6926,6 +6932,12 @@ class CenaJogo extends Phaser.Scene {
   }
 
   receberEstadoMultiplayer(snapshot, resultado, update) {
+    if (!this.multiplayer?.spectator && update.account && Number.isSafeInteger(update.reward)) {
+      window.cyberduelAccount?.applyAuth(update.account);
+      this.recompensaRecebida = update.reward;
+      this.influenciaRecebida = update.influenceReward || 0;
+      if (this.telaFinalExibida) this.mostrarAnimacaoRecompensa(update.reward, this.influenciaRecebida);
+    }
     if (update.segurancaX1 && resultado?.fimDeJogo) {
       this.partidaRegistradaNaConta = true;
     }
@@ -7755,6 +7767,66 @@ class CenaJogo extends Phaser.Scene {
     this.mostrarTelaFimDeJogo(resultado);
   }
 
+  registrarRecompensaSolo(resultado) {
+    if (!this.soloMatchStart || !resultado) return Promise.resolve(null);
+    const registro = this.registroSolo ||= { start: this.soloMatchStart, reward: null, request: null };
+    if (registro.reward !== null) return Promise.resolve(registro.reward);
+    if (this.partidaRegistradaNaConta) return Promise.resolve(null);
+    if (registro.request) return registro.request;
+    registro.request = (async () => {
+      let started = await registro.start;
+      if (started.error) {
+        registro.start = window.cyberduelAccount.startSoloMatch()
+          .then(matchId => ({ matchId }), error => ({ error }));
+        started = await registro.start;
+        if (started.error) throw started.error;
+      }
+      registro.reward = await window.cyberduelAccount.recordMatch(started.matchId, resultado.resultado);
+      if (this.registroSolo === registro) {
+        this.partidaRegistradaNaConta = true;
+        this.recompensaRecebida = registro.reward;
+      }
+      return registro.reward;
+    })().finally(() => { registro.request = null; });
+    return registro.request;
+  }
+
+  mostrarAnimacaoRecompensa(amount, influence = 0) {
+    if (!Number.isSafeInteger(amount) || amount < 0 || !Number.isSafeInteger(influence) ||
+        (!amount && !influence) || this.recompensaMostrada || this.multiplayer?.spectator) return;
+    this.recompensaMostrada = true;
+    const card = document.createElement("aside");
+    card.className = "match-reward";
+    card.setAttribute("role", "status");
+    card.setAttribute("aria-live", "polite");
+    const mascot = document.createElement("span");
+    mascot.className = "match-reward__brick";
+    mascot.setAttribute("aria-hidden", "true");
+    mascot.append(document.createElement("i"));
+    const copy = document.createElement("div");
+    const title = document.createElement("small");
+    title.textContent = "RECOMPENSAS DA PARTIDA";
+    const value = document.createElement("strong");
+    value.textContent = `+${amount.toLocaleString("pt-BR")} tijolinhos`;
+    const influenceText = document.createElement("span");
+    influenceText.className = "match-reward__influence";
+    influenceText.textContent = `${influence >= 0 ? "+" : ""}${influence.toLocaleString("pt-BR")} pontos de influência`;
+    const balance = document.createElement("span");
+    balance.textContent = `Saldo: ${window.cyberduelAccount.currency.toLocaleString("pt-BR")}`;
+    copy.append(title, value, influenceText, balance);
+    card.append(mascot, copy);
+    for (let i = 0; i < 6; i++) {
+      const confetti = document.createElement("span");
+      confetti.className = "match-reward__confetti";
+      confetti.setAttribute("aria-hidden", "true");
+      confetti.style.setProperty("--x", `${(i - 2.5) * 42}px`);
+      confetti.style.setProperty("--turn", `${(i % 2 ? 1 : -1) * 110}deg`);
+      card.append(confetti);
+    }
+    document.body.append(card);
+    this.events.once("shutdown", () => card.remove());
+  }
+
   // Exibe uma única tela final com o resultado e a carta de destaque.
   mostrarTelaFimDeJogo(resultadoCombate) {
     if (!resultadoCombate || this.telaFinalExibida) return;
@@ -7804,36 +7876,31 @@ class CenaJogo extends Phaser.Scene {
       .setOrigin(0.5)
       .setDepth(5100);
     this.retornoMenuTimer = this.time.delayedCall(10000, voltar);
-    if (this.multiplayerAtivo && !this.multiplayer?.spectator)
-      window.cyberduelAccount?.restore().catch(() => {});
-    if (this.soloMatchStart && !this.partidaRegistradaNaConta) {
+    if (this.multiplayerAtivo && !this.multiplayer?.spectator) {
+      if (Number.isSafeInteger(this.recompensaRecebida)) this.mostrarAnimacaoRecompensa(this.recompensaRecebida, this.influenciaRecebida);
+      else window.cyberduelAccount?.restore().catch(() => {});
+    }
+    if (this.soloMatchStart && (!this.partidaRegistradaNaConta || this.recompensaRecebida !== null)) {
       const rewardText = this.criarTextoUI(LARGURA_LAYOUT / 2, yVoltarMenu - 85,
         "Registrando recompensa…", { fontSize: "28px", color: "#afe5ce", align: "center" })
         .setOrigin(0.5).setDepth(5100);
       let saving = false;
       const saveReward = async () => {
-        if (saving || this.partidaRegistradaNaConta) return;
+        if (saving) return;
         saving = true;
         try {
-          let started = await this.soloMatchStart;
-          if (started.error) {
-            // A partida ainda não foi registrada; permite tentar novamente sem perder o resultado.
-            this.soloMatchStart = window.cyberduelAccount.startSoloMatch()
-              .then(matchId => ({ matchId }), error => ({ error }));
-            started = await this.soloMatchStart;
-            if (started.error) throw started.error;
-          }
-          const reward = await window.cyberduelAccount.recordMatch(started.matchId, resultadoCombate.resultado);
-          this.partidaRegistradaNaConta = true;
+          const reward = await this.registrarRecompensaSolo(resultadoCombate);
+          if (reward === null) return;
           if (rewardText.active) {
             rewardText.setText(`+${reward.toLocaleString("pt-BR")} tijolinhos`);
+            this.mostrarAnimacaoRecompensa(reward);
             returnText.setText("Retorno automático em 10 segundos");
             this.retornoMenuTimer?.remove();
             this.retornoMenuTimer = this.time.delayedCall(10000, voltar);
           }
         } catch (error) {
           if (rewardText.active) {
-            rewardText.setText("Falha ao registrar. Clique para tentar novamente.");
+            rewardText.setText(`${error.message || "Falha ao registrar."}\nClique para tentar novamente.`);
             this.retornoMenuTimer?.remove();
             returnText.setText("Retorno automático pausado para tentar novamente");
           }

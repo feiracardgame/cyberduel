@@ -1175,14 +1175,14 @@ async function handleApi(request, response, pathname) {
   if (request.method === "POST" && ["/api/admin/accounts/grant-rating", "/api/admin/accounts/remove-rating"].includes(pathname)) {
     const body = await readJson(request);
     if (typeof body?.username !== "string" || !body.username.trim() || !Number.isSafeInteger(body.amount) || body.amount < 1)
-      return sendJson(response, 400, { ok: false, error: "Informe o username e uma quantidade inteira positiva de pontos." });
+      return sendJson(response, 400, { ok: false, error: "Informe o username e uma quantidade inteira positiva de pontos de influência." });
     const account = accountByUsername(body.username.trim());
     if (!account) return sendJson(response, 404, { ok: false, error: "Conta não encontrada." });
     ensureAccountDefaults(account);
     const removing = pathname.endsWith("/remove-rating");
     const amount = removing ? -Math.min(account.rating, body.amount) : body.amount;
     if (!Number.isSafeInteger(account.rating + amount))
-      return sendJson(response, 400, { ok: false, error: "A pontuação atingiu o limite permitido." });
+      return sendJson(response, 400, { ok: false, error: "Os pontos de influência atingiram o limite permitido." });
     account.rating += amount;
     account.updatedAt = new Date().toISOString();
     for (const entry of matchmaking.values()) if (entry.username === account.username) entry.rating = account.rating;
@@ -1361,14 +1361,23 @@ async function handleApi(request, response, pathname) {
       const reward = body.result === "jogador" ? 10 : 0;
       if (!Number.isSafeInteger(account.currency + reward))
         return sendJson(response, 400, { ok: false, error: "O saldo atingiu o limite permitido." });
+      const updatedAt = account.updatedAt;
       match.result = body.result;
       match.reward = reward;
       account.currency += reward;
       account.gamesPlayed += 1;
       account.updatedAt = new Date().toISOString();
-      saveAccounts();
+      try { saveAccounts(); } catch (error) {
+        delete match.result;
+        delete match.reward;
+        account.currency -= reward;
+        account.gamesPlayed -= 1;
+        account.updatedAt = updatedAt;
+        error.soloPersistence = true;
+        throw error;
+      }
     }
-    return sendJson(response, 200, { ok: true, reward: match.reward, ...publicAccount(account) });
+    return sendJson(response, 200, { ok: true, reward: match.reward, influenceReward: 0, ...publicAccount(account) });
   }
 
   return sendJson(response, 404, { ok: false, error: "Rota não encontrada." });
@@ -1444,9 +1453,9 @@ function serveGame(request, response) {
     handleApi(request, response, pathname).catch((error) => {
       console.error("Falha na API:", error.message);
       if (!response.headersSent)
-        sendJson(response, error.marketPersistence ? 500 : error.message === "PAYLOAD_TOO_LARGE" ? 413 : 400, {
+        sendJson(response, error.marketPersistence || error.soloPersistence ? 500 : error.message === "PAYLOAD_TOO_LARGE" ? 413 : 400, {
           ok: false,
-          error: "Não foi possível processar a requisição.",
+          error: error.soloPersistence ? "Não foi possível salvar sua recompensa. Tente novamente." : "Não foi possível processar a requisição.",
         });
     });
     return;
@@ -1637,7 +1646,11 @@ reservationClock.unref();
 function broadcastState(room, extra = {}, except = null) {
   settleMatch(room);
   const update = { state: room.state, ...phaseInfo(room), ...extra };
-  for (const id of room.players.values()) if (id && id !== except) io.to(id).emit("state-update", update);
+  for (const [player, id] of room.players) if (id && id !== except) io.to(id).emit("state-update", {
+    ...update,
+    ...(room.matchSettled && !room.debugFinal && room.accounts.has(player)
+      ? { reward: room.rewards[player - 1], influenceReward: room.influenceRewards[player - 1], account: publicAccount(room.accounts.get(player)) } : {}),
+  });
   for (const id of room.spectators) io.to(id).emit("state-update", { ...update, state: spectatorState(room.state) });
   if (room.presentationHost) io.to(room.presentationHost).emit("state-update", { ...update, state: presentationState(room.state) });
 }
@@ -1803,6 +1816,7 @@ function settleMatch(room) {
   const winner = room.result.resultadoCombate?.resultado;
   if (!["jogador", "inimigo", "empate"].includes(winner)) return;
   const accounts = [1, 2].map(player => room.accounts.get(player));
+  const ratings = accounts.map(account => account?.rating ?? 1000);
   const rewards = onlineRewards(room);
   if (room.ranked && !room.debugFinal && accounts.every(Boolean))
     ranking.applyResult(...accounts, winner, room.table === 5 ? 1.5 : room.table ? 1.25 : 1);
@@ -1825,6 +1839,8 @@ function settleMatch(room) {
   });
   registerCouncilEntries();
   saveAccounts();
+  room.rewards = rewards;
+  room.influenceRewards = accounts.map((account, index) => account ? account.rating - ratings[index] : 0);
   room.matchSettled = true;
 }
 

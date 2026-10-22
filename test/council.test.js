@@ -100,7 +100,19 @@ async function run() {
   assert.equal(debug.ok, false); assert.match(debug.error, /ranqueadas/);
   assert.equal((await ack(outsider, 'watch-club-tables')).council.locked, true);
   assert.equal((await ack(otherTab, 'reserve-council-seat', first)).ok, false);
+  const firstPaid = new Promise(resolve => one.once('state-update', resolve));
+  const secondPaid = new Promise(resolve => two.once('state-update', resolve));
+  const observedFinal = new Promise(resolve => outsider.once('state-update', resolve));
   assert.equal((await ack(one, 'decline-match', { room: code, accountToken: first.accountToken })).ok, true);
+  const [loser, winner, observed] = await Promise.all([firstPaid, secondPaid, observedFinal]);
+  assert.equal(loser.reward, 50); assert.equal(winner.reward, 100);
+  assert.equal(loser.influenceReward, -16); assert.equal(winner.influenceReward, 24);
+  assert.equal(loser.account.username, fixtures[0].username);
+  assert.equal(winner.account.username, fixtures[1].username);
+  assert.equal(loser.account.currency, 550); assert.equal(winner.account.currency, 600);
+  assert.equal(observed.account, undefined, 'Espectadores não recebem saldo nem coleção privados.');
+  assert.equal(observed.reward, undefined);
+  assert.equal(observed.influenceReward, undefined);
   for (const [index, fixture] of fixtures.slice(0, 2).entries()) {
     const response = await fetch(url + '/api/auth/session', { headers: { Authorization: `Bearer ${fixture.token}` } });
     const account = await response.json();

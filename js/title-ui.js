@@ -316,7 +316,7 @@ class CyberduelTitleUI {
           ],
           [
             "Partida aleatória",
-            "Ranqueada · adversário por pontuação",
+            "Ranqueada · adversário por pontos de influência",
             "partida_aleatoria",
             () => this.callbacks.onMatchmaking(),
             "deck",
@@ -330,14 +330,14 @@ class CyberduelTitleUI {
           ],
           [
             "Clube secreto",
-            this.account?.clubUnlocked ? "Ranqueada · +25% nos pontos de vitória" : "BLOQUEADO · Conquiste 3 vitórias contra jogadores",
+            this.account?.clubUnlocked ? "Ranqueada · +25% nos pontos de influência por vitória" : "BLOQUEADO · Conquiste 3 vitórias contra jogadores",
             "clube_secreto",
             this.account?.clubUnlocked ? () => this.openSecretClub() : null,
             "account",
           ],
           [
             "Partida do Conselho",
-            this.account?.councilMember ? "Ranqueada · +50% nos pontos de vitória" : "BLOQUEADO · Entre no top 10 do ranking para fazer parte do Conselho",
+            this.account?.councilMember ? "Ranqueada · +50% nos pontos de influência por vitória" : "BLOQUEADO · Entre no top 10 do ranking para fazer parte do Conselho",
             "conselho",
             this.account?.councilMember ? () => this.openCouncil() : null,
             "account",
@@ -991,7 +991,7 @@ class CyberduelTitleUI {
       });
     });
     dialog.append(this.element("h2", "", "Partida do Conselho"),
-      this.element("p", "", "Partida ranqueada: +50% nos pontos de vitória."), table, form, error, status, close);
+      this.element("p", "", "Partida ranqueada: +50% nos pontos de influência por vitória."), table, form, error, status, close);
     overlay.append(dialog);
     const unwatch = this.callbacks.onWatchClubTables(response => {
       if (this.modal !== overlay) return;
@@ -1112,9 +1112,11 @@ class CyberduelTitleUI {
       submit.disabled = busy || !table?.available || !reservedSeat;
       seatOptions.forEach((option, index) => {
         const player = index + 1;
-        const reserved = table?.reservations?.some(r => r.seat === player && r.expiresAt > Date.now() + offset);
-        option.disabled = occupied.includes(player) || (reserved && reservedSeat !== player);
-        option.textContent = `Jogador ${player}${occupied.includes(player) ? " · OCUPADO" : reserved ? " · RESERVADO" : ""}`;
+        const reserved = Boolean(table?.reservations?.some(r => r.seat === player && r.expiresAt > Date.now() + offset));
+        const disabled = occupied.includes(player) || (reserved && reservedSeat !== player);
+        const text = `Jogador ${player}${occupied.includes(player) ? " · OCUPADO" : reserved ? " · RESERVADO" : ""}`;
+        if (option.disabled !== disabled) option.disabled = disabled;
+        if (option.textContent !== text) option.textContent = text;
       });
       if (occupied.includes(Number(seat.value))) seat.value = "";
       input.disabled = busy || !reservedSeat;
@@ -1138,6 +1140,7 @@ class CyberduelTitleUI {
         busy = false;
         if (response.ok) {
           reservedSeat = player;
+          seat.value = String(player);
           expiresAt = response.expiresAt;
           offset = response.serverNow - Date.now();
           input.value = "";
@@ -1182,7 +1185,7 @@ class CyberduelTitleUI {
     dialog.append(
       this.element("small", "player-id__brand", "CYBERDUEL / NEOFLORIPA"),
       this.element("h2", "", "Clube secreto"),
-      this.element("p", "", "Mesas ranqueadas: +25% nos pontos de vitória. Escolha sua mesa e reserve um jogador por 1 minuto para digitar o código da apresentação."),
+      this.element("p", "", "Mesas ranqueadas: +25% nos pontos de influência por vitória. Escolha sua mesa e reserve um jogador por 1 minuto para digitar o código da apresentação."),
       list, form, error, status, close,
     );
     overlay.append(dialog);
@@ -1730,7 +1733,7 @@ class CyberduelTitleUI {
     membership.value = "all";
     const order = this.element("select", "title-auth-input");
     order.setAttribute("aria-label", "Ordenar contas");
-    for (const [value, label] of [["username", "Username · A–Z"], ["ranking", "Ranking · maior pontuação"], ["ranking-asc", "Ranking · menor pontuação"]]) {
+    for (const [value, label] of [["username", "Username · A–Z"], ["ranking", "Mais pontos de influência"], ["ranking-asc", "Menos pontos de influência"]]) {
       const option = this.element("option", "", label);
       option.value = value;
       order.append(option);
@@ -1771,7 +1774,7 @@ class CyberduelTitleUI {
           });
           const detailsStatus = this.element("p", "title-admin-note");
           details.replaceChildren(this.element("h3", "", `${account.username} · ${account.nickname}`),
-            this.element("p", "", `${account.rank} · ${account.rating.toLocaleString("pt-BR")} pontos · ${account.rankingPosition ? `${account.rankingPosition}º no ranking` : "Ainda fora do ranking"}`),
+            this.element("p", "", `${account.rank} · ${account.rating.toLocaleString("pt-BR")} pontos de influência · ${account.rankingPosition ? `${account.rankingPosition}º no ranking` : "Ainda fora do ranking"}`),
             this.element("p", "", `Saldo: ${account.currency.toLocaleString("pt-BR")} tijolinhos`),
             this.element("p", "", `Tijolinhos gastos: ${account.currencySpent.toLocaleString("pt-BR")}`),
             this.element("p", "", `Cartas liberadas na coleção: ${account.unlockedCards} de ${account.totalCards} tipos (inclui cartas anunciadas)`),
@@ -2453,7 +2456,7 @@ class CyberduelTitleUI {
       this.element(
         "p",
         "versus-rank",
-        `${profile.rank || "Bronze"} · ${profile.rating ?? 1000} pontos`,
+        `${profile.rank || "Bronze"} · ${profile.rating ?? 1000} pontos de influência`,
       ),
     );
     return card;
@@ -2512,7 +2515,7 @@ class CyberduelTitleUI {
       this.element(
         "p",
         "",
-        "Sorteamos um jogador com rank próximo. A faixa aumenta conforme a espera.",
+        "Sorteamos um jogador com pontos de influência próximos aos seus. A faixa aumenta conforme a espera.",
       ),
       cancel,
     );
@@ -2524,7 +2527,7 @@ class CyberduelTitleUI {
     multiplayer.joinMatchmaking((result) => {
       if (this.modal !== overlay) return;
       if (result.ok)
-        status.textContent = `${result.profile.rank} · ${result.profile.rating} pontos — aguardando outro duelista…`;
+        status.textContent = `${result.profile.rank} · ${result.profile.rating} pontos de influência — aguardando outro duelista…`;
       else {
         this.closeModal(true);
         this.setStatus(
@@ -2573,12 +2576,12 @@ class CyberduelTitleUI {
       });
       if (this.modal !== overlay) return;
       status.textContent = response.entries.length
-        ? "Classificação por pontos nas partidas aleatórias."
+        ? "Classificação por pontos de influência nas partidas ranqueadas."
         : "Nenhum cyberduelista cumpriu os requisitos do ranking ainda.";
       if (!response.entries.length) return;
       const table = this.element("table", "leaderboard-table");
       const head = this.element("tr", "");
-      for (const label of ["#", "Apelido", "Rank", "Pontos", "V / D"])
+      for (const label of ["#", "Apelido", "Rank", "Pontos de influência", "V / D"])
         head.append(this.element("th", "", label));
       const thead = this.element("thead", "");
       thead.append(head);

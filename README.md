@@ -18,7 +18,7 @@ No Windows com Google Chrome instalado, o teste usa esse navegador. Nas demais i
 
 Execute `npm run test:content:browser` para conferir as cinco análises de facção em celular e desktop, músicas do menu, editor, campos e tutorial, retorno da música após as falas, áudio de abertura de booster e o retrato do HumbaBrain. O servidor usa dados temporários e a porta 31974; as capturas e o relatório ficam em `output/sindicato/content-update/`. O `npm test` também compara as 54 cartas com `markdown/Cartas e boosters.md` e verifica as regras atualizadas, incluindo alcance, bônus, Override, despertar do Dragão e tempos solo/online.
 
-Em Ajustes, o campo da partida pode alternar os cenários existentes ou usar Padrão, Sindicato ou Remanescentes. Sindicato usa o cenário da cidade; Remanescentes usa o deserto; Padrão usa o fundo estático. O Conselho usa exclusivamente o vídeo `assets/fundo/fundo_humbanet.mp4` no carregamento e no campo, com a música `assets/sons/jogo-humbanet.mp3`, independentemente da preferência de cenário. Volume e opção de fundo animado continuam respeitados. Os avatares de Advogado e Diego usam o retrato padrão enquanto não houver bustos correspondentes.
+Em Ajustes, o campo da partida pode alternar os cenários existentes ou usar Padrão, Sindicato ou Remanescentes. Sindicato usa o cenário da cidade; Remanescentes usa o deserto; Padrão usa o fundo estático. O Conselho usa exclusivamente `assets/videos/carregamento_humbanet.mp4` no carregamento e `assets/videos/background_humbanet.mp4` no campo, com a música `assets/sons/jogo-humbanet.mp3`, independentemente da preferência de cenário. Volume e opção de fundo animado continuam respeitados. Os avatares de Advogado e Diego usam o retrato padrão enquanto não houver bustos correspondentes.
 
 As três aberturas comuns (Echo/Rasp, Remanescentes e Sindicato) participam da rotação inicial. Antes da partida, a abertura acompanha o campo escolhido, inclusive quando os ajustes são alterados depois do preload. A transição usa uma trilha explícita da facção, pois Echo/Rasp não tem áudio e as outras duas têm faixas praticamente silenciosas. O campo sorteado pela transição é mantido ao entrar na partida. No Conselho, a abertura HumbaNet termina até o início da fase sincronizada pelo servidor, sem consumir o tempo de jogo.
 
@@ -305,19 +305,19 @@ Regras:
 - Ir para o menu de edição de decks, onde poderá selecionar seu baralho ou criar um próprio personalizado, além de visualizar suas cartas em datalhes 
 - Ir para o menu de configurações, onde poderá mexer em parâmetros de som
 - Ir para o menu de partidas onde poderá achar um adversário aleatório, inserir o código de um adversário específico ou escanear um QR Code para entrar em uma das salas híbridas
-- Ir para o menu de leaderboard, onde poderá ver quanto tempo falta para ela ser reiniciada, qual sua posição nela e quantos pontos possui, além da tabela, organizada por pontuação da maior para menor, dos 10 jogadores com maior pontuação
+- Ir para o menu de leaderboard, onde poderá ver quanto tempo falta para ela ser reiniciada, qual sua posição nela e quantos pontos de influência possui, além da tabela, organizada por pontos de influência, da maior para a menor, dos 10 jogadores com mais pontos de influência
 - Ir para o menu de Tutorial e Regras, onde poderá revisar as regras do jogo
 ---- Ideia adicional ------
 - Ir para o menu de mercado de cartas, onde poderá anunciar e comprar cartas específicas de outros jogadores, com uma transação de tijolinhos.
-### Da distribuição de pontos
+### Da distribuição de pontos de influência
 
-*O sistema da pontuação funcionará da seguinte forma:*
-Haverá uma leaderboard que faz o ranking dos 10 jogadores com maior pontuação, da maior para o menor.
+*O sistema de pontos de influência funcionará da seguinte forma:*
+Haverá uma leaderboard que faz o ranking dos 10 jogadores com mais pontos de influência, da maior para o menor.
 
-- Todos começam, no início da leaderboard, com 1000 pontos.
-- O valor de pontos ganhos na partida é igual ao score do jogador derrotado dividido por 10
-- O valor de pontos perdidos é igual ao valor de pontos ganhos, mas negativo
-- Em caso de empate, não se somam ou subtraem pontos dos jogadores
+- Todos começam, no início da leaderboard, com 1000 pontos de influência.
+- O valor de pontos de influência ganhos na partida é igual ao total de pontos de influência do jogador derrotado dividido por 10
+- O valor de pontos de influência perdidos é igual ao valor de pontos de influência ganhos, mas negativo
+- Em caso de empate, não se somam ou subtraem pontos de influência dos jogadores
 
 *o sistema de distribuição de recompensas ocorrerá da seguinte forma:*
 
@@ -351,7 +351,7 @@ Na proposta original do mercado, foram consideradas duas alternativas para negoc
 
 ### Do matchmaking e disposição física
 - O jogo poderá ser jogado somente com o celular através da procura de um adversário aleatório para realizar a partida
-- A busca por jogador pode ocorrer de duas formas através do celular: aleatoriamente, buscando o adversário com score mais próximo do seu, ou utilizando o código de outro jogador para uma batalha direta.
+- A busca por jogador pode ocorrer de duas formas através do celular: aleatoriamente, buscando o adversário com total de pontos de influência mais próximo do seu, ou utilizando o código de outro jogador para uma batalha direta.
 - Haverá 1 sala disponível (na feira) e ilimitadas (para jogar em casa) para jogar de forma híbrida, permitindo que a visualização do campo de batalha ocorra em um computador e o menu de ações e cartas seja visualizado pelo celular. A ideia para a disposição na feira seria uma mesa, sobre a qual estaria a imagem direcionada por um projetor. Cada jogador veria o deck no celular e, ao invocar a carta, ela apareceria em cima da mesa (na imagem do projetor) no campo de batalha.
 - Ainda será verificado a possibilidade de utilizar um projetor menor (Fornecido pelo João Campos Neto) para deixar à mostra a leaderboard do jogo, estimulando o pessoal a jogar e subir no ranking. Do contrário, usaremos um monitor.
 
@@ -441,11 +441,11 @@ Use o **username único**, não o apelido/display name; maiúsculas e minúscula
 
 O botão **ADMIN** nas configurações e no mercado aparece apenas para essas contas. A API exige a sessão Google do administrador; `ADMIN_API_TOKEN` e `window.CYBERDUEL_ADMIN_TOKEN` deixam de liberar acesso. Os atalhos de teste também exigem admin; garantia de lendária e final online continuam exigindo `npm run dev`.
 
-A central administrativa permite pesquisar contas por username ou apelido, filtrar acesso ao Clube e ao Conselho atual e ordenar por pontuação. Clique na conta para ver saldo, ranking, tipos de cartas na coleção em relação ao catálogo (incluindo cartas anunciadas), tijolinhos gastos em boosters e compras no mercado e quantidade de vendas concluídas. Gastos e vendas começam a ser registrados com esta atualização; a data inicial aparece nos detalhes, pois não há histórico dessas transações anteriores.
+A central administrativa permite pesquisar contas por username ou apelido, filtrar acesso ao Clube e ao Conselho atual e ordenar por pontos de influência. Clique na conta para ver saldo, ranking, tipos de cartas na coleção em relação ao catálogo (incluindo cartas anunciadas), tijolinhos gastos em boosters e compras no mercado e quantidade de vendas concluídas. Gastos e vendas começam a ser registrados com esta atualização; a data inicial aparece nos detalhes, pois não há histórico dessas transações anteriores.
 
-Para resetar os pontos de todos, entre como administrador e execute `resetarPontosLeaderboard()` no console do navegador. O comando salva **1.000 pontos (valor inicial)** em todas as contas, inclusive offline e fora do top, e atualiza a pontuação de quem está na fila. Vitórias, derrotas, elegibilidade, saldo e coleção são preservados. Partidas em andamento continuam valendo pontos quando terminarem. A ação substitui a pontuação anterior de forma persistente.
+Para resetar os pontos de influência de todos, entre como administrador e execute `resetarPontosLeaderboard()` no console do navegador. O comando salva **1.000 pontos de influência (valor inicial)** em todas as contas, inclusive offline e fora do top, e atualiza os pontos de influência de quem está na fila. Vitórias, derrotas, elegibilidade, saldo e coleção são preservados. Partidas em andamento continuam valendo pontos de influência quando terminarem. A ação substitui os pontos de influência anteriores de forma persistente.
 
-Para descontar pontos de uma conta, use `diminuirPontos("username", 200)` como administrador no console. A quantidade deve ser um inteiro positivo; a pontuação para em zero se o desconto exceder o saldo. O comando informa o desconto efetivo, salva o resultado e atualiza a fila sem alterar os demais dados. Teste local dos dois comandos: `npm run test:rating:browser`.
+Para descontar pontos de influência de uma conta, use `diminuirPontos("username", 200)` como administrador no console. A quantidade deve ser um inteiro positivo; o total de pontos de influência para em zero se o desconto exceder o saldo. O comando informa o desconto efetivo, salva o resultado e atualiza a fila sem alterar os demais dados. Teste local dos dois comandos: `npm run test:rating:browser`.
 
 Como administrador, execute `await modoDemo(true)` (ou `await modoDemo()`) para ativar globalmente o **modo demo**, limitado às cartas e boosters de **Echossystem e RaspCorp**. Use `await modoDemo(false)` para desativar. A configuração persiste após reiniciar o servidor e é enviada às telas abertas. O editor mostra apenas as cartas permitidas. A loja mostra todos os boosters, mas desabilita os demais com o aviso “Disponível apenas na feira de jogos.” Decks incompatíveis ficam bloqueados para salvar ou iniciar duelos. Outros pacotes continuam guardados, sem poder comprar ou abrir enquanto o modo estiver ativo. Desativar restaura o acesso sem apagar coleção, decks ou pacotes.
 
@@ -455,13 +455,15 @@ Conclua ou feche salas online com cartas de outros boosters antes de ativar: o s
 
 Cada partida solo normal de uma conta autenticada concede **10 tijolinhos por vitória** e **zero por derrota**; empate concede zero. A tela final mostra o crédito confirmado e permite tentar novamente se houver falha de comunicação. Partidas de teste/atalhos de admin não concedem esse bônus.
 
-Redesenhar o campo durante o aviso da última rodada não cancela mais o encerramento nem o registro da recompensa.
+O registro começa assim que o resultado solo é decidido, antes das animações e da tela final. Redesenhar o campo durante o aviso da última rodada não cancela o crédito. Falhas de comunicação mostram o erro retornado pelo servidor e permitem repetir o pagamento com o mesmo ID, sem duplicá-lo. Falhas de gravação desfazem o crédito em memória para permitir uma nova tentativa persistente.
+
+A confirmação exibe um tijolinho sorridente, o valor recebido, o saldo e os pontos de influência da partida. No solo, a influência é zero porque o modo não altera o ranking. No online, o servidor informa a variação efetiva, incluindo perdas e os bônus do Clube e do Conselho; espectadores não recebem dados da conta. A preferência por movimento reduzido é respeitada.
 
 O servidor fixa o valor, vincula o ID da partida à conta e impede pagamento duplicado, inclusive após reiniciar. Mantém os últimos 100 registros solo por conta; IDs antigos são recusados. O combate solo ainda acontece no navegador, portanto o resultado informado pelo cliente não tem validação contra manipulação do jogo.
 
 ### Recompensas online
 
-Partidas aleatórias pagam **20 tijolinhos por vitória** e **10 por derrota**; partidas do Clube pagam **50 por vitória** e **25 por derrota**; partidas do Conselho pagam **100 por vitória** e **50 por derrota** às contas autenticadas. Partidas privadas não pagam recompensa; empate paga zero. O servidor credita uma vez ao encerrar o duelo e persiste os saldos. Se o mesmo jogador desistir novamente contra o mesmo adversário nos três primeiros turnos (rodadas 1 a 3 do servidor), a recompensa dos dois é dividida por 2 a cada repetição, com arredondamento para baixo até zero. Exemplo na Partida aleatória: o vencedor recebe 20 → 10 → 5 → 2 → 1 → 0 e quem desiste recebe 10 → 5 → 2 → 1 → 0. A primeira desistência paga o valor normal. Desistências a partir do quarto turno e combates concluídos normalmente pagam os valores normais e não aumentam nem apagam esse contador. O histórico é por conta que desiste e adversário, vale entre modalidades e persiste após reiniciar, sem prazo de expiração. Não há duração mínima nem limite de partidas premiadas. Partidas sem recompensa continuam registrando resultado e estatísticas, incluindo a pontuação do ranking. Espectadores e finais por atalhos de teste não recebem recompensa. Usar a mesma conta nos dois lugares não concede bônus. O saldo respeita o limite de inteiro seguro.
+Partidas aleatórias pagam **20 tijolinhos por vitória** e **10 por derrota**; partidas do Clube pagam **50 por vitória** e **25 por derrota**; partidas do Conselho pagam **100 por vitória** e **50 por derrota** às contas autenticadas. Partidas privadas não pagam recompensa; empate paga zero. O servidor credita uma vez ao encerrar o duelo e persiste os saldos. Se o mesmo jogador desistir novamente contra o mesmo adversário nos três primeiros turnos (rodadas 1 a 3 do servidor), a recompensa dos dois é dividida por 2 a cada repetição, com arredondamento para baixo até zero. Exemplo na Partida aleatória: o vencedor recebe 20 → 10 → 5 → 2 → 1 → 0 e quem desiste recebe 10 → 5 → 2 → 1 → 0. A primeira desistência paga o valor normal. Desistências a partir do quarto turno e combates concluídos normalmente pagam os valores normais e não aumentam nem apagam esse contador. O histórico é por conta que desiste e adversário, vale entre modalidades e persiste após reiniciar, sem prazo de expiração. Não há duração mínima nem limite de partidas premiadas. Partidas sem recompensa continuam registrando resultado e estatísticas, incluindo os pontos de influência do ranking. Espectadores e finais por atalhos de teste não recebem recompensa. Usar a mesma conta nos dois lugares não concede bônus. O saldo respeita o limite de inteiro seguro.
 
 ### Comprar e abrir boosters
 
@@ -485,13 +487,13 @@ Na abertura dos boosters, os personagens aparecem do menor ao maior nível; depo
 
 ### Partidas ranqueadas e leaderboard
 
-Em **PARTIDAS → Partida aleatória**, entre na fila com sua conta e um deck válido salvo. O servidor sorteia um adversário entre os jogadores disponíveis com diferença de até 200 pontos; essa faixa aumenta 100 pontos a cada 15 segundos de espera. A busca pode ser cancelada antes de encontrar o adversário. Uma conta não pode entrar em duas filas ou buscar enquanto possui uma partida ativa.
+Em **PARTIDAS → Partida aleatória**, entre na fila com sua conta e um deck válido salvo. O servidor sorteia um adversário entre os jogadores disponíveis com diferença de até 200 pontos de influência; essa faixa aumenta 100 pontos de influência a cada 15 segundos de espera. A busca pode ser cancelada antes de encontrar o adversário. Uma conta não pode entrar em duas filas ou buscar enquanto possui uma partida ativa.
 
 Antes do duelo, uma apresentação de quatro segundos mostra **foto, apelido e rank de ambos**, separados por **VS**. Quem não tiver foto aparece com as iniciais. A partida ranqueada começa automaticamente após a apresentação; o prazo da primeira fase inclui esses quatro segundos adicionais.
 
-Todos começam com **1.000 pontos**. A pontuação usa Elo com fator 32 e é atualizada uma única vez pelo servidor ao encerrar uma partida ranqueada, incluindo desistências e recusa de retorno. A fila aleatória, as quatro mesas do Clube secreto e o Conselho são ranqueados. Nas mesas, o vencedor recebe **25% a mais** sobre o ganho normal de Elo; no Conselho, **50% a mais**, arredondando o total para o inteiro mais próximo. Uma vitória que renderia 16 pontos passa a render 20 nas mesas ou 24 no Conselho. Derrotas e empates seguem o Elo normal. Salas privadas por código, a apresentação avulsa `/apresentacao`, partidas solo e finais de depuração não alteram o rank. As faixas são Bronze (abaixo de 1.200), Prata (1.200–1.399), Ouro (1.400–1.599) e Diamante (1.600 ou mais).
+Todos começam com **1.000 pontos de influência**. O total é calculado por Elo com fator 32 e atualizado uma única vez pelo servidor ao encerrar uma partida ranqueada, incluindo desistências e recusa de retorno. A fila aleatória, as quatro mesas do Clube secreto e o Conselho são ranqueados. Nas mesas, o vencedor recebe **25% a mais** sobre o ganho normal de pontos de influência; no Conselho, **50% a mais**, arredondando o total para o inteiro mais próximo. Uma vitória que renderia 16 pontos de influência passa a render 20 nas mesas ou 24 no Conselho. Derrotas e empates seguem o Elo normal. Salas privadas por código, a apresentação avulsa `/apresentacao`, partidas solo e finais de depuração não alteram o rank. As faixas são Bronze (abaixo de 1.200), Prata (1.200–1.399), Ouro (1.400–1.599) e Diamante (1.600 ou mais).
 
-Em **RANKING → Ranking de duelistas**, a leaderboard exibe os 20 primeiros por pontos, com apelido, rank, vitórias e derrotas. O jogador aparece após concluir sua primeira partida ranqueada. Pontos e estatísticas persistem junto da conta; filas e partidas em andamento ficam na memória do servidor.
+Em **RANKING → Ranking de duelistas**, a leaderboard exibe os 20 primeiros por pontos de influência, com apelido, rank, vitórias e derrotas. O jogador aparece após concluir sua primeira partida ranqueada. Pontos de influência e estatísticas persistem junto da conta; filas e partidas em andamento ficam na memória do servidor.
 
 
 ### Sessões de conta após atualizar o servidor

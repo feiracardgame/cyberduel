@@ -204,13 +204,14 @@ class CenaPreload extends Phaser.Scene {
     for (const [key, file] of Object.entries({
       videoAberturaEchoRasp: "carregamento_echorasp.mp4", videoAberturaSindicato: "carregamento_sindicato.mp4",
       videoAberturaRemanescentes: "carregamento_remanescentes.mp4",
+      videoAberturaHumbaNet: "carregamento_humbanet.mp4",
     })) this.load.video(key, `assets/videos/${file}`);
     this.load.video(
       "videoParte3",
       "assets/videos/background_cidade.mp4?v=20260923-cidade",
     );
     this.load.video("videoDeserto", "assets/videos/background_deserto.mp4");
-    this.load.video("videoHumbaNet", "assets/fundo/fundo_humbanet.mp4");
+    this.load.video("videoHumbaNet", "assets/videos/background_humbanet.mp4");
     // efeitos
     this.load.video(
       "efeitoRaspClayVertical",
@@ -244,7 +245,7 @@ class CenaPreload extends Phaser.Scene {
     const aberturas = ["carregamento_echorasp.mp4", "carregamento_remanescentes.mp4", "carregamento_sindicato.mp4"];
     const proximaAbertura = () => {
       if (window.CYBERDUEL_TABLE === 5) {
-        video.loadURL("assets/fundo/fundo_humbanet.mp4", true);
+        video.loadURL("assets/videos/carregamento_humbanet.mp4", true);
         video.setMute(true);
         video.play(true);
         return;

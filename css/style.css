@@ -3482,3 +3482,33 @@ body:has(> .booster-fullscreen) .title-matrix-stream { animation-play-state: pau
 
 .title-booster-dialog .booster-faction[data-locked="true"] { opacity: .8; cursor: not-allowed; }
 .booster-faction small { display: block; max-width: 140px; margin-top: 6px; white-space: normal; font-size: 9px; line-height: 1.4; }
+
+.match-reward {
+  position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 22px);
+  z-index: 12000; display: flex; align-items: center; gap: 18px;
+  width: min(340px, calc(100vw - 32px)); box-sizing: border-box; padding: 18px 22px;
+  border: 2px solid #f6cc77; border-radius: 22px; background: #fff4d9; color: #583314;
+  box-shadow: 0 6px 0 #9d5c2b, 0 14px 40px #130c0880;
+  pointer-events: none; transform: translateX(-50%); animation: reward-arrive .65s cubic-bezier(.2, 1.4, .5, 1) both;
+  font-family: Arial, sans-serif;
+}
+.match-reward > div { display: grid; gap: 5px; min-width: 0; }
+.match-reward small { font-size: 10px; font-weight: 800; letter-spacing: 1px; }
+.match-reward strong { font-size: 24px; line-height: 1.15; }
+.match-reward > div > span { font-size: 12px; color: #856747; }
+.match-reward > div > .match-reward__influence { font-size: 14px; font-weight: 700; color: #496947; }
+.match-reward__brick {
+  position: relative; flex: 0 0 46px; height: 35px; border: 2px solid #8f4c28; border-radius: 9px;
+  background: #ed9b5f; box-shadow: inset 0 5px 0 #ffc78d, 0 4px 0 #bb6d3b;
+  transform: rotate(-8deg); animation: reward-wiggle .8s .2s ease-in-out;
+}
+.match-reward__brick::before { content: ""; position: absolute; left: 11px; top: 13px; width: 4px; height: 5px; border-radius: 50%; background: #583314; box-shadow: 17px 0 #583314; }
+.match-reward__brick i { position: absolute; left: 17px; bottom: 5px; width: 10px; height: 6px; border-bottom: 2px solid #583314; border-radius: 0 0 10px 10px; }
+.match-reward__confetti { position: absolute; left: 50%; top: 12px; width: 9px; height: 7px; border-radius: 2px; background: #eea657; opacity: 0; animation: reward-confetti .9s .15s ease-out both; }
+.match-reward__confetti:nth-child(even) { background: #9ed7aa; }
+@keyframes reward-arrive { from { opacity: 0; transform: translate(-50%, 40px) scale(.7); } to { opacity: 1; transform: translate(-50%, 0) scale(1); } }
+@keyframes reward-wiggle { 25% { transform: rotate(12deg) translateY(-9px); } 65% { transform: rotate(-12deg) translateY(-4px); } }
+@keyframes reward-confetti { 10% { opacity: 1; } to { opacity: 0; transform: translate(var(--x), -85px) rotate(var(--turn)); } }
+@media (prefers-reduced-motion: reduce) {
+  .match-reward, .match-reward__brick, .match-reward__confetti { animation: none; }
+}

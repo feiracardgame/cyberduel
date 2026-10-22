@@ -27,7 +27,7 @@ const ELENAI_DIALOGUES = {
     {"sprite": 10, "speaker": "ElenAI", "text": "No entanto, você deve ter percebido que não conseguiu acertar a carta lá no fundo. Isso acontece porque todo efeito de carta apresenta alguma condição específica. Nesse caso, é o alcance. O número ao lado do \"H\" indica a largura total do ataque, centrada na carta: H1 atinge só a própria coluna, H3 inclui uma coluna de cada lado e H5 inclui duas de cada lado. O \"V\" indica a distância de casas verticais. Da fileira da frente, V1 alcança a frente inimiga e V2 também alcança o fundo; da sua fileira de trás, é preciso um ponto a mais de V."},
     {"sprite": 10, "speaker": "ElenAI", "text": "Tenta utilizar essa carta aqui agora."},
     {"sprite": 16, "speaker": "ElenAI", "text": "Estou impressionada, você é profissional já!"},
-    {"sprite": 2, "speaker": "ElenAI", "text": "Siga jogando, aprendendo e vencedendo, assim você ganhará pontos no ranking oficial do jogo e, estando alto o suficiente, poderá se tornar um membro do Conselho"},
+    {"sprite": 2, "speaker": "ElenAI", "text": "Siga jogando, aprendendo e vencendo, assim você ganhará pontos de influência no ranking oficial do jogo e, estando alto o suficiente, poderá se tornar um membro do Conselho"},
     {"sprite": 2, "speaker": "ElenAI", "text": "Lembre-se de sempre fazer as melhores jogadas, porém seja rápido, já que a audiência não gosta de ficar esperando pela sua jogada."}
   ],
   "faction": [

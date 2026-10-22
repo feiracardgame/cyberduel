@@ -453,18 +453,22 @@ class CyberduelAccount {
   }
 
   async startSoloMatch() {
-    if (!this.user) return null;
+    if (!this.user) throw new Error("Entre na conta para registrar a partida solo.");
     const payload = await this.request("/api/account/match-start", {
       method: "POST", body: { mode: "solo" },
     });
+    if (typeof payload.matchId !== "string" || !payload.matchId)
+      throw new Error("O servidor não confirmou o início da partida solo.");
     return payload.matchId;
   }
 
   async recordMatch(matchId, result) {
-    if (!this.user) return;
+    if (!this.user) throw new Error("Entre novamente na conta para receber a recompensa.");
     const payload = await this.request("/api/account/match-complete", {
       method: "POST", body: { matchId, result },
     });
+    if (!Number.isSafeInteger(payload.reward) || payload.reward < 0)
+      throw new Error("O servidor não confirmou o valor da recompensa.");
     this.applyAuth(payload);
     return payload.reward;
   }

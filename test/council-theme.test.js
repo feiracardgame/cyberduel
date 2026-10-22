@@ -29,7 +29,7 @@ for (const table of [null, 1, 5]) for (const field of [1, 2, 4]) {
   scene.create();
   assert.equal(video.muted, true);
   if (table === 5) {
-    assert.equal(videoKey, 'videoHumbaNet');
+    assert.equal(videoKey, 'videoAberturaHumbaNet');
     assert.equal(music, 'musicaHumbaNet');
     assert.equal(scene.fundoTransicao, 'videoHumbaNet');
     const start = timers.find(timer => timer.delay <= 5000);
@@ -50,5 +50,5 @@ for (const table of [null, 1, 5]) for (const field of [1, 2, 4]) {
   title.iniciarPartida(true);
   assert.equal(destination, 'CenaJogo', 'Reconexão durante a partida não repete a abertura.');
 }
-assert.ok(fs.statSync('assets/fundo/fundo_humbanet.mp4').size > 1000);
+assert.ok(fs.statSync('assets/videos/background_humbanet.mp4').size > 1000);
 console.log('Conselho: vídeo e música exclusivos, preferências, abertura sincronizada e reconexão validados.');

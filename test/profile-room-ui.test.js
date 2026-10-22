@@ -121,7 +121,12 @@ const byLabel = label => find(ui.modal, el => el.attributes['aria-label'] === la
   ui.account.clubUnlocked = true;
   let codeRequested;
   ui.callbacks.onRequestClubCode = (table, done) => { codeRequested = table; done({ ok: true }); };
-  ui.callbacks.onReserveClubSeat = (table, seat, done) => done({ ok: true, serverNow: clubNow, expiresAt: clubNow + 60_000 });
+  ui.callbacks.onReserveClubSeat = (table, seat, done) => {
+    tables[table - 1].reservations = [{ seat, expiresAt: clubNow + 60_000 }];
+    updateTables({ ok: true, tables });
+    byLabel('Escolher jogador').value = '';
+    done({ ok: true, serverNow: clubNow, expiresAt: clubNow + 60_000 });
+  };
   ui.callbacks.onReleaseClubSeat = table => releasedTables.push(table);
   ui.callbacks.onWatchClubTables = listener => { updateTables = listener; return () => { stopped++; }; };
   ui.callbacks.onJoinClubTable = (table, code, seat, done) => { joinTable = { table, code, seat }; result = done; };
@@ -138,7 +143,16 @@ const byLabel = label => find(ui.modal, el => el.attributes['aria-label'] === la
   assert.equal(byLabel('Código da Mesa 2').disabled, true, 'Reservar o jogador antes de digitar o código.');
   byLabel('Escolher jogador').value = '2';
   byLabel('Escolher jogador').events.change();
+  assert.equal(byLabel('Escolher jogador').value, '2', 'A confirmação mantém o jogador escolhido após a atualização da reserva.');
   assert.match(byClass('club-tables-status').textContent, /60s/);
+  const stableOption = byLabel('Escolher jogador').children[2];
+  let optionText = stableOption.textContent, optionWrites = 0;
+  Object.defineProperty(stableOption, 'textContent', {
+    get: () => optionText, set: value => { optionWrites++; optionText = value; },
+  });
+  for (let i = 0; i < 5; i++) clubTick();
+  assert.equal(optionWrites, 0, 'O relógio da reserva não reescreve as opções nem reinicia o seletor nativo.');
+  assert.equal(byLabel('Escolher jogador').value, '2');
   const form = byClass('club-table-entry');
   form.events.submit({ preventDefault() {} });
   assert.match(byClass('title-dialog__error').textContent, /6 números/);
