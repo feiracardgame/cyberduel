@@ -47,7 +47,7 @@ class CyberduelDeckBuilder {
                 )
               : tipo,
           imagem: base.imagem || null,
-          foco: base.foco || { x: 0.5, y: 0.5 },
+          foco: base.focoDeck || base.foco || { x: 0.5, y: 0.5 },
           descricao: modelo.descricaoCompleta(),
           partesDescricao: modelo.partesDescricao(),
           limite: base.lendaria ? 1 : 3,

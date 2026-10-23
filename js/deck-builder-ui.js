@@ -876,8 +876,86 @@ class CyberduelDeckBuilderUI {
     );
     dialog.append(close, visual, content);
     overlay.append(dialog);
+    this.enableArtInspection(visual, card, dialog);
     requestAnimationFrame(() => overlay.classList.add("is-visible"));
     close.focus({ preventScroll: true });
+  }
+
+  enableArtInspection(visual, card, dialog) {
+    const controller = new AbortController();
+    const options = { signal: controller.signal };
+    let pointer = null, timer = null, preview = null, frame = null, start = null, focused = null;
+    visual.tabIndex = 0;
+    visual.setAttribute("role", "button");
+    visual.setAttribute("aria-label", `Segure para inspecionar a arte de ${card.nome}`);
+    visual.setAttribute("aria-pressed", "false");
+    visual.querySelector("img").draggable = false;
+
+    const finish = (event) => {
+      if (event?.pointerId !== undefined && event.pointerId !== pointer) return;
+      clearTimeout(timer);
+      timer = null;
+      pointer = null;
+      preview?.remove();
+      preview = frame = null;
+      dialog.classList.remove("is-inspecting-art");
+      visual.setAttribute("aria-pressed", "false");
+      if (focused?.isConnected && document.hasFocus()) focused.focus({ preventScroll: true });
+      focused = null;
+    };
+    const tilt = (event) => {
+      if (!frame || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      const bounds = preview.getBoundingClientRect();
+      const dx = Math.max(-1, Math.min(1, (event.clientX - bounds.left - bounds.width / 2) / (frame.offsetWidth / 2)));
+      const dy = Math.max(-1, Math.min(1, (event.clientY - bounds.top - bounds.height / 2) / (frame.offsetHeight / 2)));
+      frame.style.setProperty("--art-tilt", `translateY(${dy * 14}px) rotate(${dx * 7}deg) scale(${1 - Math.abs(dx) * .02}, ${1 - Math.abs(dy) * .04})`);
+      frame.style.setProperty("--shine-x", `${50 + dx * 33}%`);
+      frame.style.setProperty("--shine-y", `${50 + dy * 29}%`);
+    };
+    const begin = (event) => {
+      const keyboard = event.type === "keydown";
+      if (pointer !== null || (keyboard ? ![" ", "Enter"].includes(event.key) : event.button !== 0)) return;
+      event.preventDefault();
+      pointer = keyboard ? "keyboard" : event.pointerId;
+      start = { x: event.clientX, y: event.clientY };
+      if (!keyboard) visual.setPointerCapture(event.pointerId);
+      timer = setTimeout(() => {
+        timer = null;
+        const source = visual.querySelector("img");
+        if (!source.naturalWidth || !source.naturalHeight) return;
+        focused = document.activeElement;
+        preview = this.element("div", "forge-art-inspection");
+        frame = this.element("div", "forge-art-inspection__card");
+        const image = this.element("img");
+        image.src = this.imageSource(card);
+        image.alt = `Arte completa de ${card.nome}`;
+        frame.style.setProperty("--art-ratio", source.naturalWidth / source.naturalHeight);
+        frame.style.setProperty("--card-color", this.levelColor(card));
+        frame.append(image);
+        preview.append(frame);
+        dialog.parentElement.append(preview);
+        dialog.classList.add("is-inspecting-art");
+        visual.setAttribute("aria-pressed", "true");
+        if (!keyboard) tilt(event);
+      }, 320);
+    };
+    visual.addEventListener("pointerdown", begin, options);
+    visual.addEventListener("keydown", begin, options);
+    visual.addEventListener("contextmenu", event => event.preventDefault(), options);
+    visual.addEventListener("lostpointercapture", finish, options);
+    window.addEventListener("pointermove", (event) => {
+      if (event.pointerId !== pointer) return;
+      if (preview) tilt(event);
+      else if (timer && Math.hypot(event.clientX - start.x, event.clientY - start.y) > 12) finish(event);
+    }, options);
+    window.addEventListener("pointerup", finish, options);
+    window.addEventListener("pointercancel", finish, options);
+    window.addEventListener("keyup", (event) => {
+      if (pointer === "keyboard" && [" ", "Enter"].includes(event.key)) finish();
+    }, options);
+    window.addEventListener("blur", () => finish(), options);
+    document.addEventListener("visibilitychange", () => { if (document.hidden) finish(); }, options);
+    this.cleanupArtInspection = () => { finish(); controller.abort(); };
   }
 
   openConfirm({ eyebrow, title, message, confirmLabel, danger, onConfirm }) {
@@ -924,6 +1002,8 @@ class CyberduelDeckBuilderUI {
   }
 
   closeModal(immediate = false) {
+    this.cleanupArtInspection?.();
+    this.cleanupArtInspection = null;
     if (!this.modal) return;
     const modal = this.modal;
     this.modal = null;
@@ -1046,6 +1126,8 @@ class CyberduelDeckBuilderUI {
   }
 
   destroy() {
+    this.cleanupArtInspection?.();
+    this.cleanupArtInspection = null;
     document.removeEventListener("keydown", this.handleKeydown);
     document.body.classList.remove("deck-forge-open");
     this.root?.remove();

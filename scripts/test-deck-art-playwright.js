@@ -13,7 +13,7 @@ const server = spawn(process.execPath, ['scripts/dev-server.js'], {
   env: { ...process.env, PORT: '31972', DATA_DIR: dataDir }, stdio: ['ignore', 'pipe', 'inherit'],
 });
 let browser, page;
-const errors = [], checks = [];
+const errors = [], checks = [], inspections = [];
 // Regiões importantes medidas nas artes originais, independentes do foco configurado.
 const protectedRegions = {
   'RaspClay MonteCorp': [.32, .01, .72, .26],
@@ -58,6 +58,97 @@ async function inspect(image, card, surface, viewport) {
   checks.push({ name: card.name, surface, viewport, ...geometry });
 }
 
+async function checkArtInspection() {
+  const touch = await page.context().newCDPSession(page);
+  for (const [width, height, name, mobile] of [
+    [1366, 768, 'RaspClay MonteCorp', false],
+    [1366, 768, 'Você Parece Sozinho', false],
+    [390, 844, "Dieh'Go, o Xerife", true],
+    [320, 568, 'Você Parece Sozinho', true],
+  ]) {
+    await page.setViewportSize({ width, height });
+    await touch.send('Emulation.setTouchEmulationEnabled', { enabled: mobile });
+    await page.evaluate(name => {
+      const ui = game.scene.getScene('CenaDeckBuilder').deckBuilderUI;
+      ui.closeModal(true);
+      ui.openDetail(ui.catalog.find(card => card.nome === name));
+      window.qaForgeDialog = ui.modal.querySelector('.forge-detail');
+      const content = ui.modal.querySelector('.forge-detail__content');
+      content.scrollTop = 70;
+      window.qaForgeScroll = content.scrollTop;
+    }, name);
+    const art = page.locator('.forge-detail__visual');
+    await art.locator('img').evaluate(img => img.decode());
+    await art.waitFor();
+    const bounds = await art.boundingBox(), point = { x: bounds.x + bounds.width * .55, y: bounds.y + bounds.height * .45 };
+    const down = async () => {
+      if (mobile) await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ ...point, id: 1 }] });
+      else { await page.mouse.move(point.x, point.y); await page.mouse.down(); }
+    };
+    const up = async cancel => {
+      if (mobile) await touch.send('Input.dispatchTouchEvent', { type: cancel ? 'touchCancel' : 'touchEnd', touchPoints: [] });
+      else await page.mouse.up();
+    };
+    await down();
+    await page.waitForSelector('.forge-art-inspection');
+    assert.equal(await page.locator('.forge-detail').evaluate(el => getComputedStyle(el).visibility), 'hidden');
+    const image = page.locator('.forge-art-inspection img');
+    await image.evaluate(img => img.decode());
+    const geometry = await image.evaluate(img => {
+      const r = img.getBoundingClientRect();
+      return { ratio: img.clientWidth / img.clientHeight, native: img.naturalWidth / img.naturalHeight,
+        inside: r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight };
+    });
+    assert.ok(Math.abs(geometry.ratio - geometry.native) < .01 && geometry.inside, 'A arte inteira cabe no zoom.');
+    const frame = page.locator('.forge-art-inspection__card');
+    await frame.evaluate(el => Promise.all(el.getAnimations().map(animation => animation.finished)));
+    const before = await frame.evaluate(el => el.style.getPropertyValue('--art-tilt'));
+    const beforeTransform = await frame.evaluate(el => getComputedStyle(el).transform);
+    const moved = { x: width * .65, y: height * .65 };
+    if (mobile) await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ ...moved, id: 1 }] });
+    else await page.mouse.move(moved.x, moved.y);
+    await page.waitForFunction(before => document.querySelector('.forge-art-inspection__card').style.getPropertyValue('--art-tilt') !== before, before);
+    assert.notEqual(await frame.evaluate(el => getComputedStyle(el).transform), beforeTransform, 'O movimento inclina a arte renderizada.');
+    await page.screenshot({ path: path.join(output, `hold-${width}-${mobile ? 'touch' : name === 'RaspClay MonteCorp' ? 'legend' : 'effect'}.png`) });
+    await up(mobile && width === 320);
+    await page.waitForSelector('.forge-art-inspection', { state: 'detached' });
+    if (await page.evaluate(() => !!document.fullscreenElement)) await page.evaluate(() => document.exitFullscreen());
+    await page.waitForFunction(() => {
+      const ui = game.scene.getScene('CenaDeckBuilder').deckBuilderUI;
+      return ui.modal?.querySelector('.forge-detail') === qaForgeDialog &&
+        getComputedStyle(qaForgeDialog).visibility === 'visible' &&
+        ui.modal.querySelector('.forge-detail__content').scrollTop === qaForgeScroll;
+    });
+    if (!mobile) {
+      await art.focus();
+      await page.keyboard.down('Space');
+      await page.waitForSelector('.forge-art-inspection');
+      await page.keyboard.up('Space');
+      await page.waitForSelector('.forge-art-inspection', { state: 'detached' });
+      await down();
+      await page.waitForSelector('.forge-art-inspection');
+      await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+      await page.waitForSelector('.forge-art-inspection', { state: 'detached' });
+      await up();
+      await down();
+      await page.mouse.move(point.x + 30, point.y);
+      await page.waitForTimeout(380);
+      assert.equal(await page.locator('.forge-art-inspection').count(), 0, 'Arrastar antes da espera cancela a inspeção.');
+      await up();
+      await down();
+      await page.waitForSelector('.forge-art-inspection');
+      await page.keyboard.press('Escape');
+      await up();
+      assert.equal(await page.locator('.forge-art-inspection').count(), 0, 'Fechar a ficha limpa o zoom e o gesto.');
+    }
+    inspections.push(`${width}px: ${name}, ${mobile ? 'toque' : 'mouse e teclado'}, inclinação e restauração da mesma ficha/rolagem.`);
+    await page.evaluate(() => game.scene.getScene('CenaDeckBuilder').deckBuilderUI.closeModal(true));
+    await page.waitForSelector('.forge-modal', { state: 'detached' });
+  }
+  await touch.send('Emulation.setTouchEmulationEnabled', { enabled: false });
+  console.log(inspections.join('\n'));
+}
+
 async function run() {
   await new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(Error('Servidor não iniciou')), 10000);
@@ -73,10 +164,11 @@ async function run() {
   await page.goto('http://127.0.0.1:31972/?deck=1&renderer=canvas', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => typeof game !== 'undefined' && game.scene.isActive('CenaDeckBuilder') &&
     document.querySelector('.deck-forge.is-ready'), null, { timeout: 120000 });
-  // Termina as transições imediatamente para medir também o estado final do hover.
-  await page.addStyleTag({ content: '.deck-forge, .deck-forge * { transition: none !important; animation: none !important; }' });
   const cards = await page.evaluate(() => game.scene.getScene('CenaDeckBuilder').deckBuilderUI.visibleCards().map(card => ({ key: card.key, name: card.nome, focus: card.foco })));
   assert.ok(cards.length >= 50, 'A auditoria deve incluir o catálogo inteiro, sem filtro de conta ou demo.');
+  await checkArtInspection();
+  // Termina as transições imediatamente para medir também o estado final do hover.
+  await page.addStyleTag({ content: '.deck-forge, .deck-forge * { transition: none !important; animation: none !important; }' });
 
   for (const viewport of [{ width: 1366, height: 768 }, { width: 390, height: 844 }, { width: 320, height: 568 }]) {
     await page.setViewportSize(viewport);
@@ -112,7 +204,7 @@ async function run() {
       await preview.screenshot({ path: path.join(output, `${viewport.width}-${index}-deck.png`) });
     }
     console.log(`${viewport.width}px: ${cards.length} cartas verificadas individualmente na coleção, ficha e deck, incluindo hover.`);
-    fs.writeFileSync(path.join(output, 'report.json'), JSON.stringify({ cards: cards.length, checks, errors }, null, 2));
+    fs.writeFileSync(path.join(output, 'report.json'), JSON.stringify({ cards: cards.length, checks, inspections, errors }, null, 2));
   }
   const failures = checks.filter(check => !check.loaded || !check.filled || !check.focused || !check.unobstructed || !check.subjectVisible);
   assert.deepEqual(errors, []);

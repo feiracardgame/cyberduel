@@ -730,6 +730,7 @@ const POOL_CARTAS_MONSTRO = [
       "Dentre os Remanescentes, a lei não é um código escrito. A lei é Dieh'Go. Nunca foi eleito nem nomeado xerife, simplesmente assumiu o posto quando o povo mais precisou. Sua autoridade não vem apenas da força, mas da confiança conquistada por anos protegendo o Povo da Areia. Até os maiores foras da lei respeitam seu julgamento. Para os forasteiros ele é a última pessoa que se deseja encontrar no deserto.",
     imagem: "diehgo",
     foco: { x: 0.5, y: 0 },
+    focoDeck: { x: 0.5, y: 0.15 },
     booster: "remanescentes",
     lendaria: true,
     efeito: {
@@ -1052,6 +1053,7 @@ const POOL_CARTAS_EFEITO = [
       "Para que buscar companhia real quando você pode preencher o vazio conversando com uma IA? No mundo virtual, todo solitário recebe seu próprio modelo androide da linha Hoi, programado para ouvir, conversar e concordar com você. Afinal, não existe lugar melhor para viver do que NeoFloripa, especialmente quando você nunca precisa estar realmente sozinho.",
     imagem: "voceparecesozinho",
     foco: { x: 0.5, y: 0 },
+    focoDeck: { x: 0.5, y: 0.15 },
     booster: "humbanet",
     efeito: {
       tipo: TIPOS_EFEITO.BUFF_ALIADO_ESCOLHIDO,

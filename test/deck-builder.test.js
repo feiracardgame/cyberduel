@@ -26,6 +26,11 @@ vm.runInContext(
 
 const { builder, CyberduelDeckBuilderUI } = context.exportsForTest;
 const catalog = builder.getCatalog();
+for (const name of ["Dieh'Go, o Xerife", "Você Parece Sozinho"]) {
+  assert.equal(catalog.find(card => card.nome === name).foco.y, .15, 'O deck usa o enquadramento mais baixo.');
+  const base = vm.runInContext('[...POOL_CARTAS_MONSTRO, ...POOL_CARTAS_EFEITO]', context).find(card => card.nome === name);
+  assert.equal(base.foco.y, 0, 'O enquadramento da partida permanece independente do deck.');
+}
 context.window.CYBERDUEL_DEMO_MODE = true;
 assert.deepEqual([...new Set(builder.getCatalog().map(card => card.booster))].sort(), ['echossystem', 'raspcorp']);
 assert.equal(builder.ownedQuantity(catalog.find(card => card.booster === 'humbanet')), 0);
