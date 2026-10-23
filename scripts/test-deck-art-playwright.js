@@ -80,6 +80,9 @@ async function checkArtInspection() {
     const art = page.locator('.forge-detail__visual');
     await art.locator('img').evaluate(img => img.decode());
     await art.waitFor();
+    const contextMenuBlocked = locator => locator.evaluate(el => !el.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })));
+    assert.equal(await contextMenuBlocked(art), true, 'A arte bloqueia o menu nativo.');
+    assert.equal(await contextMenuBlocked(page.locator('.forge-detail__content')), false, 'O texto da ficha continua com o menu normal.');
     const bounds = await art.boundingBox(), point = { x: bounds.x + bounds.width * .55, y: bounds.y + bounds.height * .45 };
     const down = async () => {
       if (mobile) await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ ...point, id: 1 }] });
@@ -89,8 +92,15 @@ async function checkArtInspection() {
       if (mobile) await touch.send('Input.dispatchTouchEvent', { type: cancel ? 'touchCancel' : 'touchEnd', touchPoints: [] });
       else await page.mouse.up();
     };
+    if (mobile) await page.evaluate(() => window.addEventListener('touchstart', event => {
+      window.qaArtTouchPrevented = event.defaultPrevented;
+    }, { once: true }));
     await down();
     await page.waitForSelector('.forge-art-inspection');
+    if (mobile) assert.equal(await page.evaluate(() => window.qaArtTouchPrevented), true, 'O toque real bloqueia a ação nativa do Chrome.');
+    assert.equal(await contextMenuBlocked(page.locator('.forge-modal')), true, 'O menu continua bloqueado quando a ficha fica oculta.');
+    await page.waitForTimeout(900);
+    assert.equal(await page.locator('.forge-art-inspection').count(), 1, 'Segurar além do prazo do menu nativo mantém a inspeção.');
     assert.equal(await page.locator('.forge-detail').evaluate(el => getComputedStyle(el).visibility), 'hidden');
     const image = page.locator('.forge-art-inspection img');
     await image.evaluate(img => img.decode());

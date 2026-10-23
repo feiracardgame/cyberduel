@@ -1162,6 +1162,11 @@ body.deck-forge-open #game-viewport canvas {
   cursor: zoom-in;
 }
 .forge-detail.is-inspecting-art { visibility: hidden; }
+.forge-detail__visual img,
+.forge-art-inspection img {
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
 .forge-detail__visual:focus-visible { outline: 2px solid var(--card-color); outline-offset: -3px; }
 .forge-art-inspection {
   position: absolute;
@@ -1170,6 +1175,8 @@ body.deck-forge-open #game-viewport canvas {
   display: grid;
   place-items: center;
   pointer-events: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 .forge-art-inspection__card {
   position: relative;

@@ -929,6 +929,7 @@ class CyberduelDeckBuilderUI {
         const image = this.element("img");
         image.src = this.imageSource(card);
         image.alt = `Arte completa de ${card.nome}`;
+        image.draggable = false;
         frame.style.setProperty("--art-ratio", source.naturalWidth / source.naturalHeight);
         frame.style.setProperty("--card-color", this.levelColor(card));
         frame.append(image);
@@ -941,7 +942,10 @@ class CyberduelDeckBuilderUI {
     };
     visual.addEventListener("pointerdown", begin, options);
     visual.addEventListener("keydown", begin, options);
-    visual.addEventListener("contextmenu", event => event.preventDefault(), options);
+    visual.addEventListener("touchstart", event => event.preventDefault(), { ...options, passive: false });
+    dialog.parentElement.addEventListener("contextmenu", event => {
+      if (preview || visual.contains(event.target)) event.preventDefault();
+    }, options);
     visual.addEventListener("lostpointercapture", finish, options);
     window.addEventListener("pointermove", (event) => {
       if (event.pointerId !== pointer) return;

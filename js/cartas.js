@@ -1053,7 +1053,7 @@ const POOL_CARTAS_EFEITO = [
       "Para que buscar companhia real quando você pode preencher o vazio conversando com uma IA? No mundo virtual, todo solitário recebe seu próprio modelo androide da linha Hoi, programado para ouvir, conversar e concordar com você. Afinal, não existe lugar melhor para viver do que NeoFloripa, especialmente quando você nunca precisa estar realmente sozinho.",
     imagem: "voceparecesozinho",
     foco: { x: 0.5, y: 0 },
-    focoDeck: { x: 0.5, y: 0.15 },
+    focoDeck: { x: 0.5, y: 1 },
     booster: "humbanet",
     efeito: {
       tipo: TIPOS_EFEITO.BUFF_ALIADO_ESCOLHIDO,
