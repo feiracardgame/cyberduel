@@ -448,6 +448,7 @@ class CyberduelDeckBuilderUI {
     artButton.setAttribute("aria-label", `Ver detalhes de ${card.nome}`);
     const image = this.element("img", "forge-card__image");
     image.src = this.imageSource(card);
+    image.style.setProperty("--card-focus", `${card.foco.x * 100}% ${card.foco.y * 100}%`);
     image.alt = "";
     image.loading = "lazy";
     image.decoding = "async";
@@ -613,6 +614,7 @@ class CyberduelDeckBuilderUI {
     );
     const image = this.element("img");
     image.src = this.imageSource(card);
+    image.style.setProperty("--card-focus", `${card.foco.x * 100}% ${card.foco.y * 100}%`);
     image.alt = "";
     image.loading = "lazy";
     image.decoding = "async";
@@ -821,6 +823,7 @@ class CyberduelDeckBuilderUI {
     const visual = this.element("div", "forge-detail__visual");
     const image = this.element("img");
     image.src = this.imageSource(card);
+    image.style.setProperty("--card-focus", `${card.foco.x * 100}% ${card.foco.y * 100}%`);
     image.alt = `Arte da carta ${card.nome}`;
     image.decoding = "async";
     visual.append(image, this.element("div", "forge-detail__visual-wash"));

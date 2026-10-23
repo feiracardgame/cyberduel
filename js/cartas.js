@@ -229,6 +229,7 @@ const POOL_CARTAS_TERRENO = [
     descricao:
       "As IAs eram gratuitas até todo mundo começar a usá-las. Quando perceberam que havia dinheiro envolvido, seus criadores rapidamente introduziram assinaturas, créditos e limites de utilização. O Humba Brain resolveu o problema de uma maneira simples: reuniu todas elas em um único modelo para que nenhum NeoFlorianopolitano precisasse pagar por elas.",
     imagem: "deepclaude",
+    foco: { x: 0.5, y: 0.1 },
     booster: "humbanet",
     efeito: {
       tipo: "renovar_mao",
@@ -269,6 +270,7 @@ const POOL_CARTAS_TERRENO = [
     descricao:
       "Recriada no mundo virtual com mais de quatro quilômetros de altura, a Torre MonteCorp permanece como um lembrete constante de que, se a Raspcorp quisesse conquistar os céus, provavelmente encontraria uma forma de monetizá-los.",
     imagem: "torremontecorp",
+    foco: { x: 0.5, y: 0.15 },
     booster: "raspcorp",
     efeitoContinuo: {
       tipo: TIPOS_EFEITO_CONTINUO.BUFF_CAMPO_CONTINUO,
@@ -365,6 +367,7 @@ const POOL_CARTAS_MONSTRO = [
     descricao:
       "Para tornar a experiência acessível a todos, a HumbaNet criou uma integrante responsável por demonstrar as funcionalidades e explicar as regras da nova simulação. Infelizmente, ninguém descobriu como tornar suas interrupções menos irritantes ou implementar um botão de pular tutorial.",
     imagem: "ia_treinamento",
+    foco: { x: 0.5, y: 0.1 },
     booster: "humbanet",
     efeito: {
       tipo: "buff_adjacentes",
@@ -378,6 +381,7 @@ const POOL_CARTAS_MONSTRO = [
     descricao:
       "A versão aprimorada de uma das IAs mais referenciadas da história promete novas funcionalidades, análises aprimoradas e um comportamento, esperamos, um pouco menos destrutivo e manipulador. Contudo, ela continua banida de operações espaciais.",
     imagem: "hal9001",
+    foco: { x: 0.5, y: 0.15 },
     booster: "humbanet",
     efeito: {
       tipo: "silenciar_carta",
@@ -391,6 +395,7 @@ const POOL_CARTAS_MONSTRO = [
     descricao:
       "Conheça Harvis, sua nova IA assistente! Criado para auxiliar os usuários de NeoFloripa, ele pode responder perguntas, realizar tarefas, controlar dispositivos, oferecer recomendações e facilitar sua vida dentro da simulação. Harvis está sempre ao seu lado, mesmo quando você não pediu. O fato de agora possuir um corpo físico na simulação torna isso um pouco mais estranho.",
     imagem: "harvis",
+    foco: { x: 0.5, y: 0.1 },
     booster: "humbanet",
     efeito: {
       tipo: "bonus_tempo_turno",
@@ -468,6 +473,7 @@ const POOL_CARTAS_MONSTRO = [
     descricao:
       "Dentre as chamadas \"pessoas normais\", o Influenciador é aquele que acredita ser mais especial. Dita tendências, opiniões e comportamentos, embora suas convicções possam mudar diante de uma proposta melhor. Não produz nada além de conteúdo, engajamento e publicidade, mas finalmente encontrou uma forma de vender a própria existência e chamar isso de trabalho.",
     imagem: "neo_influencer",
+    foco: { x: 0.5, y: 0 },
     booster: "sindicato",
     nivel: "media",
     efeito: {
@@ -533,6 +539,7 @@ const POOL_CARTAS_MONSTRO = [
     descricao:
       "O estudante de curso técnico possui potencial infinito. Não há quase nada que ele não possa aprender a fazer, embora às vezes o preço envolva seu tempo, esforço e sanidade mental. Seu maior desafio, porém, continua sendo descobrir como fazer qualquer coisa sem pesquisar no CyberSmartPhone primeiro.",
     imagem: "estudante_tecnico",
+    foco: { x: 0.5, y: 0.1 },
     booster: "sindicato",
     nivel: "baixa",
     efeito: {
@@ -549,6 +556,7 @@ const POOL_CARTAS_MONSTRO = [
     descricao:
       "Quem falou que as máquinas e as IAs roubariam nossos empregos não poderia estar mais errado. Na verdade, hoje trabalhamos cinco vezes mais **para elas**. Afinal, até mesmo as máquinas mais avançadas do planeta continuam incapazes de explicar por que todo cabo é exatamente 10 centímetros curto demais ou 20 metros longo demais.",
     imagem: "montador_de_cabos",
+    foco: { x: 0.5, y: 0.25 },
     booster: "sindicato",
     nivel: "baixa",
     efeito: {
@@ -566,6 +574,7 @@ const POOL_CARTAS_MONSTRO = [
     descricao:
       "Com a média da temperatura global já em 30°C, o processo de implementação e manutenção de sistemas de refrigeração em servidores de megacorporações tem sido cada vez frequente. Para isso, os técnicos em refrigeração precisam encontrar soluções inovadoras para a resolução desse problema, já que a criatividade é o único recurso que atualmente ainda não se encontra em escassez.",
     imagem: "refrigerador_de_datacenter",
+    foco: { x: 0.5, y: 0.25 },
     booster: "sindicato",
     nivel: "baixa",
     efeito: {
@@ -655,6 +664,7 @@ const POOL_CARTAS_MONSTRO = [
     descricao:
       "As árduas horas dedicadas ao treinamento e desenvolvimento de IAs capazes de substituir o trabalho humano demonstram que, apesar de ser apenas um estagiário, seu trabalho é vital para o futuro da empresa. O RPH estima que ele continuará sendo lembrado por aproximadamente três semanas após sua substituição",
     imagem: "estagiarioml",
+    foco: { x: 0.5, y: 0.25 },
     booster: "raspcorp",
     efeito: {
       tipo: TIPOS_EFEITO.BUFF_ALIADO_ESCOLHIDO,
@@ -672,6 +682,7 @@ const POOL_CARTAS_MONSTRO = [
     descricao:
       "Atualmente, funcionários humanos e máquinas compartilham os mesmos benefícios corporativos. Nenhum dos dois está particularmente satisfeito com isso. O GRPH garante que todas as reclamações sejam igualmente ignoradas.",
     imagem: "rh",
+    foco: { x: 0.5, y: 0.1 },
     booster: "raspcorp",
     efeito: {
       tipo: TIPOS_EFEITO.REDISTRIBUIR_PODER,
@@ -749,6 +760,7 @@ const POOL_CARTAS_MONSTRO = [
     descricao:
       "No mundo dos Remanescentes, quase tudo pode ser reaproveitado. A Ferreira transforma restos do velho mundo em armas, ferramentas e equipamentos capazes de manter seu povo vivo por mais um dia. Sua oficina é parada obrigatória para qualquer um que quer sobreviver no deserto.",
     imagem: "ferreira",
+    foco: { x: 0.5, y: 0.2 },
     booster: "remanescentes",
     efeito: {
       tipo: TIPOS_EFEITO.BUFF_ATE_DOIS_ALIADOS,
@@ -779,6 +791,7 @@ const POOL_CARTAS_MONSTRO = [
     descricao:
       "Sen'Tenzhah ocupa uma zona cinzenta até mesmo entre os Remanescentes. Como caçador de recompensas, emprega métodos pouco ortodoxos e muda de lado sempre que a recompensa compensa. Seu apelido, “O Mau”, contrasta curiosamente com sua aparência, especialmente com seus olhos angelicais.",
     imagem: "omau",
+    foco: { x: 0.5, y: 0.15 },
     booster: "remanescentes",
     efeito: {
       tipo: TIPOS_EFEITO.ATACAR,
@@ -796,6 +809,7 @@ const POOL_CARTAS_MONSTRO = [
     descricao:
       "Apesar de também ser um fora da lei, o Bom segue um rígido código moral e sempre busca fazer o que considera justo, mesmo quando isso entra em conflito com as leis dos Remanescentes. Seu verdadeiro nome nunca foi revelado, pois acredita que uma reputação deve ser construída pelos atos, não pelo nome de quem os pratica. Seu único companheiro constante é José, um pequeno pássaro que o acompanha por onde quer que vá.",
     imagem: "obom",
+    foco: { x: 0.5, y: 0.2 },
     booster: "remanescentes",
     efeito: {
       tipo: TIPOS_EFEITO.DISTRIBUIR_DANO,
@@ -832,7 +846,7 @@ const POOL_CARTAS_MONSTRO = [
       "Raspclay trocou seu antigo nome pelo topo dos arranha-céus de Floripa. Atualmente, comanda a irreverente e opressora empresa de tecnologia, serviços, segurança privada e propaganda Raspcorp. Após comprar todos os setores da sociedade, seus advogados passaram a afirmar que a palavra \"monopólio\" carrega uma conotação desnecessariamente negativa.",
     imagem: "raspclay",
     booster: "raspcorp",
-    foco: { x: 0.5, y: 0.05 },
+    foco: { x: 0.5, y: 0 },
     lendaria: true, // 1x só no deck — visualização detalhada com destaque especial (ver jogo.js)
     efeito: {
       tipo: TIPOS_EFEITO.ABSORVER_ALIADOS,
@@ -887,6 +901,7 @@ const POOL_CARTAS_MONSTRO = [
     descricao:
       "Outrora um trabalhador comum, o Boi perdeu a visão e o emprego em um acidente e foi obrigado a usar um visor vermelho para enxergar. Consumido pelas perdas e pelo vermelho que agora domina seus olhos, reuniu, sob a tutela do mercenário “O Dragão”, outros 10 indivíduos com um objetivo: destruir o mundo e reconstruí-lo da maneira certa, não importa quantas vezes seja necessário.",
     imagem: "oboi",
+    foco: { x: 0.5, y: 0 },
     booster: "echossystem",
     lendaria: true, // 1x só no deck — visualização detalhada com destaque especial (ver jogo.js)
     efeito: {
