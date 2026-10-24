@@ -110,21 +110,16 @@ async function copyTeacher() {
   await page.waitForFunction(() => cena.children.list.some(object =>
     object.dadosCartaCampo === partida.jogador.campo.cartas[0] && object.scaleX === 1));
   await slot(0);
-  await page.waitForFunction(() => cena.modalAberto && cena.painelDetalheAtual?.scaleX === 1 &&
-    !cena.tweens.isTweening(cena.painelDetalheAtual));
+  await page.waitForFunction(() => !cena.modalAberto &&
+    cena.cartaCampoSelecionada?.dadosCartaCampo === partida.jogador.campo.cartas[0] &&
+    cena.botaoHabilidadeCampo?.name === 'ativar-habilidade-campo' && cena.botaoHabilidadeCampo.input?.enabled &&
+    !cena.tweens.isTweening(cena.cartaCampoSelecionada));
   const button = await page.evaluate(() => {
-    const walk = items => {
-      for (const object of items) {
-        if (object.name === 'ativar-habilidade' && object.input?.enabled) {
-          const matrix = object.getWorldTransformMatrix();
-          return { x: matrix.tx, y: matrix.ty, scene: object.scene.scene.key };
-        }
-        if (object.list) { const found = walk(object.list); if (found) return found; }
-      }
-    };
-    for (const scene of game.scene.getScenes(true)) { const result = walk(scene.children.list); if (result) return result; }
+    const object = cena.botaoHabilidadeCampo;
+    const matrix = object.getWorldTransformMatrix();
+    return { x: matrix.tx, y: matrix.ty, scene: object.scene.scene.key };
   });
-  assert.ok(button, 'Botão real de ativação disponível');
+  assert.ok(button, 'Bolinha de ativação disponível sem abrir a ficha');
   await tap(button.x, button.y, button.scene);
   await page.waitForFunction(() => cena.objetosSelecaoAlvo?.length > 0 && !cena.modalAberto);
   await slot(1);

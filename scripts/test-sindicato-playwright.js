@@ -47,20 +47,16 @@ async function activate(index = 0) {
   await waitIdle();
   await page.waitForFunction(index => cena.children.list.some(object => object.dadosCartaCampo === partida.jogador.campo.cartas[index] && object.scaleX === 1), index);
   await tapSlot('jogador', index);
-  await page.waitForFunction(() => window.cena.modalAberto && window.cena.painelDetalheAtual?.scaleX === 1 && !window.cena.tweens.isTweening(window.cena.painelDetalheAtual));
+  await page.waitForFunction(index => !cena.modalAberto &&
+    cena.cartaCampoSelecionada?.dadosCartaCampo === partida.jogador.campo.cartas[index] &&
+    cena.botaoHabilidadeCampo?.name === 'ativar-habilidade-campo' && cena.botaoHabilidadeCampo.input?.enabled &&
+    !cena.tweens.isTweening(cena.cartaCampoSelecionada), index);
   const button = await page.evaluate(() => {
-    const walk = items => {
-      for (const object of items) {
-        if (object.name === 'ativar-habilidade' && object.input?.enabled) {
-          const matrix = object.getWorldTransformMatrix();
-          return { x: matrix.tx, y: matrix.ty, scene: object.scene.scene.key };
-        }
-        if (object.list) { const found = walk(object.list); if (found) return found; }
-      }
-    };
-    for (const scene of game.scene.getScenes(true)) { const result = walk(scene.children.list); if (result) return result; }
+    const object = cena.botaoHabilidadeCampo;
+    const matrix = object.getWorldTransformMatrix();
+    return { x: matrix.tx, y: matrix.ty, scene: object.scene.scene.key };
   });
-  assert.ok(button, 'Botão real de ativar habilidade disponível');
+  assert.ok(button, 'Bolinha de ativar habilidade disponível sem abrir a ficha');
   await tapWorld(button.x, button.y, button.scene);
   await page.waitForFunction(() => window.cena.objetosSelecaoAlvo?.length > 0 && !window.cena.modalAberto && window.cena.input.enabled);
 }

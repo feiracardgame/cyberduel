@@ -10,6 +10,16 @@ Requer Node.js 22 ou superior.
 3. Para jogar **sem conta Google**, inicie com `npm run dev` e abra **http://127.0.0.1:3000/**. Em **IDENTIFICAR // ENTRAR**, informe um nome de teste e clique em **ENTRAR LOCALMENTE**. A conta local tem acesso aos atalhos de teste/admin; escolha sua facção para receber o deck inicial. Use nomes diferentes para testar dois jogadores.
 4. As contas de desenvolvimento persistem em `server/data-dev/` (ignorado pelo Git). Reusar o mesmo nome recupera o progresso; `DATA_DIR`, se informado, tem prioridade. O servidor de desenvolvimento escuta apenas em `127.0.0.1`. `npm start` mantém login Google, dados normais e acesso pela rede, sem aceitar contas locais. Com `.env`, use `node --env-file=.env scripts/dev-server.js`.
 
+### Interação com as cartas
+
+Clique ou toque em uma carta para selecioná-la. No campo, ela levanta levemente e mostra uma bolinha lateral quando sua habilidade está disponível; toque na bolinha para ativar e escolher os alvos. Segure a carta por 450 ms para abrir a visualização avançada. Arrastar continua movendo as cartas da mão e cancela a inspeção.
+
+O treino com a ElenAI ensina esses gestos com uma inspeção inicial e destaques que acompanham carta, bolinha e alvo. Nas fichas comuns, toque na ilustração para ampliar; a opção de segurar para ocultar os textos fica restrita às lendárias.
+
+`npm run test:tutorial:browser` percorre o treino completo com mouse e toque, em celular e desktop, inclusive sem backend. As capturas ficam em `output/sindicato/tutorial/`.
+
+`npm run test:card-interaction:browser` verifica os gestos com mouse e toque em celular e desktop. Usa dados temporários na porta 31969; capturas e relatório ficam em `output/sindicato/card-interaction/`.
+
 ### Testar os efeitos do Sindicato com Playwright
 
 Execute `npm run test:sindicato:browser`. O teste abre uma arena real, prepara campos determinísticos e usa toques no botão de habilidade e nos alvos para verificar as dez cartas do booster. Ele valida as regras, a reprodução dos sons, os símbolos, o vídeo dos Professores, a expiração dos estados, a serialização e a orientação da apresentação. O servidor usa contas e dados temporários, sem alterar as contas do jogo. Capturas, relatório e trace ficam em `output/sindicato/`.
@@ -92,13 +102,15 @@ Sem Docker, pare o processo Node e execute `node --env-file=.env server/delete-p
 Depois do carregamento inicial, abra o console (F12):
 
 ```js
-irParaX1()                 // Abre imediatamente uma partida solo contra o bot.
+irParaX1()                 // Sem conta, usa um admin offline e abre o solo contra o bot.
 irParaFinal()              // Encerra com vitória de quem executou o comando.
 irParaFinal("derrota")     // Encerra com derrota.
 irParaFinal("empate")      // Encerra com empate.
 ```
 
-`irParaX1()` pula login, menu e transição. Usa o deck salvo ou um deck temporário válido, sem salvar mudanças na coleção. Sai da sala online atual, se houver. Os comandos existentes, como `puxarCarta("nome")`, continuam disponíveis dentro da partida.
+`irParaX1()` pula login, menu e transição, sem precisar do backend. Se estiver sem conta, usa automaticamente um perfil **Admin offline** temporário no navegador. Se já estiver conectado, mantém sua conta e exige que ela seja administradora. Usa o deck salvo ou um deck temporário válido, sem salvar mudanças na coleção. Sai da sala online atual, se houver. Os comandos existentes, como `puxarCarta("nome")`, continuam disponíveis dentro da partida.
+
+`npm run test:x1-offline:browser` verifica esse fluxo no navegador servindo apenas os arquivos estáticos e bloqueando o acesso ao backend.
 
 `irParaFinal()` exige uma partida aberta. Em solo, funciona imediatamente. Online, inicie o backend com **`npm run dev`** (ou `CYBERDUEL_DEBUG=1 npm start`): o servidor encerra a partida para os dois jogadores e espectadores, invertendo vitória/derrota conforme a perspectiva. Espectadores não podem executar o comando. Com `npm start` normal, o atalho online fica desativado.
 

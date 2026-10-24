@@ -2681,7 +2681,8 @@ class CyberduelTitleUI {
     const content = this.element("div", "title-rules-content");
     for (const [title, text] of [
       ["Monte seu deck", "Salve um deck de 20 cartas da sua coleção: pelo menos 6 monstros de nível baixo, 4 de nível médio e 2 de nível alto. Cada carta permite até 3 cópias; lendárias permitem 1."],
-      ["Jogue suas cartas", "Use as fases de colocação para montar seu campo e as fases de habilidades para ativar os efeitos das cartas. Confira a descrição de cada carta para conhecer seus alvos e condições."],
+      ["Jogue suas cartas", "Toque em uma carta da mão para selecionar e depois no espaço do campo para invocar. Você também pode arrastá-la. Na fase de habilidades, toque na carta em campo: ela levanta e mostra uma bolinha verde quando a habilidade está disponível. Toque na bolinha e escolha os alvos destacados."],
+      ["Consulte os detalhes", "Segure uma carta para abrir a visualização avançada e ler seus efeitos e alcance. Nas cartas comuns, toque na ilustração para ampliar. Consultar a ficha não ativa a habilidade."],
       ["Cartas de efeito e de terreno", "Cartas de efeito têm ação instantânea: resolvem seu efeito ao serem usadas e depois saem do campo. Cartas de terreno mantêm um efeito duradouro enquanto estiverem em campo; ao serem removidas, esse efeito termina. Confira a descrição de cada carta para conhecer suas condições."],
       ["Tempo de cada turno", "Cada turno tem um tempo máximo de 40 segundos para realizar suas ações. O cronômetro fica pausado durante as animações dos efeitos e volta a contar quando elas terminam."],
       ["Vença as rodadas", "O poder total de cada campo define o vencedor da rodada. Empates não pontuam. A partida termina com 4 rodadas vencidas ou após 7 rodadas; vence quem tiver mais rodadas ganhas. Resultados iguais terminam em empate."],

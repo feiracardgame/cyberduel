@@ -30,7 +30,8 @@ assert.equal(a.scaleX,1);assert.equal(a.angle,5);
 assert.equal(b.y,handY-82);
 assert.equal(a._maoSwipeYOriginal,undefined);
 assert.equal(a.y,handY);assert.equal(a.depth,a.depthBase);assert.equal(scene.cartaMaoSelecionada,b);
-scene.selecionarCartaDaMao(b);assert.deepEqual(details,[b.dadosCarta]);
+scene.selecionarCartaDaMao(b);assert.equal(details.length,0,'Repetir o clique mantém a seleção sem abrir a ficha.');
+assert.equal(scene.cartaMaoSelecionada,b);
 const click={x:150,y:150,getDistance:()=>0};
 scene.faseAtual='habilidades';assert.equal(scene.jogarCartaSelecionadaNoCampo(click),false);
 scene.faseAtual='colocar';scene.ehMeuTurno=false;assert.equal(scene.jogarCartaSelecionadaNoCampo(click),false);
@@ -40,7 +41,7 @@ assert.equal(scene.jogarCartaSelecionadaNoCampo({...click,getDistance:()=>30}),f
 assert.equal(plays.length,0);assert.equal(scene.cartaMaoSelecionada,b);
 assert.equal(scene.jogarCartaSelecionadaNoCampo(click),true);assert.equal(plays[0].c,b);assert.equal(plays[0].p,click);
 assert.equal(scene.cartaMaoSelecionada,null);
-console.log('Mão: seleção, troca, segundo clique, campo e bloqueios de fase/gesto validados.');
+console.log('Mão: seleção, troca, clique repetido sem ficha, campo e bloqueios de fase/gesto validados.');
 
 // Mesmo com animações pendentes, a carta antiga baixa de forma síncrona.
 scene.tweens.add=()=>{};

@@ -60,12 +60,20 @@ Descrição de como será feito o tutorial do jogo
 
   # Tutorial
 
+## Controles atuais do treino
+
+- Antes da primeira invocação, a ElenAI pede para segurar o Estagiário na mão, ler sua ficha e fechá-la pelo X.
+- Um toque seleciona a carta e a levanta. Depois, tocar no espaço destacado invoca a carta; arrastar continua disponível.
+- Na fase de habilidades, o destaque acompanha a sequência: carta em campo, bolinha verde lateral e alvo válido. Cada ação recebe uma instrução própria.
+- Segurar uma carta abre a visualização avançada para consultar efeitos e alcance. Nas cartas não lendárias, a ilustração oferece apenas toque para ampliar, sem ocultar os textos ao segurar. A inspeção da arte sem textos continua nas lendárias.
+- As falas de treinamento em `js/tutorial.js` explicam esses controles antes dos exercícios de Tigre e Agente da DIPSP. Os personagens, a ordem das lições e os alvos deste roteiro foram preservados.
+
 -> O tutorial pode ser revisitado, triggando esse evento normalmente, apertando essa opção no menu
 
   *fundo é um campo de duelo normal*
 
  - ElenAI (sprite 3) -> "O Cyberduel é um jogo de cartas em que cada carta representa uma personalidade famosa do seu futuro no "mundo real", apesar de eu não gostar muito desse termo."
- - ElenAI(sprite 3) -> "Dessa forma, a plateia reage diferentemente quando cada carta entra em campo, experimenta lançar essa carta:
+ - ElenAI(sprite 3) -> "Antes de invocar, vamos conhecer sua carta. Segure o Estagiário na mão para abrir a visualização avançada. Leia o efeito e feche a ficha pelo X. Depois eu te mostro como colocá-lo em campo."
  -> Aparece pro jogador invocar o Estagiário de Machine Learning em campo
 
  - ElenAI (sprite 13) -> "Essa carta te deu PA (Pontos de Audiência), como você pode ver aqui na lateral. Como precisamos da vibração da plateia, que serve de fonte de energia cinética e sonora para alimentar nossa simulação, nada mais justo do que dar a vitória para quem mais movimentá-la."
@@ -75,19 +83,19 @@ Descrição de como será feito o tutorial do jogo
  - ElenAI (sprite 4) -> "Temos 3 tipos de cartas: Cartas de Personagem (as únicas que de fato somam PA), cartas de efeito (são invocadas e aplicam um efeito instantâneo no campo) e cartas de terreno (mantém o efeito enquanto ainda estiverem em campo)"
  - ElenAI (sprite 4) -> "Cada deck de cartas deve ser composto por, no mínimo, 6 cartas baixas, 4 médias e 2 altas. O restante é livre!"
 
- - ElenAI (sprite 15) -> "As cartas de personagem são divididas por raridade e cada uma tem uma história e efeito único, por isso, trate de ler e entender todas que tiver! Vou te mostrar um exemplo"
+ - ElenAI (sprite 15) -> "Cada personagem tem sua história e seu efeito. Para consultar a ficha, segure a carta. Para selecionar, dê só um toque: ela levanta um pouquinho. Na fase de habilidades, as cartas disponíveis mostram uma bolinha verde ao lado quando você as seleciona."
 
 -> Surge Tigre na mão do usuário e aparece um cybervendedor no espaço da frente do campo oponente e um rato lá atrás.
 
-- ElenAI (sprite 8) -> "Invoque essa carta no espaço brilhante e finalize o turno, para poder entrar no turno de habilidades"
--> Usuário tem que invocar o tigre no espaço da frente, de modo a poder acertar o cybervendedor. Ele então tem que passar o turno e depois clicar no Tigre pra usar ele para atacar o Cybervendedor
+- ElenAI (sprite 8) -> "Agora selecione o Tigre na sua mão e toque no espaço destacado da frente. Você também pode arrastar a carta até lá. Depois toque no botão >> à direita para entrar na fase de habilidades. Vamos ativar o ataque direto pelo campo."
+-> Usuário invoca o Tigre no espaço da frente, avança pelo >>, toca no Tigre para selecioná-lo, toca na bolinha verde ao lado e escolhe o CyberVendedor como alvo. O destaque muda a cada etapa.
 
-- ElenAI (sprite 5) -> "Ótimo, muito bem!"
+- ElenAI (sprite 5) -> "Muito bem! Você selecionou o Tigre, tocou na bolinha e escolheu o CyberVendedor como alvo. A ficha fica para consultar os detalhes; a habilidade pode ser ativada direto no campo."
 - ElenAI (sprite 10) -> "No entanto, você deve ter percebido que não conseguiu acertar a carta lá no fundo. Isso acontece porque todo efeito de carta apresenta alguma condição específica. Nesse caso, é o alcance. O número ao lado do "H" indica qual a distância de casas máximas horizontais que o efeito alcança, e o número ao lado do "V" indica o mesmo, porém para a distância de casas verticais."
-- ElenAI (sprite 10) -> "Tenta utilizar essa carta aqui agora."
+- ElenAI (sprite 10) -> "Vamos tentar com o Agente da DIPSP. Selecione e invoque no espaço destacado, depois avance pelo >>. Na fase de habilidades, toque no Agente, na bolinha verde e no Rato do fundo. Se quiser comparar o alcance, segure a carta para consultar a ficha."
 -> Usuário recebe o Agente da DIPSP na mão e aparece brilhando pra ele invocar o DIPSP em um dos espaços da frente. Ele invoca lá e brilha pra passar o turno. Agora, o DIPSP brilha e ele tem que usar a habilidade para acertar o rato.
 
-- ElenAI (sprite 16) -> "Estou impressionada, você é profissional já!"
+- ElenAI (sprite 16) -> "Você já pegou o jeito! Um toque seleciona, a bolinha ativa a habilidade e segurar abre a ficha. O Agente alcançou o Rato porque tem o alcance certo para essa posição."
 - ElenAI (sprite 2) -> "Siga jogando, aprendendo e vencendo, assim você ganhará pontos de influência no ranking oficial do jogo e, estando alto o suficiente, poderá se tornar um membro do Conselho"
 - ElenAI (sprite 2) -> "Lembre-se de sempre fazer as melhores jogadas, porém seja rápido, já que a audiência não gosta de ficar esperando pela sua jogada."
 

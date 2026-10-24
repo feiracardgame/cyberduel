@@ -129,7 +129,8 @@ class CenaJogo extends Phaser.Scene {
     this.baseCampo = null;
     this.layoutBaseCampo = null;
     this.gestosMaoConfigurados = false;
-    this.partidaRegistradaNaConta = this.tutorial;
+    this.partidaRegistradaNaConta = this.tutorial || dados.debug === true ||
+      window.cyberduelAccount?.authProvider === "offline";
     this.registroSolo = null;
     this.recompensaRecebida = null;
     this.influenciaRecebida = 0;
@@ -254,7 +255,7 @@ class CenaJogo extends Phaser.Scene {
     // Guarda os listeners de rolagem para removê-los ao fechar o modal.
     this.handlersScrollDescAtual = null;
 
-    // Objetos do modo de mira (anéis + zonas de toque) do botão "Ativar Habilidade" do modal de detalhe — ver iniciarAtivacaoHabilidade().
+    // Objetos do modo de mira da habilidade, no campo ou na ficha.
     this.objetosSelecaoAlvo = null;
 
     // Referência ao botão de menu enquanto estiver visível.
@@ -424,10 +425,17 @@ class CenaJogo extends Phaser.Scene {
     };
 
     this.cartaMaoSelecionada = null;
+    this.cartaCampoSelecionada = null;
+    this.botaoHabilidadeCampo = null;
     this.input.on("pointerup", (pointer, objetos) => {
+      if (this.deveIgnorarCliqueCarta(pointer)) return;
+      if (objetos.some((o) => o.name === "ativar-habilidade-campo")) return;
+      if (!objetos.some((o) => o.cartaInspecionavel))
+        this.limparSelecaoCartaCampo();
       if (objetos.some((o) => o.dadosCarta)) return;
       this.jogarCartaSelecionadaNoCampo(pointer);
     });
+    this.configurarInspecaoCartas();
 
     // Drag and Drop das cartas da mão
     this.input.on("dragstart", (pointer, gameObject) => {
@@ -444,6 +452,8 @@ class CenaJogo extends Phaser.Scene {
         return;
       }
       this.baixarOutrasCartasDaMao(gameObject);
+      this.cancelarInspecaoCarta();
+      this.limparSelecaoCartaCampo();
       this.cartaMaoSelecionada = null;
       this.gestoMaoAtivo = false;
       this.tweens.killTweensOf(gameObject);
@@ -484,7 +494,7 @@ class CenaJogo extends Phaser.Scene {
     this.multiplayer = window.cyberduelMultiplayer;
     this.multiplayerAtivo = !this.tutorial && !!this.multiplayer?.active;
     this.carregarRetratosDuelo();
-    this.soloMatchStart = !this.multiplayerAtivo && !this.tutorial
+    this.soloMatchStart = !this.multiplayerAtivo && !this.partidaRegistradaNaConta
       ? window.cyberduelAccount.startSoloMatch().then(matchId => ({ matchId }), error => ({ error }))
       : null;
     if (this.multiplayerAtivo) {
@@ -745,13 +755,84 @@ class CenaJogo extends Phaser.Scene {
 
   podeConsultarCartas() {
     return (
-      (!this.training || ["intern", "tiger", "dipsp", "tiger-ability", "dipsp-ability"].includes(this.training.step)) &&
+      (!this.training || ["intern-inspect", "intern", "tiger", "dipsp", "tiger-ability", "dipsp-ability"].includes(this.training.step)) &&
       !this.avisoBatalhaPendente() && !this.efeitosBloqueiamInteracao() &&
       !this.multiplayer?.presentation &&
       !this.modalAberto && !this.objetosSelecaoAlvo &&
       !this.animacaoRemotaEmCurso &&
       (!this.ehMeuTurno || !this.travado)
     );
+  }
+
+  // Um único temporizador distingue clique, arraste e inspeção para todas as cartas.
+  configurarInspecaoCartas() {
+    this.gestoInspecaoCarta = null;
+    this.inspecaoCartaPressionada = null;
+    const cancelar = () => {
+      this.cancelarInspecaoCarta();
+      this.gestoInspecaoCarta = null;
+      this.inspecaoCartaPressionada = null;
+    };
+    const iniciar = (pointer, objetos) => {
+      // Um novo down recupera gestos cujo release ocorreu com o input bloqueado.
+      if (this.gestoInspecaoCarta?.pointer.id === pointer.id) cancelar();
+      if (this.gestoInspecaoCarta || !this.podeConsultarCartas()) return;
+      const container = objetos.find((o) => o.cartaInspecionavel && !o.animandoCompra);
+      if (!container) return;
+      const gesto = { pointer, container, cancelado: false, abriu: false };
+      this.gestoInspecaoCarta = gesto;
+      gesto.timer = this.time.delayedCall(450, () => {
+        gesto.timer = null;
+        if (gesto.cancelado || pointer.isDown === false || !container.active || !container.visible ||
+          container.input?.enabled === false ||
+          !this.podeConsultarCartas()) return;
+        gesto.abriu = true;
+        this.inspecaoCartaPressionada = pointer.id;
+        this.gestoMaoAtivo = false;
+        this.voltarMaoParaPosicao();
+        this.mostrarDetalheCarta(container.cartaInspecionavel);
+      });
+    };
+    const mover = (pointer) => {
+      if (this.gestoInspecaoCarta?.pointer.id === pointer.id &&
+        pointer.getDistance() > this.input.dragDistanceThreshold)
+        this.cancelarInspecaoCarta();
+    };
+    const soltar = (pointer) => {
+      if (this.gestoInspecaoCarta?.pointer.id === pointer.id) cancelar();
+    };
+    this.input.on("pointerdown", iniciar);
+    this.input.on("pointermove", mover);
+    this.input.on("pointerup", soltar);
+    this.input.on("pointerupoutside", soltar);
+    this.input.on("gameout", cancelar);
+    this.game.events.on("blur", cancelar);
+    this.game.canvas.addEventListener("pointercancel", cancelar);
+    this.events.once("shutdown", () => {
+      cancelar();
+      this.limparSelecaoCartaCampo(true);
+      this.input.off("pointerdown", iniciar);
+      this.input.off("pointermove", mover);
+      this.input.off("pointerup", soltar);
+      this.input.off("pointerupoutside", soltar);
+      this.input.off("gameout", cancelar);
+      this.game.events.off("blur", cancelar);
+      this.game.canvas.removeEventListener("pointercancel", cancelar);
+    });
+  }
+
+  cancelarInspecaoCarta() {
+    const gesto = this.gestoInspecaoCarta;
+    if (!gesto) return;
+    gesto.timer?.remove();
+    gesto.timer = null;
+    gesto.cancelado = true;
+  }
+
+  deveIgnorarCliqueCarta(pointer) {
+    const gesto = this.gestoInspecaoCarta;
+    return (pointer.getDistance() > this.input.dragDistanceThreshold) ||
+      (gesto?.pointer.id === pointer.id && (gesto.cancelado || gesto.abriu));
   }
 
   encerrarSelecoesDaFase() {
@@ -1285,6 +1366,8 @@ class CenaJogo extends Phaser.Scene {
     this.renderizandoInterface = true;
 
     // Cancela tweens e textos de resultado antes de destruir os objetos.
+    this.cancelarInspecaoCarta();
+    this.limparSelecaoCartaCampo(true);
     this.tweens.killAll();
     // Uma atualização durante o fade inicial não pode deixar o campo transparente.
     if (this.interfaceJaDesenhada) this.cameras.main.setAlpha(1);
@@ -1535,11 +1618,7 @@ class CenaJogo extends Phaser.Scene {
         });
       });
 
-      // Abre a ficha detalhada ao clicar/tocar
-      container.on("pointerup", () => {
-        if (!this.podeConsultarCartas()) return;
-        this.mostrarDetalheCarta(carta);
-      });
+      container.cartaInspecionavel = carta;
     });
   }
 
@@ -2798,12 +2877,160 @@ class CenaJogo extends Phaser.Scene {
   }
 
   atualizarAurasHabilidade() {
+    if (this.cartaCampoSelecionada && (!this.cartaCampoSelecionada.active ||
+      !this.podeConsultarCartas())) this.limparSelecaoCartaCampo();
     for (const objeto of this.children.list) {
       if (!objeto.auraHabilidade) continue;
       const visivel = this.habilidadeDisponivelAgora(objeto.dadosCartaCampo);
       if (objeto.auraHabilidade.visible !== visivel)
         objeto.auraHabilidade.setVisible(visivel);
     }
+    if (this.botaoHabilidadeCampo?.active) {
+      const disponivel = this.habilidadeDisponivelAgora(this.cartaCampoSelecionada?.dadosCartaCampo);
+      this.botaoHabilidadeCampo.setVisible(disponivel);
+    }
+  }
+
+  limparSelecaoCartaCampo(imediato = false) {
+    const visual = this.visualSelecaoCarta;
+    this.visualSelecaoCarta = null;
+    if (visual) {
+      this.input.off("pointermove", visual.inclinar);
+      this.input.off("gameout", visual.centralizar);
+      for (const objeto of visual.objetos) {
+        this.tweens.killTweensOf(objeto);
+        objeto.destroy();
+      }
+    }
+    if (this.botaoHabilidadeCampo) this.tweens.killTweensOf(this.botaoHabilidadeCampo);
+    this.botaoHabilidadeCampo?.destroy();
+    this.botaoHabilidadeCampo = null;
+    const container = this.cartaCampoSelecionada;
+    this.cartaCampoSelecionada = null;
+    if (!container?.active) return;
+    this.tweens.killTweensOf(container);
+    container.setDepth(container.depthCampoOriginal);
+    container.sombraCartaCampo?.setVisible(true).setPosition(6, 8).setAlpha(0.35);
+    const destino = { ...container.posCampoOriginal, scaleX: 1, scaleY: 1 };
+    if (imediato) Object.assign(container, destino);
+    else this.tweens.add({ targets: container, ...destino, duration: 220, ease: "Cubic.easeOut" });
+  }
+
+  // Apenas a carta selecionada recebe luz e sombra adicionais; nenhuma textura ou filtro é criado por frame.
+  criarVisualSelecaoCarta(container, reduzido) {
+    const { width: w, height: h, posCampoOriginal: origem } = container;
+    const carta = container.dadosCartaCampo;
+    const cor = carta.lendaria ? 0xffd966 : this.partida.inimigo.campo.cartas.includes(carta) ? 0xff63ad : 0x73e7ff;
+    const sombra = this.add.container(origem.x + 5, origem.y + 17, [
+      this.add.rectangle(0, 0, w + 28, h + 20, 0x02070c, 0.06),
+      this.add.rectangle(0, 0, w + 16, h + 10, 0x02070c, 0.12),
+      this.add.rectangle(0, 0, w + 4, h - 2, 0x02070c, 0.28),
+    ]).setDepth(1998).setAlpha(0);
+    const espessura = this.add.rectangle(0, 4, w + 5, h + 5, 0x06141c)
+      .setStrokeStyle(2, cor, 0.5);
+    const halo = this.add.rectangle(0, 0, w + 10, h + 10, cor, 0.025)
+      .setStrokeStyle(7, cor, 0.08);
+    const borda = this.add.rectangle(0, 0, w + 2, h + 2, cor, 0)
+      .setStrokeStyle(2, cor, 0.8).setAlpha(0);
+    const reflexo = this.add.graphics().setName("reflexo-selecao-carta");
+    const verniz = this.add.graphics().setAlpha(0);
+    verniz.fillGradientStyle(0xffffff, 0xd6f8ff, 0xffffff, 0xd6f8ff, 0.04, 0.24, 0, 0.035);
+    verniz.fillPoints([
+      { x: -w / 2, y: -h / 2 }, { x: -w * 0.16, y: -h / 2 },
+      { x: w / 2, y: h * 0.17 }, { x: w / 2, y: h * 0.43 },
+    ], true);
+    container.addAt([halo, espessura], 1);
+    container.add([reflexo, verniz, borda]);
+    const iluminar = (dx, dy) => {
+      reflexo.clear().fillGradientStyle(0xffffff, 0xe0faff, 0x7edfff, 0xffffff,
+        0.08 - dx * 0.035 - dy * 0.025, Math.max(0, 0.045 + dx * 0.035 - dy * 0.025),
+        Math.max(0, 0.01 - dx * 0.01 + dy * 0.01), Math.max(0, 0.015 + dx * 0.01 + dy * 0.01));
+      reflexo.fillRect(-w / 2, -h / 2, w, h);
+    };
+    const centralizar = () => inclinar(null);
+    let ultimoX = 0, ultimoY = 0;
+    const inclinar = (pointer) => {
+      if (reduzido || !container.active || this.cartaCampoSelecionada !== container ||
+        pointer?.wasTouch) return;
+      const ponto = pointer ? this.pontoDoPonteiro(pointer) : origem;
+      let dx = (ponto.x - origem.x) / (w * 0.7), dy = (ponto.y - origem.y + 24) / (h * 0.65);
+      if (!pointer || Math.abs(dx) > 1.3 || Math.abs(dy) > 1.3) dx = dy = 0;
+      dx = Math.max(-1, Math.min(1, dx)); dy = Math.max(-1, Math.min(1, dy));
+      if (Math.abs(dx - ultimoX) + Math.abs(dy - ultimoY) < 0.025) return;
+      ultimoX = dx; ultimoY = dy;
+      this.tweens.killTweensOf(container);
+      this.tweens.add({ targets: container,
+        x: Math.max(w * 0.6, Math.min(LARGURA_LAYOUT - w * 0.6, origem.x + dx * 4)),
+        y: origem.y - 26 - dy * 4, angle: -2.2 + dx * 3.4,
+        scaleX: 1.075 - Math.abs(dx) * 0.018, scaleY: 1.095 - Math.abs(dy) * 0.018,
+        duration: 180, ease: "Cubic.easeOut" });
+      sombra.setPosition(origem.x + 5 - dx * 9, origem.y + 17 - dy * 5);
+      iluminar(dx, dy);
+    };
+    iluminar(0, 0);
+    this.tweens.add({ targets: sombra, alpha: 1, duration: reduzido ? 90 : 280 });
+    this.tweens.add({ targets: borda, alpha: 1, duration: reduzido ? 90 : 300 });
+    if (!reduzido) this.tweens.add({ targets: verniz, alpha: 0.85,
+      duration: 330, delay: 70, yoyo: true, ease: "Sine.easeInOut" });
+    this.input.on("pointermove", inclinar);
+    this.input.on("gameout", centralizar);
+    this.visualSelecaoCarta = { objetos: [sombra, halo, espessura, reflexo, verniz, borda], inclinar, centralizar };
+  }
+
+  selecionarCartaDoCampo(container) {
+    if (!this.podeConsultarCartas() || !container.active) return;
+    if (this.cartaCampoSelecionada === container) return;
+    this.limparSelecaoCartaCampo();
+    this.baixarOutrasCartasDaMao();
+    this.cartaMaoSelecionada = null;
+    this.cartaCampoSelecionada = container;
+    container.posCampoOriginal ||= { x: container.x, y: container.y, angle: container.angle };
+    container.depthCampoOriginal = container.depth;
+    this.tweens.killTweensOf(container);
+    container.setDepth(2000);
+    const reduzido = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
+    container.sombraCartaCampo?.setVisible(false);
+    this.criarVisualSelecaoCarta(container, reduzido);
+    this.tweens.add({
+      targets: container,
+      x: Math.max(container.width * 0.6, Math.min(LARGURA_LAYOUT - container.width * 0.6, container.posCampoOriginal.x)),
+      y: container.posCampoOriginal.y - 26, angle: reduzido ? 0 : -2.2,
+      scaleX: 1.075, scaleY: 1.095, duration: reduzido ? 90 : 360,
+      ease: reduzido ? "Sine.easeOut" : "Back.Out", easeParams: [1.25],
+    });
+    this.somHover?.play();
+    const carta = container.dadosCartaCampo;
+    if (!carta.habilidadeAtiva || !this.partida.jogador.campo.cartas.includes(carta)) return;
+    const lado = container.x > LARGURA_LAYOUT - container.width - 72 ? -1 : 1;
+    const x = Math.max(container.width * 0.6, Math.min(LARGURA_LAYOUT - container.width * 0.6,
+      container.posCampoOriginal.x)) + lado * (container.width / 2 + 17);
+    const y = container.posCampoOriginal.y - 36;
+    const sombra = this.add.circle(3, 6, 36, 0x000000, 0.65);
+    const aro = this.add.circle(0, 0, 37, 0x071d23).setStrokeStyle(3, 0x38f2a0, 0.95);
+    const nucleo = this.add.circle(-4, -6, 26, 0x38f2a0, 0.18);
+    const icone = this.criarTextoUI(0, -1, "ϟ", {
+      fontSize: "48px", color: "#c9ffe8", fontStyle: "bold", strokeThickness: 0,
+    }).setOrigin(0.5);
+    const botao = this.add.container(x, y, [sombra, aro, nucleo, icone])
+      .setName("ativar-habilidade-campo").setSize(104, 104).setDepth(2001)
+      .setInteractive(new Phaser.Geom.Circle(52, 52, 52), Phaser.Geom.Circle.Contains)
+      .setVisible(this.habilidadeDisponivelAgora(carta));
+    this.botaoHabilidadeCampo = botao;
+    if (!reduzido) {
+      botao.setAlpha(0);
+      this.tweens.add({ targets: botao, alpha: 1, duration: 180, delay: 110, ease: "Sine.easeOut" });
+    }
+    botao.on("pointerover", () => botao.setScale(1.08));
+    botao.on("pointerout", () => botao.setScale(1));
+    botao.on("pointerdown", () => botao.setScale(0.94));
+    botao.on("pointerup", (pointer) => {
+      botao.setScale(1);
+      if (this.deveIgnorarCliqueCarta(pointer) || !this.podeConsultarCartas() ||
+        !this.habilidadeDisponivelAgora(carta)) return;
+      this.tocarVozAtivacaoHabilidade(carta);
+      this.limparSelecaoCartaCampo();
+      this.iniciarAtivacaoHabilidade(carta);
+    });
   }
 
   habilidadeDisponivelAgora(carta) {
@@ -3010,30 +3237,21 @@ class CenaJogo extends Phaser.Scene {
     // Referência à carta de dados, usada para localizar esta carta na tela quando um efeito de buff/debuff precisa animá-la.
     container.dadosCartaCampo = carta;
     container.auraHabilidade = auraHabilidade;
+    container.sombraCartaCampo = sombra;
+    if (!viradaParaBaixo || podeInteragirOculta) container.cartaInspecionavel = carta;
     // Nasce oculta: não espera o próximo update da camada de efeitos.
     container.ocultaPorInvocacao = aguardaInvocacao;
     container.setVisible(!aguardaInvocacao);
 
     container.on("pointerup", (pointer) => {
+      if (this.deveIgnorarCliqueCarta(pointer)) return;
       if (this.jogarCartaSelecionadaNoCampo(pointer)) return;
       if (
         !this.podeConsultarCartas() ||
         (viradaParaBaixo && !podeInteragirOculta)
       )
         return;
-      this.mostrarDetalheCarta(carta);
-    });
-
-    // Mouse abre a ficha no hover; telas de toque usam pointerup.
-    container.on("pointerover", (pointer) => {
-      if (
-        this.cartaMaoSelecionada?.active ||
-        !this.podeConsultarCartas() ||
-        (viradaParaBaixo && !podeInteragirOculta) ||
-        pointer.pointerType !== "mouse"
-      )
-        return;
-      this.mostrarDetalheCarta(carta);
+      this.selecionarCartaDoCampo(container);
     });
 
     if (animarEntrada) {
@@ -3224,6 +3442,7 @@ class CenaJogo extends Phaser.Scene {
 
       // Dados usados pelo drag/drop.
       containerCarta.dadosCarta = carta;
+      containerCarta.cartaInspecionavel = carta;
 
       containerCarta.posOriginal = {
         x: posX,
@@ -3277,7 +3496,7 @@ class CenaJogo extends Phaser.Scene {
 
       // Seleção persiste ao tirar o ponteiro: o próximo clique pode ser no campo.
       containerCarta.on("pointerup", (pointer) => {
-        if (pointer.getDistance() > this.input.dragDistanceThreshold) return;
+        if (this.deveIgnorarCliqueCarta(pointer)) return;
         this.selecionarCartaDaMao(containerCarta);
       });
     });
@@ -3314,10 +3533,8 @@ class CenaJogo extends Phaser.Scene {
       !container.active
     )
       return;
-    if (this.cartaMaoSelecionada === container) {
-      this.mostrarDetalheCarta(container.dadosCarta);
-      return;
-    }
+    if (this.cartaMaoSelecionada === container) return;
+    this.limparSelecaoCartaCampo();
     this.baixarOutrasCartasDaMao(container);
     this.cartaMaoSelecionada = container;
     this.tweens.killTweensOf(container);
@@ -3694,7 +3911,9 @@ class CenaJogo extends Phaser.Scene {
     botao.setName("fechar-detalhe-carta").setInteractive({ useHandCursor: true });
     botao.on("pointerover", () => this.tweens.add({ targets: botao, scale: 1.05, duration: 100 }));
     botao.on("pointerout", () => this.tweens.add({ targets: botao, scale: 1, duration: 100 }));
-    botao.on("pointerup", aoClicar);
+    botao.on("pointerup", () => {
+      if (this.inspecaoCartaPressionada == null) aoClicar();
+    });
     return botao;
   }
 
@@ -3711,18 +3930,24 @@ class CenaJogo extends Phaser.Scene {
     botao.on("pointerout", () => this.tweens.add({ targets: botao, scale: 1, duration: 100 }));
     botao.on("pointerdown", () => botao.setScale(0.98));
     botao.on("pointerup", () => {
-      if ((carta.habilidadeAprendidaDe || carta.nome) === "O Bom" && this.cache?.audio.exists("somBom1"))
-        this.sound.play("somBom1", { volume: window.cyberduelSettings?.effects(0.3, "somBom1") ?? 0.3 });
+      if (this.inspecaoCartaPressionada != null) return;
+      this.tocarVozAtivacaoHabilidade(carta);
       this.fecharDetalheCarta();
       this.time.delayedCall(180, () => this.iniciarAtivacaoHabilidade(carta));
     });
     return botao;
   }
 
+  tocarVozAtivacaoHabilidade(carta) {
+    if ((carta.habilidadeAprendidaDe || carta.nome) === "O Bom" && this.cache?.audio.exists("somBom1"))
+      this.sound.play("somBom1", { volume: window.cyberduelSettings?.effects(0.3, "somBom1") ?? 0.3 });
+  }
+
   mostrarDetalheCarta(carta) {
-    if (this.training && !this.training.canUse(carta)) return;
+    if (this.training && !this.training.canInspect(carta)) return;
     if (this.cache?.audio.exists("somInteracao")) this.sound.play("somInteracao", { volume: window.cyberduelSettings?.effects(0.16, "somInteracao") ?? 0.16 });
     if (this.modalAberto) return;
+    this.limparSelecaoCartaCampo();
     // Lendárias usam uma ficha própria com arte ampliada.
     if (carta.lendaria) {
       this.mostrarDetalheCartaLendaria(carta);
@@ -3743,7 +3968,7 @@ class CenaJogo extends Phaser.Scene {
     );
     overlay.setDepth(4000);
     overlay.setInteractive();
-    overlay.on("pointerup", () => { if (!this.arteSemTextoAtiva) this.fecharDetalheCarta(); });
+    overlay.on("pointerup", () => { if (!this.arteSemTextoAtiva && this.inspecaoCartaPressionada == null) this.fecharDetalheCarta(); });
 
     const corFundo = this.obterCorPorId(carta.id);
     const ehEfeito = carta.tipo === "efeito";
@@ -3848,12 +4073,12 @@ class CenaJogo extends Phaser.Scene {
     ).setName("ficha-arte");
 
     const dicaImagem = this.criarTextoUI(0, imagemTopo + JANELA_ARTE_H + 37,
-      imagem.type === "Image" ? "TOQUE: AMPLIAR / SEGURE: SÓ A ARTE" : "ILUSTRAÇÃO INDISPONÍVEL", {
+      imagem.type === "Image" ? "TOQUE PARA AMPLIAR" : "ILUSTRAÇÃO INDISPONÍVEL", {
         fontSize: "22px", color: "#829ab4", letterSpacing: 1,
       }).setOrigin(0.5);
     if (imagem.type === "Image") {
       moldura.setInteractive({ useHandCursor: true });
-      moldura.on("pointerup", () => { if (!this.arteSemTextoAtiva) this.abrirZoomCarta(carta); });
+      moldura.on("pointerup", () => { if (!this.arteSemTextoAtiva && this.inspecaoCartaPressionada == null) this.abrirZoomCarta(carta); });
     }
 
     const elementosTopo = [containerImagem, arquivoTexto, etiquetaTipo, nomeTexto, poderPlaca, poderTexto, dicaImagem];
@@ -4002,8 +4227,6 @@ class CenaJogo extends Phaser.Scene {
     this.overlayDetalheAtual = overlay;
     this.painelDetalheAtual = painel;
     this.elevarModalCarta(overlay, painel);
-    this.habilitarInspecaoArte(moldura, filhosPainel.filter(objeto =>
-      ![painelBg, containerImagem, fecharBtn].includes(objeto)));
   }
 
   // Ficha original com arte ampliada e nome acima da moldura.
@@ -4022,7 +4245,7 @@ class CenaJogo extends Phaser.Scene {
     );
     overlay.setDepth(4000);
     overlay.setInteractive();
-    overlay.on("pointerup", () => { if (!this.arteSemTextoAtiva) this.fecharDetalheCarta(); });
+    overlay.on("pointerup", () => { if (!this.arteSemTextoAtiva && this.inspecaoCartaPressionada == null) this.fecharDetalheCarta(); });
 
     const corFundo = this.obterCorPorId(carta.id);
     const ehEfeito = carta.tipo === "efeito";
@@ -4614,7 +4837,7 @@ class CenaJogo extends Phaser.Scene {
       });
   }
 
-  // HABILIDADE ATIVA (ex: Atirador de Elite) Chamada pelo botão "Ativar Habilidade" do modal de detalhe.
+  // A habilidade usa o mesmo fluxo pelo botão do campo e pelo botão da ficha.
   iniciarAtivacaoHabilidade(carta) {
     if (this.training && !this.training.canUse(carta)) return;
     if (!this.podeUsarHabilidadesAgora()) return;

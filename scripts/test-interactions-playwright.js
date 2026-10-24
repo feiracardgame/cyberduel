@@ -50,20 +50,16 @@ async function activateFromUI(page, sourceName) {
   await tapSlot(page, 'jogador', 5);
   await page.waitForFunction(() => {
     const s = game.scene.getScene('CenaJogo');
-    return s.modalAberto && s.painelDetalheAtual?.scaleX === 1 && !s.tweens.isTweening(s.painelDetalheAtual);
+    return !s.modalAberto && s.cartaCampoSelecionada?.dadosCartaCampo === s.partida.jogador.campo.cartas[5] &&
+      s.botaoHabilidadeCampo?.name === 'ativar-habilidade-campo' && s.botaoHabilidadeCampo.input?.enabled &&
+      !s.tweens.isTweening(s.cartaCampoSelecionada);
   });
   const button = await page.evaluate(() => {
-    const find = objects => {
-      for (const o of objects) {
-        if (o.name === 'ativar-habilidade' && o.input?.enabled) {
-          const m = o.getWorldTransformMatrix(); return { x: m.tx, y: m.ty, scene: o.scene.scene.key };
-        }
-        if (o.list) { const found = find(o.list); if (found) return found; }
-      }
-    };
-    for (const s of game.scene.getScenes(true)) { const found = find(s.children.list); if (found) return found; }
+    const o = game.scene.getScene('CenaJogo').botaoHabilidadeCampo;
+    const m = o.getWorldTransformMatrix();
+    return { x: m.tx, y: m.ty, scene: o.scene.scene.key };
   });
-  assert.ok(button, `Botão real de habilidade: ${sourceName}`);
+  assert.ok(button, `Bolinha de habilidade diretamente no campo: ${sourceName}`);
   await tapWorld(page, button.x, button.y, button.scene);
   await page.waitForFunction(() => {
     const s = game.scene.getScene('CenaJogo');

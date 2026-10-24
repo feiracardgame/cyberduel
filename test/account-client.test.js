@@ -92,6 +92,64 @@ account.request = async () => ({
   assert.equal(rendered, 2, 'Editor acompanha ativação e desativação sem perder o rascunho.');
   assert.equal(stoppedSolo, 1);
   context.window.cyberduelGame = null;
+  function offlineFixture() {
+    const key = 'cyberduel.account.token.v1', storage = new Map([[key, 'token-antigo']]);
+    let requests = 0, writes = 0, notifications = 0;
+    const offlineContext = vm.createContext({
+      localStorage: { getItem: key => storage.get(key) || null,
+        setItem(key, value) { writes++; storage.set(key, value); }, removeItem: key => storage.delete(key) },
+      fetch() { requests++; throw Error('O perfil offline não deve acessar a rede.'); },
+      window: { cyberduelServerUrl: () => 'http://localhost:3000' },
+    });
+    vm.runInContext(fs.readFileSync('js/account.js', 'utf8'), offlineContext);
+    const account = offlineContext.window.cyberduelAccount;
+    account.onChange(() => notifications++);
+    return { account, storage, key, get requests() { return requests; },
+      get writes() { return writes; }, get notifications() { return notifications; } };
+  }
+  {
+    const f = offlineFixture(), offline = f.account.useOfflineAdmin();
+    assert.equal(offline.user, 'Admin'); assert.equal(offline.nickname, 'Admin');
+    assert.equal(offline.authProvider, 'offline'); assert.equal(offline.isAdmin, true);
+    assert.equal(f.account.token, null); assert.equal(f.storage.has(f.key), false);
+    assert.equal(f.requests, 0); assert.equal(f.writes, 0); assert.equal(f.notifications, 1);
+  }
+  for (const isAdmin of [false, true]) {
+    const f = offlineFixture();
+    f.account.applyAuth({ username: 'ContaAtual', nickname: 'Atual', token: 'sessao-atual', isAdmin,
+      collection: { 'monstro:O Rato': 2 } });
+    const before = f.account.snapshot(), notifications = f.notifications;
+    assert.deepEqual(f.account.useOfflineAdmin(), before, 'Perfil offline preserva a conta já conectada.');
+    assert.equal(f.account.token, 'sessao-atual'); assert.equal(f.storage.get(f.key), 'sessao-atual');
+    assert.equal(f.notifications, notifications); assert.equal(f.writes, 1); assert.equal(f.requests, 0);
+  }
+  for (const succeeds of [true, false]) {
+    const f = offlineFixture(), routes = [];
+    let finish, sessionStarted;
+    const started = new Promise(resolve => { sessionStarted = resolve; });
+    f.account.request = route => {
+      routes.push(route);
+      return route === '/api/config' ? Promise.resolve({ demoMode: false }) :
+        new Promise((resolve, reject) => {
+          finish = () => succeeds
+            ? resolve({ username: 'ContaAntiga', token: 'token-antigo', isAdmin: false })
+            : reject(Error('Sessão antiga expirada'));
+          sessionStarted();
+        });
+    };
+    const restore = f.account.restore();
+    await started;
+    assert.equal(typeof finish, 'function', 'A sessão antiga já está em voo.');
+    const notificationsBeforeOffline = f.notifications;
+    f.account.useOfflineAdmin(); finish();
+    const restored = await restore;
+    assert.equal(restored.user, 'Admin'); assert.equal(restored.authProvider, 'offline');
+    assert.equal(restored.isAdmin, true); assert.equal(f.account.token, null);
+    assert.equal(f.storage.has(f.key), false); assert.equal(f.writes, 0);
+    assert.equal(f.notifications, notificationsBeforeOffline + 1,
+      'A resposta antiga não substitui nem limpa o perfil offline.');
+    assert.deepEqual(routes, ['/api/config', '/api/auth/session']);
+  }
   console.log("Coleção administrativa sincronizada com o Deck Forge.");
 })().catch((error) => {
   console.error(error);

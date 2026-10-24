@@ -69,10 +69,12 @@ window.liberarLeaderboard = async (username = window.cyberduelAccount?.user) => 
 };
 
 window.irParaX1 = () => {
-  requireAdminAccount();
   if (!game.scene.isActive("CenaTitulo") && !game.scene.isActive("CenaJogo") &&
       !game.scene.isActive("CenaDeckBuilder") && !game.scene.isActive("CenaTransicao"))
     throw new Error("Aguarde o carregamento inicial do jogo.");
+  if (!window.cyberduelAccount?.user)
+    window.cyberduelAccount.useOfflineAdmin();
+  requireAdminAccount();
   const builder = window.cyberduelDeckBuilder;
   const deckDebug = builder.getSavedDeck() || new CyberduelDeckBuilder().getStarterDeck();
   if (!builder.isValid(deckDebug)) throw new Error("Não foi possível montar o deck de teste.");

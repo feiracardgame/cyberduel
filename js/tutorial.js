@@ -1,4 +1,4 @@
-// Falas e poses transcritas de markdown/Tutorialguia.md.
+// Falas e poses de markdown/Tutorialguia.md, com os controles atuais do duelo.
 const ELENAI_DIALOGUES = {
   "intro": [
     {"sprite": 0, "speaker": "????", "text": "Huh, quem está aí?"},
@@ -15,18 +15,18 @@ const ELENAI_DIALOGUES = {
   ],
   "training": [
     {"sprite": 3, "speaker": "ElenAI", "text": "O Cyberduel é um jogo de cartas em que cada carta representa uma personalidade famosa do seu futuro no \"mundo real\", apesar de eu não gostar muito desse termo."},
-    {"sprite": 3, "speaker": "ElenAI", "text": "Dessa forma, a plateia reage diferentemente quando cada carta entra em campo, experimenta lançar essa carta:"},
+    {"sprite": 3, "speaker": "ElenAI", "text": "Antes de invocar, vamos conhecer sua carta. Segure o Estagiário na mão para abrir a visualização avançada. Leia o efeito e feche a ficha pelo X. Depois eu te mostro como colocá-lo em campo."},
     {"sprite": 13, "speaker": "ElenAI", "text": "Essa carta te deu PA (Pontos de Audiência), como você pode ver aqui na lateral. Como precisamos da vibração da plateia para manter nossa simulação, nada mais justo do que dar a vitória para quem mais movimentá-la."},
     {"sprite": 1, "speaker": "ElenAI", "text": "Ao todo, temos 7 rodadas. Cada rodada consiste em um turno de posicionamento (em que se invocam cartas) e um turno de habilidades (em que se ativam habilidades das cartas que as possuem) de cada jogador."},
     {"sprite": 1, "speaker": "ElenAI", "text": "Ao final de cada rodada, os PA de cada jogador são comparados, dando a vitória para quem mais os tiver. O jogador que vencer mais rodadas vence também o jogo"},
     {"sprite": 4, "speaker": "ElenAI", "text": "Temos 3 tipos de cartas: Cartas de Personagem (as únicas que de fato somam PA), cartas de efeito (são invocadas e aplicam um efeito instantâneo no campo) e cartas de terreno (mantém o efeito enquanto ainda estiverem em campo)"},
     {"sprite": 4, "speaker": "ElenAI", "text": "Cada deck de cartas deve ser composto por, no mínimo, 6 cartas baixas, 4 médias e 2 altas. O restante é livre!"},
-    {"sprite": 15, "speaker": "ElenAI", "text": "As cartas de personagem são divididas por raridade e cada uma tem uma história e efeito único, por isso, trate de ler e entender todas que tiver! Vou te mostrar um exemplo"},
-    {"sprite": 8, "speaker": "ElenAI", "text": "Invoque essa carta no espaço brilhante e finalize o turno, para poder entrar no turno de habilidades"},
-    {"sprite": 5, "speaker": "ElenAI", "text": "Ótimo, muito bem!"},
+    {"sprite": 15, "speaker": "ElenAI", "text": "Cada personagem tem sua história e seu efeito. Para consultar a ficha, segure a carta. Para selecionar, dê só um toque: ela levanta um pouquinho. Na fase de habilidades, as cartas disponíveis mostram uma bolinha verde ao lado quando você as seleciona."},
+    {"sprite": 8, "speaker": "ElenAI", "text": "Agora selecione o Tigre na sua mão e toque no espaço destacado da frente. Você também pode arrastar a carta até lá. Depois toque no botão >> à direita para entrar na fase de habilidades. Vamos ativar o ataque direto pelo campo."},
+    {"sprite": 5, "speaker": "ElenAI", "text": "Muito bem! Você selecionou o Tigre, tocou na bolinha e escolheu o CyberVendedor como alvo. A ficha fica para consultar os detalhes; a habilidade pode ser ativada direto no campo."},
     {"sprite": 10, "speaker": "ElenAI", "text": "No entanto, você deve ter percebido que não conseguiu acertar a carta lá no fundo. Isso acontece porque todo efeito de carta apresenta alguma condição específica. Nesse caso, é o alcance. O número ao lado do \"H\" indica a largura total do ataque, centrada na carta: H1 atinge só a própria coluna, H3 inclui uma coluna de cada lado e H5 inclui duas de cada lado. O \"V\" indica a distância de casas verticais. Da fileira da frente, V1 alcança a frente inimiga e V2 também alcança o fundo; da sua fileira de trás, é preciso um ponto a mais de V."},
-    {"sprite": 10, "speaker": "ElenAI", "text": "Tenta utilizar essa carta aqui agora."},
-    {"sprite": 16, "speaker": "ElenAI", "text": "Estou impressionada, você é profissional já!"},
+    {"sprite": 10, "speaker": "ElenAI", "text": "Vamos tentar com o Agente da DIPSP. Selecione e invoque no espaço destacado, depois avance pelo >>. Na fase de habilidades, toque no Agente, na bolinha verde e no Rato do fundo. Se quiser comparar o alcance, segure a carta para consultar a ficha."},
+    {"sprite": 16, "speaker": "ElenAI", "text": "Você já pegou o jeito! Um toque seleciona, a bolinha ativa a habilidade e segurar abre a ficha. O Agente alcançou o Rato porque tem o alcance certo para essa posição."},
     {"sprite": 2, "speaker": "ElenAI", "text": "Siga jogando, aprendendo e vencendo, assim você ganhará pontos de influência no ranking oficial do jogo e, estando alto o suficiente, poderá se tornar um membro do Conselho"},
     {"sprite": 2, "speaker": "ElenAI", "text": "Lembre-se de sempre fazer as melhores jogadas, porém seja rápido, já que a audiência não gosta de ficar esperando pela sua jogada."}
   ],
@@ -322,7 +322,7 @@ class CyberduelTraining {
     header.append(ui.element("strong", "", "TREINO COM ELENAI"));
     this.guide.append(header, this.hint);
     document.body.append(this.guide);
-    this.say(0, 2, () => this.setStep("intern", "Toque no Estagiário na mão e depois no espaço brilhante. Você também pode arrastar a carta."));
+    this.say(0, 2, () => this.setStep("intern-inspect", "Segure o Estagiário na sua mão para abrir a ficha. Depois, feche pelo X."));
   }
   say(from, to, done) {
     this.step = "talk"; this.highlight?.destroy();
@@ -334,6 +334,7 @@ class CyberduelTraining {
   setStep(step, hint) {
     this.step = step; this.hint.textContent = hint;
     this.highlight?.destroy(); this.highlight = null;
+    this.alvoDestaque = null;
   }
   canPlace(card, index) {
     return (this.step === "intern" && card.nome === "Estagiário de Machine Learning" && index === 0) ||
@@ -344,6 +345,11 @@ class CyberduelTraining {
     const expected = this.step === "tiger-ability" ? ["O Tigre", 7] :
       this.step === "dipsp-ability" ? ["Agente da DIPSP", 2] : [];
     return card.nome === expected[0] && (target === undefined || target === expected[1]);
+  }
+  canInspect(card) {
+    const expected = { "intern-inspect": "Estagiário de Machine Learning", intern: "Estagiário de Machine Learning",
+      tiger: "O Tigre", dipsp: "Agente da DIPSP", "tiger-ability": "O Tigre", "dipsp-ability": "Agente da DIPSP" };
+    return !!card && card.nome === expected[this.step];
   }
   placed(card) {
     if (card.nome === "Estagiário de Machine Learning") {
@@ -360,8 +366,8 @@ class CyberduelTraining {
     this.scene.faseAtual = this.scene.partida.fase = "habilidades";
     this.scene.desenharInterface();
     this.setStep(this.step === "tiger-pass" ? "tiger-ability" : "dipsp-ability",
-      this.step === "tiger-pass" ? "Toque no Tigre, escolha Ativar habilidade e ataque o CyberVendedor. O Rato está fora do alcance." :
-        "Toque no Agente da DIPSP, escolha Ativar habilidade e ataque o Rato no fundo.");
+      this.step === "tiger-pass" ? "Toque no Tigre para selecioná-lo. Depois, use a bolinha verde ao lado da carta." :
+        "Toque no Agente da DIPSP para selecioná-lo. Depois, use a bolinha verde ao lado da carta.");
   }
   used(card) {
     this.step = "talk";
@@ -376,7 +382,9 @@ class CyberduelTraining {
   }
   async finish() {
     try {
-      if (window.cyberduelAccount?.user) await window.cyberduelAccount.saveTutorial({ completed: true });
+      if (window.cyberduelAccount?.authProvider === "offline")
+        window.cyberduelAccount.tutorial.completed = true;
+      else if (window.cyberduelAccount?.user) await window.cyberduelAccount.saveTutorial({ completed: true });
       this.scene.scene.start("CenaTitulo");
     } catch (error) {
       this.hint.textContent = error.message;
@@ -386,6 +394,11 @@ class CyberduelTraining {
   }
   update() {
     const scene = this.scene;
+    if (this.guide) this.guide.hidden = !!this.dialog || !!scene.modalAberto;
+    if (this.step === "intern-inspect") {
+      if (scene.modalAberto) this.inspecaoVista = true;
+      else if (this.inspecaoVista) this.setStep("intern", "Agora dê um toque no Estagiário para selecioná-lo e depois toque no espaço destacado. Você também pode arrastar a carta.");
+    }
     this.guide?.classList.toggle("elenai-guide--bottom",
       ["tiger-ability", "dipsp-ability"].includes(this.step) && !scene.modalAberto);
     if (scene.botaoPassarTutorial?.input)
@@ -393,24 +406,56 @@ class CyberduelTraining {
     for (const object of scene.children?.list || []) {
       if (!object.input) continue;
       if (object.dadosCartaCampo) object.input.enabled = this.canUse(object.dadosCartaCampo);
-      if (object.dadosCarta) object.input.enabled = ["intern", "tiger", "dipsp"].includes(this.step);
+      if (object.dadosCarta) object.input.enabled = ["intern-inspect", "intern", "tiger", "dipsp"].includes(this.step);
     }
     if (this.pending && !scene.efeitosVisuaisPendentes()) {
       const done = this.pending; this.pending = null; done();
     }
-    if (this.step === "talk" || this.highlight?.active) return;
-    const slot = { intern: 0, tiger: 7, dipsp: 8, "tiger-ability": 7, "dipsp-ability": 8 }[this.step];
+    if (this.step === "talk" || scene.modalAberto || this.dialog) {
+      this.highlight?.destroy(); this.highlight = null; this.alvoDestaque = null; return;
+    }
+    const slot = { "intern-inspect": 0, intern: 0, tiger: 7, dipsp: 8, "tiger-ability": 7, "dipsp-ability": 8 }[this.step];
     const passing = this.step.endsWith("-pass");
     if (slot === undefined && !passing) return;
     const L = scene.layout;
+    let objeto, circular = false, x, y, largura = L.slotW, altura = L.slotH, chave = this.step;
     if (passing) {
-      const button = scene.botaoPassarTutorial;
-      if (!button?.active) return;
-      this.highlight = scene.add.circle(button.x, button.y, button.width / 2 + 10, 0xa5ff78, 0.04);
+      objeto = scene.botaoPassarTutorial;
+      if (!objeto?.active) return;
+      circular = true; largura = objeto.width;
+    } else if (this.step.endsWith("-ability")) {
+      const tigre = this.step === "tiger-ability", nome = tigre ? "O Tigre" : "Agente da DIPSP";
+      if (scene.objetosSelecaoAlvo?.length) {
+        const alvo = tigre ? 7 : 2;
+        x = L.x[alvo % 5]; y = L.yInimigo[Math.floor(alvo / 5)]; chave += ":alvo";
+        this.hint.textContent = tigre ? "Agora toque no CyberVendedor destacado para atacar. O Rato do fundo está fora do alcance do Tigre." :
+          "Agora toque no Rato destacado no fundo. O alcance do Agente da DIPSP permite acertá-lo.";
+      } else if (scene.cartaCampoSelecionada?.dadosCartaCampo?.nome === nome && scene.botaoHabilidadeCampo?.visible) {
+        objeto = scene.botaoHabilidadeCampo; circular = true; largura = objeto.width;
+        this.hint.textContent = "A carta levantou: está selecionada. Toque na bolinha verde destacada para ativar a habilidade.";
+      } else {
+        objeto = scene.children.list.find(o => o.dadosCartaCampo?.nome === nome);
+        this.hint.textContent = `Toque ${tigre ? "no Tigre" : "no Agente da DIPSP"} para selecionar a carta. Segure se quiser consultar os detalhes.`;
+      }
     } else {
-      this.highlight = scene.add.rectangle(L.x[slot % 5], L.yJogador[Math.floor(slot / 5)],
-        L.slotW, L.slotH, 0xa5ff78, 0.04);
+      const nome = this.step.startsWith("intern") ? "Estagiário de Machine Learning" : this.step === "tiger" ? "O Tigre" : "Agente da DIPSP";
+      const mao = scene.children.list.find(o => o.dadosCarta?.nome === nome);
+      if (this.step === "intern-inspect" || (mao && scene.cartaMaoSelecionada !== mao &&
+        !(scene.gestoInspecaoCarta?.container === mao && scene.gestoInspecaoCarta.cancelado))) objeto = mao;
+      if (mao && this.step !== "intern-inspect") this.hint.textContent = objeto
+        ? `Toque ${nome === "O Tigre" ? "no Tigre" : nome === "Agente da DIPSP" ? "no Agente da DIPSP" : "no Estagiário"} na mão para selecionar. Você também pode arrastar até o campo.`
+        : "Carta selecionada! Toque no espaço destacado para invocar. Segurar a carta abre a ficha.";
     }
+    x ??= objeto?.x ?? L.x[slot % 5]; y ??= objeto?.y ?? L.yJogador[Math.floor(slot / 5)];
+    if (objeto && !circular) { largura = objeto.width || largura; altura = objeto.height || altura; }
+    const alvoDestaque = objeto || chave;
+    if (this.highlight?.active && this.alvoDestaque === alvoDestaque) {
+      this.highlight.setPosition(x, y); return;
+    }
+    this.highlight?.destroy();
+    this.alvoDestaque = alvoDestaque;
+    this.highlight = circular ? scene.add.circle(x, y, largura / 2 + 10, 0xa5ff78, 0.04) :
+      scene.add.rectangle(x, y, largura, altura, 0xa5ff78, 0.04);
     this.highlight.setStrokeStyle(7, 0xa5ff78).setDepth(3600);
     scene.tweens.add({ targets: this.highlight, alpha: 0.3, duration: 600, yoyo: true, repeat: -1 });
   }

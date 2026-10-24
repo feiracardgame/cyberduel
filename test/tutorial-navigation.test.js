@@ -17,7 +17,13 @@ assert.equal(scene.tutorial, true);
 assert.throws(() => scene.create(scene.sys.settings.data), error => error === stop);
 assert.equal(scene.tutorial, false, 'A próxima partida não herda tutorial nem debug.');
 
-const training = Object.assign(Object.create(Training.prototype), { scene, step: 'talk' });
+const shapeForGuide = (x, y, radius) => ({ active: true, x, y, radius,
+  setStrokeStyle() { return this; }, setDepth() { return this; },
+  setPosition(x, y) { this.x = x; this.y = y; return this; },
+  destroy() { this.active = false; } });
+Object.assign(scene, { layout: vm.runInContext('LAYOUT_CAMPO_NORMAL', context),
+  add: { circle: shapeForGuide, rectangle: shapeForGuide }, tweens: { add() {} } });
+const training = Object.assign(Object.create(Training.prototype), { scene, step: 'talk', hint: {} });
 scene.training = training;
 scene.ehMeuTurno = true; scene.faseAtual = 'colocar';
 assert.equal(scene.podeJogarCartasAgora(), false);
@@ -38,7 +44,7 @@ const tiger = { input: {}, dadosCartaCampo: { nome: 'O Tigre' } };
 const intern = { input: {}, dadosCartaCampo: wrong };
 scene.children = { list: [hand, tiger, intern] };
 scene.botaoPassarTutorial = { input: {} };
-training.highlight = { active: true };
+training.highlight = shapeForGuide(0, 0, 1);
 training.update();
 assert.equal(hand.input.enabled, false);
 assert.equal(tiger.input.enabled, true);
@@ -70,6 +76,7 @@ delete training.guide;
   const circles = [];
   const shape = (x, y, radius) => ({ active: true, x, y, radius,
     setStrokeStyle() { return this; }, setDepth() { return this; },
+    setPosition(x, y) { this.x = x; this.y = y; return this; },
     destroy() { this.active = false; } });
   const guidedScene = { children: { list: [] }, partida: {},
     layout: vm.runInContext('LAYOUT_CAMPO_NORMAL', context),
@@ -97,6 +104,43 @@ delete training.guide;
     assert.equal(button.input.enabled, false);
   }
   assert.equal(circles.length, 4);
+}
+
+// O treino ensina segurar antes de invocar e destaca carta, bolinha e alvo separadamente.
+{
+  const hand = { active: true, input: {}, x: 500, y: 1800, width: 176, height: 246,
+    dadosCarta: { nome: 'Estagiário de Machine Learning' } };
+  scene.children.list = [hand]; scene.modalAberto = false; scene.training = training;
+  training.setStep('intern-inspect', 'Segure o Estagiário.'); training.update();
+  assert.equal(scene.podeJogarCartasAgora(), false);
+  assert.equal(scene.podeConsultarCartas(), true);
+  assert.equal(training.canInspect(hand.dadosCarta), true);
+  assert.equal(training.canInspect({ nome: 'O Tigre' }), false);
+  assert.equal(training.highlight.y, hand.y);
+  scene.modalAberto = true; training.update();
+  assert.equal(training.highlight, null);
+  scene.modalAberto = false; training.update();
+  assert.equal(training.step, 'intern');
+  scene.cartaMaoSelecionada = hand; training.update();
+  assert.equal(training.highlight.x, scene.layout.x[0]);
+  assert.match(training.hint.textContent, /Carta selecionada/);
+  const card = { active: true, input: {}, x: scene.layout.x[2], y: scene.layout.yJogador[1],
+    width: 180, height: 246, dadosCartaCampo: { nome: 'O Tigre' } };
+  const orb = { active: true, visible: true, input: {}, x: card.x + 100, y: card.y - 36, width: 104 };
+  scene.children.list = [card]; scene.cartaCampoSelecionada = null;
+  training.setStep('tiger-ability', 'Selecione o Tigre.'); training.update();
+  assert.equal(training.alvoDestaque, card);
+  scene.cartaCampoSelecionada = card; scene.botaoHabilidadeCampo = orb; training.update();
+  assert.equal(training.alvoDestaque, orb); assert.equal(training.highlight.x, orb.x);
+  assert.match(training.hint.textContent, /bolinha verde/);
+  orb.x += 10; training.update(); assert.equal(training.highlight.x, orb.x);
+  scene.objetosSelecaoAlvo = [{}]; training.update();
+  assert.equal(training.highlight.y, scene.layout.yInimigo[1]);
+  assert.match(training.hint.textContent, /CyberVendedor/);
+  scene.objetosSelecaoAlvo = null; training.update();
+  assert.equal(training.alvoDestaque, orb, 'Cancelar o alvo retoma a orientação da bolinha.');
+  scene.cartaCampoSelecionada = null; scene.botaoHabilidadeCampo = null;
+  assert.equal(training.canInspect(card.dadosCartaCampo), true);
 }
 
 let starts = 0;

@@ -94,7 +94,9 @@ async function run() {
   const response = await fetch(base + '/api/account/faction', { method: 'POST',
     headers: { Authorization: `Bearer ${fixture.token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ faction: 'raspcorp' }) });
   assert.equal(response.status, 200);
-  browser = await chromium.launch();
+  browser = await chromium.launch({
+    channel: fs.existsSync('C:/Program Files/Google/Chrome/Application/chrome.exe') ? 'chrome' : undefined,
+  });
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true });
   await context.addInitScript(token => {
     localStorage.setItem('cyberduel.account.token.v1', token);
@@ -102,7 +104,7 @@ async function run() {
   }, fixture.token);
   page = await context.newPage(); page.setDefaultTimeout(20000);
   const touch = await context.newCDPSession(page);
-  const holdArt = async (name, mobile) => {
+  const holdArt = async (name, mobile, hidesText = true) => {
     await openCard(name);
     const point = await page.evaluate(() => {
       const art = game.scene.getScene('CenaJogo').painelDetalheAtual.getByName('ficha-arte');
@@ -111,20 +113,22 @@ async function run() {
     const screen = await screenPoint(point.x, point.y);
     if (mobile) await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [screen] });
     else { await page.mouse.move(screen.x, screen.y); await page.mouse.down(); }
-    await page.waitForFunction(() => game.scene.getScene('CenaJogo').arteSemTextoAtiva);
+    if (hidesText) await page.waitForFunction(() => game.scene.getScene('CenaJogo').arteSemTextoAtiva);
+    else await page.waitForTimeout(450);
     assert.deepEqual(await page.evaluate(() => {
       const scene = game.scene.getScene('CenaJogo'), panel = scene.painelDetalheAtual;
       return { art: panel.getByName('ficha-arte').visible, name: panel.getByName('ficha-nome').visible,
         text: panel.getByName('ficha-textos').visible, zoom: !!scene.zoomAberto };
-    }), { art: true, name: false, text: false, zoom: false });
-    await page.screenshot({ path: path.join(output, `arte-sem-texto-${mobile ? 'toque' : 'mouse'}.png`) });
+    }), { art: true, name: !hidesText, text: !hidesText, zoom: false });
+    await page.screenshot({ path: path.join(output, `arte-${hidesText ? 'sem' : 'com'}-texto-${mobile ? 'toque' : 'mouse'}.png`) });
     if (mobile) await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     else await page.mouse.up();
-    assert.equal(await page.evaluate(() => {
+    if (!hidesText) await page.waitForFunction(() => game.scene.getScene('CenaJogo').zoomAberto);
+    assert.equal(await page.evaluate(hidesText => {
       const scene = game.scene.getScene('CenaJogo'), panel = scene.painelDetalheAtual;
-      return scene.modalAberto && !scene.zoomAberto && !scene.arteSemTextoAtiva &&
+      return scene.modalAberto && !!scene.zoomAberto === !hidesText && !scene.arteSemTextoAtiva &&
         panel.getByName('ficha-nome').visible && panel.getByName('ficha-textos').visible;
-    }), true, 'Soltar restaura os textos e mantém a ficha aberta.');
+    }, hidesText), true, hidesText ? 'A lendária restaura os textos sem abrir zoom.' : 'A carta comum mantém os textos e amplia a arte normalmente.');
   };
   page.on('pageerror', error => errors.push(error.message));
   await page.goto(base, { waitUntil: 'domcontentloaded' });
@@ -270,8 +274,9 @@ async function run() {
   await page.setViewportSize({ width: 390, height: 844 });
   checks.push('Todas as lendárias: enquadramento original preenchendo a moldura, nome acima e descrição no rodapé em celular pequeno, celular e desktop.');
   await holdArt('RaspClay MonteCorp', true);
-  await holdArt('HAL 9001', false);
-  checks.push('Segurar com toque ou mouse oculta os textos; soltar restaura, preserva a arte e não abre o zoom.');
+  await holdArt('HAL 9001', false, false);
+  await holdArt('HAL 9001', true, false);
+  checks.push('Segurar só oculta os textos nas lendárias; cartas comuns preservam a leitura e o toque amplia a arte com mouse ou toque.');
 
   await openCard('HAL 9001');
   const button = await page.evaluate(() => {

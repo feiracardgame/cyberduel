@@ -30,6 +30,42 @@ vm.runInContext(fs.readFileSync('js/debug.js', 'utf8'), context);
   await assert.rejects(context.window.irParaFinal('vitória'), /administradora/);
   assert.throws(() => context.window.irParaX1(), /administradora/);
   context.window.cyberduelAccount.isAdmin = true;
+  // O X1 cria um perfil admin offline sem rede e preserva contas já conectadas.
+  {
+    const actions = [], starter = [{ nome: 'Inicial' }], saved = [{ nome: 'Salvo' }];
+    let loaded = false, savedDeck = null, validDeck = true, started;
+    const account = { user: null, isAdmin: false,
+      useOfflineAdmin() { this.user = 'Admin'; this.isAdmin = true; actions.push('admin-offline'); },
+      localLogin() { throw Error('Login de servidor não deve ser chamado'); },
+    };
+    const x1 = vm.createContext({ window: { cyberduelAccount: account,
+      cyberduelDeckBuilder: { getSavedDeck: () => savedDeck, isValid: () => validDeck },
+      cyberduelMultiplayer: { leaveRoom() { actions.push('sair'); } },
+    }, CyberduelDeckBuilder: class { getStarterDeck() { return starter; } },
+    game: { scene: { isActive: key => loaded && key === 'CenaTitulo',
+      getScenes: () => [{ scene: { key: 'CenaTitulo' } }],
+      stop(key) { actions.push(`parar:${key}`); },
+      start(key, data) { actions.push(`iniciar:${key}`); started = data; },
+    } } });
+    vm.runInContext(fs.readFileSync('js/debug.js', 'utf8'), x1);
+    assert.throws(() => x1.window.irParaX1(), /Aguarde o carregamento/);
+    assert.deepEqual(actions, [], 'Preload não cria perfil admin ou fecha cenas.');
+    loaded = true;
+    assert.match(x1.window.irParaX1(), /iniciado contra o bot/);
+    assert.deepEqual(actions, ['admin-offline', 'sair', 'parar:CenaTitulo', 'iniciar:CenaJogo']);
+    assert.equal(started.debug, true); assert.equal(started.deckDebug, starter);
+    actions.length = 0; savedDeck = saved;
+    account.useOfflineAdmin = () => { throw Error('Perfil offline não deve substituir conta atual'); };
+    x1.window.irParaX1();
+    assert.deepEqual(actions, ['sair', 'parar:CenaTitulo', 'iniciar:CenaJogo']);
+    assert.equal(started.deckDebug, saved, 'Admin conectado mantém seu deck salvo.');
+    actions.length = 0; account.isAdmin = false;
+    assert.throws(() => x1.window.irParaX1(), /administradora/);
+    assert.deepEqual(actions, [], 'Conta comum conectada é preservada, sem criar outro perfil.');
+    account.user = 'Admin'; account.isAdmin = true; validDeck = false;
+    assert.throws(() => x1.window.irParaX1(), /montar o deck/);
+    assert.deepEqual(actions, [], 'Deck inválido não fecha a cena atual.');
+  }
   context.window.cyberduelAccount.setDemoMode = async enabled => ({ demoMode: enabled });
   assert.match(await context.window.modoDemo(), /ativado para todos/);
   assert.match(await context.window.modoDemo(false), /desativado para todos/);

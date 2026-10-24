@@ -145,12 +145,22 @@ class CyberduelAccount {
       this.applyDemoMode(config.demoMode === true);
     } catch { /* Mantém a última configuração conhecida durante a reconexão. */ }
     if (!this.token) return this.snapshot();
+    const restoredToken = this.token;
     try {
-      return this.applyAuth(await this.request("/api/auth/session"));
+      const payload = await this.request("/api/auth/session");
+      return this.token === restoredToken ? this.applyAuth(payload) : this.snapshot();
     } catch {
-      this.clear();
+      if (this.token === restoredToken) this.clear();
       return this.snapshot();
     }
+  }
+
+  useOfflineAdmin() {
+    if (this.user) return this.snapshot();
+    this.token = null;
+    localStorage.removeItem(this.storageKey);
+    return this.applyAuth({ username: "Admin", nickname: "Admin", authProvider: "offline", isAdmin: true,
+      tutorial: { introSeen: true, named: true, wantsTutorial: false, completed: true, farewellSeen: true, seen: [] } });
   }
 
   async localLogin(username) {

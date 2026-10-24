@@ -22,6 +22,9 @@
     "test:security-x1:browser": "node scripts/test-security-x1-playwright.js",
     "test:boosters:browser": "node scripts/test-booster-playwright.js",
     "test:card-detail:browser": "node scripts/test-card-detail-playwright.js",
+    "test:card-interaction:browser": "node scripts/test-card-interaction-playwright.js",
+    "test:x1-offline:browser": "node scripts/test-x1-offline-playwright.js",
+    "test:tutorial:browser": "node scripts/test-tutorial-playwright.js",
     "test:deck-art:browser": "node scripts/test-deck-art-playwright.js",
     "test:keyboard:browser": "node scripts/test-keyboard-playwright.js"
   },
