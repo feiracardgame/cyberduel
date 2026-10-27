@@ -614,9 +614,8 @@ class CenaJogo extends Phaser.Scene {
 
   efeitoInvocacaoEmCurso() {
     const efeitos = this.scene?.manager?.keys?.CenaEfeitos;
-    return [efeitos?.eventoAtual, ...(efeitos?.fila || [])]
-      .filter(Boolean)
-      .some((evento) => evento.momento === "invocacao");
+    return efeitos?.eventoAtual?.momento === "invocacao" ||
+      !!efeitos?.fila?.some((evento) => evento.momento === "invocacao");
   }
 
   efeitosBloqueiamInteracao() {
@@ -627,6 +626,10 @@ class CenaJogo extends Phaser.Scene {
 
   atualizarInteracaoDuranteEfeitos() {
     const bloqueado = this.efeitosBloqueiamInteracao() || this.avisoBatalhaPendente() || !!this.training?.dialog;
+    if (!bloqueado && !this.interfaceOcultaPorEfeitos) {
+      if (this.input) this.input.enabled = true;
+      return;
+    }
     let transicao = false;
     for (const objeto of this.children?.list || []) {
       if (!objeto.dadosCarta && objeto !== this.rodaBotoesContainer) continue;

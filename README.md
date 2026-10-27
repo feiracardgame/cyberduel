@@ -459,6 +459,21 @@ Para resetar os pontos de influência de todos, entre como administrador e execu
 
 Para descontar pontos de influência de uma conta, use `diminuirPontos("username", 200)` como administrador no console. A quantidade deve ser um inteiro positivo; o total de pontos de influência para em zero se o desconto exceder o saldo. O comando informa o desconto efetivo, salva o resultado e atualiza a fila sem alterar os demais dados. Teste local dos dois comandos: `npm run test:rating:browser`.
 
+Para banir ou desbanir uma conta, entre como administrador e execute no console do navegador:
+
+```js
+await banirConta("username", "Motivo opcional");
+await desbanirConta("username");
+```
+
+Use o username único, não o apelido; maiúsculas/minúsculas e espaços nas pontas são ignorados. O motivo é opcional e aceita até 300 caracteres. A autorização é conferida no servidor, e não é permitido banir a própria conta. Repetir o mesmo comando é seguro; banir uma conta já banida preserva o motivo e a data originais.
+
+O banimento persiste após reiniciar o servidor e bloqueia login Google/local, sessões existentes, operações da conta e multiplayer. Abas identificadas recebem imediatamente o aviso **CONTA BANIDA** e saem da conta; outras abas verificam a sessão ao voltar à janela e a cada 15 segundos com a página visível. Filas e reservas de mesa são liberadas. Um duelo em andamento termina por desistência da conta banida, seguindo as regras normais de resultado e recompensa; o token de retorno desse duelo deixa de funcionar. A conta sai do ranking e do Conselho enquanto estiver banida.
+
+Desbanir libera o acesso sem apagar coleção, decks, boosters, saldo ou histórico; resultados de duelos encerrados pelo banimento permanecem registrados. Quem recebeu o aviso precisa entrar novamente. As rotas administrativas são `POST /api/admin/accounts/ban` (username e reason opcional) e `POST /api/admin/accounts/unban` (username). Depois de atualizar, reinicie o backend e recarregue os clientes. `npm test` cobre autorização, persistência, falha de gravação, login, fila, mesas, duelo e retorno. `npm run test:bans:browser` valida comandos e aviso em desktop/celular, com contas temporárias e evidências em `output/sindicato/banimentos/`.
+
+As otimizações preservam as regras e os efeitos: o campo ocioso evita percorrer todos os objetos a cada quadro para recolher a interface; os espectadores compartilham uma única cópia filtrada do estado por envio; a consulta da conta reutiliza a classificação do Conselho; e a lista administrativa agrupa as cartas reservadas em uma passagem. Não há cache persistente de ranking que possa deixar a classificação desatualizada. `npm test` verifica a restauração da interface após animações e a privacidade das cartas nas versões de jogadores, espectadores e apresentação.
+
 Como administrador, execute `await modoDemo(true)` (ou `await modoDemo()`) para ativar globalmente o **modo demo**, limitado às cartas e boosters de **Echossystem e RaspCorp**. Use `await modoDemo(false)` para desativar. A configuração persiste após reiniciar o servidor e é enviada às telas abertas. O editor mostra apenas as cartas permitidas. A loja mostra todos os boosters, mas desabilita os demais com o aviso “Disponível apenas na feira de jogos.” Decks incompatíveis ficam bloqueados para salvar ou iniciar duelos. Outros pacotes continuam guardados, sem poder comprar ou abrir enquanto o modo estiver ativo. Desativar restaura o acesso sem apagar coleção, decks ou pacotes.
 
 Conclua ou feche salas online com cartas de outros boosters antes de ativar: o servidor recusa a troca para preservar esses duelos. Buscas incompatíveis são retiradas da fila. Solos locais incompatíveis voltam ao menu ao receber a ativação. O servidor também valida decks, estados de partida e aberturas enviadas diretamente à API. Testes: `node test/demo-mode.test.js` e `npm run test:demo:browser`.

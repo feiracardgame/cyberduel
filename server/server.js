@@ -242,6 +242,7 @@ function sendJson(response, status, payload) {
 }
 
 function readJson(request) {
+  const account = authenticatedSession(request)?.account;
   return new Promise((resolve, reject) => {
     let body = "";
     request.setEncoding("utf8");
@@ -254,9 +255,15 @@ function readJson(request) {
     });
     request.on("end", () => {
       try {
+        // Revalida depois de receber o corpo: um banimento pode ocorrer durante o envio.
+        if (account?.banned && new URL(request.url, "http://localhost").pathname !== "/api/auth/logout") {
+          const error = new Error("ACCOUNT_BANNED");
+          error.accountBan = banRejection(account);
+          throw error;
+        }
         resolve(body ? JSON.parse(body) : {});
-      } catch {
-        reject(new Error("INVALID_JSON"));
+      } catch (error) {
+        reject(error.accountBan ? error : new Error("INVALID_JSON"));
       }
     });
     request.on("error", reject);
@@ -340,7 +347,7 @@ function authenticatedSession(request) {
   return canAuthenticate(account) ? { token: match[1], account } : null;
 }
 
-function accountFromToken(token) {
+function accountFromToken(token, includeBanned = false) {
   if (!/^[a-f0-9]{64}$/i.test(String(token || ""))) return null;
   const session = sessions.get(sessionKey(token));
   if (!session || session.expiresAt <= Date.now()) {
@@ -348,7 +355,11 @@ function accountFromToken(token) {
     return null;
   }
   const account = accountStore.accounts[session.accountKey];
-  return canAuthenticate(account) && !needsRegistration(account) ? account : null;
+  return canAuthenticate(account) && (includeBanned || (!needsRegistration(account) && !account.banned)) ? account : null;
+}
+
+function banRejection(account) {
+  return { ok: false, code: "ACCOUNT_BANNED", error: "Esta conta está banida.", reason: account.banReason || "" };
 }
 
 function needsRegistration(account) {
@@ -381,15 +392,16 @@ function allowedFrontend(origin, host) {
   }
 }
 
-function registerCouncilEntries() {
-  const newcomers = ranking.leaderboard(Object.values(accountStore.accounts)).slice(0, 10).filter(account => !account.councilReached);
+function registerCouncilEntries(leaderboard = ranking.leaderboard(Object.values(accountStore.accounts))) {
+  const newcomers = leaderboard.slice(0, 10).filter(account => !account.councilReached);
   for (const account of newcomers) account.councilReached = true;
   return newcomers.length > 0;
 }
 
 function publicAccount(account) {
   ensureAccountDefaults(account);
-  if (registerCouncilEntries()) saveAccounts();
+  const councilMembers = ranking.leaderboard(Object.values(accountStore.accounts)).slice(0, 10);
+  if (registerCouncilEntries(councilMembers)) saveAccounts();
   return {
     username: account.username,
     nickname: account.nickname,
@@ -411,7 +423,7 @@ function publicAccount(account) {
     humanGames: account.humanGames, humanWins: account.humanWins,
     clubGames: account.clubGames, clubWins: account.clubWins,
     tutorial: account.tutorial, councilReached: Boolean(account.councilReached),
-    councilMember: council.isMember(account, Object.values(accountStore.accounts)),
+    councilMember: councilMembers.includes(account),
     clubUnlocked: account.humanWins >= 3,
     collection: account.collection,
     starterCollection: account.starterCollection,
@@ -595,6 +607,7 @@ async function handleApi(request, response, pathname) {
     if (account && normalizeUsername(account.username) !== normalizeUsername(username)) account = null;
     if (account && !account.localAccount)
       return sendJson(response, 409, { ok: false, error: "Nome local já está em uso." });
+    if (account?.banned) return sendJson(response, 403, banRejection(account));
     if (!account && nameIsBlocked(name))
       return sendJson(response, 400, nameRejection({ username: true, nickname: true }));
     if (!account) {
@@ -655,10 +668,13 @@ async function handleApi(request, response, pathname) {
       saveAccounts();
       entry = [accountKey, account];
     }
+    if (entry[1].banned) return sendJson(response, 403, banRejection(entry[1]));
     return sendJson(response, 200, { ok: true, token: createSession(entry[0]), ...publicAccount(entry[1]) });
   }
 
   const pending = authenticatedSession(request);
+  if (pending?.account.banned && pathname !== "/api/auth/logout")
+    return sendJson(response, 403, banRejection(pending.account));
   if (pending && nameRestriction(pending.account) && ![
     "/api/auth/session", "/api/auth/logout", "/api/account/profile",
   ].includes(pathname))
@@ -841,12 +857,18 @@ async function handleApi(request, response, pathname) {
   if (request.method === "GET" && pathname === "/api/admin/accounts") {
     const accounts = Object.values(accountStore.accounts);
     const leaderboard = ranking.leaderboard(accounts);
+    const positions = new Map(leaderboard.map((account, index) => [account, index]));
+    const reservedCards = new Map();
+    for (const listing of accountStore.marketListings || []) {
+      if (!reservedCards.has(listing.seller)) reservedCards.set(listing.seller, new Set());
+      reservedCards.get(listing.seller).add(cardKey(listing.tipo, listing.nome));
+    }
     return sendJson(response, 200, { ok: true, accounts: Object.entries(accountStore.accounts).map(([key, account]) => {
-      const reserved = (accountStore.marketListings || []).filter(listing => listing.seller === key);
       const unlockedCards = ALL_AVAILABLE_CARDS.filter(card => (account.collection[cardKey(card.tipo, card.nome)] || 0) > 0 ||
-        reserved.some(listing => listing.tipo === card.tipo && listing.nome === card.nome)).length;
-      const position = leaderboard.indexOf(account);
+        reservedCards.get(key)?.has(cardKey(card.tipo, card.nome))).length;
+      const position = positions.get(account) ?? -1;
       return { username: account.username, nickname: account.nickname || account.username,
+        banned: account.banned === true, banReason: account.banReason || "",
         nameChangeRequired: account.nameChangeRequired === true,
         clubUnlocked: account.humanWins >= 3, councilMember: position >= 0 && position < 10,
         rating: account.rating, rank: ranking.playerProfile(account).rank, rankingPosition: position < 0 ? null : position + 1,
@@ -1122,6 +1144,33 @@ async function handleApi(request, response, pathname) {
       ...(pathname === "/api/boosters/open" ? { cards } : {}),
       ...publicAccount(session.account),
     });
+  }
+
+  if (request.method === "POST" && ["/api/admin/accounts/ban", "/api/admin/accounts/unban"].includes(pathname)) {
+    const body = await readJson(request);
+    if (typeof body?.username !== "string" || !body.username.trim())
+      return sendJson(response, 400, { ok: false, error: "Informe o username." });
+    const banning = pathname.endsWith("/ban");
+    if (banning && body.reason !== undefined && (typeof body.reason !== "string" || Array.from(body.reason.trim()).length > 300))
+      return sendJson(response, 400, { ok: false, error: "Use um motivo de até 300 caracteres." });
+    const account = accountByUsername(body.username);
+    if (!account) return sendJson(response, 404, { ok: false, error: "Conta não encontrada." });
+    if (banning && account === pending.account)
+      return sendJson(response, 409, { ok: false, error: "Você não pode banir sua própria conta." });
+    if ((account.banned === true) !== banning) {
+      const before = { ...account };
+      const now = new Date().toISOString();
+      account.banned = banning;
+      if (banning) Object.assign(account, { banReason: (body.reason || "").trim(), bannedAt: now, bannedBy: pending.account.username });
+      else Object.assign(account, { unbannedAt: now, unbannedBy: pending.account.username });
+      try { saveAccounts(); } catch (error) {
+        for (const key of Object.keys(account)) delete account[key];
+        Object.assign(account, before);
+        return sendJson(response, 500, { ok: false, error: "Não foi possível salvar o banimento. Tente novamente." });
+      }
+    }
+    if (banning) enforceAccountBan(account);
+    return sendJson(response, 200, { ok: true, username: account.username, banned: account.banned === true });
   }
 
   if (request.method === "POST" && pathname === "/api/admin/accounts/require-name-change") {
@@ -1452,6 +1501,7 @@ function serveGame(request, response) {
     }
     handleApi(request, response, pathname).catch((error) => {
       console.error("Falha na API:", error.message);
+      if (!response.headersSent && error.accountBan) return sendJson(response, 403, error.accountBan);
       if (!response.headersSent)
         sendJson(response, error.marketPersistence || error.soloPersistence ? 500 : error.message === "PAYLOAD_TOO_LARGE" ? 413 : 400, {
           ok: false,
@@ -1651,7 +1701,11 @@ function broadcastState(room, extra = {}, except = null) {
     ...(room.matchSettled && !room.debugFinal && room.accounts.has(player)
       ? { reward: room.rewards[player - 1], influenceReward: room.influenceRewards[player - 1], account: publicAccount(room.accounts.get(player)) } : {}),
   });
-  for (const id of room.spectators) io.to(id).emit("state-update", { ...update, state: spectatorState(room.state) });
+  // A versão pública é idêntica para todos os espectadores deste envio.
+  if (room.spectators.size) {
+    const state = spectatorState(room.state);
+    for (const id of room.spectators) io.to(id).emit("state-update", { ...update, state });
+  }
   if (room.presentationHost) io.to(room.presentationHost).emit("state-update", { ...update, state: presentationState(room.state) });
 }
 
@@ -1854,6 +1908,40 @@ function surrenderRoom(room, player) {
   broadcastState(room, { result: room.result });
 }
 
+function enforceAccountBan(account) {
+  for (const [id, entry] of matchmaking) if (entry.username === account.username) {
+    matchmaking.delete(id);
+    entry.socket.emit("matchmaking-stopped", banRejection(account));
+  }
+  for (const room of rooms.values()) {
+    let changed = false;
+    for (const [seat, reservation] of room.reservations || []) if (reservation.owner === account.username) {
+      room.reservations.delete(seat); changed = true;
+    }
+    for (const [player, owner] of room.accounts) if (owner === account) {
+      surrenderRoom(room, player);
+      room.resumeTokens.delete(player);
+      if (!room.state) {
+        for (const key of ["players", "decks", "usernames", "nicknames", "accounts", "profiles"])
+          room[key].delete(player);
+        if (!room.presentation) {
+          io.to(room.code).emit("opponent-left");
+          rooms.delete(room.code);
+        }
+        changed = true;
+      }
+    }
+    if (changed) notifyPresentation(room);
+  }
+  for (const socket of io.sockets.sockets.values()) {
+    const room = rooms.get(socket.data.room);
+    if (room?.accounts.get(socket.data.player) === account || accountFromToken(socket.data.accountToken, true) === account) {
+      socket.emit("account-banned", banRejection(account));
+      socket.disconnect(true);
+    }
+  }
+}
+
 function acceptClientState(room, state) {
   // O evento de Segurança X1 só é criado pelo servidor após validar a conta e a invocação.
   if (Array.isArray(state.eventosEfeito)) state.eventosEfeito = state.eventosEfeito.filter(event => event.momento !== "seguranca_x1");
@@ -1911,11 +1999,17 @@ io.on("connection", (socket) => {
   socket.emit("game-config", { demoMode: accountStore.demoMode === true });
   socket.use(([event, payload, ack], next) => {
     const data = payload && typeof payload === "object" ? payload : {};
-    if (accountFromToken(data.accountToken)) socket.data.accountToken = data.accountToken;
+    if (accountFromToken(data.accountToken, true)) socket.data.accountToken = data.accountToken;
     const room = rooms.get(socket.data.room);
     const resumed = !room && data.resumeToken ? findResumable(data) : null;
     const account = room?.accounts.get(socket.data.player) || resumed?.room.accounts.get(resumed.player) ||
-      accountFromToken(data.accountToken);
+      accountFromToken(data.accountToken, true) || accountFromToken(socket.data.accountToken, true);
+    if (account?.banned) {
+      const rejection = banRejection(account);
+      socket.emit("account-banned", rejection);
+      if (typeof ack === "function") ack(rejection);
+      return;
+    }
     const restriction = nameRestriction(account);
     if (!restriction || ["leave-room", "surrender", "decline-match", "unwatch-club-tables"].includes(event)) return next();
     const rejection = nameRejection(restriction, true);
@@ -1925,6 +2019,11 @@ io.on("connection", (socket) => {
   socket.on("watch-club-tables", (payload = {}, ack = () => {}) => {
     socket.join("club-tables");
     ack({ ok: true, tables: clubTables(), council: councilTable() });
+  });
+  socket.on("identify-account", (payload = {}, ack = () => {}) => {
+    const account = accountFromToken(payload.accountToken);
+    socket.data.accountToken = account ? payload.accountToken : null;
+    ack({ ok: !!account });
   });
   socket.on("unwatch-club-tables", () => socket.leave("club-tables"));
 

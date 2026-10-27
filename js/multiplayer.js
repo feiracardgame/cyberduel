@@ -48,6 +48,7 @@ class CyberduelMultiplayer {
       reconnectionAttempts: 4,
     });
     this.socket.on("connect", () => {
+      this.socket.emit("identify-account", { accountToken: window.cyberduelAccount?.token });
       this.status("Conectado ao servidor.");
       if (this.onClubTables && this.clubTablesSubscribed) this.watchClubTables(this.onClubTables);
       if (this.presentation && this.room) return this.createPresentation(this.onPresentation);
@@ -58,6 +59,7 @@ class CyberduelMultiplayer {
     });
     this.socket.on("matchmaking-stopped", (payload) => this.onMatchmakingStopped?.(payload.error));
     this.socket.on("game-config", config => window.cyberduelAccount.applyDemoMode(config.demoMode === true));
+    this.socket.on("account-banned", payload => window.cyberduelAccount.handleBan(payload));
     this.socket.on("name-restricted", payload => {
       window.cyberduelAccount.nameRestriction = payload.nameRestriction;
       window.cyberduelNameGuard?.sync(payload.nameRestriction);
@@ -378,8 +380,8 @@ class CyberduelMultiplayer {
     if (!this.scene) this.onReady?.();
   }
 
-  leaveRoom() {
-    this.socket?.emit("leave-room");
+  leaveRoom(notify = true) {
+    if (notify) this.socket?.emit("leave-room");
     this.active = false; this.initialized = false; this.pendingUpdate = null;
     if (!this.presentation) this.saveResumeToken(null);
     this.presentation = false; this.waitingInvitation = null; this.displayKey = null; this.room = null;

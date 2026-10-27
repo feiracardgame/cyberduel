@@ -87,6 +87,7 @@ class CyberduelAccount {
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
+      if (payload.code === "ACCOUNT_BANNED") this.handleBan(payload);
       if (payload.code === "NAME_NOT_ALLOWED" && payload.requiresNameChange === true) {
         this.nameRestriction = payload.nameRestriction;
         window.cyberduelNameGuard?.sync(this.nameRestriction);
@@ -99,13 +100,27 @@ class CyberduelAccount {
     return payload;
   }
 
+  handleBan(payload) {
+    window.cyberduelMultiplayer?.leaveRoom(false);
+    this.clear();
+    const scenes = typeof game !== "undefined" ? game.scene : null;
+    if (scenes?.isActive("CenaJogo") || scenes?.isActive("CenaTransicao") || scenes?.isActive("CenaDeckBuilder")) {
+      for (const scene of scenes.getScenes(true)) scenes.stop(scene.scene.key);
+      scenes.start("CenaTitulo");
+    }
+    window.cyberduelNameGuard?.showBan(payload.reason);
+  }
+
   applyAuth(payload, shouldNotify = true) {
+    const previousUser = this.user;
     if (typeof payload.demoMode === "boolean") this.applyDemoMode(payload.demoMode, false);
     if (payload.token) {
       this.token = payload.token;
       localStorage.setItem(this.storageKey, this.token);
     }
     this.user = payload.username || null;
+    if (this.token && (payload.token || this.user !== previousUser))
+      window.cyberduelMultiplayer?.socket?.emit("identify-account", { accountToken: this.token });
     this.authProvider = payload.authProvider || "google";
     this.isAdmin = payload.isAdmin === true;
     this.segurancaX1 = this.isAdmin && payload.segurancaX1 === true;
@@ -325,6 +340,14 @@ class CyberduelAccount {
 
   async requireNameChange(username) {
     return this.request("/api/admin/accounts/require-name-change", { method: "POST", body: { username } });
+  }
+
+  banAccount(username, reason = "") {
+    return this.request("/api/admin/accounts/ban", { method: "POST", body: { username, reason } });
+  }
+
+  unbanAccount(username) {
+    return this.request("/api/admin/accounts/unban", { method: "POST", body: { username } });
   }
 
   async broadcastMessage(message) {

@@ -318,6 +318,23 @@ async function checkClient(profile) {
   await checkClient(chosen.body);
   assert.equal((await api("auth/logout")).status, 200);
   assert.equal((await api("auth/session", undefined, "GET")).status, 401);
+  await stop();
+  savedAccounts.accounts[previousKey].banned = true;
+  savedAccounts.accounts[previousKey].banReason = "Moderação QA";
+  fs.writeFileSync(path.join(directory, "accounts.json"), JSON.stringify(savedAccounts));
+  await start();
+  const sessionCount = Object.keys(JSON.parse(fs.readFileSync(path.join(directory, "sessions.json"))).sessions).length;
+  const bannedGoogle = (await login({ sub: "previous-google-player" })).result;
+  assert.equal(bannedGoogle.status, 403);
+  assert.equal(bannedGoogle.body.code, "ACCOUNT_BANNED");
+  assert.equal(bannedGoogle.body.token, undefined);
+  assert.equal(Object.keys(JSON.parse(fs.readFileSync(path.join(directory, "sessions.json"))).sessions).length, sessionCount,
+    "Login Google de conta banida não cria sessão.");
+  await stop();
+  savedAccounts.accounts[previousKey].banned = false;
+  fs.writeFileSync(path.join(directory, "accounts.json"), JSON.stringify(savedAccounts));
+  await start();
+  assert.equal((await login({ sub: "previous-google-player" })).result.status, 200);
   console.log("Google: username único, concorrência, apelido separado, cadastro existente, tokens, persistência e bloqueio de senha validados.");
 })().catch(error => { console.error(error); process.exitCode = 1; }).finally(async () => {
   await stop();

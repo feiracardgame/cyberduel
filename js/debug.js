@@ -21,6 +21,21 @@ window.testarNomeCensurado = () => {
 };
 
 // Moderação real, restrita a administradores e direcionada pelo username da conta.
+window.banirConta = async (username, reason = "") => {
+  requireAdminAccount();
+  if (typeof username !== "string" || !username.trim() || typeof reason !== "string" || Array.from(reason.trim()).length > 300)
+    throw new Error('Use banirConta("username", "motivo opcional de até 300 caracteres").');
+  const result = await window.cyberduelAccount.banAccount(username.trim(), reason.trim());
+  return `Conta ${result.username} banida.`;
+};
+
+window.desbanirConta = async username => {
+  requireAdminAccount();
+  if (typeof username !== "string" || !username.trim()) throw new Error('Use desbanirConta("username").');
+  const result = await window.cyberduelAccount.unbanAccount(username.trim());
+  return `Conta ${result.username} desbanida. O acesso foi liberado.`;
+};
+
 window.exigirTrocaDeNome = async username => {
   requireAdminAccount();
   if (typeof username !== "string" || !username.trim())

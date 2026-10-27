@@ -21,6 +21,8 @@ vm.runInContext(fs.readFileSync('js/debug.js', 'utf8'), context);
   await assert.rejects(context.window.modoDemo(), /administradora/);
   await assert.rejects(context.window.enviarAvisoGeral('Teste'), /administradora/);
   await assert.rejects(context.window.exigirTrocaDeNome('Duelista'), /administradora/);
+  await assert.rejects(context.window.banirConta('Duelista'), /administradora/);
+  await assert.rejects(context.window.desbanirConta('Duelista'), /administradora/);
   context.window.cyberduelNameGuard = { show(fields, options) { this.fields = fields; this.preview = options.preview; } };
   assert.match(context.window.testarNomeCensurado(), /Prévia local/);
   assert.equal(context.window.cyberduelNameGuard.preview, true, 'Prévia local dispensa administração.');
@@ -30,6 +32,19 @@ vm.runInContext(fs.readFileSync('js/debug.js', 'utf8'), context);
   await assert.rejects(context.window.irParaFinal('vitória'), /administradora/);
   assert.throws(() => context.window.irParaX1(), /administradora/);
   context.window.cyberduelAccount.isAdmin = true;
+  context.window.cyberduelAccount.banAccount = async (username, reason) => {
+    assert.equal(username, 'Duelista'); assert.equal(reason, 'Teste'); return { username, banned: true };
+  };
+  context.window.cyberduelAccount.unbanAccount = async username => {
+    assert.equal(username, 'Duelista'); return { username, banned: false };
+  };
+  assert.match(await context.window.banirConta(' Duelista ', ' Teste '), /Duelista banida/);
+  assert.match(await context.window.desbanirConta(' Duelista '), /Duelista desbanida/);
+  for (const username of ['', null, 1]) {
+    await assert.rejects(context.window.banirConta(username), /Use banirConta/);
+    await assert.rejects(context.window.desbanirConta(username), /Use desbanirConta/);
+  }
+  await assert.rejects(context.window.banirConta('Duelista', 'x'.repeat(301)), /Use banirConta/);
   // O X1 cria um perfil admin offline sem rede e preserva contas já conectadas.
   {
     const actions = [], starter = [{ nome: 'Inicial' }], saved = [{ nome: 'Salvo' }];

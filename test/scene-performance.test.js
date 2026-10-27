@@ -134,3 +134,32 @@ for (const [index, layout] of layouts.entries()) {
   assert.ok(phase.y + phase.height / 2 < layout.yJogadorFrente - layout.slotH / 2);
 }
 console.log('Fundo opcional e placar sem sobreposição com o campo validados.');
+
+// O campo ocioso não percorre objetos para ocultar/restaurar a interface.
+{
+  let scans = 0, blocked = false;
+  const button = { y: 10, alpha: 1, visible: true, setVisible(value) { this.visible = value; return this; },
+    setAlpha(value) { this.alpha = value; return this; } };
+  const tweens = [];
+  const scene = Object.assign(Object.create(Scene.prototype), {
+    input: { enabled: true }, rodaBotoesContainer: button,
+    efeitosBloqueiamInteracao: () => blocked, avisoBatalhaPendente: () => false,
+    children: { get list() { scans++; return [button]; } },
+    tweens: { killTweensOf() {}, add(config) { tweens.push(config); return { stop() {} }; } },
+  });
+  for (let i = 0; i < 120; i++) scene.atualizarInteracaoDuranteEfeitos();
+  assert.equal(scans, 0); assert.equal(scene.input.enabled, true);
+  blocked = true; scene.atualizarInteracaoDuranteEfeitos();
+  assert.equal(scans, 1); assert.equal(scene.input.enabled, false);
+  tweens.at(-1).onComplete(); assert.equal(button.visible, false);
+  blocked = false; scene.atualizarInteracaoDuranteEfeitos();
+  assert.equal(button.visible, true); assert.equal(scene.input.enabled, false, 'Espera a animação de retorno.');
+  tweens.at(-1).onComplete(); scene.atualizarInteracaoDuranteEfeitos();
+  assert.equal(scene.input.enabled, true);
+  const restoredScans = scans;
+  for (let i = 0; i < 120; i++) scene.atualizarInteracaoDuranteEfeitos();
+  assert.equal(scans, restoredScans);
+  // O bloqueio do tutorial continua respeitado mesmo sem efeitos na fila.
+  scene.training = { dialog: {} }; scene.atualizarInteracaoDuranteEfeitos();
+  assert.equal(scene.input.enabled, false);
+}

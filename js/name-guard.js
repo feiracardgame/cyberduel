@@ -19,16 +19,22 @@ class CyberduelNameGuard {
   async checkSession() {
     if (!this.account.user || !this.account.token || this.checking || document.hidden) return;
     this.checking = true;
+    const token = this.account.token;
     try {
       const payload = await this.account.request("/api/auth/session");
       // Não redesenha o menu nem interrompe o duelo a cada verificação.
-      this.account.applyAuth(payload, false);
+      if (this.account.token === token) this.account.applyAuth(payload, false);
     } catch {
       // Uma falha de rede mantém o aviso e permite tentar a correção novamente.
     } finally { this.checking = false; }
   }
 
-  show(fields, { local = false, persisted = false, preview = false } = {}) {
+  showBan(reason = "") {
+    this.close();
+    this.show(null, { banned: true, reason });
+  }
+
+  show(fields, { local = false, persisted = false, preview = false, banned = false, reason = "" } = {}) {
     if (this.dialog && this.preview && !preview) this.close();
     if (this.dialog) {
       this.persisted ||= persisted;
@@ -72,6 +78,14 @@ class CyberduelNameGuard {
     const form = dialog.querySelector("form");
     const container = dialog.querySelector(".name-guard__fields");
     const inputs = {};
+    if (banned) {
+      dialog.querySelector(".name-guard__eyebrow").textContent = "ACESSO BLOQUEADO";
+      dialog.querySelector("h1").textContent = "CONTA BANIDA";
+      dialog.querySelector("#name-guard-warning").textContent = reason ? `Motivo: ${reason}` : "Esta conta foi banida pela administração.";
+      dialog.querySelector(".name-guard__form-heading").textContent = "O acesso depende de liberação pela administração.";
+      dialog.querySelector(".name-guard__instructions").textContent = "Você pode voltar à tela de login.";
+      dialog.querySelector("footer").textContent = "CYBERDUEL / MODERAÇÃO DE CONTAS";
+    }
     const addField = (name, labelText, maxLength, hint) => {
       const label = document.createElement("label");
       label.className = "name-guard__field";
@@ -89,7 +103,8 @@ class CyberduelNameGuard {
       container.append(label);
       inputs[name] = input;
     };
-    if (local) addField("username", "NOVO NOME", 18, "3–18 caracteres. Letras, números, ponto, hífen ou sublinhado.");
+    if (banned) { /* Banimento não pode ser removido com uma troca de nome. */ }
+    else if (local) addField("username", "NOVO NOME", 18, "3–18 caracteres. Letras, números, ponto, hífen ou sublinhado.");
     else {
       if (fields?.username) addField("username", "NOVO NICK ÚNICO", this.account.authProvider === "local" ? 18 : 24, "Letras, números, ponto, hífen ou sublinhado. Mínimo: 3 caracteres.");
       if (fields?.nickname || !fields?.username) addField("nickname", "NOVO APELIDO", 32, "Até 32 caracteres. Sem termos ofensivos ou identificação da equipe.");
@@ -97,6 +112,7 @@ class CyberduelNameGuard {
     const error = dialog.querySelector(".name-guard__error");
     const submit = dialog.querySelector(".name-guard__submit");
     const exit = dialog.querySelector(".name-guard__exit");
+    if (banned) submit.remove();
     if (preview) {
       dialog.dataset.preview = "true";
       dialog.querySelector(".name-guard__instructions").textContent = "PRÉVIA LOCAL — nenhum dado da sua conta será alterado.";
@@ -105,6 +121,7 @@ class CyberduelNameGuard {
     exit.textContent = preview ? "FECHAR TESTE" : this.account.user ? "SAIR DA CONTA" : "VOLTAR AO LOGIN";
     exit.addEventListener("click", async () => {
       if (submit.disabled) return;
+      if (banned) { this.close(); window.location.reload(); return; }
       if (preview) { this.close(); return; }
       if (this.account.user) {
         // A tela do jogo ativo precisa voltar ao login ao encerrar a sessão.
@@ -114,6 +131,7 @@ class CyberduelNameGuard {
     });
     form.addEventListener("submit", async event => {
       event.preventDefault();
+      if (banned) return;
       if (submit.disabled) return;
       if (preview) { this.close(); return; }
       submit.disabled = true;
@@ -142,7 +160,7 @@ class CyberduelNameGuard {
     dialog.addEventListener("keydown", event => {
       event.stopPropagation();
       if (event.key !== "Tab") return;
-      const controls = [...dialog.querySelectorAll("input, button")].filter(node => !node.disabled);
+      const controls = [...dialog.querySelectorAll("input, button")].filter(node => !node.disabled && !node.hidden);
       const first = controls[0], last = controls.at(-1);
       if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
       else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
@@ -151,7 +169,7 @@ class CyberduelNameGuard {
     this.gameInput = gameInput;
     this.inputWasEnabled = gameInput?.enabled;
     if (gameInput) gameInput.enabled = false;
-    Object.values(inputs)[0].focus({ preventScroll: true });
+    (Object.values(inputs)[0] || exit).focus({ preventScroll: true });
   }
 
   close() {

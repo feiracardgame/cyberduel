@@ -88,7 +88,7 @@ async function run() {
   assert.ok(accountList.payload.accounts.every(account => !account.clubUnlocked && !account.councilMember));
   for (const account of accountList.payload.accounts)
     assert.deepEqual(Object.keys(account).sort(), ['username', 'nickname', 'clubUnlocked', 'councilMember', 'rating', 'rank',
-      'rankingPosition', 'currency', 'currencySpent', 'marketSales', 'statsTrackedSince', 'unlockedCards', 'totalCards', 'nameChangeRequired'].sort(), 'Não expõe sessão, credenciais ou coleção completa.');
+      'rankingPosition', 'currency', 'currencySpent', 'marketSales', 'statsTrackedSince', 'unlockedCards', 'totalCards', 'nameChangeRequired', 'banned', 'banReason'].sort(), 'Não expõe sessão, credenciais ou coleção completa.');
   assert.ok(accountList.payload.accounts.every(account => typeof account.nameChangeRequired === 'boolean'));
   for (const route of ["unlock-leaderboard", "grant-rating", "remove-rating", "reset-rating", "grant-currency", "grant-cards", "give-card", "reset-collection"]) {
     assert.equal((await api(`/api/admin/accounts/${route}`, { method: "POST", token: second.token, body: { isAdmin: true } })).status, 403);
