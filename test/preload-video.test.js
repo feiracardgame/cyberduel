@@ -86,3 +86,9 @@ assert.equal(councilVideo.url, 'assets/videos/carregamento_humbanet.mp4');
 assert.ok(fs.existsSync(councilVideo.url));
 assert.equal(councilVideo.loop, true);
 assert.equal(councilVideo.muted, true);
+
+context.window.CYBERDUEL_PRESENTATION = true;
+scene.criarBarraDeCarregamento();
+assert.equal(scene.videoCarregamento.url, undefined, 'A apresentação não depende da reprodução de vídeo.');
+scene.create();
+assert.equal(loads, 4, 'A apresentação começa a carregar os assets imediatamente, mesmo sem frame ou erro de vídeo.');

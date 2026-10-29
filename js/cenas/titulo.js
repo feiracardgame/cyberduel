@@ -26,6 +26,8 @@ class CenaTitulo extends Phaser.Scene {
       window.cyberduelDeckBuilder.setAccountSession(user, deck, collection);
       if (!this.scene.isActive()) return;
       if (this.story?.busy) return;
+      if (this.titleUI?.boosterTraining?.user === user && user && !this.account.nameRestriction) return;
+      if (this.multiplayer.room && !this.multiplayer.active) return;
       this.titleUI?.destroy();
       this.montarInterfaceTitulo();
       if (this.account?.nameRestriction) return;
@@ -71,6 +73,11 @@ class CenaTitulo extends Phaser.Scene {
     });
 
     this.multiplayer.onStatus = (message) => this.atualizarStatus(message);
+    this.multiplayer.onRoomCleared = message => {
+      this.telaEsperaArena?.remove(); this.telaEsperaArena = null;
+      this.titleUI?.closeModal(true);
+      this.atualizarStatus(message, "info");
+    };
     this.multiplayer.onReady = () => this.iniciarPartidaMultiplayer();
     this.multiplayer.onMatchmakingStopped = (message) => {
       if (this.titleUI?.modal?.dataset.kind === "matchmaking") {
@@ -117,8 +124,13 @@ class CenaTitulo extends Phaser.Scene {
     const status = document.createElement("p"); status.textContent = "Abra a arena para receber os jogadores.";
     const seats = document.createElement("div"); seats.className = "presentation-seats";
     const start = document.createElement("button"); start.textContent = "ABRIR ARENA";
+    const clear = document.createElement("button"); clear.textContent = "LIMPAR SALA";
+    clear.className = "presentation-clear"; clear.hidden = true;
+    clear.onclick = () => this.multiplayer.clearPresentation(response => {
+      if (!response.ok) status.textContent = response.error;
+    });
     const center = document.createElement("header"); center.className = "presentation-center";
-    center.append(heading, code, status, start);
+    center.append(heading, code, status, start, clear);
     const background = new CyberduelTitleUI({});
     background.root = root;
     let reservationLabels = [], serverOffset = 0;
@@ -140,6 +152,7 @@ class CenaTitulo extends Phaser.Scene {
       start.disabled = false;
       if (!response.ok) { status.textContent = response.error; start.hidden = false; return; }
       start.hidden = true;
+      clear.hidden = !response.room.players;
       code.textContent = `CÓDIGO ${response.room.code}`;
       status.textContent = response.update ? "Duelo iniciado" : table
         ? `Jogadores prontos: ${response.room.players}/2 · Aguardando oponente`
@@ -177,15 +190,15 @@ class CenaTitulo extends Phaser.Scene {
       this.scene.start(this.multiplayer.table === 5 && this.multiplayer.announcementPending() ? "CenaTransicao" : "CenaJogo");
     };
     this.multiplayer.onStatus = message => { status.textContent = message; };
+    this.multiplayer.onRoomCleared = () => this.multiplayer.createPresentation(show);
     start.onclick = () => {
       start.disabled = true;
       document.documentElement.requestFullscreen?.().catch(() => {});
       this.multiplayer.createPresentation(show);
     };
     this.events.once("shutdown", () => { clearInterval(reservationTimer); background.destroy(); });
-    try {
-      if (table || window.sessionStorage?.getItem("cyberduel.presentationRoom")) this.multiplayer.createPresentation(show);
-    } catch {}
+    try { this.multiplayer.createPresentation(show); }
+    catch (error) { show({ ok: false, error: error.message }); }
   }
 
   tentarConviteApresentacao() {
@@ -217,6 +230,10 @@ class CenaTitulo extends Phaser.Scene {
         onMatchmaking: () => this.titleUI.openMatchmaking(this.multiplayer),
         onCreateRoom: () => this.criarSala(),
         onTutorial: () => this.iniciarTutorial(),
+        onLeaveRoom: () => {
+          this.multiplayer.leaveRoom();
+          this.atualizarStatus("Sala liberada. Escolha outra partida.");
+        },
         onJoinRoom: (code) => this.entrarNaSala(code),
         onReserveCouncilSeat: (seat, done) => this.multiplayer.reserveCouncilSeat(seat, done),
         onReleaseCouncilSeat: () => this.multiplayer.releaseCouncilSeat(),

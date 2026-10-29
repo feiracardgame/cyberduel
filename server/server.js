@@ -48,7 +48,8 @@ const SESSIONS_FILE = path.join(DATA_DIR, "sessions.json");
 const rooms = new Map();
 const sessions = new Map();
 const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
-const BOOSTER_PRICE = 100;
+const BOOSTER_PRICE = 50;
+const TUTORIAL_BOOSTER_ID = "tutorial-opposite-booster-v1";
 const INITIAL_CURRENCY = 500;
 const GOOGLE_CLIENT_ID = String(process.env.GOOGLE_CLIENT_ID || "").trim();
 const googleAuth = new OAuth2Client({ clientId: GOOGLE_CLIENT_ID, transporterOptions: { timeout: 10000 } });
@@ -802,6 +803,37 @@ async function handleApi(request, response, pathname) {
       return sendJson(response, 403, { ok: false, error: "Esta conta não é administradora." });
   }
 
+  if (request.method === "POST" && pathname === "/api/admin/rooms/clear") {
+    const body = await readJson(request);
+    if (typeof body?.code !== "string" || !/^\d{6}$/.test(body.code))
+      return sendJson(response, 400, { ok: false, error: "Informe o código de 6 números da sala." });
+    const room = rooms.get(body.code);
+    if (!room) return sendJson(response, 404, { ok: false, error: "Sala não encontrada." });
+    closeRoom(room);
+    return sendJson(response, 200, { ok: true, code: body.code });
+  }
+
+  if (request.method === "POST" && pathname === "/api/admin/accounts/clear-matches") {
+    const body = await readJson(request);
+    if (typeof body?.username !== "string" || !body.username.trim())
+      return sendJson(response, 400, { ok: false, error: "Informe o username da conta." });
+    const account = accountByUsername(body.username.trim());
+    if (!account) return sendJson(response, 404, { ok: false, error: "Conta não encontrada." });
+    let count = 0;
+    for (const [id, entry] of matchmaking) if (entry.username === account.username) {
+      matchmaking.delete(id);
+      entry.socket.emit("matchmaking-stopped", { error: "Busca encerrada pelo administrador." });
+    }
+    for (const room of rooms.values()) {
+      for (const [seat, reservation] of room.reservations || [])
+        if (reservation.owner === account.username) room.reservations.delete(seat);
+      if ([...room.usernames.values()].includes(account.username)) { closeRoom(room); count++; }
+      else if (room.presentation) notifyPresentation(room);
+    }
+    notifyClubTables();
+    return sendJson(response, 200, { ok: true, username: account.username, count });
+  }
+
   if (request.method === "POST" && pathname === "/api/admin/redemption-codes") {
     const body = await readJson(request);
     const card = ALL_AVAILABLE_CARDS.find(item => item.tipo === body.tipo && item.nome === body.nome);
@@ -974,7 +1006,7 @@ async function handleApi(request, response, pathname) {
     const body = await readJson(request);
     const account = session.account;
     ensureAccountDefaults(account);
-    const flags = ["introSeen", "named", "wantsTutorial", "completed", "deckExplained", "farewellSeen"];
+    const flags = ["introSeen", "named", "wantsTutorial", "completed", "deckExplained", "farewellSeen", "menuTourSeen", "boosterTutorialStarted", "boosterTutorialSeen"];
     if (!body || Array.isArray(body) || typeof body !== "object" || !Object.keys(body).length ||
         Object.keys(body).some(key => !flags.includes(key) && key !== "seen") ||
         flags.some(key => key in body && typeof body[key] !== "boolean"))
@@ -986,7 +1018,7 @@ async function handleApi(request, response, pathname) {
     if ("wantsTutorial" in body && account.tutorial.wantsTutorial !== null && body.wantsTutorial !== account.tutorial.wantsTutorial)
       return sendJson(response, 409, { ok: false, error: "A escolha inicial já foi registrada." });
     for (const flag of flags) if (flag in body)
-      account.tutorial[flag] = flag === "wantsTutorial" ? body[flag] : account.tutorial[flag] || body[flag];
+      account.tutorial[flag] = ["wantsTutorial", "boosterTutorialSeen"].includes(flag) ? body[flag] : account.tutorial[flag] || body[flag];
     if (body.seen && !account.tutorial.seen.includes(body.seen)) account.tutorial.seen.push(body.seen);
     account.updatedAt = new Date().toISOString();
     saveAccounts();
@@ -1094,6 +1126,7 @@ async function handleApi(request, response, pathname) {
         }
         grantCards(session.account, pack.cards);
         pack.openedAt = new Date().toISOString();
+        if (pack.id === TUTORIAL_BOOSTER_ID) session.account.tutorial.boosterTutorialOpened = true;
         session.account.updatedAt = pack.openedAt;
         saveAccounts();
       }
@@ -1107,16 +1140,22 @@ async function handleApi(request, response, pathname) {
       if (previous) return sendJson(response, 200, { ok: true, ...publicAccount(session.account) });
     }
     const faction = String(body.faction || "").toLowerCase();
+    const tutorialPurchase = pathname === "/api/boosters/buy" && body.purchaseId === TUTORIAL_BOOSTER_ID;
+    if (tutorialPurchase && faction !== (session.account.faction === "raspcorp" ? "echossystem" : "raspcorp"))
+      return sendJson(response, 400, { ok: false, error: "No tutorial, escolha o booster da facção oposta." });
+    if (tutorialPurchase && (session.account.tutorial.boosterTutorialPurchased || session.account.tutorial.boosterTutorialOpened))
+      return sendJson(response, 409, { ok: false, error: "O booster gratuito do tutorial já foi resgatado nesta conta." });
     if (!BOOSTER_CARDS[faction])
       return sendJson(response, 400, { ok: false, error: "Booster inválido." });
     if (accountStore.demoMode && !DEMO_BOOSTERS.has(faction))
       return sendJson(response, 403, { ok: false, error: DEMO_ERROR });
-    if (session.account.currency < BOOSTER_PRICE)
+    const price = tutorialPurchase ? 0 : BOOSTER_PRICE;
+    if (session.account.currency < price)
       return sendJson(response, 400, {
         ok: false,
         error: "Tijolinhos insuficientes.",
       });
-    if (!Number.isSafeInteger(session.account.currencySpent + BOOSTER_PRICE))
+    if (!Number.isSafeInteger(session.account.currencySpent + price))
       return sendJson(response, 409, { ok: false, error: "As estatísticas da conta atingiram o limite." });
     let guaranteedLegendary = null;
     if (body.debugLegendary === true) {
@@ -1130,10 +1169,11 @@ async function handleApi(request, response, pathname) {
     }
     const cards = rollBooster(faction, session.account.gamesPlayed);
     if (guaranteedLegendary) cards[cards.length - 1] = guaranteedLegendary;
-    session.account.currency -= BOOSTER_PRICE;
-    session.account.currencySpent += BOOSTER_PRICE;
+    session.account.currency -= price;
+    session.account.currencySpent += price;
     if (pathname === "/api/boosters/buy") {
       session.account.boosters.push({ id: body.purchaseId, faction, cards, purchasedAt: new Date().toISOString() });
+      if (tutorialPurchase) session.account.tutorial.boosterTutorialPurchased = true;
     } else {
       grantCards(session.account, cards);
     }
@@ -1788,18 +1828,27 @@ function advancePhase(room) {
   return result;
 }
 
+function closeRoom(room) {
+  clearTimeout(room.timer);
+  clearTimeout(room.effects?.timeout);
+  rooms.delete(room.code);
+  io.to(room.code).emit("room-cleared", { code: room.code, message: "Sala liberada. Você já pode jogar novamente." });
+  for (const client of io.sockets.sockets.values()) if (client.data.room === room.code) {
+    client.leave(room.code);
+    client.data.room = null;
+    client.data.player = null;
+  }
+  if (room.table) notifyClubTables();
+}
+
 function removeFromRoom(socket, disconnect = false) {
   matchmaking.delete(socket.id);
   const code = socket.data.room;
   const room = rooms.get(code);
-  if (!room) return;
+  if (!room) { socket.data.room = null; socket.data.player = null; return; }
   if (room.presentationHost === socket.id) {
     room.presentationHost = null;
-    if (!disconnect) {
-      clearTimeout(room.timer);
-      socket.to(code).emit("opponent-left");
-      rooms.delete(code);
-    }
+    if (!disconnect) closeRoom(room);
   } else if (!socket.data.player) {
     room.spectators.delete(socket.id);
   } else if (room.players.get(socket.data.player) === socket.id) {
@@ -1807,17 +1856,15 @@ function removeFromRoom(socket, disconnect = false) {
       for (const key of ["players", "decks", "usernames", "nicknames", "accounts", "profiles", "resumeTokens"])
         room[key].delete(socket.data.player);
       notifyPresentation(room);
-    } else if (disconnect) {
+    } else if (disconnect && room.state) {
       room.players.set(socket.data.player, null);
       room.effects?.pending.delete(socket.data.player);
       if (room.effects && !room.effects.pending.size) resumeAfterEffects(room);
       notifyPresentation(room);
       socket.to(code).emit("opponent-offline");
     } else {
-      if (room.ranked && !room.state?.partidaEncerrada) surrenderRoom(room, socket.data.player);
-      clearTimeout(room.timer);
-      socket.to(code).emit("opponent-left");
-      rooms.delete(code);
+      if (room.ranked && room.state && !room.state.partidaEncerrada) surrenderRoom(room, socket.data.player);
+      closeRoom(room);
     }
   }
   socket.leave(code);
@@ -1989,8 +2036,7 @@ matchmakingClock.unref();
 
 const roomCleanup = setInterval(() => {
   for (const room of rooms.values()) if (Date.now() - room.createdAt > 6 * 60 * 60 * 1000) {
-    clearTimeout(room.timer); io.to(room.code).emit("opponent-left"); rooms.delete(room.code);
-    if (room.table) notifyClubTables();
+    closeRoom(room);
   }
 }, 60_000);
 roomCleanup.unref();
@@ -2132,6 +2178,14 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("clear-presentation", (payload = {}, ack = () => {}) => {
+    const room = rooms.get(socket.data.room);
+    if (!room?.presentation || room.presentationHost !== socket.id || payload.displayKey !== room.displayKey)
+      return ack({ ok: false, error: "Somente a tela desta apresentação pode limpar a mesa." });
+    closeRoom(room);
+    ack({ ok: true });
+  });
+
   socket.on("join-matchmaking", (payload = {}, ack = () => {}) => {
     const account = accountFromToken(payload.accountToken);
     if (!account) return ack({ ok: false, code: "AUTH_REQUIRED", error: "Sua sessão expirou. Entre novamente na conta para buscar uma partida." });
@@ -2184,6 +2238,8 @@ io.on("connection", (socket) => {
         console.error("Falha ao gerar QR Code:", error.message);
       }
     }
+    if (!socket.connected || !rooms.has(code))
+      return ack({ ok: false, error: "A sala foi encerrada. Crie outra sala." });
     ack({
       ok: true,
       room: publicRoom(room),

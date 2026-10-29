@@ -44,7 +44,7 @@ for (const section of Object.values(ui.getMenuSections())) for (const [, , art] 
   assert.ok(fs.existsSync(`assets/menus/${art}.png`), `Imagem ausente: ${art}`);
 assert.equal(ui.getMenuSections().cartas.rows.length, 5);
 assert.equal(ui.getMenuSections().privadas.rows.length, 2);
-assert.equal(ui.getMenuSections().tutorial.rows.length, 2);
+assert.equal(ui.getMenuSections().tutorial.rows.length, 3);
 
 const emptySummary = ui.deckSummary();
 assert.equal(emptySummary.deckReady, false);

@@ -107,6 +107,11 @@ showPresentation({ ...response, serverNow: Date.now(), seats: [{ player: 1, rese
 assert.match(presentation.children[1].children[0].children[0].textContent, /RESERVADO · 60s/);
 showPresentation({ ...response, room: { code: '123456', players: 1 } });
 assert.equal(centralCode.textContent, 'CÓDIGO 123456', 'Entrar não esconde o código.');
+let cleanRequests = 0;
+title.multiplayer.clearPresentation = done => { cleanRequests++; done({ ok: true }); };
+const clear = presentation.children[2].children[4];
+assert.equal(clear.hidden, false, 'Mesa ocupada oferece limpeza na própria apresentação.');
+clear.onclick(); assert.equal(cleanRequests, 1);
 title.multiplayer.onReady();
 assert.equal(started, 'CenaJogo');
 assert.equal(document.body.children.at(-1), presentation, 'Código não é movido para fora da espera.');

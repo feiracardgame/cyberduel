@@ -78,16 +78,17 @@ function profundidadeLinha(posicao) {
 
 // H é a largura total centrada na carta (H1: reta, H3: uma coluna de cada lado).
 // V soma a distância entre fileiras, incluindo a fileira de origem.
+function posicaoEmRange(origem, destino, rangeH, rangeV) {
+  return Math.abs((destino % 5) - (origem % 5)) <= Math.floor((rangeH - 1) / 2) &&
+    profundidadeLinha(origem) + profundidadeLinha(destino) - 1 <= rangeV;
+}
+
 function alvosEmRange(posicaoAtacante, rangeH, rangeV, campoOponente) {
-  const colAtk = posicaoAtacante % 5;
-  const profAtk = profundidadeLinha(posicaoAtacante);
   const alvos = [];
   for (let i = 0; i < campoOponente.cartas.length; i++) {
     const carta = campoOponente.cartas[i];
     if (!carta || carta.tipo === "terreno") continue; // terreno não é alvo de ataque
-    const colDiff = Math.abs((i % 5) - colAtk);
-    const dist = profAtk + profundidadeLinha(i) - 1;
-    if (colDiff <= Math.floor((rangeH - 1) / 2) && dist <= rangeV) alvos.push(i);
+    if (posicaoEmRange(posicaoAtacante, i, rangeH, rangeV)) alvos.push(i);
   }
   return alvos;
 }

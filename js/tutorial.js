@@ -1,34 +1,20 @@
 // Falas e poses de markdown/Tutorialguia.md, com os controles atuais do duelo.
 const ELENAI_DIALOGUES = {
   "intro": [
-    {"sprite": 0, "speaker": "????", "text": "Huh, quem está aí?"},
-    {"sprite": 2, "speaker": "????", "text": "Ah, perdão, eu não esperava novos visitantes. Eu sempre acreditei que todos já tinham se mudado para cá."},
-    {"sprite": 13, "speaker": "????", "text": "Espera, esses dados..."},
-    {"sprite": 9, "speaker": "????", "text": "Você é de 2026?! Incrível, um cyberduelista de outra época!"},
-    {"sprite": 6, "speaker": "????", "text": "Sinto muito, deveria ter te explicado..."},
-    {"sprite": 4, "speaker": "ElenAI", "text": "Eu me chamo ElenAI, uma IA criada pelo nosso grande criador Humba Brain para receber as pessoas e ensiná-las sobre o jogo mais importante da era moderna: o Cyberduel."},
-    {"sprite": 14, "speaker": "ElenAI", "text": "Nós somos de 2067 e vivemos em uma simulação chamada NeoFloripa. Aqui, todas as decisões políticas, econômicas e sociais são determinadas pelo Conselho, o órgão formado pelos melhores jogadores de Cyberduel."},
-    {"sprite": 15, "speaker": "ElenAI", "text": "O objetivo é abrir mão da chatice burocrática que existe no seu mundo e época, dando poder só para quem tem habilidade e deixando a sociedade muito mais divertida!"},
-    {"sprite": 2, "speaker": "ElenAI", "text": "Como o mundo real estava muito chato e totalmente automatizado ou destruído pela mudança climática, como o caso da antiga Floripa, todos decidiram se mudar para esse novo mundo!"},
-    {"sprite": 16, "speaker": "ElenAI", "text": "Nós, IAs, ficamos muito felizes em finalmente termos companhia. Já que, graças ao nosso criador, não existe mais distinção entre o mundo real e o virtual."},
-    {"sprite": 10, "speaker": "ElenAI", "text": "Enfim, vamos deixar de papo furado, me fala seu nome, quero saber mais sobre você."}
+    {"sprite": 0, "speaker": "ElenAI", "text": "Oi! Eu sou a ElenAI. Vou te mostrar o Cyberduel jogando."},
+    {"sprite": 4, "speaker": "ElenAI", "text": "Estamos em NeoFloripa, em 2067. Aqui, quem manda bem nas cartas pode chegar ao Conselho."},
+    {"sprite": 10, "speaker": "ElenAI", "text": "Como você quer ser chamado?"}
   ],
   "training": [
-    {"sprite": 3, "speaker": "ElenAI", "text": "O Cyberduel é um jogo de cartas em que cada carta representa uma personalidade famosa do seu futuro no \"mundo real\", apesar de eu não gostar muito desse termo."},
-    {"sprite": 3, "speaker": "ElenAI", "text": "Antes de invocar, vamos conhecer sua carta. Segure o Estagiário na mão para abrir a visualização avançada. Leia o efeito e feche a ficha pelo X. Depois eu te mostro como colocá-lo em campo."},
-    {"sprite": 13, "speaker": "ElenAI", "text": "Essa carta te deu PA (Pontos de Audiência), como você pode ver aqui na lateral. Como precisamos da vibração da plateia para manter nossa simulação, nada mais justo do que dar a vitória para quem mais movimentá-la."},
-    {"sprite": 1, "speaker": "ElenAI", "text": "Ao todo, temos 7 rodadas. Cada rodada consiste em um turno de posicionamento (em que se invocam cartas) e um turno de habilidades (em que se ativam habilidades das cartas que as possuem) de cada jogador."},
-    {"sprite": 1, "speaker": "ElenAI", "text": "Ao final de cada rodada, os PA de cada jogador são comparados, dando a vitória para quem mais os tiver. O jogador que vencer mais rodadas vence também o jogo"},
-    {"sprite": 4, "speaker": "ElenAI", "text": "Temos 3 tipos de cartas: Cartas de Personagem (as únicas que de fato somam PA), cartas de efeito (são invocadas e aplicam um efeito instantâneo no campo) e cartas de terreno (mantém o efeito enquanto ainda estiverem em campo)"},
-    {"sprite": 4, "speaker": "ElenAI", "text": "Cada deck de cartas deve ser composto por, no mínimo, 6 cartas baixas, 4 médias e 2 altas. O restante é livre!"},
-    {"sprite": 15, "speaker": "ElenAI", "text": "Cada personagem tem sua história e seu efeito. Para consultar a ficha, segure a carta. Para selecionar, dê só um toque: ela levanta um pouquinho. Na fase de habilidades, as cartas disponíveis mostram uma bolinha verde ao lado quando você as seleciona."},
-    {"sprite": 8, "speaker": "ElenAI", "text": "Agora selecione o Tigre na sua mão e toque no espaço destacado da frente. Você também pode arrastar a carta até lá. Depois toque no botão >> à direita para entrar na fase de habilidades. Vamos ativar o ataque direto pelo campo."},
-    {"sprite": 5, "speaker": "ElenAI", "text": "Muito bem! Você selecionou o Tigre, tocou na bolinha e escolheu o CyberVendedor como alvo. A ficha fica para consultar os detalhes; a habilidade pode ser ativada direto no campo."},
-    {"sprite": 10, "speaker": "ElenAI", "text": "No entanto, você deve ter percebido que não conseguiu acertar a carta lá no fundo. Isso acontece porque todo efeito de carta apresenta alguma condição específica. Nesse caso, é o alcance. O número ao lado do \"H\" indica a largura total do ataque, centrada na carta: H1 atinge só a própria coluna, H3 inclui uma coluna de cada lado e H5 inclui duas de cada lado. O \"V\" indica a distância de casas verticais. Da fileira da frente, V1 alcança a frente inimiga e V2 também alcança o fundo; da sua fileira de trás, é preciso um ponto a mais de V."},
-    {"sprite": 10, "speaker": "ElenAI", "text": "Vamos tentar com o Agente da DIPSP. Selecione e invoque no espaço destacado, depois avance pelo >>. Na fase de habilidades, toque no Agente, na bolinha verde e no Rato do fundo. Se quiser comparar o alcance, segure a carta para consultar a ficha."},
-    {"sprite": 16, "speaker": "ElenAI", "text": "Você já pegou o jeito! Um toque seleciona, a bolinha ativa a habilidade e segurar abre a ficha. O Agente alcançou o Rato porque tem o alcance certo para essa posição."},
-    {"sprite": 2, "speaker": "ElenAI", "text": "Siga jogando, aprendendo e vencendo, assim você ganhará pontos de influência no ranking oficial do jogo e, estando alto o suficiente, poderá se tornar um membro do Conselho"},
-    {"sprite": 2, "speaker": "ElenAI", "text": "Lembre-se de sempre fazer as melhores jogadas, porém seja rápido, já que a audiência não gosta de ficar esperando pela sua jogada."}
+    {"sprite": 3, "speaker": "ElenAI", "text": "Vamos jogar! Primeiro, segure o Estagiário para ver a carta. Depois feche no X."},
+    {"sprite": 5, "speaker": "ElenAI", "text": "Sua carta entrou e somou PA: pontos de audiência. Mais PA no fim da rodada = vitória. Vença mais rodadas para ganhar a partida de 7 rodadas."},
+    {"sprite": 4, "speaker": "ElenAI", "text": "Viu os PA subirem? A Torre dá +2 aos seus personagens da RaspCorp enquanto fica no campo. Agora use um efeito para remover a Torre rival!", "visuals": [
+      {"image": "Estagiario_machine_learning.png", "label": "Personagem", "detail": "Soma PA"},
+      {"image": "Voce_parece_sozinho.png", "label": "Efeito", "detail": "Usou, aconteceu"},
+      {"image": "Torre_MonteCorp.png", "label": "Terreno", "detail": "Fica no campo"}
+    ]},
+    {"sprite": 5, "speaker": "ElenAI", "text": "Acertou! O Tigre alcança a frente, mas não o Rato no fundo. Agora tente o Agente da DIPSP: ele atira mais longe."},
+    {"sprite": 16, "speaker": "ElenAI", "text": "Você já usou personagem, terreno, efeito e habilidade! Agora vamos ao menu comprar e abrir um booster da outra facção."}
   ],
   "faction": [
     {"sprite": 4, "speaker": "ElenAI", "text": "Bom, chegou a hora de escolher seu deck inicial. O restante das cartas pode ser comprada na aba de \"mercados\" utilizando qualquer criptomoeda que existir e estiver disponível no seu tempo. Pelo que vejo nas suas transações, é um tal de \"tijolinhos\"."},
@@ -100,7 +86,7 @@ const ELENAI_DIALOGUES = {
     {"sprite": 15, "speaker": "ElenAI", "text": "E lembre-se, grandes desafios rendem grandes recompensas."}
   ],
   "question": [
-    {"sprite": 3, "speaker": "ElenAI", "text": "Agora me diga, você deseja entender o que é o Cyberduel para poder lutar pelo seu espaço no conselho?"}
+    {"sprite": 3, "speaker": "ElenAI", "text": "Quer aprender na prática? Vamos invocar, usar efeito, terreno e abrir um booster. Eu mostro onde tocar."}
   ],
   "declined": [
     {"sprite": 17, "speaker": "ElenAI", "text": "humpf, ok. Boa sorte achando seu caminho então, escolhe algum deles aí."}
@@ -155,6 +141,17 @@ function showElenAI(scene, lines, done, options = {}) {
     portraitFrame.hidden = !line.sprite;
     if (line.sprite) portrait.src = `assets/sprites/elenai-${String(line.sprite).padStart(2, "0")}.webp`;
     actions.replaceChildren();
+    panel.querySelector(".elenai-lesson")?.remove();
+    if (line.visuals) {
+      const lesson = ui.element("div", "elenai-lesson");
+      for (const visual of line.visuals) {
+        const figure = ui.element("figure");
+        const image = ui.element("img"); image.src = `assets/cartas/${visual.image}`; image.alt = "";
+        figure.append(image, ui.element("strong", "", visual.label), ui.element("small", "", visual.detail));
+        lesson.append(figure);
+      }
+      text.after(lesson);
+    }
     if (options.name && index === lines.length - 1) {
       const form = ui.element("form", "elenai-name-form");
       const input = ui.element("input", "title-auth-input");
@@ -228,14 +225,14 @@ class CyberduelStory {
   }
   async menu() {
     const scene = this.scene, account = scene.account;
-    if (this.busy || !scene.scene.isActive() || scene.titleUI?.modal || scene.multiplayer.room || scene.entrandoPorConvite || account?.nameRestriction) return;
+    if (this.busy || !scene.scene.isActive() || scene.titleUI?.modal || scene.titleUI?.boosterTraining || scene.multiplayer.room || scene.entrandoPorConvite || account?.nameRestriction) return;
     if (!account?.user) { scene.titleUI.openAuthDialog(); return; }
     if (account.needsRegistration) { scene.titleUI.openRegistrationDialog(); return; }
     this.busy = true;
     try {
       let accepted = false;
       if (!account.tutorial.introSeen) {
-        await this.say(ELENAI_DIALOGUES.intro.slice(0, -1), { choicesAt: 3, choices: [["Cyberduelista?"], ["outra época?"]] });
+        await this.say(ELENAI_DIALOGUES.intro.slice(0, -1));
         if (!scene.scene.isActive()) return;
         await account.saveTutorial({ introSeen: true });
       }
@@ -248,10 +245,9 @@ class CyberduelStory {
       }
       if (account.tutorial.wantsTutorial === null) {
         await this.say(ELENAI_DIALOGUES.question, { choicesAt: 0, choices: [
-          ["SIM", async () => { await account.saveTutorial({ wantsTutorial: true }); accepted = true; }],
-          ["NÃO", async () => { await account.saveTutorial({ wantsTutorial: false }); accepted = false; }],
+          ["VAMOS JOGAR", async () => { await account.saveTutorial({ wantsTutorial: true }); accepted = true; }],
+          ["IR AO MENU", async () => { await account.saveTutorial({ wantsTutorial: false }); accepted = false; }],
         ] });
-        await this.say(accepted ? ELENAI_DIALOGUES.accepted : ELENAI_DIALOGUES.declined);
       }
       if (account.tutorial.wantsTutorial && !account.tutorial.completed) {
         // Uma conta que interrompeu o treino pode retomá-lo pela carta do menu.
@@ -260,7 +256,7 @@ class CyberduelStory {
       if (!account.faction) {
         if (account.tutorial.wantsTutorial) {
           if (!account.tutorial.deckExplained) {
-            await this.say(ELENAI_DIALOGUES.faction.slice(0, 4));
+            await this.say([{ sprite: 4, speaker: "ElenAI", text: "Escolha sua facção para receber um deck pronto. Depois, compre boosters por 50 tijolinhos e teste outras cartas no Deck Builder." }]);
             await account.saveTutorial({ deckExplained: true });
           }
           await this.say(ELENAI_DIALOGUES.faction.slice(4, 5), { choicesAt: 0, factions: true, choices: [
@@ -284,6 +280,11 @@ class CyberduelStory {
       // Recria o menu para refletir o apelido e os desbloqueios sem fechar uma fala.
       if (scene.scene.isActive()) {
         scene.titleUI.destroy(); scene.montarInterfaceTitulo();
+        if (!new URLSearchParams(location.search).get("room")) {
+          if (account.tutorial.boosterTutorialStarted && !account.tutorial.boosterTutorialSeen && account.authProvider !== "offline")
+            new CyberduelBoosterTraining(scene.titleUI);
+          else if (!account.tutorial.menuTourSeen) scene.titleUI.openMenuTour?.();
+        }
         const params = new URLSearchParams(location.search);
         if (params.get("room")) {
           if (params.get("ticket")) scene.tentarConviteApresentacao();
@@ -296,6 +297,150 @@ class CyberduelStory {
   }
 }
 
+class CyberduelTutorialPointer {
+  constructor() {
+    this.root = document.createElement("div");
+    this.root.className = "tutorial-pointer";
+    this.root.setAttribute("aria-hidden", "true");
+    this.root.innerHTML = '<span class="tutorial-pointer__gesture"><svg viewBox="0 0 32 40" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V5a3 3 0 0 1 6 0v13-3a3 3 0 0 1 6 0v3a3 3 0 0 1 5 2v9c0 5-3 8-8 8h-3c-4 0-6-2-8-5l-7-9a3 3 0 0 1 5-3l4 4"/></svg></span><strong></strong>';
+    this.label = this.root.querySelector("strong");
+    document.body.append(this.root);
+    this.hide();
+  }
+  show(bounds, label, gesture = "tap") {
+    const left = Math.max(4, bounds.x), top = Math.max(4, bounds.y);
+    const right = Math.min(window.innerWidth - 4, bounds.x + bounds.width);
+    const bottom = Math.min(window.innerHeight - 4, bounds.y + bounds.height);
+    if (right <= left || bottom <= top) { this.hide(); return; }
+    this.root.hidden = false;
+    this.root.dataset.gesture = gesture;
+    this.root.classList.toggle("tutorial-pointer--left", (left + right) / 2 < 90);
+    this.root.classList.toggle("tutorial-pointer--right", (left + right) / 2 > window.innerWidth - 90);
+    this.root.classList.toggle("tutorial-pointer--above", bounds.y + bounds.height + 75 > window.innerHeight);
+    Object.assign(this.root.style, { left: `${left}px`, top: `${top}px`, width: `${right - left}px`, height: `${bottom - top}px` });
+    if (this.label.textContent !== label) this.label.textContent = label;
+  }
+  hide() { this.root.hidden = true; }
+  destroy() { this.root.remove(); }
+}
+
+class CyberduelBoosterTraining {
+  constructor(ui) {
+    this.ui = ui;
+    this.account = ui.account;
+    this.user = this.account.user;
+    this.purchaseId = "tutorial-opposite-booster-v1";
+    this.faction = this.account.faction === "raspcorp" ? "echossystem" : "raspcorp";
+    this.factionName = this.faction === "raspcorp" ? "RASPCORP" : "ECHOSSYSTEM";
+    ui.boosterTraining?.destroy();
+    ui.boosterTraining = this;
+    this.pointer = new CyberduelTutorialPointer();
+    this.guide = ui.element("aside", "elenai-guide elenai-guide--menu");
+    const avatar = ui.element("img", "elenai-guide-avatar");
+    avatar.src = "assets/sprites/elenai-05.webp"; avatar.alt = "";
+    const header = ui.element("div", "elenai-guide-header");
+    this.progress = ui.element("strong");
+    this.skip = ui.button("elenai-exit", "PULAR", () => this.finish());
+    header.append(this.progress, this.skip);
+    this.hint = ui.element("p"); this.hint.setAttribute("aria-live", "polite");
+    this.guide.append(avatar, header, this.hint); document.body.append(this.guide);
+    this.timer = setInterval(() => this.update(), 100);
+    this.update();
+  }
+  point(target, message, step, label = "TOQUE AQUI", gesture = "tap") {
+    this.progress.textContent = `${step} / 6 · SEU PRIMEIRO BOOSTER`;
+    if (this.hint.textContent !== message) this.hint.textContent = message;
+    if (this.target !== target) {
+      this.target?.classList.remove("tutorial-target");
+      this.target = target;
+      target?.classList.add("tutorial-target");
+      target?.scrollIntoView({ block: "center", behavior: "instant" });
+    }
+    if (!target || target.disabled) { this.pointer.hide(); return; }
+    const bounds = target.getBoundingClientRect();
+    this.guide.classList.toggle("elenai-guide--bottom", bounds.y + bounds.height / 2 < window.innerHeight / 2);
+    this.pointer.show(bounds, label, gesture);
+  }
+  update() {
+    if (this.finishing || !this.ui.root?.isConnected || this.ui.cardMenuTransitioning) return;
+    const ui = this.ui, modal = ui.modal, kind = modal?.dataset.kind;
+    this.skip.disabled = !!ui.modalRequired;
+    const progress = this.account.tutorial || {};
+    const query = selector => modal?.querySelector(selector);
+    if (progress.boosterTutorialOpened && kind !== "booster-opening") { this.finish(); return; }
+    if (kind === "boosters") {
+      if (progress.boosterTutorialPurchased) {
+        this.point(query(".booster-inventory-link"), "Resgatou! Agora toque em VER INVENTÁRIO para encontrar seu pacote.", 4);
+      } else {
+        const faction = query(`[data-faction="${this.faction}"]`);
+        if (faction?.getAttribute("aria-pressed") !== "true") {
+          this.point(faction, `Escolha ${this.factionName}: é a facção oposta à sua.`, 3);
+        } else {
+          this.point(query(".booster-buy"), "Seu primeiro booster do tutorial é GRÁTIS, uma vez por conta. Resgate: as 5 cartas serão suas!", 3, "RESGATAR GRÁTIS");
+        }
+      }
+      return;
+    }
+    if (kind === "booster-inventory") {
+      const row = [...modal.querySelectorAll(".booster-inventory-item")].find(row => row.textContent.toUpperCase().includes(this.factionName));
+      this.point(row?.querySelector(".booster-buy"), `Aqui está seu pacote ${this.factionName}. Toque em ABRIR BOOSTER.`, 4);
+      return;
+    }
+    if (kind === "booster-opening") {
+      if (modal.dataset.packId !== this.purchaseId) {
+        this.point(query(".booster-close"), "Volte ao inventário para abrir o pacote do tutorial.", 4);
+      } else if (!query(".is-revealed")) {
+        this.point(query(".booster-scratch"), "Arraste o dedo pelo lacre para abrir. Também pode tocar em ABRIR PACOTE.", 5, "ARRASTE →", "swipe");
+      } else {
+        const revealed = Number(modal.dataset.revealed) || 0;
+        this.point(query(".booster-buy"), revealed < 5
+          ? `${revealed} / 5 cartas. Deslize a carta para cima ou toque em PRÓXIMA CARTA.`
+          : "As 5 cartas já estão na coleção! Toque em VOLTAR AO INVENTÁRIO para concluir.", 6,
+          revealed < 5 ? "PRÓXIMA CARTA ↑" : "CONCLUIR");
+      }
+      return;
+    }
+    if (modal) {
+      this.point(modal.querySelector('[aria-label^="Fechar"], .booster-close, .card-menu-dialog__close'), "Feche esta tela para continuar o treino do booster.", 1);
+      return;
+    }
+    const state = ui.cardMenuState, menu = ui.cardMenuEls;
+    if (state.mode === "categories") {
+      if (state.items[state.categoryIndex]?.id !== "cartas") {
+        const index = ui.menuCategories.findIndex(item => item.id === "cartas");
+        this.point(menu.cards[state.categoryIndex < index ? 2 : 0], "Vamos abrir um booster de verdade. Toque na carta ao lado até chegar em CARTAS.", 1);
+      } else this.point(menu.cards[1], "Toque na carta CARTAS, no centro, para entrar.", 1);
+    } else if (state.currentKind !== "cartas") {
+      this.point(menu.backRow.querySelector("button"), "Toque em VOLTAR. O booster fica no menu CARTAS.", 1);
+    } else {
+      const art = progress.boosterTutorialPurchased ? "abrir_boosters" : "comprar_booster";
+      const index = state.items.findIndex(item => item.art === art);
+      if (state.optionIndex !== index) {
+        this.point(menu.cards[state.optionIndex < index ? 2 : 0], `Toque na carta ao lado até chegar em ${progress.boosterTutorialPurchased ? "Abrir" : "Comprar"} boosters.`, 2);
+      } else this.point(menu.cards[1], `Toque na carta do centro para ${progress.boosterTutorialPurchased ? "ver seu inventário" : "entrar na loja de boosters"}.`, 2);
+    }
+  }
+  async finish() {
+    if (this.finishing || this.ui.modalRequired) return;
+    this.finishing = true;
+    try {
+      await this.account.saveTutorial({ boosterTutorialSeen: true, menuTourSeen: true });
+      this.destroy();
+      if (this.ui.modal) this.ui.closeModal(true);
+      else this.account.notify();
+    } catch (error) {
+      this.finishing = false;
+      this.hint.textContent = error.message || "Não foi possível salvar. Tente novamente.";
+    }
+  }
+  destroy() {
+    clearInterval(this.timer);
+    this.target?.classList.remove("tutorial-target");
+    this.pointer.destroy(); this.guide.remove();
+    if (this.ui.boosterTraining === this) this.ui.boosterTraining = null;
+  }
+}
+
 class CyberduelTraining {
   constructor(scene) {
     this.scene = scene; this.step = "talk"; this.nextId = 70000;
@@ -305,12 +450,14 @@ class CyberduelTraining {
     }
     this.give("Estagiário de Machine Learning");
     scene.events.once("shutdown", () => {
-      this.dialog?.dispose(); this.guide?.remove();
+      this.dialog?.dispose(); this.guide?.remove(); this.pointer?.destroy();
     });
   }
   card(name) {
-    const base = POOL_CARTAS_MONSTRO.find(card => card.nome === name);
-    return new Carta(++this.nextId, base.poder, "monstro", { ...base });
+    const base = POOL_CARTAS_MONSTRO.find(card => card.nome === name) ||
+      POOL_CARTAS_TERRENO.find(card => card.nome === name) || POOL_CARTAS_EFEITO.find(card => card.nome === name);
+    const type = POOL_CARTAS_MONSTRO.includes(base) ? "monstro" : POOL_CARTAS_TERRENO.includes(base) ? "terreno" : "efeito";
+    return new Carta(++this.nextId, base.poder || 0, type, { ...base });
   }
   give(name) { this.scene.partida.jogador.mao.adicionarCarta(this.card(name)); }
   start() {
@@ -320,12 +467,19 @@ class CyberduelTraining {
     this.hint = ui.element("p", "");
     const header = ui.element("div", "elenai-guide-header");
     header.append(ui.element("strong", "", "TREINO COM ELENAI"));
-    this.guide.append(header, this.hint);
+    const portrait = ui.element("img", "elenai-guide-avatar");
+    portrait.src = "assets/sprites/elenai-03.webp"; portrait.alt = "";
+    this.progress = ui.element("span", "elenai-guide-progress");
+    this.progress.setAttribute("aria-label", "Progresso do treino");
+    header.append(this.progress, ui.button("elenai-exit", "SAIR", () => this.scene.scene.start("CenaTitulo")));
+    this.guide.append(portrait, header, this.hint);
     document.body.append(this.guide);
-    this.say(0, 2, () => this.setStep("intern-inspect", "Segure o Estagiário na sua mão para abrir a ficha. Depois, feche pelo X."));
+    this.pointer = new CyberduelTutorialPointer();
+    this.say(0, 1, () => this.setStep("intern-inspect", "Segure o Estagiário na sua mão para abrir a ficha. Depois, feche pelo X."));
   }
   say(from, to, done) {
     this.step = "talk"; this.highlight?.destroy();
+    this.pointer?.hide();
     this.guide.hidden = true;
     this.dialog = showElenAI(this.scene, ELENAI_DIALOGUES.training.slice(from, to), () => {
       this.dialog = null; this.guide.hidden = false; done();
@@ -333,33 +487,48 @@ class CyberduelTraining {
   }
   setStep(step, hint) {
     this.step = step; this.hint.textContent = hint;
+    const stages = ["intern-inspect", "intern", "terrain", "effect", "tiger", "tiger-pass", "tiger-ability", "dipsp", "dipsp-pass", "dipsp-ability"];
+    if (this.progress) this.progress.textContent = `${stages.indexOf(step) + 1} / ${stages.length}`;
     this.highlight?.destroy(); this.highlight = null;
     this.alvoDestaque = null;
   }
-  canPlace(card, index) {
-    return (this.step === "intern" && card.nome === "Estagiário de Machine Learning" && index === 0) ||
-      (this.step === "tiger" && card.nome === "O Tigre" && index === 7) ||
-      (this.step === "dipsp" && card.nome === "Agente da DIPSP" && index === 8);
+  expectedCard() {
+    return { intern: "Estagiário de Machine Learning", terrain: "Torre MonteCorp", effect: "Vento dos Ermos",
+      tiger: "O Tigre", dipsp: "Agente da DIPSP" }[this.step.split("-")[0]];
   }
+  canPlace(card, index) {
+    return card.nome === this.expectedCard() && index === { intern: 0, terrain: 1, effect: 3, tiger: 7, dipsp: 8 }[this.step];
+  }
+  canPlayEffect(card, target) { return this.step === "effect" && card.nome === "Vento dos Ermos" && target === 0; }
   canUse(card, target) {
     const expected = this.step === "tiger-ability" ? ["O Tigre", 7] :
       this.step === "dipsp-ability" ? ["Agente da DIPSP", 2] : [];
     return card.nome === expected[0] && (target === undefined || target === expected[1]);
   }
   canInspect(card) {
-    const expected = { "intern-inspect": "Estagiário de Machine Learning", intern: "Estagiário de Machine Learning",
-      tiger: "O Tigre", dipsp: "Agente da DIPSP", "tiger-ability": "O Tigre", "dipsp-ability": "Agente da DIPSP" };
-    return !!card && card.nome === expected[this.step];
+    return this.step !== "talk" && !this.step.endsWith("-pass") && !!card && card.nome === this.expectedCard();
   }
   placed(card) {
     if (card.nome === "Estagiário de Machine Learning") {
       this.step = "talk";
-      this.pending = () => this.say(2, 9, () => this.setStep("tiger", "Invoque o Tigre no espaço brilhante da frente."));
-      this.give("O Tigre");
+      this.pending = () => this.say(1, 2, () => this.setStep("terrain", "Coloque a Torre no espaço brilhante. Veja os PA do Estagiário subirem!"));
+      this.give("Torre MonteCorp");
       this.scene.partida.inimigo.campo.adicionarCarta(this.card("CyberVendedor da RaspCorp"), 7);
       this.scene.partida.inimigo.campo.adicionarCarta(this.card("O Rato"), 2);
       this.scene.desenharInterface();
-    } else this.setStep(card.nome === "O Tigre" ? "tiger-pass" : "dipsp-pass", "Agora toque no botão >> à direita para entrar na fase de habilidades.");
+    } else if (card.tipo === "terreno") {
+      this.step = "talk";
+      this.give("Vento dos Ermos");
+      this.scene.partida.inimigo.campo.adicionarCarta(this.card("Torre MonteCorp"), 0);
+      this.scene.partida.resolverEfeitosContinuos(this.scene.partida.inimigo);
+      this.scene.desenharInterface();
+      this.pending = () => this.say(2, 3, () => this.setStep("effect", "Toque no Vento dos Ermos na mão. Depois toque no campo para usar."));
+    } else if (card.tipo === "efeito") {
+      this.step = "talk";
+      this.give("O Tigre");
+      this.scene.desenharInterface();
+      this.pending = () => this.setStep("tiger", "Terreno rival removido! O bônus acabou. Agora coloque o Tigre no espaço brilhante.");
+    } else this.setStep(card.nome === "O Tigre" ? "tiger-pass" : "dipsp-pass", "Toque no botão >> à direita. Vamos usar a habilidade!");
   }
   pass() {
     if (!["tiger-pass", "dipsp-pass"].includes(this.step)) return;
@@ -376,15 +545,15 @@ class CyberduelTraining {
         this.give("Agente da DIPSP");
         this.scene.faseAtual = this.scene.partida.fase = "colocar";
         this.scene.desenharInterface();
-        this.say(9, 12, () => this.setStep("dipsp", "Invoque o Agente da DIPSP no espaço brilhante da frente."));
-      } else this.say(12, 15, () => this.finish());
+        this.say(3, 4, () => this.setStep("dipsp", "Invoque o Agente da DIPSP no espaço brilhante da frente."));
+      } else this.say(4, 5, () => this.finish());
     };
   }
   async finish() {
     try {
       if (window.cyberduelAccount?.authProvider === "offline")
         window.cyberduelAccount.tutorial.completed = true;
-      else if (window.cyberduelAccount?.user) await window.cyberduelAccount.saveTutorial({ completed: true });
+      else if (window.cyberduelAccount?.user) await window.cyberduelAccount.saveTutorial({ completed: true, boosterTutorialStarted: true, boosterTutorialSeen: false });
       this.scene.scene.start("CenaTitulo");
     } catch (error) {
       this.hint.textContent = error.message;
@@ -392,29 +561,49 @@ class CyberduelTraining {
       retry.onclick = () => { retry.remove(); this.finish(); }; this.guide.append(retry);
     }
   }
+  pointAt(x, y, width, height, label) {
+    if (!this.pointer) return;
+    const scene = this.scene, canvas = scene.game.canvas, rect = canvas.getBoundingClientRect();
+    const top = scene.cameras.main.getWorldPoint(0, 0), bottom = scene.cameras.main.getWorldPoint(canvas.width, canvas.height);
+    const scaleX = rect.width / (bottom.x - top.x), scaleY = rect.height / (bottom.y - top.y);
+    this.pointer.show({ x: rect.left + (x - width / 2 - top.x) * scaleX,
+      y: rect.top + (y - height / 2 - top.y) * scaleY, width: width * scaleX, height: height * scaleY }, label,
+      this.step === "intern-inspect" && !scene.modalAberto ? "hold" : "tap");
+  }
   update() {
     const scene = this.scene;
-    if (this.guide) this.guide.hidden = !!this.dialog || !!scene.modalAberto;
+    if (this.guide) this.guide.hidden = !!this.dialog || (this.step === "talk" && !!this.pending);
+    if (scene.modalAberto) this.hint.textContent = "Ficha aberta! Solte o dedo e toque no X destacado para fechar.";
     if (this.step === "intern-inspect") {
-      if (scene.modalAberto) this.inspecaoVista = true;
+      if (scene.modalAberto) {
+        this.inspecaoVista = true;
+      }
       else if (this.inspecaoVista) this.setStep("intern", "Agora dê um toque no Estagiário para selecioná-lo e depois toque no espaço destacado. Você também pode arrastar a carta.");
     }
     this.guide?.classList.toggle("elenai-guide--bottom",
-      ["tiger-ability", "dipsp-ability"].includes(this.step) && !scene.modalAberto);
+      (["tiger-ability", "dipsp-ability"].includes(this.step) && !scene.modalAberto) ||
+      !!scene.modalAberto);
     if (scene.botaoPassarTutorial?.input)
       scene.botaoPassarTutorial.input.enabled = ["tiger-pass", "dipsp-pass"].includes(this.step);
     for (const object of scene.children?.list || []) {
       if (!object.input) continue;
       if (object.dadosCartaCampo) object.input.enabled = this.canUse(object.dadosCartaCampo);
-      if (object.dadosCarta) object.input.enabled = ["intern-inspect", "intern", "tiger", "dipsp"].includes(this.step);
+      if (object.dadosCarta) object.input.enabled = ["intern-inspect", "intern", "terrain", "effect", "tiger", "dipsp"].includes(this.step);
     }
     if (this.pending && !scene.efeitosVisuaisPendentes()) {
       const done = this.pending; this.pending = null; done();
     }
     if (this.step === "talk" || scene.modalAberto || this.dialog) {
-      this.highlight?.destroy(); this.highlight = null; this.alvoDestaque = null; return;
+      this.highlight?.destroy(); this.highlight = null; this.alvoDestaque = null;
+      const close = scene.modalAberto && scene.painelDetalheAtual?.getByName("fechar-detalhe-carta");
+      if (close) {
+        const transform = close.getWorldTransformMatrix();
+        this.pointAt(transform.tx, transform.ty, close.width * Math.hypot(transform.a, transform.b),
+          close.height * Math.hypot(transform.c, transform.d), "TOQUE NO X");
+      } else this.pointer?.hide();
+      return;
     }
-    const slot = { "intern-inspect": 0, intern: 0, tiger: 7, dipsp: 8, "tiger-ability": 7, "dipsp-ability": 8 }[this.step];
+    const slot = { "intern-inspect": 0, intern: 0, terrain: 1, effect: 3, tiger: 7, dipsp: 8, "tiger-ability": 7, "dipsp-ability": 8 }[this.step];
     const passing = this.step.endsWith("-pass");
     if (slot === undefined && !passing) return;
     const L = scene.layout;
@@ -423,31 +612,36 @@ class CyberduelTraining {
       objeto = scene.botaoPassarTutorial;
       if (!objeto?.active) return;
       circular = true; largura = objeto.width;
+    } else if (this.step === "effect" && scene.objetosSelecaoAlvo?.length) {
+      x = L.x[0]; y = L.yInimigo[0]; chave += ":alvo";
+      this.hint.textContent = "Toque na Torre rival destacada. O efeito remove o terreno e vai para o descarte.";
     } else if (this.step.endsWith("-ability")) {
       const tigre = this.step === "tiger-ability", nome = tigre ? "O Tigre" : "Agente da DIPSP";
       if (scene.objetosSelecaoAlvo?.length) {
         const alvo = tigre ? 7 : 2;
         x = L.x[alvo % 5]; y = L.yInimigo[Math.floor(alvo / 5)]; chave += ":alvo";
-        this.hint.textContent = tigre ? "Agora toque no CyberVendedor destacado para atacar. O Rato do fundo está fora do alcance do Tigre." :
-          "Agora toque no Rato destacado no fundo. O alcance do Agente da DIPSP permite acertá-lo.";
+        this.hint.textContent = tigre ? "Toque no CyberVendedor destacado. O Rato está longe demais." :
+          "Toque no Rato destacado. O Agente alcança o fundo!";
       } else if (scene.cartaCampoSelecionada?.dadosCartaCampo?.nome === nome && scene.botaoHabilidadeCampo?.visible) {
         objeto = scene.botaoHabilidadeCampo; circular = true; largura = objeto.width;
-        this.hint.textContent = "A carta levantou: está selecionada. Toque na bolinha verde destacada para ativar a habilidade.";
+        this.hint.textContent = "Área dourada = alcance. Toque na bolinha verde para atacar.";
       } else {
         objeto = scene.children.list.find(o => o.dadosCartaCampo?.nome === nome);
-        this.hint.textContent = `Toque ${tigre ? "no Tigre" : "no Agente da DIPSP"} para selecionar a carta. Segure se quiser consultar os detalhes.`;
+        this.hint.textContent = `Toque ${tigre ? "no Tigre" : "no Agente da DIPSP"} no campo.`;
       }
     } else {
-      const nome = this.step.startsWith("intern") ? "Estagiário de Machine Learning" : this.step === "tiger" ? "O Tigre" : "Agente da DIPSP";
+      const nome = this.expectedCard();
       const mao = scene.children.list.find(o => o.dadosCarta?.nome === nome);
       if (this.step === "intern-inspect" || (mao && scene.cartaMaoSelecionada !== mao &&
         !(scene.gestoInspecaoCarta?.container === mao && scene.gestoInspecaoCarta.cancelado))) objeto = mao;
       if (mao && this.step !== "intern-inspect") this.hint.textContent = objeto
-        ? `Toque ${nome === "O Tigre" ? "no Tigre" : nome === "Agente da DIPSP" ? "no Agente da DIPSP" : "no Estagiário"} na mão para selecionar. Você também pode arrastar até o campo.`
-        : "Carta selecionada! Toque no espaço destacado para invocar. Segurar a carta abre a ficha.";
+        ? `Toque em ${nome} na sua mão.`
+        : "Carta selecionada! Toque no espaço brilhante.";
     }
     x ??= objeto?.x ?? L.x[slot % 5]; y ??= objeto?.y ?? L.yJogador[Math.floor(slot / 5)];
     if (objeto && !circular) { largura = objeto.width || largura; altura = objeto.height || altura; }
+    this.pointAt(x, y, circular ? largura + 20 : largura, circular ? largura + 20 : altura,
+      this.step === "intern-inspect" ? "SEGURE ATÉ ABRIR" : "TOQUE AQUI");
     const alvoDestaque = objeto || chave;
     if (this.highlight?.active && this.alvoDestaque === alvoDestaque) {
       this.highlight.setPosition(x, y); return;

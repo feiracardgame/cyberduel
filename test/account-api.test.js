@@ -165,9 +165,9 @@ async function run() {
     ),
     5,
   );
-  assert.equal(booster.payload.currency, 400);
+  assert.equal(booster.payload.currency, 450);
   const stats = (await api('/api/admin/accounts')).payload.accounts.find(account => account.username === 'Gabriel');
-  assert.equal(stats.currencySpent, 100);
+  assert.equal(stats.currencySpent, 50);
   assert.equal(stats.marketSales, 0);
   assert.equal(stats.unlockedCards, Object.values(booster.payload.collection).filter(quantity => quantity > 0).length);
   assert.ok(stats.totalCards > stats.unlockedCards);
@@ -296,16 +296,16 @@ async function run() {
   const buyerFaction = await api("/api/account/faction", {
     method: "POST", token: buyer.payload.token, body: { faction: "raspcorp" },
   });
-  const concurrent = await Promise.all(Array.from({ length: 8 }, () => api("/api/boosters/open", {
+  const concurrent = await Promise.all(Array.from({ length: 12 }, () => api("/api/boosters/open", {
     method: "POST", token: buyer.payload.token, body: { faction: "raspcorp", cardsPerPack: 99 },
   })));
-  assert.equal(concurrent.filter(r => r.status === 200).length, 5);
-  assert.equal(concurrent.filter(r => r.status === 400).length, 3);
+  assert.equal(concurrent.filter(r => r.status === 200).length, 10);
+  assert.equal(concurrent.filter(r => r.status === 400).length, 2);
   assert.ok(concurrent.filter(r => r.status === 200).every(r => r.payload.cards.reduce((n, c) => n + c.quantidade, 0) === 5));
   const exhausted = await api("/api/auth/session", { token: buyer.payload.token });
   assert.equal(exhausted.payload.currency, 0);
   assert.equal(Object.values(exhausted.payload.collection).reduce((a, b) => a + b, 0),
-    Object.values(buyerFaction.payload.collection).reduce((a, b) => a + b, 0) + 25);
+    Object.values(buyerFaction.payload.collection).reduce((a, b) => a + b, 0) + 50);
 
   const deck = faction.payload.deck;
   const saved = await api("/api/deck", {

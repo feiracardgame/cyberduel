@@ -138,10 +138,21 @@ class CenaJogo extends Phaser.Scene {
     configurarCameraLogica(this);
     const sessao = window.cyberduelMultiplayer;
     this.conselho = !this.tutorial && sessao?.active === true && sessao.table === 5;
-    if (sessao?.presentation) this.input.keyboard.on("keydown-ESC", () => {
-      sessao.leaveRoom();
-      this.scene.start("CenaTitulo");
-    });
+    if (sessao?.presentation) {
+      const clear = document.createElement("button");
+      clear.className = "presentation-clear presentation-clear--duel";
+      clear.textContent = "LIMPAR SALA";
+      clear.onclick = () => {
+        if (!window.confirm("Liberar esta sala e encerrar o duelo sem registrar resultado?")) return;
+        sessao.clearPresentation(response => { if (!response.ok) clear.textContent = response.error; });
+      };
+      document.body.append(clear);
+      this.events.once("shutdown", () => clear.remove());
+      this.input.keyboard.on("keydown-ESC", () => {
+        sessao.leaveRoom();
+        this.scene.start("CenaTitulo");
+      });
+    }
     this.partida = !this.tutorial && sessao?.pendingUpdate?.state
       ? sessao.hydrateMatch(sessao.localSnapshot(sessao.pendingUpdate.state))
       : new Partida(dados.deckDebug, this.tutorial);
@@ -734,7 +745,7 @@ class CenaJogo extends Phaser.Scene {
 
   podeJogarCartasAgora() {
     return (
-      (!this.training || ["intern", "tiger", "dipsp"].includes(this.training.step)) &&
+      (!this.training || ["intern", "terrain", "effect", "tiger", "dipsp"].includes(this.training.step)) &&
       !this.training?.dialog &&
       this.ehMeuTurno &&
       !this.avisoBatalhaPendente() && !this.efeitosVisuaisPendentes() && !this.multiplayer?.effectsPaused &&
@@ -758,7 +769,7 @@ class CenaJogo extends Phaser.Scene {
 
   podeConsultarCartas() {
     return (
-      (!this.training || ["intern-inspect", "intern", "tiger", "dipsp", "tiger-ability", "dipsp-ability"].includes(this.training.step)) &&
+      (!this.training || ["intern-inspect", "intern", "terrain", "effect", "tiger", "dipsp", "tiger-ability", "dipsp-ability"].includes(this.training.step)) &&
       !this.avisoBatalhaPendente() && !this.efeitosBloqueiamInteracao() &&
       !this.multiplayer?.presentation &&
       !this.modalAberto && !this.objetosSelecaoAlvo &&
@@ -1768,7 +1779,7 @@ class CenaJogo extends Phaser.Scene {
         if (invocacao.sucesso && this.ativarSegurancaX1(carta)) return;
         this.travado = false;
         this.desenharInterface();
-        this.training?.placed(carta);
+        if (invocacao.sucesso) this.training?.placed(carta);
         // Mostra as cartas reveladas por Faro nesta invocação.
         if (carta.efeito?.tipo === TIPOS_EFEITO.REVELAR_CARTAS_INIMIGO) {
           this.mostrarRevelacaoFaro(this.partida.ultimaRevelacaoFaro || []);
@@ -1957,6 +1968,7 @@ class CenaJogo extends Phaser.Scene {
 
   // Anima a conjuração, aplica o efeito e depois redesenha o campo.
   conjurarCartaDeEfeitoJogador(gameObject, carta, alvoEscolhido = null) {
+    if (this.training && !this.training.canPlayEffect(carta, alvoEscolhido)) return;
     if (!this.podeJogarCartasAgora()) return;
     if (window.CenaEfeitos) {
       const resultado = this.partida.jogarCartaEfeitoDoJogador(carta, alvoEscolhido);
@@ -1965,6 +1977,7 @@ class CenaJogo extends Phaser.Scene {
       this.travado = false;
       this.desenharInterface();
       this.apresentarEventosEfeito();
+      this.training?.placed(carta);
       return;
     }
     this.travado = true;
@@ -2010,6 +2023,7 @@ class CenaJogo extends Phaser.Scene {
                 this.processarCartasAfetadas(resultado.afetadas, () => {
                   this.travado = false;
                   this.desenharInterface();
+                  if (resultado.sucesso) this.training?.placed(carta);
                 });
               },
             });
@@ -2980,6 +2994,29 @@ class CenaJogo extends Phaser.Scene {
     this.visualSelecaoCarta = { objetos: [sombra, halo, espessura, reflexo, verniz, borda], inclinar, centralizar };
   }
 
+  criarVisualAlcanceCarta(container) {
+    const carta = container.dadosCartaCampo, efeito = carta.efeito;
+    if (!carta.habilidadeAtiva || !efeito) return;
+    const ataqueSindicato = efeito.tipo === TIPOS_EFEITO.SINDICATO && ["opiniao", "advertir"].includes(efeito.acao);
+    if (!ataqueSindicato && ![
+      TIPOS_EFEITO.ATACAR, TIPOS_EFEITO.ATACAR_DOIS_ALVOS,
+      TIPOS_EFEITO.DISTRIBUIR_DANO, TIPOS_EFEITO.ROUBAR_PODER, TIPOS_EFEITO.ENVENENAR,
+    ].includes(efeito.tipo)) return;
+    const propria = this.partida.jogador.campo.cartas.includes(carta);
+    const campo = propria ? this.partida.jogador.campo : this.partida.inimigo.campo;
+    const origem = campo.cartas.indexOf(carta);
+    if (origem === -1) return;
+    const L = this.layout, fileiras = propria ? L.yInimigo : L.yJogador;
+    const cor = propria ? 0xffd18a : 0xff9cb2;
+    for (let i = 0; i < 10; i++) {
+      if (efeito.rangeH !== undefined && !posicaoEmRange(origem, i, efeito.rangeH, efeito.rangeV)) continue;
+      const area = this.add.rectangle(L.x[i % 5], fileiras[Math.floor(i / 5)],
+        L.slotW + 6, L.slotH + 6, cor, 0.12)
+        .setStrokeStyle(3, cor, 0.65).setDepth(450).setName("alcance-ataque");
+      this.visualSelecaoCarta.objetos.push(area);
+    }
+  }
+
   selecionarCartaDoCampo(container) {
     if (!this.podeConsultarCartas() || !container.active) return;
     if (this.cartaCampoSelecionada === container) return;
@@ -2994,6 +3031,7 @@ class CenaJogo extends Phaser.Scene {
     const reduzido = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
     container.sombraCartaCampo?.setVisible(false);
     this.criarVisualSelecaoCarta(container, reduzido);
+    this.criarVisualAlcanceCarta(container);
     this.tweens.add({
       targets: container,
       x: Math.max(container.width * 0.6, Math.min(LARGURA_LAYOUT - container.width * 0.6, container.posCampoOriginal.x)),

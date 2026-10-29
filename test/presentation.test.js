@@ -117,7 +117,7 @@ async function run() {
   assert.equal(saved[accounts[1].accountKey].currency, 550, 'Primeira desistência paga uma única vez.');
   assert.equal(saved[accounts[0].accountKey].clubGames, 1);
   assert.equal(saved[accounts[1].accountKey].clubWins, 1, 'Estatísticas do Clube persistidas uma única vez.');
-  const left = event(one, 'opponent-left');
+  const left = event(one, 'room-cleared');
   reconnect.emit('leave-room'); await left;
 
   const lobby = await connect();

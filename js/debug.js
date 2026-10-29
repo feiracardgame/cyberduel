@@ -3,6 +3,22 @@ function requireAdminAccount() {
   if (!window.cyberduelAccount.isAdmin) throw new Error("Esta conta não é administradora.");
 }
 
+window.limparSala = async code => {
+  requireAdminAccount();
+  if (typeof code !== "string" || !/^\d{6}$/.test(code)) throw new Error('Use limparSala("123456").');
+  await window.cyberduelAccount.request("/api/admin/rooms/clear", { method: "POST", body: { code } });
+  return `Sala ${code} liberada, sem alterar resultados ou saldo.`;
+};
+
+window.removerContaDasPartidas = async username => {
+  requireAdminAccount();
+  if (typeof username !== "string" || !username.trim()) throw new Error('Use removerContaDasPartidas("username").');
+  const result = await window.cyberduelAccount.request("/api/admin/accounts/clear-matches", {
+    method: "POST", body: { username: username.trim() },
+  });
+  return `${result.username} removido de ${result.count} sala(s), da fila e das reservas. Resultados e saldo preservados.`;
+};
+
 window.modoDemo = async (enabled = true) => {
   requireAdminAccount();
   if (typeof enabled !== "boolean") throw new Error("Use modoDemo(true) para ativar ou modoDemo(false) para desativar.");

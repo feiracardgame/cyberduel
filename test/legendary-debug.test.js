@@ -25,20 +25,20 @@ async function serverProof(debug, admin = true) {
     if (debug && admin) {
       assert.equal(pack.body.cards.length, 5);
       assert.ok(pack.body.cards.some(c => c.nivel === 'lendaria'));
-      assert.equal(pack.body.currency, 400);
+      assert.equal(pack.body.currency, 450);
       assert.equal(pack.body.gamesPlayed, 0);
     }
     const normal = await post('boosters/open', { faction: 'raspcorp' });
     assert.equal(normal.status, 200);
     assert.ok(normal.body.cards.every(c => c.nivel !== 'lendaria'));
-    assert.equal(normal.body.currency, debug && admin ? 300 : 400);
+    assert.equal(normal.body.currency, debug && admin ? 400 : 450);
     const purchase = await post('boosters/buy', { faction: 'raspcorp', purchaseId: 'debug-existing-pack-0001' });
     const packId = purchase.body.boosters[0].id;
     const stored = await post('boosters/open', { packId, debugLegendary: true });
     assert.equal(stored.status, debug && admin ? 200 : 403);
     const replay = await post('boosters/open', { packId });
     assert.equal(replay.status, 200);
-    assert.equal(replay.body.currency, debug && admin ? 200 : 300);
+    assert.equal(replay.body.currency, debug && admin ? 350 : 400);
     assert.equal(replay.body.cards.some(c => c.nivel === 'lendaria'), debug && admin);
     if (debug && admin) assert.deepEqual(replay.body.cards, stored.body.cards);
 

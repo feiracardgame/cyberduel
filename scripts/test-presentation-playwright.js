@@ -114,6 +114,7 @@ const event = (socket, name) => new Promise((resolve, reject) => {
     }
     if (index === 0) {
       const controller = await browser.newPage({ viewport: { width: 720, height: 1480 } });
+      controller.setDefaultTimeout(120000);
       controller.on('pageerror', error => errors.push(error.message));
       await controller.addInitScript(token => localStorage.setItem('cyberduel.account.token.v1', token), user.token);
       await controller.goto(base, { waitUntil: 'domcontentloaded' });

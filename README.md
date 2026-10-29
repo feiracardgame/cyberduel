@@ -350,7 +350,7 @@ O menu **Mercado → Anunciar cartas** abre uma galeria para escolher de 1 a 99 
 
 Em **Visualizar anúncios**, busque por carta ou vendedor e compre o lote pelo total exibido. O comprador paga o preço integral, e o vendedor recebe 80% do total na conclusão da compra, arredondados para baixo em tijolinhos inteiros. O restante é a taxa do mercado; anunciar ou cancelar não cobra taxa nem gera pagamento. O formulário mostra o valor líquido antes da publicação. **Meus anúncios** permite cancelar e recuperar as cópias. Use **Atualizar** para conferir novas ofertas, vendas e saldo; anúncios e transações são persistidos junto das contas em `accounts.json`.
 
-Cada booster custa **100 tijolinhos**. Além disso, o lançamento deles pode ser direto (todos os boosters serão disponibilizados no site de venda da feira automaticamente desde o início) ou gradual (os boosters são lançados ao longo da feira).
+Cada booster custa **50 tijolinhos**. Além disso, o lançamento deles pode ser direto (todos os boosters serão disponibilizados no site de venda da feira automaticamente desde o início) ou gradual (os boosters são lançados ao longo da feira).
 
 Os boosters serão temáticos com o grupo (RaspCorp, EchoSystem, Sindicato, etc) e só conterão cartas daquele grupo.
 
@@ -545,3 +545,28 @@ A página tenta entrar em tela cheia ao abrir a arena. **Esc** durante o duelo e
 A **Partida do Conselho** usa a apresentação **`/apresentacao5`**. Os jogadores do top 10 atual reservam seu canto pelo menu do Conselho antes de inserir o código.
 
 Os convites usam `PUBLIC_URL` quando configurada; caso contrário, usam o endereço da página. Ao abrir localmente, o servidor tenta um IP da rede para os celulares. Em produção, configure `PUBLIC_URL` com a URL pública do jogo. A configuração Nginx incluída encaminha `/apresentacao` e as cinco apresentações numeradas ao backend; publique backend, frontend e essa configuração juntos.
+
+
+## Guia rápido e recuperação de salas
+
+**Tutorial e regras → Conhecer os menus** abre um passeio visual de sete telas, com os menus de deck, boosters, partidas, mesas, mercado, ranking e perfil. É possível pular ou repetir a qualquer momento. O treino usa personagens, terreno e efeito reais: o jogador coloca a Torre MonteCorp, vê o bônus de PA e usa Vento dos Ermos para remover um terreno rival. Uma mão animada indica onde segurar e destaca o X da ficha, as cartas, os espaços e os alvos. O guia dos menus aparece uma vez por conta, após a orientação inicial.
+
+Criar uma sala abre o convite com **SAIR E LIBERAR SALA**. Fechar o convite ou apertar Escape libera a sala; desconectar antes de começar também libera a conta. Durante duelos ativos, a reconexão continua disponível.
+
+Na apresentação, **LIMPAR SALA** libera os jogadores e abre uma nova sala. Durante um duelo, a tela pede confirmação. Isso cancela o duelo sem registrar resultado nem mexer em pontos, saldo ou coleção. A apresentação carrega sem esperar o primeiro frame do vídeo de abertura e abre a arena automaticamente.
+
+Como administrador, no console do navegador (F12):
+
+```js
+limparSala("123456")
+removerContaDasPartidas("username_da_conta")
+```
+
+O primeiro encerra a sala indicada e libera todos os participantes. O segundo cancela todas as salas da conta, remove sua busca e reservas, inclusive em outras abas ou desconectada. Use o username, não o apelido. São ações administrativas reais, autorizadas no servidor, sem registrar resultados ou alterar saldo/coleção. Reinicie o backend e recarregue os clientes depois da atualização.
+
+
+Depois do treino e da escolha de facção, a ElenAI guia os cliques reais em **Cartas → Comprar boosters**, na facção oposta (RaspCorp ↔ Echossystem), no resgate **totalmente gratuito**, no inventário e na abertura das cinco cartas. O brinde é único por conta, inclusive com saldo zero. O servidor registra o resgate e a abertura: repetir o tutorial, recarregar, reenviar a compra ou reabrir o pacote não dá outro booster nem duplica as cartas. As compras comuns continuam custando **50 tijolinhos**. O guia pode ser pulado e retomado; pacotes já existentes são preservados. O treino de campo funciona offline; o resgate exige uma conta online.
+
+Selecionar uma carta de ataque em campo mostra seu alcance com um preenchimento leve e uma borda fina nas posições alcançáveis do campo oposto, inclusive vazias. A prévia segue as mesmas regras de alcance dos ataques e desaparece ao trocar a seleção, abrir a ficha ou ativar a habilidade.
+
+`npm run test:tutorial:browser` verifica segurar, X, terreno, efeito, alcance e ataques em celular e desktop. `npm run test:tutorial-boosters:browser` verifica os cliques reais nas duas facções, resgate gratuito inclusive com saldo zero, pacote correto, cinco cartas, recarga durante o guia e repetição sem novo brinde, com contas temporárias.

@@ -1,0 +1,45 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const vm = require('node:vm');
+const context = vm.createContext({ console: { log() {} }, window: {},
+  Phaser: { Utils: { Array: { Shuffle: value => value } } } });
+for (const file of ['js/cartas.js', 'js/main.js', 'js/tutorial.js'])
+  vm.runInContext(fs.readFileSync(file, 'utf8').split('const usarCanvasParaDiagnostico =')[0], context);
+const scene = vm.runInContext('({ partida: new Partida(null, true), events: { once() {} } })', context);
+const Training = vm.runInContext('CyberduelTraining', context);
+const training = new Training(scene);
+const intern = scene.partida.jogador.mao.cartas[0];
+assert.equal(scene.partida.jogarCartaDoJogador(intern, 0).sucesso, true);
+const before = intern.poder;
+training.step = 'terrain';
+const tower = training.card('Torre MonteCorp');
+assert.equal(tower.tipo, 'terreno'); assert.equal(tower.poder, 0);
+assert.equal(training.canPlace(tower, 1), true); assert.equal(training.canPlace(tower, 0), false);
+scene.partida.jogador.mao.adicionarCarta(tower);
+assert.equal(scene.partida.jogarCartaDoJogador(tower, 1).sucesso, true);
+assert.equal(intern.poder, before + 2, 'O terreno do treino aumenta PA pelo motor real.');
+const enemy = training.card('CyberVendedor da RaspCorp');
+const enemyTower = training.card('Torre MonteCorp');
+scene.partida.inimigo.campo.adicionarCarta(enemy, 7);
+scene.partida.inimigo.campo.adicionarCarta(enemyTower, 0);
+scene.partida.resolverEfeitosContinuos(scene.partida.inimigo);
+const buffed = enemy.poder;
+const effect = training.card('Vento dos Ermos'); training.step = 'effect';
+assert.equal(effect.tipo, 'efeito');
+assert.equal(training.canPlayEffect(effect, 0), true);
+assert.equal(training.canPlayEffect(effect, 7), false);
+scene.partida.jogador.mao.adicionarCarta(effect);
+assert.equal(scene.partida.jogarCartaEfeitoDoJogador(effect, 0).sucesso, true);
+assert.equal(scene.partida.inimigo.campo.cartas[0], null);
+assert.equal(enemy.poder, buffed - 2, 'Remover o terreno desfaz o bônus real.');
+assert.ok(scene.partida.jogador.descarte.includes(effect));
+assert.ok(!scene.partida.jogador.campo.cartas.includes(effect), 'Efeito não ocupa espaço do campo.');
+let saved, returned = false;
+context.window.cyberduelAccount = { user: 'Tutorial', async saveTutorial(progress) { saved = progress; } };
+scene.scene = { start(key) { assert.equal(key, 'CenaTitulo'); returned = true; } };
+training.finish().then(() => {
+  assert.equal(saved.completed, true); assert.equal(saved.boosterTutorialStarted, true);
+  assert.equal(saved.boosterTutorialSeen, false, 'Repetir o treino permite retomar uma compra que foi pulada.');
+  assert.equal(returned, true, 'Depois do campo, o tutorial continua no menu.');
+  console.log('Treino: terreno, efeito, alvos, descarte e continuação para o booster validados.');
+}).catch(error => { console.error(error); process.exitCode = 1; });

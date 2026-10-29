@@ -86,3 +86,12 @@ tableMulti.leaveRoom();
 assert.equal(tableMulti.table, null, 'O tema do Conselho não vaza para o próximo solo.');
 listeners['match-ready']({ room: '111111', player: 1 });
 assert.equal(tableMulti.table, null, 'Partida aleatória não herda a mesa anterior.');
+
+let returnedToMenu = 0;
+tableMulti.room = '777777'; tableMulti.active = true;
+tableMulti.scene = { scene: { start(key) { assert.equal(key, 'CenaTitulo'); returnedToMenu++; } } };
+listeners['room-cleared']({ code: '000000', message: 'antiga' });
+assert.equal(tableMulti.room, '777777', 'Um evento antigo não encerra uma sala nova.');
+listeners['room-cleared']({ code: '777777', message: 'Sala liberada.' });
+assert.equal(tableMulti.room, null); assert.equal(tableMulti.active, false);
+assert.equal(returnedToMenu, 1);

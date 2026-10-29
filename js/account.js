@@ -26,7 +26,7 @@ class CyberduelAccount {
     this.clubUnlocked = false;
     this.councilReached = false;
     this.councilMember = false;
-    this.boosterPrice = 100;
+    this.boosterPrice = 50;
     this.boosters = [];
     this.pendingBoosterPurchase = null;
     this.listeners = new Set();
@@ -148,7 +148,7 @@ class CyberduelAccount {
     this.clubUnlocked = payload.clubUnlocked === true;
     this.councilReached = payload.councilReached === true;
     this.councilMember = payload.councilMember === true;
-    this.boosterPrice = Math.max(1, Number(payload.boosterPrice) || 100);
+    this.boosterPrice = Math.max(1, Number(payload.boosterPrice) || 50);
     window.cyberduelNameGuard?.sync(this.nameRestriction);
     if (shouldNotify) this.notify();
     return this.snapshot();
@@ -307,10 +307,10 @@ class CyberduelAccount {
     }), false);
   }
 
-  async buyBooster(faction) {
-    const purchaseKey = `${this.user}:${faction}`;
+  async buyBooster(faction, purchaseId = null) {
+    const purchaseKey = `${this.user}:${faction}:${purchaseId || ""}`;
     if (this.pendingBoosterPurchase?.key !== purchaseKey) {
-      this.pendingBoosterPurchase = { key: purchaseKey, id: Array.from(crypto.getRandomValues(new Uint8Array(16)), byte => byte.toString(16).padStart(2, "0")).join("") };
+      this.pendingBoosterPurchase = { key: purchaseKey, id: purchaseId || Array.from(crypto.getRandomValues(new Uint8Array(16)), byte => byte.toString(16).padStart(2, "0")).join("") };
     }
     const payload = await this.request("/api/boosters/buy", {
       method: "POST",

@@ -99,6 +99,14 @@ class CyberduelMultiplayer {
       if (this.onReady) this.onReady();
     });
     this.socket.on("presentation-room", response => this.receivePresentation(response));
+    this.socket.on("room-cleared", payload => {
+      if (payload.code !== this.room) return;
+      const scene = this.scene;
+      this.leaveRoom(false);
+      this.status(payload.message);
+      if (scene) scene.scene.start("CenaTitulo");
+      else this.onRoomCleared?.(payload.message);
+    });
     this.socket.on("club-tables", response => this.onClubTables?.(response));
     this.socket.on("phase-clock", (update) => this.applyPhase(update));
     this.socket.on("state-update", (update) => this.receiveUpdate(update));
@@ -163,6 +171,12 @@ class CyberduelMultiplayer {
       if (error) return callback?.({ ok: false, error: "Servidor indisponível. Tente abrir a arena novamente." });
       if (response.ok) this.receivePresentation(response);
       else callback?.(response);
+    });
+  }
+
+  clearPresentation(callback) {
+    this.connect().timeout(5000).emit("clear-presentation", { displayKey: this.displayKey }, (error, response) => {
+      callback?.(error ? { ok: false, error: "Não foi possível limpar a mesa. Tente novamente." } : response);
     });
   }
 

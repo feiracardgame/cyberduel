@@ -391,6 +391,7 @@ class CyberduelTitleUI {
         rows: [
           ["Visualizar Regras", "Entenda o deck, as rodadas e os modos de jogo", "visualizar_regras", () => this.openRules(), "none"],
           ["Repetir tutorial", "Treine com a ElenAI", "repetir_tutorial", () => this.callbacks.onTutorial?.(), "none"],
+          ["Conhecer os menus", "Um passeio visual de menos de 1 minuto", "tutoriais_regras", () => this.openMenuTour(), "none"],
         ],
       },
       ranking: {
@@ -3435,7 +3436,7 @@ class CyberduelTitleUI {
       row.append(
         label,
         this.button("booster-buy", "ABRIR BOOSTER", () =>
-          this.switchBoosterView(() => this.openBoosterOpening(owned[0])),
+          this.switchBoosterView(() => this.openBoosterOpening(owned.find(pack => pack.id === this.boosterTraining?.purchaseId) || owned[0])),
         ),
       );
       list.append(row);
@@ -3472,6 +3473,7 @@ class CyberduelTitleUI {
     if (this.modal || !this.account?.user) return;
     const opening = Boolean(ownedPack);
     const overlay = this.createModal(opening ? "booster-opening" : "boosters");
+    if (opening) overlay.dataset.packId = ownedPack.id;
     if (opening) {
       overlay.classList.add("booster-fullscreen");
       document.body.append(overlay);
@@ -3602,7 +3604,7 @@ class CyberduelTitleUI {
       "(prefers-reduced-motion: reduce)",
     ).matches;
     const pause = (ms) =>
-      new Promise((resolve) => setTimeout(resolve, reducedMotion ? 0 : ms));
+      new Promise((resolve) => setTimeout(resolve, reducedMotion ? 0 : this.boosterTraining ? Math.min(ms, 350) : ms));
     const cutin = this.element("div", "booster-cutin");
     cutin.setAttribute("aria-hidden", "true");
     cutin.hidden = true;
@@ -3633,7 +3635,7 @@ class CyberduelTitleUI {
           item.style.setProperty("--card-ratio", image.naturalWidth / image.naturalHeight);
       }
       results.dataset.rarity = card.nivel;
-      const duration = { baixa: 160, media: 380, alta: 700, lendaria: 1150 }[card.nivel] || 160;
+      const duration = this.boosterTraining ? 180 : ({ baixa: 160, media: 380, alta: 700, lendaria: 1150 }[card.nivel] || 160);
       results.style.setProperty("--reveal-duration", `${duration}ms`);
       if (card.nivel === "lendaria") {
         cutin.replaceChildren(
@@ -3666,6 +3668,7 @@ class CyberduelTitleUI {
         );
       }
       position++;
+      overlay.dataset.revealed = String(position);
       revealing = false;
       status.textContent = `${position} / ${queue.length} · ${card.nome}. ${position < queue.length ? "Deslize para cima para revelar a próxima." : "Todas as cartas estão na sua coleção!"}`;
       refresh();
@@ -3680,7 +3683,11 @@ class CyberduelTitleUI {
         this.switchBoosterView(() => this.openBoosterInventory());
         return;
       }
-      if (!opening && this.account.currency < this.account.boosterPrice) return;
+      if (!opening && !this.boosterTraining && this.account.currency < this.account.boosterPrice) return;
+      if (!opening && this.boosterTraining && selected[0] !== this.boosterTraining.faction) {
+        error.textContent = "Escolha a facção oposta destacada pela ElenAI.";
+        return;
+      }
       busy = true;
       this.modalRequired = true;
       refresh();
@@ -3688,7 +3695,7 @@ class CyberduelTitleUI {
       status.textContent = "Preparando seu pacote…";
       try {
         if (!opening) {
-          await this.account.buyBooster(selected[0]);
+          await this.account.buyBooster(selected[0], this.boosterTraining?.purchaseId);
           if (this.modal === overlay) {
             status.textContent =
               "Pacote guardado no inventário. Abra quando quiser.";
@@ -3781,7 +3788,8 @@ class CyberduelTitleUI {
       buy.disabled =
         busy ||
         revealing ||
-        (!opening && this.account.currency < this.account.boosterPrice);
+        (!opening && this.boosterTraining && this.account.tutorial?.boosterTutorialPurchased) ||
+        (!opening && !this.boosterTraining && this.account.currency < this.account.boosterPrice);
       scratch.disabled = busy || opened;
       buy.textContent = busy
         ? opening
@@ -3793,9 +3801,11 @@ class CyberduelTitleUI {
             : "VOLTAR AO INVENTÁRIO"
           : opening
             ? "ABRIR PACOTE"
-            : this.account.currency < this.account.boosterPrice
-              ? "SALDO INSUFICIENTE"
-              : `COMPRAR PACOTE · ${this.account.boosterPrice} TIJOLINHOS`;
+            : this.boosterTraining
+              ? "RESGATAR BOOSTER GRÁTIS"
+              : this.account.currency < this.account.boosterPrice
+                ? "SALDO INSUFICIENTE"
+                : `COMPRAR PACOTE · ${this.account.boosterPrice} TIJOLINHOS`;
       buy.setAttribute("aria-label", buy.textContent);
     };
     const reset = () => {
@@ -4028,6 +4038,65 @@ class CyberduelTitleUI {
     return item;
   }
 
+  openMenuTour() {
+    if (this.modal) return;
+    const steps = [
+      ["Seu deck já vem pronto", "CARTAS → DECK BUILDER", "Troque cartas e salve seu deck: 20 cartas, com pelo menos 6 baixas, 4 médias e 2 altas.",
+        [["montar_deck", "Monte e salve seu deck"]]],
+      ["Mais cartas em 2 passos", "CARTAS → BOOSTERS", "Compre um pacote por 50 tijolinhos. Depois abra no inventário: são 5 cartas para sua coleção.",
+        [["comprar_booster", "1. Comprar boosters"], ["abrir_boosters", "2. Abrir boosters"]]],
+      ["Escolha como jogar", "PARTIDAS", "Solo para praticar. Aleatória para disputar o ranking. Privada para jogar com amigos por código ou QR, sem ganhar tijolinhos.",
+        [["jogar_contra_bot", "Solo · contra o bot"], ["partida_aleatoria", "Aleatória · ranqueada"], ["partida_privada", "Privada · com amigos"]]],
+      ["Jogue nas mesas", "PARTIDAS → CLUBE / CONSELHO", "Clube: quatro mesas para disputar. Conselho: top 10 do ranking. Reserve seu lugar e digite o código da tela da mesa.",
+        [["clube_secreto", "Clube · bônus de 25%"], ["conselho", "Conselho · bônus de 50%"]]],
+      ["Negocie cartas", "CARTAS → MERCADO", "Anuncie suas cartas ou compre as de outros jogadores com tijolinhos. Confira a carta e o preço antes de comprar.",
+        [["anunciar_cartas", "Vender suas cartas"], ["visualizar_anuncios", "Comprar de jogadores"]]],
+      ["Acompanhe sua evolução", "LEADERBOARD / SEU PERFIL", "Vença partidas ranqueadas para subir no ranking. Toque no seu nome para ver perfil, vitórias e foto.",
+        [["leaderboard", "Ranking de duelistas"]]],
+      ["Pode voltar quando quiser", "TUTORIAL E REGRAS / CONFIGURAÇÕES", "Regras e treino ficam aqui. Em Configurações, ajuste som e imagem. Arraste as cartas do menu para explorar. Agora é com você!",
+        [["visualizar_regras", "Consultar regras"], ["repetir_tutorial", "Treinar jogando"]]],
+    ];
+    const overlay = this.createModal("menu-tour");
+    const dialog = this.element("section", "title-dialog menu-tour");
+    dialog.setAttribute("role", "dialog"); dialog.setAttribute("aria-modal", "true");
+    dialog.setAttribute("aria-label", "Conhecer os menus");
+    const header = this.element("header", "menu-tour-header");
+    const portrait = this.element("img"); portrait.src = "assets/sprites/elenai-05.webp"; portrait.alt = "ElenAI";
+    const progress = this.element("strong");
+    const skip = this.button("elenai-exit", "PULAR", () => this.closeModal());
+    header.append(portrait, progress, skip);
+    const route = this.element("p", "menu-tour-route");
+    const title = this.element("h2"), gallery = this.element("div", "menu-tour-gallery");
+    const text = this.element("p", "menu-tour-text"); text.setAttribute("aria-live", "polite");
+    let index = 0;
+    const back = this.button("title-dialog__cancel", "VOLTAR", () => { index--; render(); });
+    const next = this.button("title-dialog__confirm", "PRÓXIMO", () => {
+      if (index === steps.length - 1) this.closeModal();
+      else { index++; render(); }
+    });
+    const actions = this.element("div", "title-dialog__actions"); actions.append(back, next);
+    const render = () => {
+      const step = steps[index];
+      progress.textContent = `${index + 1} / ${steps.length} · GUIA RÁPIDO`;
+      title.textContent = step[0]; route.textContent = step[1]; text.textContent = step[2];
+      gallery.replaceChildren();
+      for (const [art, label] of step[3]) {
+        const figure = this.element("figure");
+        const image = this.element("img"); image.src = `assets/menus/${art}.png`; image.alt = "";
+        figure.append(image, this.element("figcaption", "", label)); gallery.append(figure);
+      }
+      back.disabled = index === 0;
+      next.textContent = index === steps.length - 1 ? "PRONTO, VAMOS JOGAR" : "PRÓXIMO ›";
+    };
+    dialog.append(header, route, title, gallery, text, actions); overlay.append(dialog);
+    this.modalAfterClose = () => {
+      if (this.account?.authProvider === "offline") this.account.tutorial.menuTourSeen = true;
+      else if (this.account?.user) this.account.saveTutorial({ menuTourSeen: true }).catch(error => this.setStatus(error.message, "error"));
+    };
+    render();
+    requestAnimationFrame(() => { overlay.classList.add("is-visible"); next.focus(); });
+  }
+
   showRoom({ qrCode, code, invite }) {
     this.closeModal(true);
     const overlay = this.createModal("room");
@@ -4065,10 +4134,13 @@ class CyberduelTitleUI {
     );
     actions.append(
       copy,
-      this.button("title-dialog__confirm", "FECHAR", () => this.closeModal()),
+      this.button("title-dialog__confirm", "SAIR E LIBERAR SALA", () => this.closeModal()),
     );
     dialog.append(codeDisplay, actions);
     overlay.append(dialog);
+    this.modalAfterClose = () => {
+      if (!window.cyberduelMultiplayer?.active) this.callbacks.onLeaveRoom?.();
+    };
     requestAnimationFrame(() => overlay.classList.add("is-visible"));
   }
 
@@ -4098,6 +4170,7 @@ class CyberduelTitleUI {
   }
 
   destroy() {
+    this.boosterTraining?.destroy();
     this.councilCleanup?.();
     this.clubTablesCleanup?.();
     this.clubTablesCleanup = null;

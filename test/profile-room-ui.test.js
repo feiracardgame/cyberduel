@@ -212,6 +212,17 @@ const byLabel = label => find(ui.modal, el => el.attributes['aria-label'] === la
   assert.ok(byClass('title-rules-content').children.length > 0);
   ui.closeModal(true);
 
+  let releasedRooms = 0;
+  ui.callbacks.onLeaveRoom = () => { releasedRooms++; };
+  ui.showRoom({ code: '123456', invite: 'https://duelo.example/?room=123456' });
+  ui.handleKeydown({ key: 'Escape' });
+  assert.equal(ui.modal, null); assert.equal(releasedRooms, 1, 'Escape libera a sala de espera.');
+  context.window.cyberduelMultiplayer = { active: true };
+  ui.showRoom({ code: '123456', invite: 'https://duelo.example/?room=123456' });
+  ui.closeModal(true);
+  assert.equal(releasedRooms, 1, 'Fechar convite no início do duelo não abandona a partida.');
+  context.window.cyberduelMultiplayer = null;
+
   const menu = new context.UI({ account: ui.account, callbacks: {} });
   menu.attachFanDrag = () => {};
   menu.renderCardMenu = () => {};

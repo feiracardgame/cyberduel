@@ -63,7 +63,7 @@ for (const step of ['tiger-ability', 'dipsp-ability']) {
   scene.modalAberto = false; training.update();
   assert.equal(guideClasses.has('elenai-guide--bottom'), true);
   scene.modalAberto = true; training.update();
-  assert.equal(guideClasses.has('elenai-guide--bottom'), false);
+  assert.equal(guideClasses.has('elenai-guide--bottom'), true, 'Na ficha, a orientação fica embaixo e libera o X.');
   scene.modalAberto = false; training.update();
   assert.equal(guideClasses.has('elenai-guide--bottom'), true);
 }
