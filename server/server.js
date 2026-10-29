@@ -424,7 +424,7 @@ function publicAccount(account) {
     clubGames: account.clubGames, clubWins: account.clubWins,
     tutorial: account.tutorial, councilReached: Boolean(account.councilReached),
     councilMember: councilMembers.includes(account),
-    clubUnlocked: account.humanWins >= 3,
+    clubUnlocked: account.humanWins >= 0,
     collection: account.collection,
     starterCollection: account.starterCollection,
     boosterPrice: BOOSTER_PRICE,
@@ -870,7 +870,7 @@ async function handleApi(request, response, pathname) {
       return { username: account.username, nickname: account.nickname || account.username,
         banned: account.banned === true, banReason: account.banReason || "",
         nameChangeRequired: account.nameChangeRequired === true,
-        clubUnlocked: account.humanWins >= 3, councilMember: position >= 0 && position < 10,
+        clubUnlocked: account.humanWins >= 0, councilMember: position >= 0 && position < 10,
         rating: account.rating, rank: ranking.playerProfile(account).rank, rankingPosition: position < 0 ? null : position + 1,
         currency: account.currency, currencySpent: account.currencySpent, marketSales: account.marketSales,
         statsTrackedSince: account.statsTrackedSince, unlockedCards, totalCards: ALL_AVAILABLE_CARDS.length };
@@ -980,7 +980,7 @@ async function handleApi(request, response, pathname) {
         flags.some(key => key in body && typeof body[key] !== "boolean"))
       return sendJson(response, 400, { ok: false, error: "Progresso de tutorial inválido." });
     const eligible = { three: account.gamesPlayed >= 3, ten: account.gamesPlayed >= 10,
-      club: account.humanWins >= 3, council: Boolean(publicAccount(account).councilReached) && ranking.eligible(account) };
+      club: account.humanWins >= 0, council: Boolean(publicAccount(account).councilReached) && ranking.eligible(account) };
     if ("seen" in body && (typeof body.seen !== "string" || !Object.hasOwn(eligible, body.seen) || eligible[body.seen] !== true))
       return sendJson(response, 400, { ok: false, error: "Este diálogo ainda não foi liberado." });
     if ("wantsTutorial" in body && account.tutorial.wantsTutorial !== null && body.wantsTutorial !== account.tutorial.wantsTutorial)
@@ -2032,7 +2032,7 @@ io.on("connection", (socket) => {
     if (table === 5 && !council.isMember(account, Object.values(accountStore.accounts)))
       return ack({ ok: false, error: "Somente o top 10 atual pode entrar no Conselho." });
     if (!account) return ack({ ok: false, error: "Entre na conta antes de reservar um lugar." });
-    if (table !== 5 && !(account.humanWins >= 3))
+    if (table !== 5 && !(account.humanWins >= 0))
       return ack({ ok: false, error: "Conquiste 3 vitórias contra jogadores para entrar no Clube secreto." });
     if (socket.data.room || accountHasMatch(account.username))
       return ack({ ok: false, error: "Conclua sua partida antes de reservar um lugar." });
@@ -2075,7 +2075,7 @@ io.on("connection", (socket) => {
     if (!room?.presentationHost || room.state)
       return ack({ ok: false, error: "Esta mesa está indisponível." });
     if (room.table === 5) return ack({ ok: false, error: "Reserve um canto na Partida do Conselho." });
-    if (!(account.humanWins >= 3))
+    if (!(account.humanWins >= 0))
       return ack({ ok: false, error: "Conquiste 3 vitórias contra jogadores para entrar no Clube secreto." });
     notifyPresentation(room);
     ack({ ok: true });
@@ -2222,7 +2222,7 @@ io.on("connection", (socket) => {
         return ack({ ok: false, error: "Conclua sua partida atual antes de entrar em outra mesa." });
       if ([...room.usernames.values()].includes(account.username))
         return ack({ ok: false, error: "Cada jogador precisa usar sua própria conta." });
-      if ([1, 2, 3, 4].includes(room.table) && !(account.humanWins >= 3))
+      if ([1, 2, 3, 4].includes(room.table) && !(account.humanWins >= 0))
         return ack({ ok: false, error: "Conquiste 3 vitórias contra jogadores para entrar no Clube secreto." });
       if (room.table === 5) {
         if (!council.isMember(account, Object.values(accountStore.accounts)))

@@ -28,8 +28,8 @@ function applyResult(first, second, winner, winMultiplier = 1) {
   }
 }
 
-const eligible = account => !account.banned && (account.humanGames ?? account.rankedGames ?? 0) >= 5 &&
-  (account.humanWins ?? account.rankedWins ?? 0) >= 3;
+const eligible = account => !account.banned && (account.humanGames ?? account.rankedGames ?? 0) >= 1 &&
+  (account.humanWins ?? account.rankedWins ?? 0) >= 1;
 const leaderboard = accounts => accounts.filter(eligible)
   .sort((a, b) => b.rating - a.rating || b.rankedWins - a.rankedWins || a.username.localeCompare(b.username));
 
