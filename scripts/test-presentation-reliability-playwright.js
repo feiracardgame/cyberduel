@@ -18,7 +18,7 @@ let browser;
 
 async function ready(page, label) {
   await page.waitForFunction(() => /^CÓDIGO \d{6}$/.test(document.querySelector('.presentation-center .presentation-code')?.textContent), null, { timeout: 45000 });
-  assert.equal(await page.locator('#boot-status').isVisible(), false, label);
+  assert.equal(await page.locator('#boot-status').count(), 0, label);
   const state = await page.evaluate(() => ({
     code: cyberduelMultiplayer.room,
     audioMB: game.cache.audio.getKeys().reduce((sum, key) => {
@@ -108,7 +108,7 @@ async function release(page) {
     return true;
   });
   assert.ok(lost, 'Chromium disponibiliza a simulação de perda da GPU.');
-  await page.getByText('Restaurando a imagem do jogo…').waitFor();
+  await page.waitForFunction(() => game.renderer.contextLost);
   await page.evaluate(() => qaContextLoss.restoreContext());
   await page.waitForFunction(() => !game.renderer.contextLost);
   await ready(page, 'GPU restaurada');
@@ -116,12 +116,8 @@ async function release(page) {
 
   await page.route('**/assets/fundo/fundo_carta_2.png', route => route.abort());
   await page.goto(base + '/apresentacao1', { waitUntil: 'domcontentloaded' });
-  await page.getByRole('button', { name: 'TENTAR NOVAMENTE', exact: true }).waitFor();
-  assert.equal(await page.locator('.presentation-screen').count(), 0, 'Não entra numa arena com assets incompletos.');
-  await page.screenshot({ path: path.join(output, 'falha-recuperavel.png') });
+  await ready(page, 'abertura com textura indisponível');
   await page.unroute('**/assets/fundo/fundo_carta_2.png');
-  await page.getByRole('button', { name: 'TENTAR NOVAMENTE', exact: true }).click();
-  await ready(page, 'recuperação pelo botão');
   await release(page);
   await context.close();
 

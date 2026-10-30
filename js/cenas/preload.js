@@ -129,7 +129,6 @@ class CenaPreload extends Phaser.Scene {
       new Promise(resolve => setTimeout(resolve, 3000)),
     ]);
     this.criarBarraDeCarregamento();
-    window.cyberduelBoot?.loading();
 
   }
 
@@ -347,8 +346,7 @@ class CenaPreload extends Phaser.Scene {
       video.off("created", iniciar);
       video.off("error", iniciar);
       const inicio = this.time.now;
-      this.load.once("complete", (_loader, _loaded, failed) => {
-        if (failed) { window.cyberduelBoot?.fail(); return; }
+      this.load.once("complete", () => {
         // Mesmo com cache quente, deixa a abertura visível por pelo menos um segundo.
         this.time.delayedCall(Math.max(0, 1000 - (this.time.now - inicio)), () => {
           this.fontePronta.then(() => this.scene.start(abrirDeck ? "CenaDeckBuilder" : "CenaTitulo"));

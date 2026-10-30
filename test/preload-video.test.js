@@ -77,6 +77,10 @@ scene.create();
 assert.equal(loads, 2);
 timers.at(-1).fn(); // Vídeo que não inicia: timeout libera a aplicação.
 assert.equal(loads, 3);
+destination = undefined;
+scene.load.emit('complete', scene.load, 0, 1);
+timers.at(-1).fn();
+assert.equal(destination, 'CenaDeckBuilder', 'Falha de asset não bloqueia a abertura do jogo.');
 console.log('Carregamento: vídeo antes dos assets, cache quente, loop, proporção, progresso, erro, timeout e saída validados.');
 
 context.window.CYBERDUEL_TABLE = 5;
