@@ -53,7 +53,7 @@ const TUTORIAL_BOOSTER_ID = "tutorial-opposite-booster-v1";
 const INITIAL_CURRENCY = 500;
 const GOOGLE_CLIENT_ID = String(process.env.GOOGLE_CLIENT_ID || "").trim();
 const googleAuth = new OAuth2Client({ clientId: GOOGLE_CLIENT_ID, transporterOptions: { timeout: 10000 } });
-// ponytail: tentativas em memória; armazenamento compartilhado se houver múltiplas instâncias.
+// shortcut: tentativas em memória; usar armazenamento compartilhado ao subir múltiplas instâncias.
 const googleLogins = new Map();
 
 function environmentInteger(name, fallback, minimum = 0, maximum = 100000) {
@@ -393,6 +393,37 @@ function allowedFrontend(origin, host) {
   }
 }
 
+async function authenticateGoogle(credential, loginId) {
+  const key = sessionKey(typeof loginId === "string" ? loginId : "");
+  const login = googleLogins.get(key);
+  googleLogins.delete(key);
+  if (!login || typeof login.nonce !== "string" || login.expiresAt <= Date.now() || typeof credential !== "string")
+    return { status: 401, payload: { ok: false, error: "Login expirado. Tente entrar com Google novamente." } };
+  let identity;
+  try {
+    const ticket = await googleAuth.verifyIdToken({ idToken: credential, audience: GOOGLE_CLIENT_ID });
+    identity = ticket.getPayload();
+    if (typeof identity?.sub !== "string" || !identity.sub || identity.nonce !== login.nonce)
+      throw new Error("Invalid Google identity");
+  } catch {
+    return { status: 401, payload: { ok: false, error: "Não foi possível validar sua conta Google. Tente novamente." } };
+  }
+  // O sub identifica a conta; nome e email do Google não vinculam contas antigas.
+  let entry = Object.entries(accountStore.accounts).find(([, account]) => account.googleSub === identity.sub);
+  if (!entry) {
+    const accountKey = `google_${randomBytes(16).toString("hex")}`;
+    const account = ensureAccountDefaults({
+      username: accountKey, googleSub: identity.sub, nickname: "", deck: null,
+      createdAt: new Date().toISOString(),
+    });
+    accountStore.accounts[accountKey] = account;
+    saveAccounts();
+    entry = [accountKey, account];
+  }
+  if (entry[1].banned) return { status: 403, payload: banRejection(entry[1]) };
+  return { status: 200, payload: { ok: true, token: createSession(entry[0]), ...publicAccount(entry[1]) } };
+}
+
 function registerCouncilEntries(leaderboard = ranking.leaderboard(Object.values(accountStore.accounts))) {
   const newcomers = leaderboard.slice(0, 10).filter(account => !account.councilReached);
   for (const account of newcomers) account.councilReached = true;
@@ -626,11 +657,23 @@ async function handleApi(request, response, pathname) {
   if (pathname.startsWith("/api/auth/google")) {
     if (!GOOGLE_CLIENT_ID)
       return sendJson(response, 503, { ok: false, error: "Login com Google ainda não configurado no servidor." });
-    if (!allowedFrontend(request.headers.origin, request.headers.host))
+    if (pathname !== "/api/auth/google/callback" && !allowedFrontend(request.headers.origin, request.headers.host))
       return sendJson(response, 403, { ok: false, error: "Origem de login não autorizada." });
   }
 
   if (request.method === "POST" && pathname === "/api/auth/google/start") {
+    const body = await readJson(request);
+    let returnTo, loginUri;
+    if (body.redirect === true) {
+      try {
+        const destination = new URL(body.returnTo);
+        if (destination.origin !== new URL(request.headers.origin).origin) throw new Error("Invalid return origin");
+        returnTo = destination.href;
+        loginUri = new URL("/api/auth/google/callback", PUBLIC_URL || `${new URL(request.headers.origin).protocol}//${request.headers.host}`).href;
+      } catch {
+        return sendJson(response, 400, { ok: false, error: "Endereço de retorno do Google inválido." });
+      }
+    }
     for (const [id, login] of googleLogins) {
       if (login.expiresAt <= Date.now()) googleLogins.delete(id);
     }
@@ -638,39 +681,50 @@ async function handleApi(request, response, pathname) {
       return sendJson(response, 429, { ok: false, error: "Muitas tentativas de login. Tente novamente em alguns minutos." });
     const loginId = randomBytes(32).toString("hex");
     const nonce = randomBytes(32).toString("hex");
-    googleLogins.set(sessionKey(loginId), { nonce, expiresAt: Date.now() + 10 * 60 * 1000 });
-    return sendJson(response, 200, { ok: true, clientId: GOOGLE_CLIENT_ID, loginId, nonce });
+    googleLogins.set(sessionKey(loginId), { nonce, returnTo, expiresAt: Date.now() + 10 * 60 * 1000 });
+    if (returnTo) response.setHeader("Set-Cookie", `cyberduel.google.login=${loginId}; HttpOnly; Secure; SameSite=None; Path=/api/auth/google/callback; Max-Age=600`);
+    return sendJson(response, 200, { ok: true, clientId: GOOGLE_CLIENT_ID, loginId, nonce, ...(loginUri ? { loginUri } : {}) });
+  }
+
+  if (request.method === "POST" && pathname === "/api/auth/google/callback") {
+    if (!request.headers["content-type"]?.startsWith("application/x-www-form-urlencoded"))
+      return sendJson(response, 400, { ok: false, error: "Resposta do Google inválida." });
+    let raw = "";
+    for await (const chunk of request) {
+      raw += chunk;
+      if (Buffer.byteLength(raw) > 64 * 1024) return sendJson(response, 413, { ok: false, error: "Resposta do Google muito grande." });
+    }
+    const body = new URLSearchParams(raw);
+    const cookies = new URLSearchParams((request.headers.cookie || "").replace(/;\s*/g, "&"));
+    const loginId = cookies.get("cyberduel.google.login");
+    const key = sessionKey(loginId || "");
+    const login = googleLogins.get(key);
+    if (!body.get("g_csrf_token") || body.get("g_csrf_token") !== cookies.get("g_csrf_token") || !login?.returnTo || login.expiresAt <= Date.now()) {
+      response.writeHead(403, { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" });
+      return response.end("Login expirado ou cookies bloqueados. Volte ao jogo e tente novamente pelo Chrome ou Safari, permitindo cookies.");
+    }
+    const result = await authenticateGoogle(body.get("credential"), loginId);
+    // A sessão volta pelo POST autenticado pela tentativa, nunca pela URL de retorno.
+    googleLogins.set(key, { result, expiresAt: Date.now() + 10 * 60 * 1000 });
+    response.writeHead(303, { location: login.returnTo, "cache-control": "no-store", "referrer-policy": "no-referrer",
+      "set-cookie": "cyberduel.google.login=; HttpOnly; Secure; SameSite=None; Path=/api/auth/google/callback; Max-Age=0" });
+    return response.end();
+  }
+
+  if (request.method === "POST" && pathname === "/api/auth/google/complete") {
+    const body = await readJson(request);
+    const key = sessionKey(typeof body.loginId === "string" ? body.loginId : "");
+    const login = googleLogins.get(key);
+    googleLogins.delete(key);
+    if (!login?.result || login.expiresAt <= Date.now())
+      return sendJson(response, 401, { ok: false, error: "Login expirado. Tente entrar com Google novamente." });
+    return sendJson(response, login.result.status, login.result.payload);
   }
 
   if (request.method === "POST" && pathname === "/api/auth/google") {
     const body = await readJson(request);
-    const key = sessionKey(body.loginId || "");
-    const login = googleLogins.get(key);
-    googleLogins.delete(key);
-    if (!login || login.expiresAt <= Date.now() || typeof body.credential !== "string")
-      return sendJson(response, 401, { ok: false, error: "Login expirado. Tente entrar com Google novamente." });
-    let identity;
-    try {
-      const ticket = await googleAuth.verifyIdToken({ idToken: body.credential, audience: GOOGLE_CLIENT_ID });
-      identity = ticket.getPayload();
-      if (typeof identity?.sub !== "string" || !identity.sub || identity.nonce !== login.nonce) throw new Error("Invalid Google identity");
-    } catch {
-      return sendJson(response, 401, { ok: false, error: "Não foi possível validar sua conta Google. Tente novamente." });
-    }
-    // O sub identifica a conta; nome e email do Google não vinculam contas antigas.
-    let entry = Object.entries(accountStore.accounts).find(([, account]) => account.googleSub === identity.sub);
-    if (!entry) {
-      const accountKey = `google_${randomBytes(16).toString("hex")}`;
-      const account = ensureAccountDefaults({
-        username: accountKey, googleSub: identity.sub, nickname: "", deck: null,
-        createdAt: new Date().toISOString(),
-      });
-      accountStore.accounts[accountKey] = account;
-      saveAccounts();
-      entry = [accountKey, account];
-    }
-    if (entry[1].banned) return sendJson(response, 403, banRejection(entry[1]));
-    return sendJson(response, 200, { ok: true, token: createSession(entry[0]), ...publicAccount(entry[1]) });
+    const result = await authenticateGoogle(body.credential, body.loginId);
+    return sendJson(response, result.status, result.payload);
   }
 
   const pending = authenticatedSession(request);
@@ -1530,6 +1584,7 @@ function serveGame(request, response) {
       if (allowedFrontend(origin, request.headers.host)) {
         const frontend = new URL(origin);
         response.setHeader("Access-Control-Allow-Origin", frontend.origin);
+        response.setHeader("Access-Control-Allow-Credentials", "true");
         response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS");
         response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
       }
@@ -2079,7 +2134,7 @@ io.on("connection", (socket) => {
       return ack({ ok: false, error: "Somente o top 10 atual pode entrar no Conselho." });
     if (!account) return ack({ ok: false, error: "Entre na conta antes de reservar um lugar." });
     if (table !== 5 && !(account.humanWins >= 0))
-      return ack({ ok: false, error: "Conquiste 3 vitórias contra jogadores para entrar no Clube secreto." });
+      return ack({ ok: false, error: "Acesso ao Clube indisponível para esta conta." });
     if (socket.data.room || accountHasMatch(account.username))
       return ack({ ok: false, error: "Conclua sua partida antes de reservar um lugar." });
     const room = clubTableRoom(table);
@@ -2122,7 +2177,7 @@ io.on("connection", (socket) => {
       return ack({ ok: false, error: "Esta mesa está indisponível." });
     if (room.table === 5) return ack({ ok: false, error: "Reserve um canto na Partida do Conselho." });
     if (!(account.humanWins >= 0))
-      return ack({ ok: false, error: "Conquiste 3 vitórias contra jogadores para entrar no Clube secreto." });
+      return ack({ ok: false, error: "Acesso ao Clube indisponível para esta conta." });
     notifyPresentation(room);
     ack({ ok: true });
   });
@@ -2135,8 +2190,12 @@ io.on("connection", (socket) => {
     if (previous?.presentation) {
       if ((previous.table || null) !== table)
         return ack({ ok: false, error: "Esta apresentação pertence a outra mesa." });
-      if (payload.displayKey !== previous.displayKey)
-        return ack({ ok: false, error: "Esta apresentação pertence a outra tela." });
+      if (payload.displayKey !== previous.displayKey) {
+        if (previous.presentationHost || previous.state || previous.players.size)
+          return ack({ ok: false, error: "Esta apresentação pertence a outra tela." });
+        // Uma mesa vazia sem tela pode ser reaberta mesmo após perder o armazenamento.
+        previous.displayKey = randomBytes(32).toString("hex");
+      }
       if (previous.presentationHost && previous.presentationHost !== socket.id)
         return ack({ ok: false, error: "A apresentação já está aberta em outra tela." });
       socket.join(previous.code); socket.data.room = previous.code; socket.data.player = null;
@@ -2279,7 +2338,7 @@ io.on("connection", (socket) => {
       if ([...room.usernames.values()].includes(account.username))
         return ack({ ok: false, error: "Cada jogador precisa usar sua própria conta." });
       if ([1, 2, 3, 4].includes(room.table) && !(account.humanWins >= 0))
-        return ack({ ok: false, error: "Conquiste 3 vitórias contra jogadores para entrar no Clube secreto." });
+        return ack({ ok: false, error: "Acesso ao Clube indisponível para esta conta." });
       if (room.table === 5) {
         if (!council.isMember(account, Object.values(accountStore.accounts)))
           return ack({ ok: false, error: "Somente o top 10 atual pode entrar no Conselho." });

@@ -1,7 +1,7 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
-const listeners = {}, calls = [], storage = new Map();
+const listeners = {}, calls = [], storage = new Map(), persistent = new Map();
 const socket = {
   on(name, callback) { listeners[name] = callback; },
   timeout() { return this; },
@@ -13,6 +13,7 @@ const context = vm.createContext({
   window: { cyberduelServerUrl: () => 'https://duelo.example', cyberduelDeckBuilder: { getDeckForMatch: () => [] },
     sessionStorage: { getItem: key => storage.get(key), setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key) } },
 });
+context.window.localStorage = { getItem: key => persistent.get(key), setItem: (key, value) => persistent.set(key, value), removeItem: key => persistent.delete(key) };
 vm.runInContext(fs.readFileSync('js/multiplayer.js', 'utf8'), context);
 const multi = context.window.cyberduelMultiplayer;
 let waiting = 0, ready = 0;
@@ -35,6 +36,7 @@ multi.leaveRoom();
 assert.equal(multi.room, null); assert.equal(multi.presentation, false);
 assert.equal(storage.has('cyberduel.presentationRoom'), false);
 assert.equal(storage.has('cyberduel.presentationKey'), false);
+assert.equal(persistent.has('cyberduel.presentationKey'), false);
 multi.joinRoom('123456', () => {});
 assert.equal(calls.at(-1).payload.seat, '2'); assert.equal(calls.at(-1).payload.ticket, 'invitation');
 
@@ -54,8 +56,17 @@ assert.equal(calls.at(-1).payload.code, undefined, 'A Mesa 2 não restaura a apr
 calls.at(-1).callback(null, { ...response, room: { code: '222222' } });
 assert.equal(storage.get('cyberduel.presentationRoom:2'), '222222');
 assert.equal(storage.has('cyberduel.presentationRoom'), false);
+storage.clear();
+const primaryIo = context.io;
+context.io = () => ({ ...socket, on() {} });
+const reopened = vm.runInContext('new CyberduelMultiplayer()', context);
+reopened.createPresentation(() => {});
+assert.equal(calls.at(-1).payload.code, '222222', 'Uma nova aba recupera a apresentação pelo armazenamento persistente.');
+assert.equal(calls.at(-1).payload.displayKey, 'private-key');
+context.io = primaryIo;
 tableMulti.leaveRoom();
 assert.equal(storage.has('cyberduel.presentationRoom:2'), false);
+assert.equal(persistent.has('cyberduel.presentationRoom:2'), false);
 let tableUpdates = 0;
 tableMulti.watchClubTables(() => { tableUpdates++; });
 calls.at(-1).callback(null, { ok: true, tables: [] });

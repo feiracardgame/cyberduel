@@ -1,5 +1,10 @@
 (function criarConfiguracoesCyberduel(global) {
   const STORAGE_KEY = "cyberduel.settings.v1";
+  const MUSIC = {
+    musicaFundo: "jogo-musica.mp3", musicaPadrao: "jogo-padrao.mp3",
+    musicaHumbaNet: "jogo-humbanet.mp3", musicaRemanescentes: "jogo-remanescentes.mp3",
+    musicaDeck: "jogo-deck.mp3", musicaMenu: "jogo-menu.mp3", musicaIA: "jogo-IA.mp3",
+  };
   const DEFAULTS = Object.freeze({
     masterVolume: 0.85,
     musicVolume: 0.75,
@@ -54,15 +59,14 @@
       this.values[key] = Number(value);
       this.normalize();
       this.save();
-      if (this.musicScene?.cyberMusic)
-        this.musicScene.cyberMusic.setVolume(this.musicForTrack(this.musicScene.cyberMusic.key));
+      this.updateMusicVolume();
       if (key === "textScale") this.queueDomTextUpdate();
     }
 
     reset() {
       this.values = { ...DEFAULTS };
       this.save();
-      this.musicScene?.cyberMusic?.setVolume(this.musicForTrack(this.musicScene.cyberMusic.key));
+      this.updateMusicVolume();
       this.queueDomTextUpdate();
     }
 
@@ -83,19 +87,65 @@
       return this.music(0.3, key);
     }
 
+    updateMusicVolume() {
+      const sound = this.musicScene?.cyberMusic;
+      if (!sound) return;
+      const volume = this.musicForTrack(sound.key);
+      // O volume do elemento é fixo no iOS; o ganho mantém os controles funcionais.
+      if (sound.gainNode) sound.gainNode.gain.value = volume;
+      else sound.volume = volume;
+    }
+
+    stopMusic(scene) {
+      const sound = scene.cyberMusic;
+      if (!sound) return;
+      global.document?.removeEventListener("pointerdown", sound.unlock);
+      global.document?.removeEventListener("keydown", sound.unlock);
+      sound.pause();
+      sound.removeAttribute("src");
+      sound.load();
+      sound.sourceNode?.disconnect();
+      sound.gainNode?.disconnect();
+      scene.cyberMusic = null;
+      if (this.musicScene === scene) this.musicScene = null;
+    }
+
     playMusic(scene, key) {
-      if (!scene?.sound?.add || scene.cyberMusic?.key === key) return;
-      scene.cyberMusic?.destroy();
-      const sound = scene.sound.add(key, { loop: true, volume: this.musicForTrack(key) });
+      if (!scene?.sound || !MUSIC[key] || scene.cyberMusic?.key === key) return;
+      this.stopMusic(scene);
+      // Streaming evita decodificar todas as músicas em centenas de MB na abertura.
+      const sound = new global.Audio(`assets/sons/${MUSIC[key]}`);
+      sound.key = key;
+      sound.loop = true;
+      sound.preload = "none";
+      const context = scene.sound.context;
+      if (context?.createMediaElementSource) {
+        sound.sourceNode = context.createMediaElementSource(sound);
+        sound.gainNode = context.createGain();
+        sound.sourceNode.connect(sound.gainNode);
+        sound.gainNode.connect(context.destination);
+      }
       scene.cyberMusic = sound;
       this.musicScene = scene;
-      sound.play();
+      this.updateMusicVolume();
+      sound.unlock = () => {
+        if (scene.cyberMusic !== sound) return;
+        context?.resume().catch(() => {});
+        sound.play().then(() => {
+          global.document?.removeEventListener("pointerdown", sound.unlock);
+          global.document?.removeEventListener("keydown", sound.unlock);
+        }).catch(error => {
+          if (error.name !== "NotAllowedError" || scene.cyberMusic !== sound) return;
+          global.document?.addEventListener("pointerdown", sound.unlock, { once: true });
+          global.document?.addEventListener("keydown", sound.unlock, { once: true });
+        });
+      };
+      sound.unlock();
       if (!scene.cyberMusicCleanup) {
         scene.cyberMusicCleanup = true;
         scene.events.once("shutdown", () => {
-          scene.cyberMusic?.destroy(); scene.cyberMusic = null;
+          this.stopMusic(scene);
           scene.cyberMusicCleanup = false;
-          if (this.musicScene === scene) this.musicScene = null;
         });
       }
     }

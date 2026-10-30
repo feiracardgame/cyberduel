@@ -85,7 +85,7 @@ async function run() {
   const accountList = await api("/api/admin/accounts");
   assert.equal(accountList.status, 200);
   assert.equal(accountList.payload.accounts.length, 2);
-  assert.ok(accountList.payload.accounts.every(account => !account.clubUnlocked && !account.councilMember));
+  assert.ok(accountList.payload.accounts.every(account => account.clubUnlocked && !account.councilMember));
   for (const account of accountList.payload.accounts)
     assert.deepEqual(Object.keys(account).sort(), ['username', 'nickname', 'clubUnlocked', 'councilMember', 'rating', 'rank',
       'rankingPosition', 'currency', 'currencySpent', 'marketSales', 'statsTrackedSince', 'unlockedCards', 'totalCards', 'nameChangeRequired', 'banned', 'banReason'].sort(), 'Não expõe sessão, credenciais ou coleção completa.');
@@ -199,10 +199,10 @@ async function run() {
   });
   assert.equal(money.status, 200);
   assert.equal(money.payload.added, 250);
-  assert.equal(money.payload.account.currency, 650);
+  assert.equal(money.payload.account.currency, booster.payload.currency + 250);
   assert.deepEqual(money.payload.account.collection, booster.payload.collection);
-  assert.equal((await api("/api/auth/session", { token: created.payload.token })).payload.currency, 650);
-  assert.equal(JSON.parse(fs.readFileSync(path.join(dataDir, "accounts.json"))).accounts[first.accountKey].currency, 650);
+  assert.equal((await api("/api/auth/session", { token: created.payload.token })).payload.currency, booster.payload.currency + 250);
+  assert.equal(JSON.parse(fs.readFileSync(path.join(dataDir, "accounts.json"))).accounts[first.accountKey].currency, booster.payload.currency + 250);
 
   const grantByUsername = await api("/api/admin/accounts/grant-cards", {
     method: "POST",

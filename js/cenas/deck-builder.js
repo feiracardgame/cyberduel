@@ -15,6 +15,7 @@ class CenaDeckBuilder extends Phaser.Scene {
     });
     this.deckBuilderUI.mount();
     this.events.once("shutdown", () => this.deckBuilderUI?.destroy());
+    window.cyberduelBoot?.ready();
   }
 
   // Mantido como uma pequena API da cena para testes e integrações antigas.

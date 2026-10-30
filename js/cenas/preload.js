@@ -124,8 +124,12 @@ class CenaPreload extends Phaser.Scene {
 
   preload() {
     configurarCameraLogica(this);
-    this.fontePronta = document.fonts?.load('24px "Rushblade"').catch(() => {}) || Promise.resolve();
+    this.fontePronta = Promise.race([
+      document.fonts?.load('24px "Rushblade"').catch(() => {}),
+      new Promise(resolve => setTimeout(resolve, 3000)),
+    ]);
     this.criarBarraDeCarregamento();
+    window.cyberduelBoot?.loading();
 
   }
 
@@ -142,13 +146,7 @@ class CenaPreload extends Phaser.Scene {
     this.load.spritesheet("efeitoCrypto", "assets/efeitos/efeito-cryptoacionista-frames.png", {
       frameWidth: 128, frameHeight: 176, endFrame: 12,
     });
-    // musicas
-    this.load.audio("musicaFundo", "assets/sons/jogo-musica.mp3");
-    for (const [key, file] of Object.entries({
-      musicaPadrao: "jogo-padrao.mp3", musicaHumbaNet: "jogo-humbanet.mp3",
-      musicaRemanescentes: "jogo-remanescentes.mp3", musicaDeck: "jogo-deck.mp3",
-      musicaMenu: "jogo-menu.mp3", musicaIA: "jogo-IA.mp3", somAbrirBooster: "abrir_booster.mp3",
-    })) this.load.audio(key, `assets/sons/${file}`);
+    this.load.audio("somAbrirBooster", "assets/sons/abrir_booster.mp3");
     this.load.audio("somJogarCarta", "assets/sons/jogo-cartawhoosh.wav");
     for (const aviso of Object.values(window.cyberduelBattleAnnouncements))
       this.load.audio(aviso.som, `assets/sons/${aviso.arquivo}`);
@@ -349,7 +347,8 @@ class CenaPreload extends Phaser.Scene {
       video.off("created", iniciar);
       video.off("error", iniciar);
       const inicio = this.time.now;
-      this.load.once("complete", () => {
+      this.load.once("complete", (_loader, _loaded, failed) => {
+        if (failed) { window.cyberduelBoot?.fail(); return; }
         // Mesmo com cache quente, deixa a abertura visível por pelo menos um segundo.
         this.time.delayedCall(Math.max(0, 1000 - (this.time.now - inicio)), () => {
           this.fontePronta.then(() => this.scene.start(abrirDeck ? "CenaDeckBuilder" : "CenaTitulo"));

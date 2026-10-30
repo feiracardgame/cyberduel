@@ -2069,6 +2069,7 @@ const config = {
     batchSize: 4096,
     skipUnreadyShaders: usarPerfilMovel,
   },
+  loader: { timeout: 15000, maxRetries: 1 },
   scene: [CenaPreload, CenaTitulo, CenaDeckBuilder, CenaTransicao, CenaJogo],
 };
 

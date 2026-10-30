@@ -135,12 +135,18 @@ const phaseDuration = vm.runInContext('phaseDuration', context);
 }
 {
   const settings = context.window.cyberduelSettings, events = new EventEmitter(), sounds = [];
-  const scene = { events, sound: { add(key, options) {
-    const sound = { key, ...options, destroyed: 0, play() { this.playing = true; },
-      setVolume(value) { this.volume = value; }, destroy() { this.destroyed++; } };
-    sounds.push(sound); return sound;
-  } } };
+  context.window.Audio = class {
+    constructor(src) { this.src = src; this.destroyed = 0; sounds.push(this); }
+    play() { this.paused = false; return Promise.resolve(); }
+    pause() { this.paused = true; }
+    removeAttribute(name) { assert.equal(name, 'src'); this.destroyed++; this.src = ''; }
+    load() {}
+  };
+  const scene = { events, sound: {} };
   settings.playMusic(scene, 'musicaMenu'); settings.playMusic(scene, 'musicaMenu'); assert.equal(sounds.length, 1);
+  assert.equal(sounds[0].src, 'assets/sons/jogo-menu.mp3');
+  assert.equal(sounds[0].preload, 'none');
+  assert.equal(sounds[0].loop, true);
   settings.playMusic(scene, 'musicaIA'); assert.equal(sounds[0].destroyed, 1);
   settings.set('musicVolume', 0); assert.equal(sounds[1].volume, 0);
   settings.playMusic(scene, 'musicaMenu'); events.emit('shutdown');

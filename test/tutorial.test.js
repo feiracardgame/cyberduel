@@ -27,9 +27,10 @@ const profile = { gamesPlayed: 10, humanGames: 5, humanWins: 3, councilReached: 
 assert.deepEqual(Array.from(pendingElenAI(profile)), ['three', 'club', 'council', 'ten']);
 assert.deepEqual(Array.from(pendingElenAI({ ...profile, tutorial: { seen: ['three', 'club', 'council', 'ten'] } })), []);
 assert.deepEqual(Array.from(pendingElenAI({ ...profile, humanGames: 0, humanWins: 0 })), ['three', 'ten']);
-assert.equal(ranking.eligible({ humanGames: 4, humanWins: 3 }), false);
-assert.equal(ranking.eligible({ humanGames: 5, humanWins: 2 }), false);
-assert.equal(ranking.eligible({ humanGames: 5, humanWins: 3 }), true);
+assert.equal(ranking.eligible({ humanGames: 0, humanWins: 0 }), false);
+assert.equal(ranking.eligible({ humanGames: 1, humanWins: 0 }), false);
+assert.equal(ranking.eligible({ humanGames: 1, humanWins: 1 }), true);
+assert.equal(ranking.eligible({ humanGames: 5, humanWins: 2 }), true);
 
 const scene = { partida: new Partida(null, true), events: { once() {} } };
 const training = new CyberduelTraining(scene);
@@ -136,14 +137,15 @@ async function connect() { const s = io(url, { transports: ['websocket'], forceN
   assert.equal((await api('account/tutorial', { wantsTutorial: true }, null)).status, 401);
   const fresh = (await api('auth/session')).body;
   assert.equal(fresh.tutorial.wantsTutorial, null); assert.equal(fresh.tutorial.introSeen, false);
-  assert.equal(fresh.clubUnlocked, false);
-  for (const body of [{ wantsTutorial: 'sim' }, { seen: 'club' }, { seen: 'council' }, { seen: ['ten'] }, { seen: '__proto__' }, { seen: 'constructor' }, { humanWins: 99 }, {}, []])
+  assert.equal(fresh.clubUnlocked, true);
+  assert.equal((await api('account/tutorial', { seen: 'club' })).status, 200);
+  for (const body of [{ wantsTutorial: 'sim' }, { seen: 'council' }, { seen: ['ten'] }, { seen: '__proto__' }, { seen: 'constructor' }, { humanWins: 99 }, {}, []])
     assert.equal((await api('account/tutorial', body)).status, 400);
   assert.equal((await api('account/tutorial', { introSeen: true, named: true, wantsTutorial: false })).status, 200);
   assert.equal((await api('account/tutorial', { wantsTutorial: true })).status, 409);
   assert.equal((await api('account/tutorial', { introSeen: false })).body.tutorial.introSeen, true);
   const bot = (await api('auth/session', undefined, fixtures[1])).body;
-  assert.equal(bot.humanGames, 0); assert.equal(bot.clubUnlocked, false); assert.equal(bot.councilReached, false);
+  assert.equal(bot.humanGames, 0); assert.equal(bot.clubUnlocked, true); assert.equal(bot.councilReached, false);
   const board = (await api('leaderboard')).body.entries;
   assert.equal(board.length, 11); assert.equal(board[0].nickname, 'Member0');
   assert.equal(board[0].username, fixtures[2].username); assert.equal(board[0].passwordHash, undefined);

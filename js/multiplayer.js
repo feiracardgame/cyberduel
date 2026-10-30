@@ -164,9 +164,13 @@ class CyberduelMultiplayer {
     this.spectator = true;
     this.onPresentation = callback;
     let code = this.room;
-    try { code ||= window.sessionStorage?.getItem("cyberduel.presentationRoom" + this.presentationScope); } catch {}
     let displayKey = this.displayKey;
-    try { displayKey ||= window.sessionStorage?.getItem("cyberduel.presentationKey" + this.presentationScope); } catch {}
+    for (const storage of ["sessionStorage", "localStorage"]) {
+      try {
+        code ||= window[storage]?.getItem("cyberduel.presentationRoom" + this.presentationScope);
+        displayKey ||= window[storage]?.getItem("cyberduel.presentationKey" + this.presentationScope);
+      } catch {}
+    }
     this.connect().timeout(10000).emit("create-presentation", { code, displayKey, table: window.CYBERDUEL_TABLE || null, inviteBase: `${location.origin}/` }, (error, response) => {
       if (error) return callback?.({ ok: false, error: "Servidor indisponível. Tente abrir a arena novamente." });
       if (response.ok) this.receivePresentation(response);
@@ -186,10 +190,12 @@ class CyberduelMultiplayer {
     this.spectator = true;
     this.room = response.room.code;
     this.displayKey = response.displayKey;
-    try {
-      window.sessionStorage?.setItem("cyberduel.presentationRoom" + this.presentationScope, this.room);
-      window.sessionStorage?.setItem("cyberduel.presentationKey" + this.presentationScope, this.displayKey);
-    } catch {}
+    for (const storage of ["sessionStorage", "localStorage"]) {
+      try {
+        window[storage]?.setItem("cyberduel.presentationRoom" + this.presentationScope, this.room);
+        window[storage]?.setItem("cyberduel.presentationKey" + this.presentationScope, this.displayKey);
+      } catch {}
+    }
     this.onPresentation?.(response);
     if (response.update) this.enterExisting(response);
   }
@@ -400,7 +406,12 @@ class CyberduelMultiplayer {
     if (!this.presentation) this.saveResumeToken(null);
     this.presentation = false; this.waitingInvitation = null; this.displayKey = null; this.room = null;
     this.table = null;
-    try { window.sessionStorage?.removeItem("cyberduel.presentationRoom" + this.presentationScope); window.sessionStorage?.removeItem("cyberduel.presentationKey" + this.presentationScope); } catch {}
+    for (const storage of ["sessionStorage", "localStorage"]) {
+      try {
+        window[storage]?.removeItem("cyberduel.presentationRoom" + this.presentationScope);
+        window[storage]?.removeItem("cyberduel.presentationKey" + this.presentationScope);
+      } catch {}
+    }
     this.spectator = false; this.lastLiveState = null;
     this.effectsPaused = false; this.effectsAck = null;
   }

@@ -95,7 +95,7 @@ const byLabel = label => find(ui.modal, el => el.attributes['aria-label'] === la
   ui.openProfileScreen();
   assert.deepEqual(byClass('player-id__stats').children.map(el => el.children[1].textContent), ['0', '0', '0', '0']);
   assert.equal(byClass('player-id__access').dataset.unlocked, 'false');
-  assert.match(byClass('player-id__note').textContent, /3 vitórias/);
+  assert.match(byClass('player-id__note').textContent, /indisponível/);
   ui.closeModal(true);
 
   let created = 0, joined = '';
@@ -202,7 +202,7 @@ const byLabel = label => find(ui.modal, el => el.attributes['aria-label'] === la
   ui.setStatus = message => { ui.lastStatus = message; };
   ui.openSecretClub();
   assert.equal(ui.modal, null);
-  assert.match(ui.lastStatus, /3 vitórias/);
+  assert.match(ui.lastStatus, /indisponível/);
   ui.account.clubUnlocked = true;
   ui.openRoomDialog('join');
   assert.equal(byLabel('CRIAR SALA'), undefined, 'Entrada por código não exibe criação de sala.');

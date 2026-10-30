@@ -17,6 +17,8 @@
     "test:broadcast:browser": "node scripts/test-broadcast-playwright.js",
     "test:rating:browser": "node scripts/test-rating-playwright.js",
     "test:presentation:browser": "node scripts/test-presentation-playwright.js",
+    "test:presentation:reliability": "node scripts/test-presentation-reliability-playwright.js",
+    "test:auth:browser": "node scripts/test-google-auth-playwright.js",
     "test:demo:browser": "node scripts/test-demo-playwright.js",
     "test:dragon:browser": "node scripts/test-dragon-playwright.js",
     "test:learning:browser": "node scripts/test-learning-playwright.js",

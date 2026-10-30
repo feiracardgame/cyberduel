@@ -16,10 +16,12 @@ class CenaTitulo extends Phaser.Scene {
     );
     if (window.CYBERDUEL_PRESENTATION) {
       this.montarApresentacao();
+      window.cyberduelBoot?.ready();
       return;
     }
     this.montarInterfaceTitulo();
     this.story = new CyberduelStory(this);
+    window.cyberduelBoot?.ready();
 
     this.restaurandoConta = true;
     this.removerListenerConta = this.account?.onChange(({ user, nickname, needsRegistration, deck, collection, faction }) => {

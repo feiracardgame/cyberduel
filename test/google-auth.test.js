@@ -127,6 +127,63 @@ async function checkClient(profile) {
   assert.equal(account.snapshot().needsRegistration, true);
   assert.equal(storage.get(account.storageKey), "session-token");
 
+  context.window.location = { href: "https://duelo.example/?room=123456&seat=2&ticket=convite" };
+  context.window.sessionStorage = { getItem: key => storage.get(key), setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key) };
+  const mountGoogleButton = account.mountGoogleButton.bind(account);
+  const originalRequest = account.request;
+  for (const device of [
+    { userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)' },
+    { userAgent: 'Mozilla/5.0 (Linux; Android 14)' },
+    { userAgent: 'Mozilla/5.0 (Macintosh)', platform: 'MacIntel', maxTouchPoints: 5 },
+  ]) {
+    context.window.navigator = device;
+    account.request = async (route, options) => {
+      assert.equal(route, '/api/auth/google/start');
+      assert.equal(options.credentials, 'include');
+      assert.equal(options.body.redirect, true);
+      assert.equal(options.body.returnTo, context.window.location.href);
+      return { clientId, loginId: 'redirect-login', nonce: 'redirect-nonce', loginUri: 'https://duelo.example/api/auth/google/callback' };
+    };
+    await mountGoogleButton(node, error => { throw error; });
+    assert.equal(config.ux_mode, 'redirect');
+    assert.equal(config.login_uri, 'https://duelo.example/api/auth/google/callback');
+    assert.equal(storage.get('cyberduel.google.redirect'), 'redirect-login');
+  }
+  context.window.navigator = { userAgent: 'Mozilla/5.0 Instagram' };
+  let embeddedError;
+  await mountGoogleButton(node, error => { embeddedError = error; });
+  assert.match(embeddedError.message, /Chrome ou Safari/);
+  storage.delete('cyberduel.google.redirect');
+  context.window.navigator = {};
+  account.request = originalRequest;
+
+  const redirected = vm.runInContext('new CyberduelAccount()', context);
+  storage.set('cyberduel.google.redirect', 'returning-login');
+  const completed = { ...profile, token: 'redirected-session', username: 'mobile_user', needsRegistration: false };
+  const restoredRoutes = [];
+  redirected.request = async (route, options) => {
+    restoredRoutes.push(route);
+    if (route === '/api/auth/google/complete') {
+      assert.equal(options.auth, false);
+      assert.equal(options.body.loginId, 'returning-login');
+      return completed;
+    }
+    return route === '/api/config' ? { demoMode: false } : completed;
+  };
+  await redirected.restore();
+  assert.equal(redirected.user, 'mobile_user');
+  assert.equal(redirected.token, 'redirected-session');
+  assert.equal(storage.has('cyberduel.google.redirect'), false);
+  assert.equal(restoredRoutes[0], '/api/auth/google/complete', 'Conclui o retorno antes de restaurar a sessão.');
+  storage.set('cyberduel.google.redirect', 'expired-login');
+  redirected.request = async route => {
+    if (route === '/api/auth/google/complete') throw new Error('Login expirado');
+    return route === '/api/config' ? { demoMode: false } : completed;
+  };
+  await redirected.restore();
+  assert.equal(redirected.googleError, 'Login expirado');
+  assert.equal(storage.has('cyberduel.google.redirect'), false, 'Tentativa inválida não prende o usuário num loop.');
+
   // O cadastro pede só o nick único; o apelido fica para o tutorial.
   const UI = vm.runInContext("CyberduelTitleUI", context);
   const ui = new UI({ account, callbacks: {} });
@@ -225,6 +282,37 @@ async function checkClient(profile) {
   fs.writeFileSync(clock, String(11 * 60 * 1000));
   assert.equal((await api("auth/google", { loginId: expired.loginId, credential: credential(expired.nonce) })).status, 401);
   fs.writeFileSync(clock, "0");
+
+  const returnTo = origin + '/?room=123456&seat=2&ticket=convite';
+  assert.equal((await api('auth/google/start', { redirect: true, returnTo: 'https://attacker.example/' })).status, 400);
+  const mobile = await fetch(base + '/api/auth/google/start', {
+    method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ redirect: true, returnTo }),
+  });
+  assert.equal(mobile.status, 200);
+  const mobileLogin = await mobile.json();
+  assert.equal(mobileLogin.loginUri, base + '/api/auth/google/callback');
+  assert.match(mobile.headers.get('set-cookie'), /HttpOnly; Secure; SameSite=None/);
+  assert.equal(mobile.headers.get('access-control-allow-credentials'), 'true');
+  const callback = (cookie, csrf = 'csrf-test', nonce = mobileLogin.nonce) => fetch(mobileLogin.loginUri, {
+    method: 'POST', redirect: 'manual', headers: {
+      Origin: 'https://accounts.google.com', 'Content-Type': 'application/x-www-form-urlencoded', Cookie: cookie,
+    }, body: new URLSearchParams({ g_csrf_token: csrf, credential: credential(nonce, { sub: 'mobile-player' }) }),
+  });
+  const loginCookie = `cyberduel.google.login=${mobileLogin.loginId}`;
+  assert.equal((await callback(loginCookie)).status, 403, 'Exige o cookie CSRF do Google.');
+  assert.equal((await callback(loginCookie + '; g_csrf_token=outro')).status, 403, 'Exige double-submit CSRF.');
+  assert.equal((await callback('g_csrf_token=csrf-test')).status, 403, 'Exige a tentativa no navegador que iniciou o login.');
+  const returned = await callback(loginCookie + '; g_csrf_token=csrf-test');
+  assert.equal(returned.status, 303);
+  assert.equal(returned.headers.get('location'), returnTo, 'Preserva o convite sem colocar a sessão na URL.');
+  assert.match(returned.headers.get('set-cookie'), /Max-Age=0/);
+  assert.equal((await callback(loginCookie + '; g_csrf_token=csrf-test')).status, 403, 'Callback não pode ser repetido.');
+  const completedMobile = await api('auth/google/complete', { loginId: mobileLogin.loginId });
+  assert.equal(completedMobile.status, 200);
+  assert.equal(completedMobile.body.authProvider, 'google');
+  assert.match(completedMobile.body.token, /^[a-f0-9]{64}$/);
+  assert.equal((await api('auth/google/complete', { loginId: mobileLogin.loginId })).status, 401, 'O resultado só pode ser resgatado uma vez.');
 
   const first = await login();
   assert.equal(first.result.status, 200);

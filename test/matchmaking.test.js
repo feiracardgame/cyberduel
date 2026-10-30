@@ -105,7 +105,8 @@ async function run() {
   assert.equal((await ack(one, 'decline-match', { room: matchOne.room, accountToken: first.token })).ok, true);
   assert.equal((await final).state.partidaEncerrada, true);
   let board = (await api('leaderboard', null, null, 'GET')).entries;
-  assert.deepEqual(board, [], 'O ranking exige pelo menos 5 partidas e 3 vitórias contra jogadores.');
+  assert.equal(board.length, 1, 'A primeira vitória contra um jogador libera o ranking.');
+  assert.equal(board[0].username, second.username);
   const winner = await api('auth/session', second.token, null, 'GET');
   const loser = await api('auth/session', first.token, null, 'GET');
   assert.equal(winner.rating, 1016); assert.equal(winner.rankedWins, 1);
@@ -142,7 +143,9 @@ async function run() {
   const paid = JSON.parse(fs.readFileSync(path.join(dataDir, 'accounts.json'))).accounts;
   assert.equal(paid[fixtures[0].accountKey].earlySurrenders[0].count, 1, 'Combate normal não aumenta o contador de desistências.');
   board = (await api('leaderboard', null, null, 'GET')).entries;
-  assert.deepEqual(board, [], 'Duas partidas ainda não liberam a classificação pública.');
+  assert.ok(board.length >= 1 && board.length <= 2);
+  assert.ok(board.some(entry => entry.username === second.username), 'O primeiro vencedor permanece no ranking.');
+  assert.ok(board.every(entry => entry.wins >= 1), 'Jogadores sem vitória não entram no ranking.');
   for (const user of users) {
     const account = await api('auth/session', user.token, null, 'GET');
     assert.equal(account.gamesPlayed, 2, 'Servidor contabiliza online uma vez por partida.');

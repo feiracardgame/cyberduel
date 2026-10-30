@@ -71,7 +71,7 @@ const event = (socket, name) => new Promise((resolve, reject) => {
   }
   assert.deepEqual(await page.evaluate(() => [cyberduelSettings.get('musicVolume'), cyberduelSettings.get('effectsVolume')]), [.67, .32]);
   const playback = await page.evaluate(() => ({
-    volume: cyberduelSettings.musicScene.cyberMusic.volume,
+    volume: cyberduelSettings.musicScene.cyberMusic.gainNode?.gain.value ?? cyberduelSettings.musicScene.cyberMusic.volume,
     expected: cyberduelSettings.musicForTrack('musicaMenu'),
     key: cyberduelSettings.musicScene.cyberMusic.key,
   }));

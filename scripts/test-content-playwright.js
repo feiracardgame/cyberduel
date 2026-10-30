@@ -9,7 +9,7 @@ const [fixture] = require('../test/account-fixture')(dataDir, ['ContentQA']);
 const accountsPath = path.join(dataDir, 'accounts.json');
 const accounts = JSON.parse(fs.readFileSync(accountsPath));
 Object.assign(accounts.accounts[fixture.accountKey], { avatar: 'assets/fotosdeperfil/humba_brain_icon.png',
-  tutorial: { introSeen: true, named: true, wantsTutorial: false, farewellSeen: true, completed: true, seen: [] } });
+  tutorial: { introSeen: true, named: true, wantsTutorial: false, farewellSeen: true, completed: true, menuTourSeen: true, boosterTutorialSeen: true, seen: [] } });
 fs.writeFileSync(accountsPath, JSON.stringify(accounts));
 const output = path.resolve('output/sindicato/content-update'); fs.mkdirSync(output, { recursive: true });
 const server = spawn(process.execPath, ['scripts/dev-server.js'], { windowsHide: true,
@@ -28,9 +28,11 @@ async function run() {
   await context.addInitScript(token => localStorage.setItem('cyberduel.account.token.v1', token), fixture.token);
   const page = await context.newPage(); page.setDefaultTimeout(20000);
   page.on('pageerror', error => errors.push(error.message));
-  await page.goto('http://127.0.0.1:31974', { waitUntil: 'domcontentloaded' });
+  // Conteúdo e áudio usam Canvas; os testes de apresentação cobrem WebGL e perda da GPU.
+  await page.goto('http://127.0.0.1:31974/?renderer=canvas', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => typeof game !== 'undefined' && game.scene.isActive('CenaTitulo') && document.querySelector('.title-faction-dialog'), null, { timeout: 120000 });
   for (const viewport of [{ width: 390, height: 844 }, { width: 1366, height: 768 }]) {
+    await page.evaluate(() => document.fullscreenElement ? document.exitFullscreen() : undefined);
     await page.setViewportSize(viewport);
     const details = page.locator('.title-faction-dialog .faction-analysis');
     assert.equal(await details.count(), 5);
@@ -48,15 +50,15 @@ async function run() {
   checks.push('Cinco análises completas, leitura e rolagem em celular e desktop.');
   await page.locator('.title-faction--raspcorp').click();
   await page.waitForFunction(() => window.cyberduelAccount.faction === 'raspcorp' && !game.scene.getScene('CenaTitulo').titleUI.modal);
-  await page.waitForFunction(() => game.scene.getScene('CenaTitulo').cyberMusic?.isPlaying);
+  await page.waitForFunction(() => game.scene.getScene('CenaTitulo').cyberMusic?.paused === false);
   assert.equal(await page.evaluate(() => game.scene.getScene('CenaTitulo').cyberMusic.key), 'musicaMenu');
   await page.evaluate(() => {
     const scene = game.scene.getScene('CenaTitulo');
     window.qaDialogue = showElenAI(scene, [{ sprite: 10, speaker: 'ElenAI', text: 'Alcance horizontal e vertical.' }], () => {});
   });
-  await page.waitForFunction(() => game.scene.getScene('CenaTitulo').cyberMusic?.key === 'musicaIA' && game.scene.getScene('CenaTitulo').cyberMusic.isPlaying);
+  await page.waitForFunction(() => game.scene.getScene('CenaTitulo').cyberMusic?.key === 'musicaIA' && !game.scene.getScene('CenaTitulo').cyberMusic.paused);
   await page.locator('.elenai-actions button').click();
-  await page.waitForFunction(() => game.scene.getScene('CenaTitulo').cyberMusic?.key === 'musicaMenu' && game.scene.getScene('CenaTitulo').cyberMusic.isPlaying);
+  await page.waitForFunction(() => game.scene.getScene('CenaTitulo').cyberMusic?.key === 'musicaMenu' && !game.scene.getScene('CenaTitulo').cyberMusic.paused);
   await page.evaluate(() => game.scene.getScene('CenaTitulo').titleUI.openBoosterShop());
   for (const faction of ['raspcorp', 'echossystem', 'sindicato', 'humbanet', 'remanescentes']) {
     await page.locator(`.booster-faction[data-faction="${faction}"]`).click();
@@ -75,7 +77,7 @@ async function run() {
   await page.evaluate(() => game.scene.getScene('CenaTitulo').titleUI.closeModal(true));
   checks.push('Menu, fala da IA e retorno da música; áudio real de abertura de booster.');
   await page.evaluate(() => game.scene.getScene('CenaTitulo').scene.start('CenaDeckBuilder'));
-  await page.waitForFunction(() => game.scene.getScene('CenaDeckBuilder').cyberMusic?.isPlaying);
+  await page.waitForFunction(() => game.scene.getScene('CenaDeckBuilder').cyberMusic?.paused === false);
   assert.equal(await page.evaluate(() => game.scene.getScene('CenaDeckBuilder').cyberMusic.key), 'musicaDeck');
   for (const [field, music] of [[1, 'musicaPadrao'], [2, 'musicaFundo'], [4, 'musicaRemanescentes']]) {
     await page.evaluate(field => {
@@ -85,8 +87,9 @@ async function run() {
       const scene = game.scene.getScenes(true).find(s => s.scene.key !== 'CenaEfeitos');
       scene.scene.start('CenaJogo', { debug: true });
     }, field);
-    await page.waitForFunction(music => game.scene.isActive('CenaJogo') && game.scene.getScene('CenaJogo').cyberMusic?.key === music && game.scene.getScene('CenaJogo').cyberMusic.isPlaying, music);
-    assert.equal(await page.evaluate(() => game.sound.sounds.filter(s => s.isPlaying && s.key.startsWith('musica')).length), 1);
+    await page.waitForFunction(music => game.scene.isActive('CenaJogo') && game.scene.getScene('CenaJogo').cyberMusic?.key === music && !game.scene.getScene('CenaJogo').cyberMusic.paused, music);
+    assert.equal(await page.evaluate(() => ['CenaTitulo', 'CenaDeckBuilder', 'CenaTransicao', 'CenaJogo']
+      .map(key => game.scene.getScene(key).cyberMusic).filter(sound => sound && !sound.paused).length), 1);
     await page.waitForFunction(() => game.scene.getScene('CenaJogo').textures.exists('personagem:assets/profiles/humbabrain_profile.png'));
     await page.waitForFunction(() => {
       const scene = game.scene.getScene('CenaJogo');
@@ -125,7 +128,7 @@ async function run() {
       if (/Memórias/.test(dragon.descricaoCompleta())) throw Error('Efeito secreto revelado antes de despertar.');
       scene.partida = window.partida = p; scene.faseAtual = p.fase = trigger === 'boi' ? 'habilidades' : 'colocar';
       scene.ehMeuTurno = true; scene.travado = false;
-      const effects = game.scene.getScene('CenaEfeitos'); effects.ultimoEvento = 0; effects.fila = [];
+      const effects = game.scene.getScene('CenaEfeitos'); effects.ultimoEvento = 0; effects.fila = []; effects.exibidos = [];
       if (trigger === 'boi') {
         const boi = make('O Boi'); p.jogador.campo.adicionarCarta(boi, 0);
         if (!p.ativarHabilidade(boi, p.jogador, p.inimigo, 1).sucesso) throw Error('Boi não ativou.');
@@ -136,6 +139,8 @@ async function run() {
         if (!p.jogarCartaDoJogador(clay, 0, [2, 3, 4]).sucesso) throw Error('RaspClay não invocou.');
       }
       scene.desenharInterface(); scene.cameras.main.setAlpha(1);
+      scene.apresentarEventosEfeito();
+      effects.receber(p.eventosEfeito);
       return dragon.dragaoDesperto && dragon.efeitoTurno.valor === 3;
     }, trigger), true);
     await page.waitForFunction(() => game.scene.getScene('CenaEfeitos').children.list.some(object =>

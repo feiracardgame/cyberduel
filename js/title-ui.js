@@ -330,7 +330,7 @@ class CyberduelTitleUI {
           ],
           [
             "Clube secreto",
-            this.account?.clubUnlocked ? "Ranqueada · +25% nos pontos de influência por vitória" : "BLOQUEADO · Conquiste 3 vitórias contra jogadores",
+            this.account?.clubUnlocked ? "Ranqueada · +25% nos pontos de influência por vitória" : "BLOQUEADO · Entre na sua conta",
             "clube_secreto",
             this.account?.clubUnlocked ? () => this.openSecretClub() : null,
             "account",
@@ -1018,7 +1018,7 @@ class CyberduelTitleUI {
     if (this.modal) return;
     if (!this.account?.user) return this.openAuthDialog();
     if (!this.account.clubUnlocked) {
-      this.setStatus("Conquiste 3 vitórias contra jogadores para entrar no Clube secreto.", "warning");
+      this.setStatus("Acesso ao Clube indisponível para esta conta.", "warning");
       return;
     }
     const overlay = this.createModal("secret-club");
@@ -1475,7 +1475,7 @@ class CyberduelTitleUI {
         "player-id__note",
         this.account.clubUnlocked
           ? "Apresente esta carteirinha ao segurança."
-          : "Conquiste 3 vitórias contra jogadores para liberar o acesso. Partidas contra o bot não contam.",
+          : "Acesso ao Clube indisponível para esta conta.",
       ),
       nicknameLabel,
       this.element(
@@ -2144,7 +2144,8 @@ class CyberduelTitleUI {
     );
     retry.hidden = true;
     const loadGoogle = () => {
-      error.textContent = "";
+      error.textContent = this.account.googleError || "";
+      this.account.googleError = null;
       retry.hidden = true;
       googleButton.textContent = "Carregando login com Google…";
       this.account.mountGoogleButton(googleButton, (exception) => {
@@ -2560,7 +2561,7 @@ class CyberduelTitleUI {
       this.element(
         "p",
         "",
-        "Para entrar no ranking: 5 partidas e 3 vitórias contra jogadores. O top 10 forma o Conselho. Partidas contra o bot não contam.",
+        "Vença uma partida contra outro jogador para entrar no ranking. O top 10 forma o Conselho. Partidas contra o bot não contam.",
       ),
       status,
       panel,
@@ -2689,8 +2690,8 @@ class CyberduelTitleUI {
       ["Vença as rodadas", "O poder total de cada campo define o vencedor da rodada. Empates não pontuam. A partida termina com 4 rodadas vencidas ou após 7 rodadas; vence quem tiver mais rodadas ganhas. Resultados iguais terminam em empate."],
       ["Escolha sua partida", "Jogue solo contra o bot, procure um adversário em Partida aleatória ou convide amigos em Partida privada. Partidas privadas não rendem tijolinhos."],
       ["Tijolinhos nas partidas online", "Se o mesmo jogador desistir novamente contra o mesmo adversário nos três primeiros turnos, os tijolinhos dos dois são reduzidos pela metade a cada repetição, arredondando para baixo até zero. A primeira desistência paga o valor normal. Após o terceiro turno, a recompensa é normal. O histórico continua entre modalidades e após reiniciar."],
-      ["Entre no Clube secreto", "Conquiste 3 vitórias contra jogadores para liberar as quatro mesas. Escolha uma mesa e insira o código exibido na apresentação correspondente."],
-      ["Leaderboard e Conselho", "São necessárias 5 partidas e 3 vitórias contra jogadores para entrar na leaderboard. O top 10 atual forma o Conselho. Na mesa do Conselho, cada canto pode ser reservado por 1 minuto para inserir o código. Partidas contra o bot não contam para esses requisitos."],
+      ["Entre no Clube secreto", "O Clube está liberado para contas conectadas. Escolha uma mesa, reserve seu lugar e insira o código exibido na apresentação correspondente."],
+      ["Leaderboard e Conselho", "Vença uma partida contra outro jogador para entrar na leaderboard. O top 10 atual forma o Conselho. Na mesa do Conselho, cada canto pode ser reservado por 1 minuto para inserir o código. Partidas contra o bot não contam para o ranking."],
       ["Pratique com a ElenAI", "Use Repetir tutorial para aprender os controles e jogar um treino guiado."],
     ]) content.append(this.element("h3", "", title), this.element("p", "", text));
     const close = this.button("title-dialog__cancel", "VOLTAR", () => this.closeModal());

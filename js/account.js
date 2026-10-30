@@ -74,7 +74,7 @@ class CyberduelAccount {
 
   async request(
     path,
-    { method = "GET", body, auth = true, headers: customHeaders = {} } = {},
+    { method = "GET", body, auth = true, headers: customHeaders = {}, credentials = "same-origin" } = {},
   ) {
     const headers = { Accept: "application/json" };
     if (body !== undefined) headers["Content-Type"] = "application/json";
@@ -83,6 +83,7 @@ class CyberduelAccount {
     const response = await fetch(`${this.baseUrl()}${path}`, {
       method,
       headers,
+      credentials,
       body: body === undefined ? undefined : JSON.stringify(body),
     });
     const payload = await response.json().catch(() => ({}));
@@ -155,6 +156,16 @@ class CyberduelAccount {
   }
 
   async restore() {
+    let googleLoginId;
+    try { googleLoginId = window.sessionStorage?.getItem("cyberduel.google.redirect"); } catch {}
+    if (googleLoginId) {
+      try {
+        this.applyAuth(await this.request("/api/auth/google/complete", {
+          method: "POST", auth: false, body: { loginId: googleLoginId },
+        }));
+      } catch (error) { this.googleError = error.message; }
+      finally { window.sessionStorage.removeItem("cyberduel.google.redirect"); }
+    }
     try {
       const config = await this.request("/api/config", { auth: false });
       this.applyDemoMode(config.demoMode === true);
@@ -193,7 +204,15 @@ class CyberduelAccount {
 
   async mountGoogleButton(container, onError) {
     try {
-      const login = await this.request("/api/auth/google/start", { method: "POST", auth: false });
+      const userAgent = window.navigator?.userAgent || "";
+      if (/FBAN|FBAV|Instagram|\bwv\b/i.test(userAgent))
+        throw new Error("Abra este endereço no Chrome ou Safari para entrar com Google. O navegador interno deste aplicativo não é compatível.");
+      const redirect = /Android|iPhone|iPad|iPod/i.test(userAgent) ||
+        (window.navigator?.platform === "MacIntel" && window.navigator.maxTouchPoints > 1);
+      const login = await this.request("/api/auth/google/start", { method: "POST", auth: false,
+        ...(redirect ? { credentials: "include", body: { redirect: true, returnTo: window.location.href } } : {}),
+      });
+      if (redirect) window.sessionStorage.setItem("cyberduel.google.redirect", login.loginId);
       if (!window.google?.accounts?.id) {
         if (!this.googleScript) this.googleScript = new Promise((resolve, reject) => {
           const script = document.createElement("script");
@@ -217,6 +236,7 @@ class CyberduelAccount {
       const google = window.google.accounts.id;
       google.initialize({
         client_id: login.clientId, nonce: login.nonce, auto_select: false,
+        ...(redirect ? { ux_mode: "redirect", login_uri: login.loginUri } : {}),
         callback: async ({ credential }) => {
           if (!container.isConnected) return;
           container.replaceChildren();

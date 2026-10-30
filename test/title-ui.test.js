@@ -36,7 +36,7 @@ ui.openCategoryOptions = kind => { assert.equal(kind, 'privadas'); roomOpened = 
 roomOption[3]();
 assert.equal(roomOpened, true);
 const playerCard = modes.find(([name]) => name === 'Clube secreto');
-assert.equal(playerCard[2], 'clube_secreto'); assert.equal(playerCard[3], null, 'Clube bloqueado sem três vitórias.');
+assert.equal(playerCard[2], 'clube_secreto'); assert.equal(playerCard[3], null, 'Clube exige uma conta conectada.');
 ui.account = { clubUnlocked: true };
 assert.equal(typeof ui.getMenuSections().partidas.rows.find(([name]) => name === 'Clube secreto')[3], 'function');
 ui.account = null;
