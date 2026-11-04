@@ -11,6 +11,7 @@
     effectsVolume: 0.9,
     textScale: 1.12,
     animatedBackground: 1,
+    lowPowerMode: 0,
     skipBattleAnnouncements: 0,
     battlefield: 0,
   });
@@ -25,6 +26,14 @@
       this.normalize();
       this.domUpdateQueued = false;
       this.observeDocument();
+      this.applyPerformance();
+      global.document?.addEventListener("visibilitychange", () => {
+        global.document.documentElement?.classList.toggle("cyber-background", global.document.hidden);
+        const sound = this.musicScene?.cyberMusic;
+        if (!sound) return;
+        if (global.document.hidden) sound.pause();
+        else sound.unlock();
+      });
     }
 
     read() {
@@ -43,6 +52,7 @@
       this.values.textScale = clamp(this.values.textScale, 1, 1.35);
       this.values.animatedBackground = this.values.animatedBackground === 0 ? 0 : 1;
       this.values.skipBattleAnnouncements = this.values.skipBattleAnnouncements === 1 ? 1 : 0;
+      this.values.lowPowerMode = this.values.lowPowerMode === 1 ? 1 : 0;
       this.values.battlefield = Math.round(clamp(this.values.battlefield, 0, 4));
       if (this.values.battlefield === 3) this.values.battlefield = 0;
       for (const [key, fallback] of Object.entries(DEFAULTS)) {
@@ -60,6 +70,7 @@
       this.normalize();
       this.save();
       this.updateMusicVolume();
+      if (key === "lowPowerMode") this.applyPerformance();
       if (key === "textScale") this.queueDomTextUpdate();
     }
 
@@ -68,6 +79,13 @@
       this.save();
       this.updateMusicVolume();
       this.queueDomTextUpdate();
+      this.applyPerformance();
+    }
+
+    applyPerformance() {
+      const light = this.values.lowPowerMode === 1;
+      global.document?.documentElement?.classList.toggle("cyber-low-power", light);
+      global.cyberduelGame?.loop?.setFPSLimit(light ? 30 : 60);
     }
 
     save() {
@@ -129,7 +147,7 @@
       this.musicScene = scene;
       this.updateMusicVolume();
       sound.unlock = () => {
-        if (scene.cyberMusic !== sound) return;
+        if (scene.cyberMusic !== sound || global.document?.hidden) return;
         context?.resume().catch(() => {});
         sound.play().then(() => {
           global.document?.removeEventListener("pointerdown", sound.unlock);

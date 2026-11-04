@@ -958,7 +958,7 @@ class CenaJogo extends Phaser.Scene {
 
   // O clipe especial bloqueia a partida até chamar aoConcluir.
   reproduzirEfeitoInvocacao(carta, aoConcluir = () => {}) {
-    if (window.CenaEfeitos) return false;
+    if (window.CenaEfeitos || window.cyberduelSettings?.get?.("lowPowerMode") === 1) return false;
     const chaveVideo = VIDEOS_INVOCACAO_POR_CARTA[carta?.nome];
     if (!chaveVideo) return false;
 
@@ -2186,6 +2186,7 @@ class CenaJogo extends Phaser.Scene {
 
   // Anima dano com rasgo vermelho, tremor e número flutuante.
   animarDanoCarta(containerCampo, delta) {
+    if (window.cyberduelSettings?.get?.("lowPowerMode") === 1) return;
     if (!containerCampo || !containerCampo.active) return;
     this.tweens.killTweensOf(containerCampo);
     containerCampo.setScale(1);
@@ -2341,6 +2342,11 @@ class CenaJogo extends Phaser.Scene {
   }
 
   animarMorteCarta(containerCampo, aoConcluir) {
+    if (window.cyberduelSettings?.get?.("lowPowerMode") === 1) {
+      containerCampo?.destroy();
+      aoConcluir?.();
+      return;
+    }
     if (!containerCampo || !containerCampo.active) {
       if (aoConcluir) aoConcluir();
       return;
@@ -2677,7 +2683,8 @@ class CenaJogo extends Phaser.Scene {
     });
   }
   fundoAnimadoAtivo() {
-    return window.cyberduelSettings?.get("animatedBackground") !== 0;
+    return window.cyberduelSettings?.get?.("lowPowerMode") !== 1 &&
+      window.cyberduelSettings?.get("animatedBackground") !== 0;
   }
 
   definirFundoAnimado(ativo) {
@@ -2764,6 +2771,7 @@ class CenaJogo extends Phaser.Scene {
   }
 
   animarBuffCarta(containerCampo, delta) {
+    if (window.cyberduelSettings?.get?.("lowPowerMode") === 1) return;
     // Cancela tweens antigos e restaura a escala antes do pulso.
     if (!containerCampo || !containerCampo.active) return;
     this.tweens.killTweensOf(containerCampo);
@@ -3256,6 +3264,7 @@ class CenaJogo extends Phaser.Scene {
     const aguardaInvocacao =
       !!this.scene?.manager?.keys?.CenaEfeitos?.deveOcultarCarta(carta);
     const animarEntrada =
+      window.cyberduelSettings?.get?.("lowPowerMode") !== 1 &&
       !aguardaInvocacao &&
       (!this.renderizandoInterface ||
         !this.interfaceJaDesenhada ||
@@ -4327,7 +4336,7 @@ class CenaJogo extends Phaser.Scene {
     let glowAnel = this.add
       .rectangle(0, 0, PAINEL_LARGURA + 36, PAINEL_ALTURA + 36)
       .setStrokeStyle(6, 0xffd966, 0.5);
-    tweensLendaria.push(
+    if (window.cyberduelSettings?.get?.("lowPowerMode") !== 1) tweensLendaria.push(
       this.tweens.add({
         targets: sunburst,
         angle: 360,
@@ -5301,7 +5310,7 @@ class CenaJogo extends Phaser.Scene {
         .rectangle(xPos, yPos, L.slotW, L.slotH, 0xffcc00, 0)
         .setStrokeStyle(8, 0xffcc00, 1)
         .setDepth(3800);
-      this.tweens.add({
+      if (window.cyberduelSettings?.get?.("lowPowerMode") !== 1) this.tweens.add({
         targets: anel,
         scaleX: 1.08,
         scaleY: 1.08,
@@ -5641,7 +5650,7 @@ class CenaJogo extends Phaser.Scene {
         .rectangle(xPos, yCentro, L.slotW + 12, alturaTotal + 12, 0xff9b6b, 0)
         .setStrokeStyle(8, 0xff9b6b, 1)
         .setDepth(3800);
-      this.tweens.add({
+      if (window.cyberduelSettings?.get?.("lowPowerMode") !== 1) this.tweens.add({
         targets: anel,
         scaleX: 1.04,
         scaleY: 1.04,
@@ -5998,7 +6007,7 @@ class CenaJogo extends Phaser.Scene {
         .rectangle(xPos, yPos, L.slotW, L.slotH, 0x88ff99, 0)
         .setStrokeStyle(8, 0x88ff99, 1)
         .setDepth(3800);
-      this.tweens.add({
+      if (window.cyberduelSettings?.get?.("lowPowerMode") !== 1) this.tweens.add({
         targets: anel,
         scaleX: 1.08,
         scaleY: 1.08,
@@ -6142,7 +6151,7 @@ class CenaJogo extends Phaser.Scene {
         .rectangle(xPos, yPos, L.slotW, L.slotH, cor, 0)
         .setStrokeStyle(8, cor, 1)
         .setDepth(3800);
-      this.tweens.add({
+      if (window.cyberduelSettings?.get?.("lowPowerMode") !== 1) this.tweens.add({
         targets: anel,
         scaleX: 1.08,
         scaleY: 1.08,
@@ -6210,6 +6219,10 @@ class CenaJogo extends Phaser.Scene {
     }
   }
   animarEfeitoAdvogado(alvoEscolhido, aoConcluir, campoAliado = false) {
+    if (window.cyberduelSettings?.get?.("lowPowerMode") === 1) {
+      aoConcluir();
+      return;
+    }
     // Posição padrão no centro, caso algo dê errado
     let xPos = LARGURA_LAYOUT / 2;
     let yPos = ALTURA_LAYOUT / 2;
@@ -6314,7 +6327,7 @@ class CenaJogo extends Phaser.Scene {
         .rectangle(xPos, yPos, L.slotW, L.slotH, 0xff8888, 0)
         .setStrokeStyle(8, 0xff8888, 1)
         .setDepth(3800);
-      this.tweens.add({
+      if (window.cyberduelSettings?.get?.("lowPowerMode") !== 1) this.tweens.add({
         targets: anel,
         scaleX: 1.08,
         scaleY: 1.08,
@@ -6397,7 +6410,7 @@ class CenaJogo extends Phaser.Scene {
         .rectangle(xPos, yPos, L.slotW, L.slotH, 0x88ff99, 0)
         .setStrokeStyle(8, 0x88ff99, 1)
         .setDepth(3800);
-      this.tweens.add({
+      if (window.cyberduelSettings?.get?.("lowPowerMode") !== 1) this.tweens.add({
         targets: anel,
         scaleX: 1.08,
         scaleY: 1.08,
@@ -6471,7 +6484,7 @@ class CenaJogo extends Phaser.Scene {
         .rectangle(xPos, yPos, L.slotW, L.slotH, 0xffcc00, 0)
         .setStrokeStyle(8, 0xffcc00, 1)
         .setDepth(3800);
-      this.tweens.add({
+      if (window.cyberduelSettings?.get?.("lowPowerMode") !== 1) this.tweens.add({
         targets: anel,
         scaleX: 1.08,
         scaleY: 1.08,
@@ -6554,7 +6567,7 @@ class CenaJogo extends Phaser.Scene {
         .rectangle(xPos, yPos, L.slotW, L.slotH, 0xffcc00, 0)
         .setStrokeStyle(8, 0xffcc00, 1)
         .setDepth(3800);
-      this.tweens.add({
+      if (window.cyberduelSettings?.get?.("lowPowerMode") !== 1) this.tweens.add({
         targets: anel,
         scaleX: 1.08,
         scaleY: 1.08,
@@ -6644,7 +6657,7 @@ class CenaJogo extends Phaser.Scene {
         .rectangle(xPos, yPos, L.slotW, L.slotH, 0x88ff99, 0)
         .setStrokeStyle(8, 0x88ff99, 1)
         .setDepth(3800);
-      this.tweens.add({
+      if (window.cyberduelSettings?.get?.("lowPowerMode") !== 1) this.tweens.add({
         targets: anel,
         scaleX: 1.08,
         scaleY: 1.08,
@@ -6762,7 +6775,7 @@ class CenaJogo extends Phaser.Scene {
         .rectangle(xPos, yPos, L.slotW, L.slotH, 0xffcc00, 0)
         .setStrokeStyle(8, 0xffcc00, 0.5)
         .setDepth(3800);
-      this.tweens.add({
+      if (window.cyberduelSettings?.get?.("lowPowerMode") !== 1) this.tweens.add({
         targets: anel,
         scaleX: 1.08,
         scaleY: 1.08,

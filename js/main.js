@@ -2054,7 +2054,7 @@ const config = {
   type: usarCanvasParaDiagnostico ? Phaser.CANVAS : Phaser.AUTO,
   width: LARGURA_RENDER,
   height: ALTURA_RENDER,
-  fps: { limit: usarPerfilMovel ? 60 : 0 },
+  fps: { limit: window.cyberduelSettings?.get?.("lowPowerMode") === 1 ? 30 : 60 },
   scale: {
     expandParent: false,
     mode: Phaser.Scale.FIT,
@@ -2065,7 +2065,7 @@ const config = {
     antialias: true,
     antialiasGL: false,
     roundPixels: false,
-    powerPreference: "high-performance",
+    powerPreference: "default",
     batchSize: 4096,
     skipUnreadyShaders: usarPerfilMovel,
   },

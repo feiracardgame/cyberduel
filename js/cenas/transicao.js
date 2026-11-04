@@ -17,6 +17,11 @@ class CenaTransicao extends Phaser.Scene {
       "carregamento_remanescentes.mp4": "videoAberturaRemanescentes" }[abertura] || "videoTransicao";
     this.fundoTransicao = conselho ? "videoHumbaNet" : { "carregamento_echorasp.mp4": "jogoFundo", "carregamento_sindicato.mp4": "videoParte3",
       "carregamento_remanescentes.mp4": "videoDeserto" }[abertura];
+    if (window.cyberduelSettings?.get?.("lowPowerMode") === 1) {
+      this.jaTransicionou = false;
+      this.pularParaJogo();
+      return;
+    }
     const video = this.add.video(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, chave);
     video.setOrigin(0.5);
     // As aberturas têm áudios diferentes (Echo/Rasp não tem faixa de áudio).

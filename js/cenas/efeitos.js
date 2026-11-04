@@ -67,6 +67,7 @@ class CenaEfeitos extends Phaser.Scene {
     this.invocacoesPendentes = new Map();
     this.haCartasOcultas = false;
     this.marcasSindicato = new Map();
+    this.proximaAtualizacaoMarcas = 0;
     if (!this.anims.exists("forja-ferreira")) this.anims.create({
       key: "forja-ferreira", frames: this.anims.generateFrameNumbers("efeitoFerreira", { start: 0, end: 9 }),
       frameRate: 25, repeat: -1,
@@ -88,6 +89,8 @@ class CenaEfeitos extends Phaser.Scene {
     for (const evento of eventos || []) {
       if (evento.id <= this.ultimoEvento) continue;
       this.ultimoEvento = evento.id;
+      // Consome a sequência para manter a sincronização sem criar animações.
+      if (window.cyberduelSettings?.get?.("lowPowerMode") === 1) continue;
       const copia = JSON.parse(JSON.stringify(evento));
       this.fila.push(copia);
       if (copia.momento === "invocacao" && copia.fonte.indice >= 0 &&
@@ -106,9 +109,12 @@ class CenaEfeitos extends Phaser.Scene {
     return { x: layout.x[indice % 5], y: (lado === "jogador" ? layout.yJogador : layout.yInimigo)[Math.floor(indice / 5)] };
   }
 
-  update() {
+  update(time) {
     this.atualizarVisibilidadeInvocacoes();
-    this.atualizarMarcasSindicato();
+    if (time >= (this.proximaAtualizacaoMarcas || 0)) {
+      this.atualizarMarcasSindicato();
+      this.proximaAtualizacaoMarcas = time + 100;
+    }
   }
 
   // Marcas derivadas do estado: sobrevivem ao redesenho e à reconexão, sem repetir o som.
@@ -134,7 +140,8 @@ class CenaEfeitos extends Phaser.Scene {
           if (!marca) {
             marca = this.add.image(ponto.x, ponto.y, chave).setAlpha(0).setDepth(chave === "efeitoPolitico" ? 50 : 40);
             marca.marcaSindicato = chave;
-            this.tweens.add({ targets: marca, alpha: 1, duration: 650, delay: chave === "efeitoBombeiro" ? 350 : 0 });
+            if (window.cyberduelSettings?.get?.("lowPowerMode") === 1) marca.setAlpha(1);
+            else this.tweens.add({ targets: marca, alpha: 1, duration: 650, delay: chave === "efeitoBombeiro" ? 350 : 0 });
           }
           const layout = this.jogo.layout;
           marca.setPosition(ponto.x, ponto.y)

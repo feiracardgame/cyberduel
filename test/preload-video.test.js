@@ -96,3 +96,10 @@ scene.criarBarraDeCarregamento();
 assert.equal(scene.videoCarregamento.url, undefined, 'A apresentação não depende da reprodução de vídeo.');
 scene.create();
 assert.equal(loads, 4, 'A apresentação começa a carregar os assets imediatamente, mesmo sem frame ou erro de vídeo.');
+
+context.window.cyberduelSettings = { get: key => key === 'lowPowerMode' ? 1 : 0 };
+scene.criarBarraDeCarregamento();
+assert.equal(scene.videoCarregamento.url, undefined, 'Modo leve não abre arquivos de vídeo.');
+const previousLoads = loads;
+scene.create();
+assert.equal(loads, previousLoads + 1, 'Modo leve carrega os assets sem aguardar um vídeo.');

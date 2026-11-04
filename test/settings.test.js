@@ -55,3 +55,57 @@ settings.set('masterVolume', 0);
 assert.equal(settings.musicForTrack('musicaMenu'), 0);
 assert.equal(settings.effects(.3, 'somHumba'), 0);
 settings.reset();
+
+const limits = [];
+context.window.cyberduelGame = { loop: { setFPSLimit: fps => limits.push(fps) } };
+assert.equal(settings.get('lowPowerMode'), 0, 'O modo normal mantém os efeitos por padrão.');
+settings.set('lowPowerMode', true);
+assert.equal(limits.at(-1), 30);
+assert.equal(new context.window.CyberduelSettings(localStorage).get('lowPowerMode'), 1);
+assert.equal(settings.get('animatedBackground'), 1, 'Modo leve preserva a preferência de fundo normal.');
+settings.reset();
+assert.equal(settings.get('lowPowerMode'), 0);
+assert.equal(limits.at(-1), 60);
+
+vm.runInContext(fs.readFileSync('js/cenas/efeitos.js', 'utf8'), vm.createContext({
+  window: context.window, Phaser: { Scene: class {} },
+}));
+const effects = new context.window.CenaEfeitos();
+effects.fila = [];
+effects.ultimoEvento = 0;
+effects.atualizarVisibilidadeInvocacoes = () => {};
+effects.proximo = () => {};
+settings.set('lowPowerMode', true);
+effects.receber([{ id: 1 }, { id: 2 }]);
+assert.equal(effects.ultimoEvento, 2, 'Modo leve avança a sequência usada na sincronização.');
+assert.equal(effects.fila.length, 0, 'Modo leve não cria efeitos nem acessa fontes ocultas.');
+settings.set('lowPowerMode', false);
+effects.receber([{ id: 2 }, { id: 3, momento: 'habilidade', fonte: {} }]);
+assert.equal(effects.fila.length, 1, 'Modo normal volta a enfileirar efeitos sem repetir eventos.');
+assert.equal(effects.fila[0].id, 3);
+console.log('Modo leve: persistência, FPS, restauração e sequência dos efeitos validados.');
+
+const sceneContext = vm.createContext({ window: context.window, Phaser: { Scene: class {} } });
+vm.runInContext(fs.readFileSync('js/cenas/jogo.js', 'utf8'), sceneContext);
+const Game = vm.runInContext('CenaJogo', sceneContext);
+const gameScene = new Game();
+settings.set('lowPowerMode', true);
+assert.equal(gameScene.fundoAnimadoAtivo(), false);
+assert.equal(gameScene.reproduzirEfeitoInvocacao({ nome: 'HumbaBrain' }), false);
+let destroyed = 0, completed = 0;
+gameScene.animarMorteCarta({ destroy() { destroyed++; } }, () => completed++);
+assert.equal(destroyed, 1);
+assert.equal(completed, 1, 'Pular a morte conclui a ação para não travar o combate.');
+gameScene.animarEfeitoAdvogado(0, () => completed++);
+assert.equal(completed, 2, 'Pular a animação do Advogado preserva sua ação.');
+gameScene.animarDanoCarta({ active: true }, -1);
+gameScene.animarBuffCarta({ active: true }, 1);
+settings.set('lowPowerMode', false);
+assert.equal(gameScene.fundoAnimadoAtivo(), true, 'O fundo normal volta sem perder a preferência.');
+let marks = 0, visibility = 0;
+effects.atualizarVisibilidadeInvocacoes = () => visibility++;
+effects.atualizarMarcasSindicato = () => marks++;
+for (const time of [0, 16, 33, 50, 66, 83, 100]) effects.update(time);
+assert.equal(marks, 2, 'As marcas de estado são recalculadas a cada 100 ms.');
+assert.equal(visibility, 7, 'A visibilidade de cartas continua sincronizada em cada quadro.');
+console.log('Modo leve: ações, fundo, callbacks de combate e atualização das marcas validados.');

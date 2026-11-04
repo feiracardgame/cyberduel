@@ -69,7 +69,7 @@ function fixture(spectator = false) {
   s.animarFonte = (event, source, keep, callback) => original.call(s,event,source,keep,()=>{impacts.push(event.id);callback();});
   return { s, source, fieldObject, objects, tweens, impacts, sounds,
     getTime() { return time; },
-    step() { tasks.sort((a,b)=>a.at-b.at); const next=tasks.shift(); if(!next)return false; time=next.at; next.fn(); s.update(); return true; },
+    step() { tasks.sort((a,b)=>a.at-b.at); const next=tasks.shift(); if(!next)return false; time=next.at; next.fn(); s.update(time); return true; },
     flush() { let n=0; while(this.step()) assert.ok(++n<200); },
     event(id, momento, extra={}) { return {id,lado:'inimigo',momento,fonte:{...source},alvos:[],...extra}; },
   };
@@ -677,22 +677,22 @@ for (const side of ['jogador', 'inimigo']) {
   f.s.jogo.partida[side].campo.cartas = [target, { id: 81, efeito: { tipo: 'vinculo_aliado' }, aliadoVinculadoId: 80 }];
   f.s.jogo.partida[opponent].campo.cartas = [{ id: 82, efeito: { acao: 'advertir' }, alvosAdvertidos: [80] }];
   context.TIPOS_EFEITO.VINCULO_ALIADO = 'vinculo_aliado';
-  f.s.update();
+  f.s.update(0);
   const marks = [...f.s.marcasSindicato.values()];
   assert.equal(marks.length, 3);
   for (const mark of marks) assert.equal(mark.angle, side === 'inimigo' ? 180 : 0);
   const political = marks.find(mark => mark.marcaSindicato === 'efeitoPolitico');
   assert.ok(marks.filter(mark => mark !== political).every(mark => mark.depth < political.depth));
-  f.s.update(); assert.equal(f.s.marcasSindicato.size, 3);
+  f.s.update(50); assert.equal(f.s.marcasSindicato.size, 3);
   assert.equal(f.sounds.length, 0);
   f.s.jogo.partida[side].campo.cartas[0] = null;
   f.s.jogo.partida[side].campo.cartas[3] = { ...target };
-  f.s.update();
+  f.s.update(100);
   assert.ok([...f.s.marcasSindicato.values()].every(mark => mark.x === f.s.ponto(side, 3).x));
   f.s.jogo.partida[side].campo.cartas[3].bonusBloqueado = false;
   f.s.jogo.partida[side].campo.cartas[1] = null;
   f.s.jogo.partida[opponent].campo.cartas = [];
-  f.s.update();
+  f.s.update(200);
   assert.equal(f.s.marcasSindicato.size, 0);
   assert.ok(marks.every(mark => !mark.active));
 }
@@ -876,3 +876,14 @@ for (const time of [0, 2000, 4000, 5000, 6900]) {
   } finally { delete context.window.matchMedia; }
 }
 console.log('Aprendizado: três assets, fases, fila única, perspectivas, cancelamento, fallback e movimento reduzido validados.');
+
+context.window.cyberduelSettings = { get: key => key === 'lowPowerMode' ? 1 : 0 };
+{
+  const f = fixture();
+  f.s.jogo.partida.jogador.campo.cartas = [{ id: 80, bonusBloqueado: true }];
+  f.s.update(0);
+  const marks = [...f.s.marcasSindicato.values()];
+  assert.equal(marks.length, 1, 'Modo leve mantém os indicadores das regras.');
+  assert.equal(marks[0].alpha, 1, 'Indicador aparece sem fade.');
+  assert.equal(f.tweens.length, 0, 'Indicador estático não cria animações.');
+}

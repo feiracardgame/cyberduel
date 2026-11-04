@@ -79,7 +79,7 @@ for (const [viewportWidth, viewportHeight, dpr, quality, expectedWidth] of [
     assert.ok(profile.width * profile.height <= 720 * 1480, 'Celular não excede a resolução base.');
     assert.equal(vm.runInContext('config.fps.limit', context), 60, 'Limitar trabalho em telas de 90/120 Hz.');
   } else {
-    assert.equal(vm.runInContext('config.fps.limit', context), 0);
+    assert.equal(vm.runInContext('config.fps.limit', context), 60, 'Desktop também limita quadros sem remover efeitos.');
   }
 }
 console.log('Nitidez automática, limite de pixels, orientação e perfil econômico validados.');

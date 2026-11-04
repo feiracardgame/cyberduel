@@ -3730,3 +3730,15 @@ body:has(> .booster-fullscreen) .title-matrix-stream { animation-play-state: pau
   .match-reward *, .match-reward::after { animation: none !important; }
   .match-reward__cipher, .match-reward__stream { display: none; }
 }
+
+/* Mantém transições de interface e seus callbacks, sem animações decorativas contínuas. */
+.cyber-low-power *, .cyber-low-power *::before, .cyber-low-power *::after {
+  animation-duration: 1ms !important;
+  animation-delay: 0ms !important;
+  animation-iteration-count: 1 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+.cyber-background *, .cyber-background *::before, .cyber-background *::after {
+  animation-play-state: paused !important;
+}

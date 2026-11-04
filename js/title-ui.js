@@ -108,6 +108,7 @@ class CyberduelTitleUI {
     this.matrixTimer = setInterval(() => {
       if (
         document.hidden ||
+        window.cyberduelSettings?.get?.("lowPowerMode") === 1 ||
         this.modal?.classList.contains("booster-fullscreen") ||
         window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
       )
@@ -1602,6 +1603,13 @@ class CyberduelTitleUI {
         maximum: 135,
       }),
     );
+    const lightRow = this.element("label", "title-setting title-setting--toggle");
+    const light = this.element("input");
+    light.type = "checkbox";
+    light.checked = this.settings.get("lowPowerMode") === 1;
+    light.addEventListener("change", () => this.settings.set("lowPowerMode", light.checked));
+    lightRow.append(light, this.element("span", "", "MODO LEVE / ECONOMIZAR BATERIA — 30 FPS, SEM EFEITOS E VÍDEOS"));
+    controls.append(lightRow);
     const backgroundRow = this.element(
       "label",
       "title-setting title-setting--toggle",
@@ -1654,6 +1662,7 @@ class CyberduelTitleUI {
     actions.append(
       this.button("title-dialog__cancel", "RESTAURAR", () => {
         this.settings.reset();
+        light.checked = false;
         background.checked = true;
         skip.checked = false;
         battlefield.value = "0";

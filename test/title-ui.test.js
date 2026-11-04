@@ -113,6 +113,11 @@ assert.ok(fs.readFileSync('js/title-ui.js', 'utf8').includes(`"title-system-id__
   const hiddenText = rain.children[0].children[0].textContent;
   matrixTick();
   assert.equal(rain.children[0].children[0].textContent, hiddenText);
+  context.document.hidden = false;
+  context.window.cyberduelSettings = { get: () => 1 };
+  matrixTick();
+  assert.equal(rain.children[0].children[0].textContent, hiddenText, 'Modo leve também pausa as atualizações decorativas do menu.');
+  delete context.window.cyberduelSettings;
   matrixUI.destroy();
   assert.equal(clearedTimer, 7);
   assert.equal(matrixUI.matrixTimer, null);

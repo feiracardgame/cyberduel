@@ -258,7 +258,7 @@ class CenaPreload extends Phaser.Scene {
       video.play(false);
     };
     video.on("complete", proximaAbertura);
-    if (!window.CYBERDUEL_PRESENTATION) proximaAbertura();
+    if (!window.CYBERDUEL_PRESENTATION && window.cyberduelSettings?.get?.("lowPowerMode") !== 1) proximaAbertura();
     this.events.once("shutdown", () => video.stop());
 
     this.add
@@ -359,6 +359,6 @@ class CenaPreload extends Phaser.Scene {
     const espera = this.time.delayedCall(10000, iniciar);
     video.once("created", iniciar);
     video.once("error", iniciar);
-    if (window.CYBERDUEL_PRESENTATION || video.frameReady || this.videoFalhou) iniciar();
+    if (window.cyberduelSettings?.get?.("lowPowerMode") === 1 || window.CYBERDUEL_PRESENTATION || video.frameReady || this.videoFalhou) iniciar();
   }
 }

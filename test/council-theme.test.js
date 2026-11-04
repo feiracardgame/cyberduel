@@ -18,7 +18,7 @@ for (const table of [null, 1, 5]) for (const field of [1, 2, 4]) {
   });
   context.window.cyberduelMultiplayer = { active: true, initialized: true, table, ranked: true,
     phaseStartsAt: Date.now() + 5000, clockOffset: 0, announcementPending: () => true };
-  context.window.cyberduelSettings = { get: () => field, playMusic(scene, key) { music = key; } };
+  context.window.cyberduelSettings = { get: key => key === "battlefield" ? field : 0, playMusic(scene, key) { music = key; } };
   const scene = Object.assign(Object.create(Transition.prototype), {
     cameras: { main: { setBackgroundColor() {} } },
     registry: { get: () => 'carregamento_echorasp.mp4' },
@@ -52,3 +52,12 @@ for (const table of [null, 1, 5]) for (const field of [1, 2, 4]) {
 }
 assert.ok(fs.statSync('assets/videos/background_humbanet.mp4').size > 1000);
 console.log('Conselho: vídeo e música exclusivos, preferências, abertura sincronizada e reconexão validados.');
+
+context.window.cyberduelSettings = { get: key => key === 'lowPowerMode' ? 1 : 0 };
+const light = Object.assign(Object.create(Transition.prototype), {
+  cameras: { main: { setBackgroundColor() {} } }, registry: { get() {} },
+  add: { video() { throw new Error('Modo leve não deve criar vídeos.'); } },
+  scene: { start(key) { assert.equal(key, 'CenaJogo'); } },
+});
+light.create();
+assert.equal(light.jaTransicionou, true);
