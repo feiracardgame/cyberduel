@@ -146,7 +146,37 @@ async function run() {
     assert.equal(persisted[fixtures[1].accountKey].currency, winnerBalance, 'Repetir desistências corta o pagamento até zero.');
     assert.equal(persisted[fixtures[0].accountKey].earlySurrenders[0].count, repetition + 1);
   }
-  console.log('Conselho: top 10 atual, reserva exclusiva, prazo de 60s e partida validados.');
+  one.emit('leave-room'); two.emit('leave-room'); screen.emit('leave-room');
+  const abandoned = await ack(screen, 'create-presentation', { table: 5 });
+  const abandonedCode = abandoned.room.code;
+  for (const [socket, payload] of [[one, first], [two, second]]) {
+    assert.equal((await ack(socket, 'reserve-council-seat', payload)).ok, true);
+    assert.equal((await ack(socket, 'join-room', { ...payload, code: abandonedCode, table: 5 })).ok, true);
+  }
+  const beforeAbandonment = fs.readFileSync(file, 'utf8');
+  one.disconnect(); two.disconnect();
+  await new Promise(resolve => setTimeout(resolve, 1200));
+  const returning = await connect();
+  const resumed = await ack(returning, 'resume-match', { accountToken: first.accountToken });
+  assert.equal(resumed.ok, true, 'Um jogador pode retornar durante o prazo conjunto.');
+  assert.ok(resumed.reconnectRemainingMs > 39500, 'O prazo conjunto pausa o saldo individual.');
+  let abandonedUpdates = 0;
+  const countAbandonedUpdates = () => abandonedUpdates++;
+  screen.on('state-update', countAbandonedUpdates);
+  const reset = new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => reject(Error('Conselho não resetou após abandono')), 43000);
+    screen.once('room-cleared', payload => { clearTimeout(timeout); resolve(payload); });
+  });
+  const started = Date.now();
+  returning.disconnect();
+  assert.equal((await reset).code, abandonedCode);
+  screen.off('state-update', countAbandonedUpdates);
+  assert.equal(abandonedUpdates, 0, 'A partida não avança enquanto ambos estão desconectados.');
+  assert.ok(Date.now() - started >= 39900, 'A nova queda inicia um prazo conjunto de 40 segundos.');
+  assert.equal(fs.readFileSync(file, 'utf8'), beforeAbandonment, 'Abandono dos dois não altera contas nem recompensa ninguém.');
+  assert.equal((await ack(otherTab, 'find-active-match', { accountToken: first.accountToken })).room, null);
+  assert.equal((await ack(screen, 'create-presentation', { table: 5 })).ok, true, 'A mesa fica livre para uma nova partida.');
+  console.log('Conselho: acesso, recompensas, retorno e reset após 40s com ambos desconectados validados.');
 }
 run().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => {
   sockets.forEach(socket => socket.disconnect()); server.kill();

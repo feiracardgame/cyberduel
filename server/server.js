@@ -1861,6 +1861,7 @@ function resumeAfterEffects(room) {
 }
 
 function advancePhase(room) {
+  if (room.emptyDisconnectTimer) return;
   if (!room.state || room.state.partidaEncerrada || !rooms.has(room.code)) return;
   let result = null;
   if (room.step === 3) {
@@ -1886,6 +1887,7 @@ function advancePhase(room) {
 function closeRoom(room) {
   clearTimeout(room.timer);
   clearTimeout(room.effects?.timeout);
+  clearDisconnectTimers(room);
   rooms.delete(room.code);
   io.to(room.code).emit("room-cleared", { code: room.code, message: "Sala liberada. Você já pode jogar novamente." });
   for (const client of io.sockets.sockets.values()) if (client.data.room === room.code) {
@@ -1913,10 +1915,25 @@ function removeFromRoom(socket, disconnect = false) {
       notifyPresentation(room);
     } else if (disconnect && room.state) {
       room.players.set(socket.data.player, null);
+      if (!room.state.partidaEncerrada) {
+        const player = socket.data.player;
+        const budget = room.disconnects.get(player);
+        budget.since = Date.now();
+        budget.timer = setTimeout(() => {
+          if (rooms.has(room.code) && !room.emptyDisconnectTimer && !room.players.get(player)) surrenderRoom(room, player);
+        }, budget.remaining);
+        budget.timer.unref();
+        socket.to(code).emit("opponent-offline", { remainingMs: budget.remaining });
+      }
       room.effects?.pending.delete(socket.data.player);
       if (room.effects && !room.effects.pending.size) resumeAfterEffects(room);
+      if (room.table === 5 && !room.state.partidaEncerrada && ![...room.players.values()].some(Boolean) && !room.emptyDisconnectTimer) {
+        room.emptySince = Date.now();
+        clearTimeout(room.timer);
+        room.emptyDisconnectTimer = setTimeout(() => closeRoom(room), 40000);
+        room.emptyDisconnectTimer.unref();
+      }
       notifyPresentation(room);
-      socket.to(code).emit("opponent-offline");
     } else {
       if (room.ranked && room.state && !room.state.partidaEncerrada) surrenderRoom(room, socket.data.player);
       closeRoom(room);
@@ -1932,12 +1949,32 @@ function findResumable(payload) {
   const username = accountFromToken(payload.accountToken)?.username;
   for (const room of rooms.values()) {
     if (!room.state || room.state.partidaEncerrada) continue;
+    if (room.emptyDisconnectTimer && Date.now() - room.emptySince >= 40000) {
+      closeRoom(room);
+      continue;
+    }
     for (const player of [1, 2]) {
       if ((payload.resumeToken && room.resumeTokens.get(player) === payload.resumeToken) ||
-          (username && room.usernames.get(player) === username)) return { room, player };
+          (username && room.usernames.get(player) === username)) {
+        if (!room.emptyDisconnectTimer && disconnectRemaining(room, player) <= 0) {
+          surrenderRoom(room, player);
+          return null;
+        }
+        return { room, player };
+      }
     }
   }
   return null;
+}
+
+function disconnectRemaining(room, player) {
+  const budget = room.disconnects.get(player);
+  return Math.max(0, budget.remaining - (budget.since === null ? 0 : (room.emptySince ?? Date.now()) - budget.since));
+}
+
+function clearDisconnectTimers(room) {
+  clearTimeout(room.emptyDisconnectTimer);
+  for (const budget of room.disconnects.values()) clearTimeout(budget.timer);
 }
 
 function createRoomRecord(socket, deck, account) {
@@ -1951,6 +1988,7 @@ function createRoomRecord(socket, deck, account) {
     turn: 1, starter: 1, step: 0, round: 1, state: null,
     spectators: new Set(), resumeTokens: new Map([[1, randomBytes(32).toString("hex")]]),
     createdAt: Date.now(), deadline: null,
+    disconnects: new Map([1, 2].map(player => [player, { remaining: 40000, since: null, timer: null }])),
   };
   rooms.set(code, room);
   socket.join(code); socket.data.room = code; socket.data.player = 1;
@@ -1968,6 +2006,7 @@ function emitMatchReady(room) {
 }
 
 function settleMatch(room) {
+  if (room.state?.partidaEncerrada) clearDisconnectTimers(room);
   if (room.matchSettled || !room.state?.partidaEncerrada || !room.result?.fimDeJogo) return;
   const winner = room.result.resultadoCombate?.resultado;
   if (!["jogador", "inimigo", "empate"].includes(winner)) return;
@@ -2415,17 +2454,38 @@ io.on("connection", (socket) => {
     const found = findResumable(payload);
     if (!found) return ack({ ok: false, error: "Nenhuma partida ativa encontrada." });
     const { room, player } = found;
+    if (room.emptyDisconnectTimer) {
+      const paused = Date.now() - room.emptySince;
+      clearTimeout(room.emptyDisconnectTimer);
+      room.emptyDisconnectTimer = null;
+      room.emptySince = null;
+      for (const [seat, budget] of room.disconnects) {
+        if (budget.since === null) continue;
+        budget.since += paused;
+        clearTimeout(budget.timer);
+        budget.timer = setTimeout(() => {
+          if (rooms.has(room.code) && !room.emptyDisconnectTimer && !room.players.get(seat)) surrenderRoom(room, seat);
+        }, disconnectRemaining(room, seat));
+        budget.timer.unref();
+      }
+      armPhaseClock(room, false);
+    }
     const previous = room.players.get(player);
     if (previous && previous !== socket.id) {
       const old = io.sockets.sockets.get(previous);
       if (old) { old.leave(room.code); old.data.room = null; old.data.player = null; }
     }
     socket.join(room.code); socket.data.room = room.code; socket.data.player = player;
+    const budget = room.disconnects.get(player);
+    budget.remaining = disconnectRemaining(room, player);
+    budget.since = null;
+    clearTimeout(budget.timer);
     room.players.set(player, socket.id);
     ack({ ok: true, room: publicRoom(room), player, resumeToken: room.resumeTokens.get(player),
+      reconnectRemainingMs: budget.remaining,
       decks: Object.fromEntries(room.decks), usernames: Object.fromEntries(room.usernames), nicknames: Object.fromEntries(room.nicknames), ranked: !!room.ranked, arena: !!room.presentation, profiles: Object.fromEntries(room.profiles),
       update: { state: room.state, ...phaseInfo(room), initial: true } });
-    socket.to(room.code).emit("opponent-online");
+    socket.to(room.code).emit("opponent-online", { remainingMs: budget.remaining });
     if (room.table) notifyPresentation(room);
   });
 

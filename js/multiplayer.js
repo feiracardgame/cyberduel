@@ -119,8 +119,8 @@ class CyberduelMultiplayer {
     this.socket.on("opponent-surrendered", (payload) => {
       if (this.scene) this.scene.oponenteDesistiuMultiplayer(payload?.player);
     });
-    this.socket.on("opponent-offline", () => this.status("Oponente desconectado. A partida permanece disponível para retorno."));
-    this.socket.on("opponent-online", () => this.status("Oponente reconectado."));
+    this.socket.on("opponent-offline", ({ remainingMs }) => this.status(`Oponente desconectado. Restam ${Math.ceil(remainingMs / 1000)} segundos para voltar antes de perder por desistência.`));
+    this.socket.on("opponent-online", ({ remainingMs }) => this.status(`Oponente reconectado. Restam ${Math.ceil(remainingMs / 1000)} segundos de tolerância para novas quedas.`));
     this.socket.on("opponent-left", () => {
       this.waitingInvitation = null;
       if (this.presentation) {

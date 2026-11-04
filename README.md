@@ -556,9 +556,11 @@ Os convites usam `PUBLIC_URL` quando configurada; caso contrário, usam o endere
 
 **Tutorial e regras → Conhecer os menus** abre um passeio visual de sete telas, com os menus de deck, boosters, partidas, mesas, mercado, ranking e perfil. É possível pular ou repetir a qualquer momento. O treino usa personagens, terreno e efeito reais: o jogador coloca a Torre MonteCorp, vê o bônus de PA e usa Vento dos Ermos para remover um terreno rival. Uma mão animada indica onde segurar e destaca o X da ficha, as cartas, os espaços e os alvos. O guia dos menus aparece uma vez por conta, após a orientação inicial.
 
-Criar uma sala abre o convite com **SAIR E LIBERAR SALA**. Fechar o convite ou apertar Escape libera a sala; desconectar antes de começar também libera a conta. Durante duelos ativos, a reconexão continua disponível.
+Criar uma sala abre o convite com **SAIR E LIBERAR SALA**. Fechar o convite ou apertar Escape libera a sala; desconectar antes de começar também libera a conta. Durante duelos ativos, cada jogador tem **40 segundos acumulados de desconexão por partida**, contados pelo servidor ao detectar a queda. Reconectar pausa o consumo, sem renovar o saldo: gastar 15 segundos deixa 25 para as próximas quedas. Esgotar o tempo encerra a partida como desistência, com vitória do adversário e as mesmas regras de recompensa e ranking. O relógio da fase continua correndo durante a desconexão.
 
 Na apresentação, **LIMPAR SALA** libera os jogadores e abre uma nova sala. Durante um duelo, a tela pede confirmação. Isso cancela o duelo sem registrar resultado nem mexer em pontos, saldo ou coleção. A apresentação carrega sem esperar o primeiro frame do vídeo de abertura e abre a arena automaticamente.
+
+No Conselho, quando os dois jogadores desconectam, a partida para de avançar e começa um prazo conjunto de **40 segundos** para qualquer um retornar. Esse intervalo pausa o consumo dos saldos individuais de desconexão. Se ninguém voltar, a sala é liberada sem resultado, recompensa ou alteração de ranking.
 
 Como administrador, no console do navegador (F12):
 
