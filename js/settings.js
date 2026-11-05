@@ -85,7 +85,7 @@
     applyPerformance() {
       const light = this.values.lowPowerMode === 1;
       global.document?.documentElement?.classList.toggle("cyber-low-power", light);
-      global.cyberduelGame?.loop?.setFPSLimit(light ? 30 : 60);
+      global.cyberduelGame?.loop?.setFPSLimit(light ? 30 : 0);
     }
 
     save() {

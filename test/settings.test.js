@@ -65,7 +65,7 @@ assert.equal(new context.window.CyberduelSettings(localStorage).get('lowPowerMod
 assert.equal(settings.get('animatedBackground'), 1, 'Modo leve preserva a preferência de fundo normal.');
 settings.reset();
 assert.equal(settings.get('lowPowerMode'), 0);
-assert.equal(limits.at(-1), 60);
+assert.equal(limits.at(-1), 0, 'Restaurar libera a cadência nativa da tela.');
 
 vm.runInContext(fs.readFileSync('js/cenas/efeitos.js', 'utf8'), vm.createContext({
   window: context.window, Phaser: { Scene: class {} },
@@ -80,6 +80,7 @@ effects.receber([{ id: 1 }, { id: 2 }]);
 assert.equal(effects.ultimoEvento, 2, 'Modo leve avança a sequência usada na sincronização.');
 assert.equal(effects.fila.length, 0, 'Modo leve não cria efeitos nem acessa fontes ocultas.');
 settings.set('lowPowerMode', false);
+assert.equal(limits.at(-1), 0, 'Desativar o modo leve libera a cadência nativa da tela.');
 effects.receber([{ id: 2 }, { id: 3, momento: 'habilidade', fonte: {} }]);
 assert.equal(effects.fila.length, 1, 'Modo normal volta a enfileirar efeitos sem repetir eventos.');
 assert.equal(effects.fila[0].id, 3);

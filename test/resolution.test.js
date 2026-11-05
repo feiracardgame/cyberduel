@@ -77,9 +77,13 @@ for (const [viewportWidth, viewportHeight, dpr, quality, expectedWidth] of [
   assert.equal(vm.runInContext('config.render.roundPixels', context), false);
   if (profile.mobile) {
     assert.ok(profile.width * profile.height <= 720 * 1480, 'Celular não excede a resolução base.');
-    assert.equal(vm.runInContext('config.fps.limit', context), 60, 'Limitar trabalho em telas de 90/120 Hz.');
-  } else {
-    assert.equal(vm.runInContext('config.fps.limit', context), 60, 'Desktop também limita quadros sem remover efeitos.');
   }
+  assert.equal(vm.runInContext('config.fps.limit', context), 0, 'Modo normal acompanha a cadência nativa da tela.');
+  assert.equal(vm.runInContext('config.render.powerPreference', context), 'high-performance');
+  context.window.cyberduelSettings = { get: key => key === 'lowPowerMode' ? 1 : 0 };
+  const lightContext = vm.createContext({ ...context });
+  vm.runInContext(sceneSource, lightContext);
+  vm.runInContext(renderSource, lightContext);
+  assert.equal(vm.runInContext('config.fps.limit', lightContext), 30, 'Modo leve mantém o limite de bateria.');
 }
 console.log('Nitidez automática, limite de pixels, orientação e perfil econômico validados.');
