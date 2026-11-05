@@ -132,6 +132,7 @@ async function checkClient(profile) {
   const mountGoogleButton = account.mountGoogleButton.bind(account);
   const originalRequest = account.request;
   for (const device of [
+    { userAgent: 'Mozilla/5.0 (X11; Linux x86_64; rv:144.0) Gecko/20100101 Firefox/144.0' },
     { userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)' },
     { userAgent: 'Mozilla/5.0 (Linux; Android 14)' },
     { userAgent: 'Mozilla/5.0 (Macintosh)', platform: 'MacIntel', maxTouchPoints: 5 },

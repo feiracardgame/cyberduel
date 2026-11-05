@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const { EventEmitter } = require('node:events');
 const media = [], listeners = new Map();
-let blocked = true;
+let blocked = true, playCalls = 0, resumeCalls = 0;
 const window = {
   document: {
     addEventListener(name, fn) { listeners.set(name, fn); },
@@ -12,6 +12,7 @@ const window = {
   Audio: class {
     constructor(src) { this.src = src; this.volume = 1; media.push(this); }
     play() {
+      playCalls++;
       if (blocked) return Promise.reject(Object.assign(new Error('gesture required'), { name: 'NotAllowedError' }));
       this.paused = false; return Promise.resolve();
     }
@@ -29,7 +30,9 @@ const node = () => {
   nodes.push(value); return value;
 };
 const scene = { events: new EventEmitter(), sound: { context: {
-  createMediaElementSource: node, createGain: node, resume: () => Promise.resolve(), destination: {},
+  state: 'suspended',
+  createMediaElementSource: node, createGain: node,
+  resume() { resumeCalls++; this.state = 'running'; return Promise.resolve(); }, destination: {},
 } } };
 const flush = () => new Promise(resolve => setImmediate(resolve));
 (async () => {
@@ -40,10 +43,16 @@ const flush = () => new Promise(resolve => setImmediate(resolve));
   assert.equal(media[0].loop, true);
   assert.ok(listeners.has('pointerdown'));
   assert.ok(listeners.has('keydown'));
+  assert.equal(playCalls, 0, 'Não tenta autoplay antes de uma interação.');
+  assert.equal(resumeCalls, 0, 'Não tenta desbloquear o contexto antes de uma interação.');
+  listeners.get('visibilitychange')();
+  await flush();
+  assert.equal(playCalls + resumeCalls, 0, 'Voltar à aba antes do primeiro gesto também aguarda.');
   blocked = false;
-  listeners.get('pointerdown')();
+  listeners.get('pointerdown')({ isTrusted: true });
   await flush();
   assert.equal(media[0].paused, false);
+  assert.equal(resumeCalls, 1);
   assert.equal(listeners.has('pointerdown') || listeners.has('keydown'), false, 'Retira os listeners após desbloquear.');
   window.document.hidden = true;
   listeners.get('visibilitychange')();

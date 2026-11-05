@@ -146,9 +146,16 @@
       scene.cyberMusic = sound;
       this.musicScene = scene;
       this.updateMusicVolume();
-      sound.unlock = () => {
+      sound.unlock = (event) => {
         if (scene.cyberMusic !== sound || global.document?.hidden) return;
-        context?.resume().catch(() => {});
+        if (event?.isTrusted || global.navigator?.userActivation?.hasBeenActive || context?.state === "running")
+          this.audioUnlocked = true;
+        if (!this.audioUnlocked) {
+          global.document?.addEventListener("pointerdown", sound.unlock, { once: true });
+          global.document?.addEventListener("keydown", sound.unlock, { once: true });
+          return;
+        }
+        if (context && context.state !== "running") context.resume().catch(() => {});
         sound.play().then(() => {
           global.document?.removeEventListener("pointerdown", sound.unlock);
           global.document?.removeEventListener("keydown", sound.unlock);
