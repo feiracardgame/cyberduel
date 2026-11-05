@@ -2727,7 +2727,7 @@ class CenaJogo extends Phaser.Scene {
     if (!this.fundoAnimadoAtivo()) {
       this.videoFundo?.destroy();
       this.videoFundo = null;
-      this.cameras.main.setBackgroundColor("#071f0f");
+      this.cameras.main.setBackgroundColor("#000000");
       return null;
     }
     const ajustarCover = (video, larguraNativa, alturaNativa) => {
