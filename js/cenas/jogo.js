@@ -2726,6 +2726,7 @@ class CenaJogo extends Phaser.Scene {
       if (!this.imagemFundo?.active)
         this.imagemFundo = this.add.image(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, "jogoFundo")
           .setDisplaySize(LARGURA_LAYOUT, ALTURA_LAYOUT).setDepth(-100);
+      else this.children.add(this.imagemFundo);
       return this.imagemFundo;
     }
     if (!this.fundoAnimadoAtivo()) {

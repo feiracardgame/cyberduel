@@ -88,6 +88,36 @@ const layouts = vm.runInContext('[LAYOUT_CAMPO_NORMAL, LAYOUT_CAMPO_AMPLIADO]', 
 }
 console.log('Cena: reutilização do campo, eventos incrementais, ociosidade e limpeza de listeners validados.');
 
+// O DisplayList do Phaser pode desanexar o fundo sem desativar a imagem.
+{
+  const list = [];
+  let created = 0;
+  const scene = Object.assign(Object.create(Scene.prototype), {
+    fundoBatalha: 'jogoFundo',
+    children: { add(image) { if (!list.includes(image)) list.push(image); } },
+    add: { image(x, y, key) {
+      created++;
+      const image = { active: true, x, y, key,
+        setDisplaySize(width, height) { Object.assign(this, { width, height }); return this; },
+        setDepth(depth) { this.depth = depth; return this; },
+      };
+      list.push(image);
+      return image;
+    } },
+  });
+  const background = scene.desenharFundoJogo();
+  assert.equal(background.key, 'jogoFundo');
+  assert.equal(background.depth, -100);
+  for (let i = 0; i < 5; i++) {
+    list.length = 0;
+    assert.equal(scene.desenharFundoJogo(), background);
+    assert.ok(list.includes(background), 'O fundo padrão volta à cena após redesenhar a interface.');
+  }
+  assert.equal(created, 1, 'Reutiliza a imagem sem recarregar a textura.');
+  background.active = false;
+  assert.notEqual(scene.desenharFundoJogo(), background, 'Recria uma imagem destruída.');
+}
+
 // Desligar libera o vídeo; redesenhar não o recria até reativar.
 {
   let enabled = 1, created = 0, destroyed = 0, ultimoFundo;
