@@ -6,7 +6,7 @@ class CyberduelTitleUI {
     this.callbacks = callbacks;
     this.modal = null;
     this.handleKeydown = (event) => {
-      if (event.key === "Escape") this.closeModal();
+      if (event.key === "Escape") this.goBack();
     };
   }
 
@@ -638,6 +638,11 @@ class CyberduelTitleUI {
         items,
       };
     });
+  }
+
+  goBack() {
+    if (this.modal) this.closeModal();
+    else if (this.cardMenuState?.mode === "options") this.closeCategoryOptions();
   }
 
   closeCategoryOptions() {

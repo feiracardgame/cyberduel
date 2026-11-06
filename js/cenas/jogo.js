@@ -788,6 +788,10 @@ class CenaJogo extends Phaser.Scene {
       this.inspecaoCartaPressionada = null;
     };
     const iniciar = (pointer, objetos) => {
+      // A tolerância acompanha os pixels da tela, inclusive após girar o celular.
+      const larguraTela = this.game.canvas.getBoundingClientRect?.().width;
+      if (larguraTela > 0)
+        this.input.dragDistanceThreshold = Math.max(8, 12 * this.scale.width / larguraTela);
       // Um novo down recupera gestos cujo release ocorreu com o input bloqueado.
       if (this.gestoInspecaoCarta?.pointer.id === pointer.id) cancelar();
       if (this.gestoInspecaoCarta || !this.podeConsultarCartas()) return;

@@ -2076,3 +2076,30 @@ const config = {
 const game = new Phaser.Game(config);
 window.cyberduelGame = game;
 window.cyberduelViewport?.attach(game);
+
+function voltarMenuJogo() {
+  if (game.scene.isActive("CenaDeckBuilder")) {
+    game.scene.getScene("CenaDeckBuilder").deckBuilderUI?.goBack();
+  } else if (game.scene.isActive("CenaTitulo")) {
+    const ui = game.scene.getScene("CenaTitulo").titleUI;
+    if (!ui?.modal && ui?.cardMenuState?.mode !== "options") return false;
+    ui.goBack();
+  } else if (game.scene.isActive("CenaJogo")) {
+    const cena = game.scene.getScene("CenaJogo");
+    if (cena.zoomAberto) cena.fecharZoomCarta();
+    else if (cena.painelDetalheAtual) cena.fecharDetalheCarta();
+    else if (cena.historicoAberto) cena.fecharHistorico();
+    else if (cena.rodaOpcoesContainer) cena.fecharOpcoesDaRoda();
+  } else return false;
+  return true;
+}
+
+// Uma entrada reutilizada mantém o botão Voltar dentro dos menus do jogo.
+if (window.history?.pushState && window.addEventListener) {
+  if (!window.history.state?.cyberduelMenu)
+    window.history.pushState({ ...window.history.state, cyberduelMenu: true }, "");
+  window.addEventListener("popstate", () => {
+    if (!voltarMenuJogo()) return window.history.back();
+    window.history.pushState({ ...window.history.state, cyberduelMenu: true }, "");
+  });
+}

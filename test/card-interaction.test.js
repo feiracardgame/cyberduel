@@ -14,14 +14,16 @@ const Scene = vm.runInContext('CenaJogo', context);
 const layoutWidth = vm.runInContext('LARGURA_LAYOUT', context);
 const pointer = id => ({ id, distance: 0, wasTouch: true, getDistance() { return this.distance; } });
 
-function inspection() {
+function inspection(displayWidth) {
   const input = Object.assign(new EventEmitter(), { dragDistanceThreshold: 8 });
   const events = new EventEmitter(), gameEvents = new EventEmitter(), timers = [], opened = [];
   const canvas = new class extends EventTarget {
     addEventListener(name, handler) { super.addEventListener(name, handler); this.handler = handler; }
     removeEventListener(name, handler) { super.removeEventListener(name, handler); this.handler = null; }
   }();
+  if (displayWidth) canvas.getBoundingClientRect = () => ({ width: displayWidth });
   const scene = Object.assign(Object.create(Scene.prototype), {
+    scale: { width: 1000 },
     input, events, game: { events: gameEvents, canvas }, canConsult: true, gestoMaoAtivo: true,
     podeConsultarCartas() { return this.canConsult; },
     voltarMaoParaPosicao() { this.handRestored = true; },
@@ -40,6 +42,19 @@ function inspection() {
     begin(p = first, objects = [container]) { input.emit('pointerdown', p, objects); },
     fire() { for (const timer of timers.splice(0)) if (!timer.removed) timer.callback(); },
   };
+}
+
+{
+  const f = inspection(400);
+  f.begin();
+  assert.equal(f.input.dragDistanceThreshold, 30);
+  f.first.distance = 20; f.input.emit('pointermove', f.first); f.fire();
+  assert.deepEqual(f.opened, [f.card], 'Segurar no primeiro toque tolera o tremor do dedo em canvas reduzido.');
+  f.events.emit('shutdown');
+  const drag = inspection(400);
+  drag.begin(); drag.first.distance = 40; drag.input.emit('pointermove', drag.first); drag.fire();
+  assert.equal(drag.opened.length, 0, 'Um arraste real continua cancelando a inspeção.');
+  drag.events.emit('shutdown');
 }
 
 {

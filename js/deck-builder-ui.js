@@ -1034,7 +1034,12 @@ class CyberduelDeckBuilderUI {
 
   onKeydown(event) {
     if (event.key !== "Escape") return;
+    this.goBack();
+  }
+
+  goBack() {
     if (this.modal) this.closeModal();
+    else if (this.mobileView === "deck") this.showMobileView("collection");
     else this.tryExit();
   }
 
