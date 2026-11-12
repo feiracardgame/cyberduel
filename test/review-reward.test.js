@@ -51,9 +51,11 @@ async function play(user, result) {
     const user = users[index];
     const initial = (await api(user, 'account/faction', { faction })).body;
     assert.equal(initial.review.due, false);
-    assert.equal((await play(user, 'jogador')).review.due, false);
+    const result = index === 0 ? 'inimigo' : 'jogador';
+    assert.equal((await play(user, result)).review.due, false);
     assert.equal((await api(user, 'account/review', { action: 'claim' })).status, 409);
-    assert.equal((await play(user, 'inimigo')).review.due, true, 'Vitória e derrota contam igualmente.');
+    assert.equal((await play(user, result)).review.due, true,
+      'Duas derrotas contra o bot liberam o convite, assim como duas vitórias.');
     const skipped = await api(user, 'account/review', { action: 'dismiss' });
     assert.equal(skipped.status, 200);
     assert.equal(skipped.body.review.due, false);

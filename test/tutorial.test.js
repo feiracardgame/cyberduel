@@ -118,9 +118,13 @@ async function connect() { const s = io(url, { transports: ['websocket'], forceN
   storyScene.account.review = { due: true };
   await story.menu();
   assert.equal(reviewInvites, 1, 'O retorno ao menu abre o convite de avaliação quando devido.');
+  storyScene.account.tutorial.boosterTutorialStarted = true;
+  await story.menu();
+  assert.equal(reviewInvites, 2, 'O guia de boosters pendente não esconde o convite após duas partidas.');
+  storyScene.account.tutorial.boosterTutorialStarted = false;
   storyScene.account.review = { due: false, clicked: true };
   await story.menu();
-  assert.equal(reviewInvites, 1, 'Quem já clicou não recebe outro convite.');
+  assert.equal(reviewInvites, 2, 'Quem já clicou não recebe outro convite.');
   let trainingStarts = 0;
   storyScene.iniciarTutorial = () => { trainingStarts++; };
   storyScene.account.tutorial.wantsTutorial = true;

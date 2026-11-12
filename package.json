@@ -26,6 +26,7 @@
     "test:boosters:browser": "node scripts/test-booster-playwright.js",
     "test:card-detail:browser": "node scripts/test-card-detail-playwright.js",
     "test:card-interaction:browser": "node scripts/test-card-interaction-playwright.js",
+    "test:review:browser": "node scripts/test-review-playwright.js",
     "test:x1-offline:browser": "node scripts/test-x1-offline-playwright.js",
     "test:tutorial:browser": "node scripts/test-tutorial-playwright.js",
     "test:tutorial-boosters:browser": "node scripts/test-tutorial-booster-playwright.js",

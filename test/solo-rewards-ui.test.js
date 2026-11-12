@@ -65,6 +65,29 @@ const flush = () => new Promise(resolve => setImmediate(resolve));
   assert.equal(await retry.registrarRecompensaSolo({ resultado: 'inimigo' }), 0);
   assert.equal(attempts, 2);
 
+  let losses = 0;
+  context.window.cyberduelAccount.recordMatch = async (id, result) => {
+    assert.equal(result, 'inimigo');
+    losses++;
+    return 0;
+  };
+  for (let game = 0; game < 2; game++) {
+    const defeat = { fimDeJogo: true, resultadoCombate: { resultado: 'inimigo' }, resultadoRodada: { vencedor: 'inimigo' } };
+    const lost = Object.assign(Object.create(Game.prototype), {
+      soloMatchStart: Promise.resolve({ matchId: `lost-${game}` }), soloStep: 3, soloStarter: 1,
+      partida: { fimTurno: () => defeat },
+      apresentarEventosEfeito() {}, efeitosOponentePendentes: () => false,
+      mostrarBannerRodada() {}, desenharInterface() {},
+    });
+    lost.avancarFaseSolo();
+    await flush();
+    assert.equal(lost.recompensaRecebida, 0);
+    assert.equal(lost.partidaRegistradaNaConta, true, 'A derrota contra o bot é registrada mesmo sem prêmio.');
+    assert.equal(losses, game + 1);
+    assert.equal(await lost.registrarRecompensaSolo(defeat.resultadoCombate), 0);
+  }
+  assert.equal(losses, 2, 'Cada derrota contra o bot conta uma única vez para a avaliação.');
+
   const excluded = Object.assign(Object.create(Game.prototype), {
     soloMatchStart: Promise.resolve({ matchId: 'solo-id' }), partidaRegistradaNaConta: true,
   });

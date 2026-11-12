@@ -24,6 +24,8 @@ Após duas partidas registradas (solo ou multiplayer, com qualquer resultado), o
 
 Para abrir uma prévia do modal em qualquer tela, use `testarAvaliacao()` no console (F12). Funciona antes de duas partidas e depois do resgate; não altera a conta nem entrega boosters. **Agora não** ou Escape fecha a prévia.
 
+`npm run test:review:browser` verifica duas derrotas seguidas contra o bot pelo fluxo de partida, incluindo uma conta com o guia de boosters pendente. O convite de avaliação tem prioridade sobre esse guia. O teste usa contas temporárias na porta 32152 (`REVIEW_TEST_PORT` altera a porta).
+
 ### Testar os efeitos do Sindicato com Playwright
 
 Execute `npm run test:sindicato:browser`. O teste abre uma arena real, prepara campos determinísticos e usa toques no botão de habilidade e nos alvos para verificar as dez cartas do booster. Ele valida as regras, a reprodução dos sons, os símbolos, o vídeo dos Professores, a expiração dos estados, a serialização e a orientação da apresentação. O servidor usa contas e dados temporários, sem alterar as contas do jogo. Capturas, relatório e trace ficam em `output/sindicato/`.

@@ -281,9 +281,9 @@ class CyberduelStory {
       if (scene.scene.isActive()) {
         scene.titleUI.destroy(); scene.montarInterfaceTitulo();
         if (!new URLSearchParams(location.search).get("room")) {
-          if (account.tutorial.boosterTutorialStarted && !account.tutorial.boosterTutorialSeen && account.authProvider !== "offline")
+          if (account.review?.due && !scene.multiplayer.room) scene.titleUI.openReviewDialog();
+          else if (account.tutorial.boosterTutorialStarted && !account.tutorial.boosterTutorialSeen && account.authProvider !== "offline")
             new CyberduelBoosterTraining(scene.titleUI);
-          else if (account.review?.due && !scene.multiplayer.room) scene.titleUI.openReviewDialog();
           else if (!account.tutorial.menuTourSeen) scene.titleUI.openMenuTour?.();
         }
         const params = new URLSearchParams(location.search);
