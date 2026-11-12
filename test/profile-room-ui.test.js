@@ -56,6 +56,7 @@ const byLabel = label => find(ui.modal, el => el.attributes['aria-label'] === la
   assert.deepEqual(byClass('player-id__stats').children.map(el => el.children[1].textContent), ['7', '3', '4', '2']);
   assert.equal(byClass('player-id__faction').textContent, 'ECHOSSYSTEM');
   assert.equal(byClass('player-id__access').dataset.unlocked, 'true');
+  assert.equal(byClass('player-id__review').textContent, 'Avaliação do jogo: pendente');
   assert.equal(byLabel('Fechar carteirinha').focused, true, 'Abrir a carteirinha pelo topo.');
   const nickname = byLabel('Apelido');
   assert.equal(byClass('profile-save'), undefined);
@@ -75,7 +76,9 @@ const byLabel = label => find(ui.modal, el => el.attributes['aria-label'] === la
   assert.equal(saves, 1); assert.equal(ui.account.nickname, 'Bia');
   assert.equal(ui.account.avatar, ui.account.profilePhotos[0]);
   assert.equal(ui.modal, null); assert.equal(notifications, 1);
+  ui.account.review = { clicked: true };
   ui.openProfileScreen();
+  assert.equal(byClass('player-id__review').textContent, 'Avaliação do jogo: realizada ✓');
   await ui.closeModal();
   assert.equal(saves, 1, 'Fechar sem alterações não envia outra gravação.');
   ui.openProfileScreen();
@@ -91,10 +94,11 @@ const byLabel = label => find(ui.modal, el => el.attributes['aria-label'] === la
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(ui.modal, null); assert.equal(ui.account.nickname, 'Carol');
   assert.equal(saves, 2, 'Escape também salva as alterações.');
-  Object.assign(ui.account, { faction: null, humanGames: 0, humanWins: 0, clubGames: 0, clubWins: 0, clubUnlocked: false });
+  Object.assign(ui.account, { faction: null, humanGames: 0, humanWins: 0, clubGames: 0, clubWins: 0, clubUnlocked: false, review: { clicked: false } });
   ui.openProfileScreen();
   assert.deepEqual(byClass('player-id__stats').children.map(el => el.children[1].textContent), ['0', '0', '0', '0']);
   assert.equal(byClass('player-id__access').dataset.unlocked, 'false');
+  assert.equal(byClass('player-id__review').textContent, 'Avaliação do jogo: pendente');
   assert.match(byClass('player-id__note').textContent, /indisponível/);
   ui.closeModal(true);
 

@@ -1473,6 +1473,9 @@ class CyberduelTitleUI {
       identity,
       userHint,
       this.element("p", "profile-note", `${this.account.gamesPlayed || 0} partidas no total`),
+      this.element("p", "profile-note player-id__review", this.account.review?.clicked
+        ? "Avaliação do jogo: realizada ✓"
+        : "Avaliação do jogo: pendente"),
       stats,
       ...(this.account.councilMember ? [this.element("p", "player-id__council", "✦ MEMBRO DO CONSELHO · TOP 10 ✦")] : []),
       access,
