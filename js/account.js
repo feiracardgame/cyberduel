@@ -19,6 +19,7 @@ class CyberduelAccount {
     this.collection = {};
     this.starterCollection = {};
     this.gamesPlayed = 0;
+    this.review = null;
     this.tutorial = null;
     this.humanGames = 0;
     this.humanWins = 0;
@@ -63,6 +64,7 @@ class CyberduelAccount {
       collection: this.collection,
       starterCollection: this.starterCollection,
       gamesPlayed: this.gamesPlayed,
+      review: this.review,
       tutorial: this.tutorial, humanGames: this.humanGames, humanWins: this.humanWins,
       clubGames: this.clubGames, clubWins: this.clubWins,
       clubUnlocked: this.clubUnlocked, councilReached: this.councilReached, councilMember: this.councilMember,
@@ -141,6 +143,7 @@ class CyberduelAccount {
     this.boosters = Array.isArray(payload.boosters) ? payload.boosters : [];
     this.starterCollection = payload.starterCollection || {};
     this.gamesPlayed = Math.max(0, Number(payload.gamesPlayed) || 0);
+    this.review = payload.review || null;
     this.tutorial = payload.tutorial || null;
     this.humanGames = Math.max(0, Number(payload.humanGames) || 0);
     this.humanWins = Math.max(0, Number(payload.humanWins) || 0);
@@ -526,6 +529,11 @@ class CyberduelAccount {
     return payload.reward;
   }
 
+  async respondReview(action) {
+    const payload = await this.request("/api/account/review", { method: "POST", body: { action } });
+    return this.applyAuth(payload, false);
+  }
+
   async logout() {
     try {
       if (this.token)
@@ -536,6 +544,7 @@ class CyberduelAccount {
   }
 
   clear() {
+    this.review = null;
     this.tutorial = null;
     this.humanGames = this.humanWins = 0;
     this.clubGames = this.clubWins = 0;

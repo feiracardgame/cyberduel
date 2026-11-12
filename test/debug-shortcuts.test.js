@@ -17,6 +17,26 @@ const manager = { isActive: key => key === 'CenaJogo', getScene: () => scene };
 const context = vm.createContext({ window: { cyberduelAccount: { user: "Admin", isAdmin: true, token: "token" } }, game: { scene: manager } });
 vm.runInContext(fs.readFileSync('js/debug.js', 'utf8'), context);
 (async () => {
+  {
+    let previews = 0, present = false, removed = false;
+    const account = { review: { clicked: true, due: false }, boosters: [] };
+    const preview = vm.createContext({ window: { cyberduelAccount: account },
+      document: { querySelector: () => present, body: { append() { present = true; } } },
+      CyberduelTitleUI: class {
+        constructor({ account: current }) { assert.equal(current, account); }
+        element() { return { remove() { present = false; removed = true; } }; }
+        openReviewDialog(testMode) { assert.equal(testMode, true); previews++; this.modalAfterClose(); }
+      },
+    });
+    vm.runInContext(fs.readFileSync('js/debug.js', 'utf8'), preview);
+    assert.match(preview.window.testarAvaliacao(), /Prévia aberta/);
+    assert.equal(previews, 1);
+    assert.equal(removed, true);
+    assert.deepEqual(account, { review: { clicked: true, due: false }, boosters: [] });
+    present = true;
+    assert.match(preview.window.testarAvaliacao(), /já está aberto/);
+    assert.equal(previews, 1, 'Chamadas repetidas não empilham modais.');
+  }
   context.window.cyberduelAccount.isAdmin = false;
   await assert.rejects(context.window.modoDemo(), /administradora/);
   await assert.rejects(context.window.enviarAvisoGeral('Teste'), /administradora/);

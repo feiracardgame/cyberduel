@@ -2747,6 +2747,55 @@ body.title-terminal-open #game-viewport canvas {
   transform: none;
 }
 
+.review-dialog { text-align: center; }
+.review-preview { z-index: 16000; background: transparent; }
+.title-dialog.review-dialog > p { color: #c0cfc6; font-size: 16px; }
+.review-dialog__reward { display: block; margin: 24px 0; font-size: clamp(18px, 4vw, 26px); }
+.review-dialog__reward, .review-dialog__bonus {
+  background: linear-gradient(90deg, #ff5ebd, #ffe66a, #64ffac, #65dcff, #c68aff, #ff5ebd);
+  background-size: 300% 100%; background-clip: text; -webkit-background-clip: text; color: transparent;
+  filter: drop-shadow(0 0 8px #ff5ebd80);
+  animation: review-rgb 1.3s linear infinite alternate, review-reward-glow 1.6s ease-in-out infinite alternate;
+}
+.review-dialog__rate {
+  position: relative; overflow: hidden;
+  display: flex; align-items: center; justify-content: center; min-height: 64px;
+  padding: 14px 20px; border: 2px solid #fff; border-radius: 12px;
+  color: #fff; font-size: clamp(18px, 4.5vw, 26px); font-weight: 900; text-decoration: none;
+  text-shadow: 0 2px 4px #000b;
+  background: linear-gradient(110deg, #ff91bb, #ffd46a, #83ffb6, #86d8ff, #d5a1ff, #ff91bb);
+  background-size: 300% 100%; box-shadow: 0 0 28px #80d9ff70;
+  animation: review-rgb 3s ease-in-out infinite alternate, review-attention 1.8s ease-in-out infinite;
+}
+.review-dialog__rate::after {
+  content: ""; position: absolute; inset: -30% auto -30% 0; width: 40%; pointer-events: none;
+  background: linear-gradient(110deg, transparent, #ffffffa0, transparent);
+  animation: review-shine 1.3s ease-in-out infinite;
+}
+.review-dialog__rate:hover { filter: brightness(1.08); }
+.review-dialog .review-dialog__later {
+  display: block; min-height: 44px; margin: 20px auto 0; padding: 8px 16px;
+  border: 0; background: transparent; color: #a4a9b3; font: inherit; font-size: 14px; cursor: pointer;
+}
+.review-dialog :is(a, button):focus-visible { outline: 3px solid #fff; outline-offset: 4px; }
+.review-dialog [aria-disabled="true"], .review-dialog button:disabled { cursor: wait; }
+@keyframes review-rgb { to { background-position: 100% 50%; } }
+@keyframes review-reward-glow { to { filter: drop-shadow(0 0 14px #65dcffb0); } }
+@keyframes review-attention {
+  0%, 100% { transform: translateY(0) rotate(0) scale(1); }
+  25% { transform: translateY(-4px) rotate(-1deg) scale(1.02); }
+  50% { transform: translateY(-2px) rotate(1deg) scale(1.01); box-shadow: 0 0 38px #80d9ffb0, 0 0 58px #d58aff70; }
+  75% { transform: translateY(-5px) rotate(-0.5deg) scale(1.02); }
+}
+@keyframes review-shine {
+  0%, 25% { transform: translateX(-200%); }
+  70%, 100% { transform: translateX(350%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .review-dialog__reward, .review-dialog__bonus, .review-dialog__rate, .review-dialog__rate::after { animation: none; }
+  .review-dialog__rate::after { display: none; }
+}
+
 .title-dialog h2 {
   margin: 8px 0 8px;
   font-size: 27px;

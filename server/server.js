@@ -154,6 +154,7 @@ function ensureAccountDefaults(account) {
     if (!Number.isSafeInteger(account[key]) || account[key] < 0) account[key] = 0;
   if (!account.statsTrackedSince) account.statsTrackedSince = new Date().toISOString();
   if (!Number.isFinite(account.gamesPlayed)) account.gamesPlayed = 0;
+  if (!account.review) account.review = { clicked: false, nextAt: 2 };
   if (!Number.isFinite(account.rating)) account.rating = 1000;
   for (const key of ["rankedGames", "rankedWins", "rankedLosses"])
     if (!Number.isFinite(account[key])) account[key] = 0;
@@ -452,6 +453,7 @@ function publicAccount(account) {
     faction: account.faction,
     currency: account.currency,
     gamesPlayed: account.gamesPlayed,
+    review: { clicked: account.review.clicked === true, due: !account.review.clicked && Boolean(account.faction) && account.gamesPlayed >= account.review.nextAt },
     humanGames: account.humanGames, humanWins: account.humanWins,
     clubGames: account.clubGames, clubWins: account.clubWins,
     tutorial: account.tutorial, councilReached: Boolean(account.councilReached),
@@ -738,6 +740,36 @@ async function handleApi(request, response, pathname) {
     "/api/auth/session", "/api/auth/logout", "/api/account/profile",
   ].includes(pathname))
     return sendJson(response, 403, { ok: false, error: "Escolha seu nick único antes de continuar." });
+
+  if (request.method === "POST" && pathname === "/api/account/review") {
+    if (!pending) return sendJson(response, 401, { ok: false, error: "Entre na sua conta para receber o booster." });
+    const body = await readJson(request);
+    if (!["dismiss", "claim"].includes(body.action))
+      return sendJson(response, 400, { ok: false, error: "Ação inválida." });
+    const account = ensureAccountDefaults(pending.account);
+    if (account.review.clicked) return sendJson(response, 200, { ok: true, ...publicAccount(account) });
+    if (!account.faction || account.gamesPlayed < account.review.nextAt)
+      return sendJson(response, 409, { ok: false, error: "Jogue mais duas partidas para receber o convite de avaliação." });
+    const previousReview = account.review;
+    const previousBoosters = account.boosters;
+    const updatedAt = account.updatedAt;
+    if (body.action === "claim") {
+      // shortcut: o clique confirma a avaliação; validar o envio exige integração com o formulário.
+      const faction = account.faction === "raspcorp" ? "echossystem" : "raspcorp";
+      account.boosters = [...account.boosters, { id: `review-${randomBytes(16).toString("hex")}`, faction,
+        cards: rollBooster(faction, account.gamesPlayed), purchasedAt: new Date().toISOString() }];
+      account.review = { ...account.review, clicked: true };
+    } else account.review = { ...account.review, nextAt: account.gamesPlayed + 2 };
+    account.updatedAt = new Date().toISOString();
+    try { saveAccounts(); } catch (error) {
+      account.review = previousReview;
+      account.boosters = previousBoosters;
+      account.updatedAt = updatedAt;
+      error.reviewPersistence = true;
+      throw error;
+    }
+    return sendJson(response, 200, { ok: true, ...publicAccount(account) });
+  }
 
   if (request.method === "POST" && pathname === "/api/account/redeem-card") {
     if (!pending) return sendJson(response, 401, { ok: false, error: "Entre na sua conta para resgatar uma carta." });
@@ -1606,9 +1638,9 @@ function serveGame(request, response) {
       console.error("Falha na API:", error.message);
       if (!response.headersSent && error.accountBan) return sendJson(response, 403, error.accountBan);
       if (!response.headersSent)
-        sendJson(response, error.marketPersistence || error.soloPersistence ? 500 : error.message === "PAYLOAD_TOO_LARGE" ? 413 : 400, {
+        sendJson(response, error.marketPersistence || error.soloPersistence || error.reviewPersistence ? 500 : error.message === "PAYLOAD_TOO_LARGE" ? 413 : 400, {
           ok: false,
-          error: error.soloPersistence ? "Não foi possível salvar sua recompensa. Tente novamente." : "Não foi possível processar a requisição.",
+          error: error.soloPersistence || error.reviewPersistence ? "Não foi possível salvar sua recompensa. Tente novamente." : "Não foi possível processar a requisição.",
         });
     });
     return;

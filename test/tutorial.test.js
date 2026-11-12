@@ -113,6 +113,14 @@ async function connect() { const s = io(url, { transports: ['websocket'], forceN
   storyScene.account = { user: 'old', faction: 'raspcorp', tutorial: { introSeen: true, named: true,
     wantsTutorial: false, completed: true, farewellSeen: true, seen: [] }, gamesPlayed: 0, humanWins: 0 };
   await story.menu(); assert.equal(introductions, 2, 'Contas antigas entram no menu.');
+  let reviewInvites = 0;
+  storyScene.titleUI.openReviewDialog = () => { reviewInvites++; };
+  storyScene.account.review = { due: true };
+  await story.menu();
+  assert.equal(reviewInvites, 1, 'O retorno ao menu abre o convite de avaliação quando devido.');
+  storyScene.account.review = { due: false, clicked: true };
+  await story.menu();
+  assert.equal(reviewInvites, 1, 'Quem já clicou não recebe outro convite.');
   let trainingStarts = 0;
   storyScene.iniciarTutorial = () => { trainingStarts++; };
   storyScene.account.tutorial.wantsTutorial = true;

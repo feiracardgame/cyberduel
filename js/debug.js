@@ -36,6 +36,16 @@ window.testarNomeCensurado = () => {
   return "Prévia local aberta. Use FECHAR TESTE ou Escape para sair; sua conta não será alterada.";
 };
 
+window.testarAvaliacao = () => {
+  if (document.querySelector('[data-kind="review"]')) return "O modal de avaliação já está aberto.";
+  const ui = new CyberduelTitleUI({ account: window.cyberduelAccount, callbacks: {} });
+  ui.root = ui.element("div", "title-terminal is-ready review-preview");
+  document.body.append(ui.root);
+  ui.modalAfterClose = () => ui.root.remove();
+  ui.openReviewDialog(true);
+  return "Prévia aberta. Agora não ou Escape fecha; sua conta e seus boosters não serão alterados.";
+};
+
 // Moderação real, restrita a administradores e direcionada pelo username da conta.
 window.banirConta = async (username, reason = "") => {
   requireAdminAccount();

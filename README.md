@@ -20,6 +20,10 @@ O treino com a ElenAI ensina esses gestos com uma inspeção inicial e destaques
 
 `npm run test:card-interaction:browser` verifica os gestos com mouse e toque em celular e desktop. Usa dados temporários na porta 31969; capturas e relatório ficam em `output/sindicato/card-interaction/`.
 
+Após duas partidas registradas (solo ou multiplayer, com qualquer resultado), o retorno ao menu convida a avaliar o jogo. **Agora não**, Escape e voltar adiam o convite por mais duas partidas. O clique em **AVALIE AGORA!!** abre o Google Forms e entrega um booster gratuito da facção oposta no inventário, uma única vez por conta. O clique basta para resgatar: o envio do formulário não é verificado. A confirmação e o adiamento persistem na conta, inclusive ao trocar de navegador.
+
+Para abrir uma prévia do modal em qualquer tela, use `testarAvaliacao()` no console (F12). Funciona antes de duas partidas e depois do resgate; não altera a conta nem entrega boosters. **Agora não** ou Escape fecha a prévia.
+
 ### Testar os efeitos do Sindicato com Playwright
 
 Execute `npm run test:sindicato:browser`. O teste abre uma arena real, prepara campos determinísticos e usa toques no botão de habilidade e nos alvos para verificar as dez cartas do booster. Ele valida as regras, a reprodução dos sons, os símbolos, o vídeo dos Professores, a expiração dos estados, a serialização e a orientação da apresentação. O servidor usa contas e dados temporários, sem alterar as contas do jogo. Capturas, relatório e trace ficam em `output/sindicato/`.

@@ -4159,6 +4159,64 @@ class CyberduelTitleUI {
     requestAnimationFrame(() => overlay.classList.add("is-visible"));
   }
 
+  openReviewDialog(preview = false) {
+    if (this.modal || (!preview && !this.account?.review?.due)) return;
+    const overlay = this.createModal("review");
+    const dialog = this.element("section", "title-dialog review-dialog");
+    dialog.setAttribute("role", "dialog");
+    dialog.setAttribute("aria-modal", "true");
+    dialog.setAttribute("aria-labelledby", "review-heading");
+    const heading = this.element("h2", "", "Gostou do jogo?");
+    heading.id = "review-heading";
+    const copy = this.element("p", "", "Avalie-nos nesse formulário! É apenas uma questão e você ganha um ");
+    copy.append(this.element("strong", "review-dialog__bonus", "BOOSTER GRÁTIS!!"));
+    const faction = this.account?.faction === "raspcorp" ? "ECHOSSYSTEM" : "RASPCORP";
+    const reward = this.element("strong", "review-dialog__reward", `1 BOOSTER ${faction} GRÁTIS`);
+    const error = this.element("p", "title-dialog__error");
+    error.setAttribute("role", "status");
+    if (preview) error.textContent = "Prévia: nenhum booster será resgatado.";
+    const rate = this.element("a", "review-dialog__rate", "AVALIE AGORA!!");
+    rate.href = "https://docs.google.com/forms/d/e/1FAIpQLSeeleFRJ3PbTeX9nmxFtfqF_3VMD6bBGixNGFODEtqjbHGK9A/viewform?entry.52413313=Cyberduel";
+    rate.target = "_blank";
+    rate.rel = "noopener noreferrer";
+    let busy = false;
+    const respond = async action => {
+      if (busy) return;
+      if (preview) { this.modalBeforeClose = null; this.closeModal(true); return; }
+      busy = true;
+      later.disabled = true;
+      rate.setAttribute("aria-disabled", "true");
+      error.textContent = action === "claim" ? "Entregando seu booster…" : "Salvando…";
+      try {
+        await this.account.respondReview(action);
+        this.modalBeforeClose = null;
+        this.closeModal(true);
+        if (action === "claim" && this.root?.isConnected) this.openBoosterInventory();
+      } catch (failure) {
+        error.textContent = failure.message || "Não foi possível salvar. Tente novamente.";
+      } finally {
+        busy = false;
+        later.disabled = false;
+        rate.removeAttribute("aria-disabled");
+      }
+    };
+    rate.addEventListener("click", event => {
+      if (busy) { event.preventDefault(); return; }
+      respond("claim");
+    });
+    const later = this.button("review-dialog__later", "Agora não", () => this.closeModal());
+    overlay.addEventListener("keydown", event => {
+      if (preview && event.key === "Escape") { event.stopPropagation(); this.closeModal(); return; }
+      if (event.key !== "Tab") return;
+      event.preventDefault();
+      (document.activeElement === rate && !later.disabled ? later : rate).focus();
+    });
+    this.modalBeforeClose = () => respond("dismiss");
+    dialog.append(heading, copy, reward, rate, later, error);
+    overlay.append(dialog);
+    requestAnimationFrame(() => { overlay.classList.add("is-visible"); rate.focus(); });
+  }
+
   createModal(kind) {
     const overlay = this.element("div", "title-modal");
     overlay.dataset.kind = kind;
