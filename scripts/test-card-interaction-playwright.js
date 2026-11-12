@@ -106,9 +106,10 @@ async function hold(point, mobile, move = false) {
   if (move) {
     const moved = { x: screen.x + 30, y: screen.y };
     if (mobile) await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ ...moved, id: 0 }] });
-    else await page.mouse.move(moved.x, moved.y, { steps: 4 });
+    else await page.mouse.move(moved.x, moved.y);
   }
-  await page.waitForTimeout(520);
+  if (move) await page.waitForTimeout(520);
+  else await page.waitForFunction(() => game.scene.getScene('CenaJogo').modalAberto);
   const opened = await page.evaluate(() => !!game.scene.getScene('CenaJogo').modalAberto);
   assert.equal(opened, !move, `${mobile ? 'Toque' : 'Mouse'}: segurar ${move ? 'com movimento cancela' : 'abre'} a ficha.`);
   if (mobile) await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
@@ -136,6 +137,28 @@ async function testViewport(viewport) {
   await page.goto(base, { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => typeof game !== 'undefined' && game.scene.isActive('CenaTitulo') &&
     !game.scene.getScene('CenaTitulo').restaurandoConta && cyberduelAccount.user, null, { timeout: 120000 });
+  await page.evaluate(() => {
+    const ui = game.scene.getScene('CenaTitulo').titleUI;
+    ui.closeModal(true);
+  });
+  await page.waitForFunction(() => !game.scene.getScene('CenaTitulo').titleUI.cardMenuTransitioning);
+  await page.evaluate(() => game.scene.getScene('CenaTitulo').titleUI.openCategoryOptions('partidas'));
+  await page.waitForFunction(() => {
+    const ui = game.scene.getScene('CenaTitulo').titleUI;
+    return ui.cardMenuState.mode === 'options' && !ui.cardMenuTransitioning;
+  });
+  await page.evaluate(() => history.back());
+  await page.waitForFunction(() => game.scene.getScene('CenaTitulo').titleUI.cardMenuState.mode === 'categories');
+  assert.equal(page.url(), base + '/', 'Voltar sobe o menu sem sair do jogo.');
+  await page.evaluate(() => game.scene.getScene('CenaTitulo').scene.start('CenaDeckBuilder'));
+  await page.waitForFunction(() => game.scene.getScene('CenaDeckBuilder').deckBuilderUI?.root?.isConnected);
+  await page.evaluate(() => { game.scene.getScene('CenaDeckBuilder').deckBuilderUI.dirty = true; history.back(); });
+  await page.waitForFunction(() => game.scene.getScene('CenaDeckBuilder').deckBuilderUI.modal?.dataset.kind === 'confirm');
+  await page.evaluate(() => history.back());
+  await page.waitForFunction(() => !game.scene.getScene('CenaDeckBuilder').deckBuilderUI.modal);
+  assert.equal(await page.evaluate(() => game.scene.isActive('CenaDeckBuilder')), true, 'Voltar cancela o descarte do deck.');
+  await page.evaluate(() => { game.scene.getScene('CenaDeckBuilder').deckBuilderUI.dirty = false; history.back(); });
+  await page.waitForFunction(() => game.scene.isActive('CenaTitulo'));
   await page.evaluate(() => game.scene.getScene('CenaTitulo').scene.start('CenaJogo', { debug: true }));
   await page.waitForFunction(() => game.scene.isActive('CenaJogo') && game.scene.isActive('CenaEfeitos'));
 
@@ -211,6 +234,12 @@ async function testViewport(viewport) {
   for (const mobile of [false, true]) {
     await setup(); await hold(await cardPoint(), mobile);
     await setup(); await hold(await cardPoint(), mobile, true);
+  }
+  for (const mobile of [false, true]) {
+    await setup({ phase: 'colocar' });
+    await hold(await cardPoint('jogador', 5, true), mobile);
+    await page.evaluate(() => history.back());
+    await page.waitForFunction(() => !game.scene.getScene('CenaJogo').modalAberto);
   }
   await setup({ phase: 'colocar' });
   await tap(await cardPoint('jogador', 5, true));

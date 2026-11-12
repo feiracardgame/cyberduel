@@ -207,7 +207,7 @@ class CyberduelAccount {
       const userAgent = window.navigator?.userAgent || "";
       if (/FBAN|FBAV|Instagram|\bwv\b/i.test(userAgent))
         throw new Error("Abra este endereço no Chrome ou Safari para entrar com Google. O navegador interno deste aplicativo não é compatível.");
-      const redirect = /Android|iPhone|iPad|iPod/i.test(userAgent) ||
+      const redirect = /Android|iPhone|iPad|iPod|Firefox\//i.test(userAgent) ||
         (window.navigator?.platform === "MacIntel" && window.navigator.maxTouchPoints > 1);
       const login = await this.request("/api/auth/google/start", { method: "POST", auth: false,
         ...(redirect ? { credentials: "include", body: { redirect: true, returnTo: window.location.href } } : {}),

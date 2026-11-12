@@ -212701,12 +212701,14 @@ var WebGLTextureWrapper = new Class({
     {
         var gl = this.renderer.gl;
 
+        var domSource = this.pixels && !this.pixels.compressed && !(this.pixels instanceof Uint8Array);
+
         this.renderer.glTextureUnits.bind(this, 0);
         this.renderer.glWrapper.updateTexturing({
             texturing:
             {
-                flipY: this.flipY,
-                premultiplyAlpha: this.pma
+                flipY: domSource ? this.flipY : false,
+                premultiplyAlpha: domSource ? this.pma : false
             }
         });
 
@@ -227002,6 +227004,11 @@ var WebAudioSoundManager = new Class({
      */
     onGameVisible: function ()
     {
+        if (this.locked)
+        {
+            return;
+        }
+
         var context = this.context;
 
         //  setTimeout to avoid weird audio artifacts (thanks Apple)

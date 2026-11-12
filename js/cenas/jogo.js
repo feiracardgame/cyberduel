@@ -788,6 +788,10 @@ class CenaJogo extends Phaser.Scene {
       this.inspecaoCartaPressionada = null;
     };
     const iniciar = (pointer, objetos) => {
+      // A tolerância acompanha os pixels da tela, inclusive após girar o celular.
+      const larguraTela = this.game.canvas.getBoundingClientRect?.().width;
+      if (larguraTela > 0)
+        this.input.dragDistanceThreshold = Math.max(8, 12 * this.scale.width / larguraTela);
       // Um novo down recupera gestos cujo release ocorreu com o input bloqueado.
       if (this.gestoInspecaoCarta?.pointer.id === pointer.id) cancelar();
       if (this.gestoInspecaoCarta || !this.podeConsultarCartas()) return;
@@ -2722,12 +2726,13 @@ class CenaJogo extends Phaser.Scene {
       if (!this.imagemFundo?.active)
         this.imagemFundo = this.add.image(LARGURA_LAYOUT / 2, ALTURA_LAYOUT / 2, "jogoFundo")
           .setDisplaySize(LARGURA_LAYOUT, ALTURA_LAYOUT).setDepth(-100);
+      else this.children.add(this.imagemFundo);
       return this.imagemFundo;
     }
     if (!this.fundoAnimadoAtivo()) {
       this.videoFundo?.destroy();
       this.videoFundo = null;
-      this.cameras.main.setBackgroundColor("#071f0f");
+      this.cameras.main.setBackgroundColor("#000000");
       return null;
     }
     const ajustarCover = (video, larguraNativa, alturaNativa) => {
