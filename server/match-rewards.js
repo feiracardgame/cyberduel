@@ -7,7 +7,7 @@ function onlineRewards(room) {
 
   const identities = accounts.map(account => account.googleSub || account.username);
   if (identities[0] === identities[1]) return [0, 0];
-  const [win, loss] = room.table === 5 ? [100, 50] : room.presentation ? [50, 25] : [20, 10];
+  const [win, loss] = room.table === 5 ? [450, 50] : room.presentation ? [320, 25] : [150, 10];
   const rewards = winner === "jogador" ? [win, loss] : [loss, win];
   if ([1, 2].includes(room.surrenderedBy) && room.round >= 1 && room.round <= 3) {
     const index = room.surrenderedBy - 1;

@@ -12,7 +12,7 @@ const accountsFile = path.join(dataDir, 'accounts.json');
 const store = JSON.parse(fs.readFileSync(accountsFile));
 for (const user of users) Object.assign(store.accounts[user.accountKey], {
   humanGames: 3, humanWins: 3,
-  tutorial: { introSeen: true, named: true, completed: true, wantsTutorial: false, farewellSeen: true, seen: ['club'] },
+  tutorial: { introSeen: true, named: true, completed: true, wantsTutorial: false, farewellSeen: true, menuTourSeen: true, seen: ['club'] },
 });
 fs.writeFileSync(accountsFile, JSON.stringify(store));
 const base = 'http://127.0.0.1:31982';

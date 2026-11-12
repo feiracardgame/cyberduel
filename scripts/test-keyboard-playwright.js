@@ -10,7 +10,7 @@ const [user] = require('../test/account-fixture')(dataDir, ['KeyboardQA']);
 const file = path.join(dataDir, 'accounts.json');
 const store = JSON.parse(fs.readFileSync(file));
 store.accounts[user.accountKey].tutorial = {
-  introSeen: true, named: true, wantsTutorial: false, farewellSeen: true, completed: true, seen: [],
+  introSeen: true, named: true, wantsTutorial: false, farewellSeen: true, menuTourSeen: true, completed: true, seen: [],
 };
 fs.writeFileSync(file, JSON.stringify(store));
 const base = 'http://127.0.0.1:31967';

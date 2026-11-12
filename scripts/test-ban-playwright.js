@@ -10,7 +10,7 @@ const [admin, target] = require('../test/account-fixture')(directory, ['GestorQA
 const file = path.join(directory, 'accounts.json');
 const store = JSON.parse(fs.readFileSync(file));
 for (const account of Object.values(store.accounts)) account.tutorial = {
-  introSeen: true, named: true, completed: true, wantsTutorial: false, farewellSeen: true, seen: [],
+  introSeen: true, named: true, completed: true, wantsTutorial: false, farewellSeen: true, menuTourSeen: true, seen: [],
 };
 fs.writeFileSync(file, JSON.stringify(store));
 const base = 'http://127.0.0.1:32127';

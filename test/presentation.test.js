@@ -105,7 +105,7 @@ async function run() {
   for (const [index, account] of accounts.entries()) {
     const response = await fetch(url + '/api/auth/session', { headers: { Authorization: `Bearer ${account.token}` } });
     const profile = await response.json();
-    assert.equal(profile.currency, index === 0 ? 525 : 550, "Primeira desistência no Clube paga os valores normais.");
+    assert.equal(profile.currency, index === 0 ? 525 : 820, "Primeira desistência no Clube paga os valores normais.");
     assert.equal(profile.clubGames, 1); assert.equal(profile.humanGames, 1);
     assert.equal(profile.clubWins, index); assert.equal(profile.humanWins, index);
     assert.equal(profile.rating, 1000); assert.equal(profile.rankedGames, 0, 'Apresentação avulsa não altera rank.');
@@ -114,7 +114,7 @@ async function run() {
   assert.equal((await ack(one, 'decline-match', { room: room.room.code, accountToken: accounts[0].token })).ok, false);
   const saved = JSON.parse(fs.readFileSync(path.join(dataDir, 'accounts.json'))).accounts;
   assert.equal(saved[accounts[0].accountKey].currency, 525);
-  assert.equal(saved[accounts[1].accountKey].currency, 550, 'Primeira desistência paga uma única vez.');
+  assert.equal(saved[accounts[1].accountKey].currency, 820, 'Primeira desistência paga uma única vez.');
   assert.equal(saved[accounts[0].accountKey].clubGames, 1);
   assert.equal(saved[accounts[1].accountKey].clubWins, 1, 'Estatísticas do Clube persistidas uma única vez.');
   const left = event(one, 'room-cleared');
@@ -245,7 +245,7 @@ async function run() {
   assert.equal((await ack(lobby, 'decline-match', { room: tables[0].room.code, accountToken: tableAccounts[0].token })).ok, true);
   const settled = JSON.parse(fs.readFileSync(accountsFile)).accounts;
   assert.equal(settled[tableAccounts[0].accountKey].currency, 525, 'Primeira desistência na mesa paga ao jogador 2.');
-  assert.equal(settled[tableAccounts[1].accountKey].currency, 550, 'Primeira desistência na mesa paga ao jogador 1.');
+  assert.equal(settled[tableAccounts[1].accountKey].currency, 820, 'Primeira desistência na mesa paga ao jogador 1.');
   assert.equal(settled[tableAccounts[0].accountKey].rating, 984);
   assert.equal(settled[tableAccounts[1].accountKey].rating, 1020, 'Vitória na mesa rende 25% a mais de rank.');
   assert.equal(settled[tableAccounts[0].accountKey].rankedLosses, 1);

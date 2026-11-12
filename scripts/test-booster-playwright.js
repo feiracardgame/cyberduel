@@ -17,7 +17,7 @@ const raspCards = [
   ['UCC "Juggernaut"', 'alta'], ['RaspClay MonteCorp', 'lendaria'],
 ].map(([nome, nivel]) => ({ nome, nivel, tipo: 'monstro', quantidade: 1 }));
 Object.assign(stored.accounts[fixture.accountKey], {
-  tutorial: { introSeen: true, named: true, wantsTutorial: false, completed: true, farewellSeen: true, seen: [] },
+  tutorial: { introSeen: true, named: true, wantsTutorial: false, completed: true, farewellSeen: true, menuTourSeen: true, seen: [] },
   boosters: [1, 2].map(id => ({ id: `visual-pack-${id}`, faction: id === 1 ? 'echossystem' : 'raspcorp', cards: id === 1 ? cards : raspCards, purchasedAt: new Date().toISOString() })),
 });
 fs.writeFileSync(file, JSON.stringify(stored));

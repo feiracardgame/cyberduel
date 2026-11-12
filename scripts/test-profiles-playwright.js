@@ -10,7 +10,7 @@ const [fixture] = require('../test/account-fixture')(dataDir, ['ProfilesQA']);
 const accountsPath = path.join(dataDir, 'accounts.json');
 const accounts = JSON.parse(fs.readFileSync(accountsPath));
 Object.assign(accounts.accounts[fixture.accountKey], {
-  tutorial: { introSeen: true, named: true, wantsTutorial: false, farewellSeen: true, completed: true, seen: [] },
+  tutorial: { introSeen: true, named: true, wantsTutorial: false, farewellSeen: true, menuTourSeen: true, completed: true, seen: [] },
 });
 fs.writeFileSync(accountsPath, JSON.stringify(accounts));
 const output = path.resolve('output/sindicato/profiles');

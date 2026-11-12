@@ -9,7 +9,7 @@ const [fixture] = require('../test/account-fixture')(dataDir, ['EncontrosQA']);
 const accountFile = path.join(dataDir, 'accounts.json');
 const accounts = JSON.parse(fs.readFileSync(accountFile));
 Object.assign(accounts.accounts[fixture.accountKey], {
-  tutorial: { introSeen: true, named: true, wantsTutorial: false, farewellSeen: true, completed: true, seen: [] } });
+  tutorial: { introSeen: true, named: true, wantsTutorial: false, farewellSeen: true, menuTourSeen: true, completed: true, seen: [] } });
 fs.writeFileSync(accountFile, JSON.stringify(accounts));
 const port = process.env.INTERACTIONS_TEST_PORT || '31978';
 const output = path.resolve(process.env.INTERACTIONS_TEST_OUTPUT || 'output/sindicato/interactions'); fs.mkdirSync(output, { recursive: true });

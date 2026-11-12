@@ -5,7 +5,7 @@ const os = require('node:os');
 const { spawn } = require('node:child_process');
 const { once } = require('node:events');
 const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'cyberduel-market-'));
-const users = require('./account-fixture')(directory, ['Seller', 'Buyer', 'Other', 'Starter']);
+const users = require('./account-fixture')(directory, ['Seller', 'Buyer', 'Other', 'Starter', 'DaNtE']);
 const file = path.join(directory, 'accounts.json');
 const store = JSON.parse(fs.readFileSync(file));
 const key = 'monstro:O Rato';
@@ -44,7 +44,7 @@ async function api(route, user, body) {
   });
   return { status: response.status, body: await response.json() };
 }
-const [seller, buyer, other] = users;
+const [seller, buyer, other, , treasury] = users;
 const offer = (quantidade = 1, preco = 70) => ({ tipo: 'monstro', nome: 'O Rato', quantidade, preco });
 const account = async user => (await api('auth/session', user)).body;
 const stats = async user => (await api('admin/accounts', seller)).body.accounts.find(account => account.username === user.username);
@@ -82,9 +82,11 @@ const stats = async user => (await api('admin/accounts', seller)).body.accounts.
   const bought = await api('market/buy', buyer, { id, preco: 1, quantidade: 99 });
   assert.equal(bought.status, 200); assert.equal(bought.body.currency, 360); assert.equal(bought.body.collection[key], 12);
   assert.equal((await account(seller)).currency, 612, 'Vendedor recebe 80% de 140.');
+  assert.equal((await account(treasury)).currency, 528, 'Imposto de 140 credita 28 em dante uma única vez.');
   assert.equal((await stats(buyer)).currencySpent, 140);
   assert.equal((await stats(seller)).marketSales, 1);
   assert.equal((await api('market/buy', buyer, { id })).status, 409, 'Repetição não cobra duas vezes.');
+  assert.equal((await account(treasury)).currency, 528, 'Imposto de 140 credita 28 em dante uma única vez.');
   assert.equal((await stats(buyer)).currencySpent, 140);
   assert.equal((await stats(seller)).marketSales, 1);
   created = await api('market/listings', seller, offer(1, 900));
@@ -106,6 +108,8 @@ const stats = async user => (await api('admin/accounts', seller)).body.accounts.
   assert.equal((await account(seller)).currency, 684, 'Arredondamento ocorre sobre o total do lote.');
   created = await api('market/listings', seller, offer());
   const beforeBuyer = await account(buyer), beforeSeller = await account(seller);
+  const beforeTreasury = await account(treasury);
+  assert.equal(beforeTreasury.currency, 548, "Imposto inclui o restante do arredondamento de cada lote.");
   const beforeBuyerStats = await stats(buyer), beforeSellerStats = await stats(seller);
   const temporary = `${file}.${server.pid}.tmp`;
   fs.mkdirSync(temporary); // Força falha de gravação antes de confirmar o negócio.
@@ -114,6 +118,7 @@ const stats = async user => (await api('admin/accounts', seller)).body.accounts.
   assert.equal((await account(buyer)).currency, beforeBuyer.currency);
   assert.deepEqual((await account(buyer)).collection, beforeBuyer.collection);
   assert.equal((await account(seller)).currency, beforeSeller.currency);
+  assert.equal((await account(treasury)).currency, beforeTreasury.currency, "Falha de gravação desfaz também o imposto.");
   assert.deepEqual(await stats(buyer), beforeBuyerStats, 'Falha de gravação não registra gasto.');
   assert.deepEqual(await stats(seller), beforeSellerStats, 'Falha de gravação não registra venda.');
   assert.equal((await api('market/listings', buyer)).body.listings.length, 1, 'Falha mantém a carta reservada no anúncio.');
@@ -123,5 +128,29 @@ const stats = async user => (await api('admin/accounts', seller)).body.accounts.
   assert.equal((await account(seller)).currency, 684);
   assert.equal((await stats(seller)).marketSales, 5);
   assert.equal((await stats(buyer)).currencySpent, beforeBuyerStats.currencySpent);
+  assert.equal((await account(treasury)).currency, 548, 'Imposto persiste após reiniciar.');
+  created = await api('market/listings', treasury, offer());
+  assert.equal((await api('market/buy', buyer, { id: created.body.listingId })).status, 200);
+  assert.equal((await account(treasury)).currency, 618, 'dante como vendedor recebe venda e imposto.');
+  created = await api('market/listings', seller, offer());
+  assert.equal((await api('market/buy', treasury, { id: created.body.listingId })).status, 200);
+  assert.equal((await account(treasury)).currency, 562, 'dante como comprador paga o total e recebe o imposto.');
+  await stop();
+  const saved = JSON.parse(fs.readFileSync(file));
+  saved.accounts[treasury.accountKey].currency = Number.MAX_SAFE_INTEGER;
+  fs.writeFileSync(file, JSON.stringify(saved));
+  await start();
+  created = await api('market/listings', seller, offer());
+  const beforeOverflow = await account(buyer);
+  assert.equal((await api('market/buy', buyer, { id: created.body.listingId })).status, 409);
+  assert.equal((await account(buyer)).currency, beforeOverflow.currency, 'Limite do imposto impede a compra sem cobrar.');
+  await stop();
+  delete saved.accounts[treasury.accountKey];
+  fs.writeFileSync(file, JSON.stringify(saved));
+  await start();
+  created = await api('market/listings', seller, offer());
+  const beforeMissing = await account(buyer);
+  assert.equal((await api('market/buy', buyer, { id: created.body.listingId })).status, 409);
+  assert.equal((await account(buyer)).currency, beforeMissing.currency, 'Sem dante a compra não queima imposto.');
   console.log('Mercado: preços, reserva, deck, compra/cancelamento, permissões, concorrência, rollback e persistência aprovados.');
 })().catch(error => { console.error(error); process.exitCode = 1; }).finally(async () => { if (server) await stop(); });

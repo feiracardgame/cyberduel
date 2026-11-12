@@ -11,7 +11,7 @@ const file = path.join(dataDir, 'accounts.json');
 const store = JSON.parse(fs.readFileSync(file));
 for (const [index, user] of users.entries()) Object.assign(store.accounts[user.accountKey], {
   rating: 1800 - index * 200, humanGames: 5, humanWins: 3, rankedGames: 5, rankedWins: 3, rankedLosses: 2,
-  tutorial: { introSeen: true, named: true, completed: true, wantsTutorial: false, farewellSeen: true, seen: [] },
+  tutorial: { introSeen: true, named: true, completed: true, wantsTutorial: false, farewellSeen: true, menuTourSeen: true, seen: [] },
 });
 fs.writeFileSync(file, JSON.stringify(store));
 const port = '31981';

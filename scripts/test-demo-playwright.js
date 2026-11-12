@@ -10,7 +10,7 @@ const file = path.join(dataDir, 'accounts.json');
 const store = JSON.parse(fs.readFileSync(file));
 for (const user of users) Object.assign(store.accounts[user.accountKey], {
   humanGames: 5, humanWins: 3, gamesPlayed: 5,
-  tutorial: { introSeen: true, named: true, completed: true, wantsTutorial: false, farewellSeen: true, seen: ['three', 'club', 'council', 'ten'] },
+  tutorial: { introSeen: true, named: true, completed: true, wantsTutorial: false, farewellSeen: true, menuTourSeen: true, seen: ['three', 'club', 'council', 'ten'] },
 });
 store.accounts[users[1].accountKey].nickname = 'DuelistaComNomeMuitoLongoPraTela';
 fs.writeFileSync(file, JSON.stringify(store));

@@ -8,7 +8,7 @@ const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cyberduel-security-x1-bro
 const [fixture] = require('../test/account-fixture')(dataDir, ['DragonAdmin']);
 const accountsPath = path.join(dataDir, 'accounts.json'), accounts = JSON.parse(fs.readFileSync(accountsPath));
 Object.assign(accounts.accounts[fixture.accountKey], { faction: null,
-  tutorial: { introSeen: true, named: true, wantsTutorial: false, completed: true, farewellSeen: true, seen: [] } });
+  tutorial: { introSeen: true, named: true, wantsTutorial: false, completed: true, farewellSeen: true, menuTourSeen: true, seen: [] } });
 fs.writeFileSync(accountsPath, JSON.stringify(accounts));
 const output = path.resolve('output/sindicato/seguranca-x1'); fs.mkdirSync(output, { recursive: true });
 const server = spawn(process.execPath, ['server/server.js'], { windowsHide: true,
@@ -110,9 +110,9 @@ async function run() {
   await page.screenshot({ path: path.join(output, 'dragao-retorno-explosivo.png') });
   assert.equal(await page.evaluate(() => game.scene.getScene('CenaJogo').telaFinalExibida), false, 'Vitória aguarda a animação terminar.');
   await page.waitForFunction(() => game.scene.getScene('CenaJogo').telaFinalExibida);
-  await page.waitForFunction(() => cyberduelAccount.currency === 510 && document.querySelector('.match-reward'));
-  assert.match(await page.locator('.match-reward').innerText(), /\+10 tijolinhos/);
-  assert.equal(JSON.parse(fs.readFileSync(accountsPath)).accounts[fixture.accountKey].currency, 510,
+  await page.waitForFunction(() => cyberduelAccount.currency === 570 && document.querySelector('.match-reward'));
+  assert.match(await page.locator('.match-reward').innerText(), /\+70 tijolinhos/);
+  assert.equal(JSON.parse(fs.readFileSync(accountsPath)).accounts[fixture.accountKey].currency, 570,
     'Vitória com Segurança X1 paga uma vez e persiste no servidor.');
   assert.equal(await page.evaluate(() => partida.rodadasJogador), 4);
   assert.equal(await page.evaluate(() => game.scene.getScene('CenaEfeitos').children.list.filter(object => object.name?.startsWith('seguranca-x1-')).length), 0);

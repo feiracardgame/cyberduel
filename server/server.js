@@ -834,14 +834,22 @@ async function handleApi(request, response, pathname) {
       const proceeds = Number(BigInt(total) * 4n / 5n);
       if (!Number.isSafeInteger(account.currency) || account.currency < total)
         return sendJson(response, 409, { ok: false, error: "Tijolinhos insuficientes para esta compra." });
-      if (!Number.isSafeInteger(seller.currency + proceeds))
+      const treasury = accountByUsername("dante");
+      const tax = total - proceeds;
+      if (!treasury)
+        return sendJson(response, 409, { ok: false, error: "A conta dante não está disponível para receber o imposto." });
+      const treasuryBalance = treasury.currency - (treasury === account ? total : 0) + (treasury === seller ? proceeds : 0) + tax;
+      if (!Number.isSafeInteger(treasuryBalance))
+        return sendJson(response, 409, { ok: false, error: "O saldo da conta de imposto atingiu o limite." });
+      if (!Number.isSafeInteger(seller.currency + proceeds + (treasury === seller ? tax : 0)))
         return sendJson(response, 409, { ok: false, error: "O saldo do vendedor atingiu o limite." });
       if (!Number.isSafeInteger(account.currencySpent + total) || !Number.isSafeInteger(seller.marketSales + 1))
         return sendJson(response, 409, { ok: false, error: "As estatísticas da conta atingiram o limite." });
-      saveMarketTrade([account, seller], () => {
+      saveMarketTrade([...new Set([account, seller, treasury])], () => {
         account.currency -= total;
         account.currencySpent += total;
         seller.currency += proceeds;
+        treasury.currency += tax;
         seller.marketSales += 1;
         grantCards(account, [listing]);
         accountStore.marketListings = current.filter(l => l !== listing);
@@ -1501,7 +1509,7 @@ async function handleApi(request, response, pathname) {
       return sendJson(response, 409, { ok: false, error: "Esta partida já tem outro resultado." });
     if (!match.result) {
       // ponytail: o motor solo ainda roda no navegador; validar o combate exige levá-lo ao servidor.
-      const reward = body.result === "jogador" ? 10 : 0;
+      const reward = body.result === "jogador" ? 70 : 0;
       if (!Number.isSafeInteger(account.currency + reward))
         return sendJson(response, 400, { ok: false, error: "O saldo atingiu o limite permitido." });
       const updatedAt = account.updatedAt;

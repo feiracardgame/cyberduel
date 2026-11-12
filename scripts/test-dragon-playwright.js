@@ -13,7 +13,7 @@ const accountsPath = path.join(dataDir, 'accounts.json');
 const accounts = JSON.parse(fs.readFileSync(accountsPath));
 Object.assign(accounts.accounts[fixture.accountKey], {
   avatar: 'assets/fotosdeperfil/humba_brain_icon.png',
-  tutorial: { introSeen: true, named: true, wantsTutorial: false, farewellSeen: true, completed: true, seen: [] },
+  tutorial: { introSeen: true, named: true, wantsTutorial: false, farewellSeen: true, menuTourSeen: true, completed: true, seen: [] },
 });
 fs.writeFileSync(accountsPath, JSON.stringify(accounts));
 fs.mkdirSync(output, { recursive: true });

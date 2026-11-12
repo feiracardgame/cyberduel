@@ -10,7 +10,7 @@ const file = path.join(dataDir, 'accounts.json');
 const store = JSON.parse(fs.readFileSync(file));
 for (const [index, user] of users.entries()) Object.assign(store.accounts[user.accountKey], {
   nickname: index === 0 ? 'ɛpstein' : index === 1 ? 'εpstein' : index === 2 ? 'ᴇᴘꜱᴛᴇɪɴ' : '', currency: 875,
-  tutorial: { introSeen: true, named: true, completed: true, wantsTutorial: false, farewellSeen: true, seen: [] },
+  tutorial: { introSeen: true, named: true, completed: true, wantsTutorial: false, farewellSeen: true, menuTourSeen: true, seen: [] },
 });
 store.accounts[users[3].accountKey].tutorial.named = false;
 Object.assign(store.accounts[users[4].accountKey], { username: 'google_' + 'a'.repeat(32), nickname: '' });

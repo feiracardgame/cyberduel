@@ -3099,7 +3099,7 @@ class CyberduelTitleUI {
           this.element(
             "p",
             "player-market__note",
-            "As cópias ficam reservadas até vender ou cancelar. Ao vender, você recebe 80% do total; 20% ficam como taxa do mercado.",
+            "As cópias ficam reservadas até vender ou cancelar. Ao vender, você recebe 80% do total; 20% vão como imposto para a conta dante.",
           ),
           this.button("title-dialog__cancel", "← Trocar carta", () => {
             selectedKey = null;

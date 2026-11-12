@@ -8,7 +8,7 @@ const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cyberduel-broadcast-'));
 const users = require('../test/account-fixture')(dataDir, ['GestorQA', 'DuelistaQA']);
 const file = path.join(dataDir, 'accounts.json');
 const store = JSON.parse(fs.readFileSync(file));
-for (const user of users) store.accounts[user.accountKey].tutorial = { introSeen: true, named: true, completed: true, wantsTutorial: false, farewellSeen: true, seen: [] };
+for (const user of users) store.accounts[user.accountKey].tutorial = { introSeen: true, named: true, completed: true, wantsTutorial: false, farewellSeen: true, menuTourSeen: true, seen: [] };
 fs.writeFileSync(file, JSON.stringify(store));
 const base = 'http://127.0.0.1:31980';
 const output = path.resolve('output/sindicato/broadcast'); fs.mkdirSync(output, { recursive: true });

@@ -95,7 +95,7 @@ async function profile(user, faction = false) {
   const loser = await profile(users[0]), winner = await profile(users[1]);
   assert.equal(loser.rankedLosses, 1); assert.equal(winner.rankedWins, 1);
   assert.equal(loser.rating, 984); assert.equal(winner.rating, 1016);
-  assert.equal(loser.currency, 510); assert.equal(winner.currency, 520);
+  assert.equal(loser.currency, 510); assert.equal(winner.currency, 650);
   two.emit('surrender');
   await ack(two, 'find-active-match', { accountToken: users[1].token });
   assert.equal((await profile(users[1])).currency, winner.currency, 'Resultado e recompensa são aplicados só uma vez.');
