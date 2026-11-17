@@ -775,18 +775,18 @@ async function handleApi(request, response, pathname) {
       const unfinished = Object.values(accountStore.cybercoinPurchases || {}).find(order =>
         order.accountKey === pending.accountKey && ["pending", "confirmed"].includes(order.status));
       return sendJson(response, 200, { ok: true, ...cybercoins.catalog(), needsGoogleLogin: !feiraToken,
-        pendingPurchase: unfinished ? { id: unfinished.id, bundleId: unfinished.bundleId, direction: unfinished.direction || "buy" } : null });
+        pendingPurchase: unfinished ? { id: unfinished.id, bundleId: unfinished.bundleId, direction: unfinished.direction || "buy", receiptId: unfinished.receiptId || null } : null });
     }
-    if (request.method === "POST" && ["/api/cybercoins/buy", "/api/cybercoins/withdraw"].includes(pathname)) {
+    if (request.method === "POST" && ["/api/cybercoins/buy", "/api/cybercoins/withdraw", "/api/cybercoins/resume"].includes(pathname)) {
       const body = await readJson(request);
       try {
-        const operation = pathname.endsWith("/withdraw") ? cybercoins.withdraw : cybercoins.purchase;
+        const operation = pathname.endsWith("/resume") ? cybercoins.resume : pathname.endsWith("/withdraw") ? cybercoins.withdraw : cybercoins.purchase;
         const order = await operation(accountStore, pending.accountKey, { ...body, feiraToken }, saveAccounts);
         return sendJson(response, 200, { ok: true, purchase: { id: order.id, bundleId: order.bundleId,
           direction: order.direction || "buy", tijolinhos: order.tijolinhos, cybercoins: order.cybercoins, status: order.status }, ...publicAccount(pending.account) });
       } catch (error) {
         if (!error.status) throw error;
-        return sendJson(response, error.status, { ok: false, code: error.code, error: error.message });
+        return sendJson(response, error.status, { ok: false, code: error.code, error: error.message, ...publicAccount(pending.account) });
       }
     }
   }

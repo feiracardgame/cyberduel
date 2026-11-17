@@ -97,6 +97,7 @@ class CyberduelAccount {
       }
       const error = new Error(payload.error || "Falha de comunicação com o servidor.");
       error.code = payload.code;
+      error.payload = payload;
       error.requiresNameChange = payload.requiresNameChange === true;
       throw error;
     }
@@ -352,10 +353,11 @@ class CyberduelAccount {
     } catch { return null; }
   }
 
-  async buyCybercoins(bundleId, direction = "buy") {
+  async buyCybercoins(bundleId, direction = "buy", resume = false) {
     if (!this.user || !this.token) throw new Error("Entre na sua conta para comprar Cybercoins.");
     const user = this.user, key = `cyberduel.cybercoins.purchase.v1:${user}`;
     let purchase = this.getCybercoinPurchase();
+    if (resume && !purchase) throw new Error("Nenhum câmbio pendente para consultar.");
     if (!["buy", "withdraw"].includes(direction)) throw new Error("Operação de câmbio inválida.");
     if (purchase && (purchase.bundleId !== bundleId || (purchase.direction || "buy") !== direction))
       throw new Error("Consulte a compra pendente antes de escolher outro pacote.");
@@ -364,12 +366,13 @@ class CyberduelAccount {
       localStorage.setItem(key, JSON.stringify(purchase));
     }
     try {
-      const payload = await this.request(`/api/cybercoins/${direction === "withdraw" ? "withdraw" : "buy"}`, { method: "POST",
+      const payload = await this.request(`/api/cybercoins/${resume ? "resume" : direction === "withdraw" ? "withdraw" : "buy"}`, { method: "POST",
         body: { bundleId, purchaseId: purchase.id } });
       localStorage.removeItem(key);
       if (this.user === user) this.applyAuth(payload, false);
       return payload.purchase;
     } catch (error) {
+      if (this.user === user && error.payload?.username === user) this.applyAuth(error.payload, false);
       if (["FEIRA_DECLINED", "FEIRA_UNAVAILABLE", "INVALID_FEIRA_TOKEN", "INVALID_PURCHASE", "FEIRA_LOGIN_REQUIRED", "INSUFFICIENT_CYBERCOINS"].includes(error.code))
         localStorage.removeItem(key);
       throw error;

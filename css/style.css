@@ -3805,6 +3805,7 @@ body:has(> .booster-fullscreen) .title-matrix-stream { animation-play-state: pau
 .cybercoin-shop__google { margin: 16px 0; }
 .cybercoin-shop__google[hidden] { display: none; }
 .cybercoin-shop__pending { padding: 12px; border-left: 2px solid #ffd166; color: #f3dfac; }
+.cybercoin-shop .title-dialog__error { font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; text-align: left; }
 .cybercoin-shop__pending[hidden], .cybercoin-shop__retry[hidden], .cybercoin-shop__auth-note[hidden] { display: none; }
 .cybercoin-shop__summary, .cybercoin-shop .profile-note { overflow-wrap: anywhere; }
 .cybercoin-shop__buy { width: 100%; min-height: 48px; margin-top: 8px; cursor: pointer; }

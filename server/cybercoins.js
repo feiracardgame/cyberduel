@@ -102,7 +102,7 @@ async function withdraw(store, accountKey, body, save) {
   if (order?.status === "declined") fail(402, "FEIRA_DECLINED", "Câmbio recusado. As Cybercoins foram devolvidas.");
   if (processing.has(body.purchaseId)) fail(409, "PAYMENT_PENDING", "Câmbio em processamento. Consulte este mesmo identificador.");
   if (order && !order.receiptId)
-    fail(409, "PAYMENT_PENDING", "Câmbio aguardando conferência da feira. Não repita o pagamento.");
+    fail(409, "PAYMENT_REVIEW_REQUIRED", `O câmbio ${order.id} ficou sem recibo do banco. A organização precisa conferir essa tentativa antes de liberar ou devolver o valor. Esta consulta não enviou outra transferência.`);
   if (Object.values(orders).some(entry => entry !== order && entry.accountKey === accountKey && ["pending", "confirmed"].includes(entry.status)))
     fail(409, "PAYMENT_PENDING", "Existe uma operação aguardando confirmação na sua conta.");
   if (typeof body.feiraToken !== "string" || body.feiraToken.length > 8192 || !/^[\w-]+\.[\w-]+\.[\w-]+$/.test(body.feiraToken))
@@ -149,7 +149,10 @@ async function withdraw(store, accountKey, body, save) {
       try { save(); } catch { fail(500, "PAYMENT_STORAGE", "Recibo recebido, mas não salvo. Consulte este mesmo câmbio."); }
     }
     let confirmed = false;
-    try { confirmed = await feira.confirmCredit({ receiptId: order.receiptId, tijolinhos: order.tijolinhos, token: body.feiraToken }); } catch {}
+    try { confirmed = await feira.confirmCredit({ receiptId: order.receiptId, tijolinhos: order.tijolinhos, token: body.feiraToken }); } catch (error) {
+      const code = ["FEIRA_STATEMENT_UNAUTHORIZED", "FEIRA_STATEMENT_UNAVAILABLE", "FEIRA_RECEIPT_NOT_FOUND", "FEIRA_AMOUNT_MISMATCH"].includes(error.code) ? error.code : "FEIRA_STATEMENT_UNAVAILABLE";
+      fail(409, code, error.code === code ? error.message : "Não foi possível consultar o extrato da feira. O valor continua reservado; nenhum novo crédito foi enviado.");
+    }
     if (!confirmed) fail(409, "PAYMENT_PENDING", "Confira o banco: o valor do câmbio ainda não foi confirmado no extrato da feira.");
     order.status = "completed";
     order.completedAt = new Date().toISOString();
@@ -162,4 +165,15 @@ async function withdraw(store, accountKey, body, save) {
   } finally { processing.delete(order.id); }
 }
 
-module.exports = { catalog, purchase, withdraw };
+async function resume(store, accountKey, body, save) {
+  if (typeof body?.purchaseId !== "string" || !/^[a-zA-Z0-9-]{16,80}$/.test(body.purchaseId))
+    fail(400, "INVALID_PURCHASE", "Informe um identificador de câmbio válido.");
+  const order = Object.hasOwn(store.cybercoinPurchases || {}, body.purchaseId) ? store.cybercoinPurchases[body.purchaseId] : null;
+  if (!order || order.accountKey !== accountKey)
+    fail(404, "PURCHASE_NOT_FOUND", "Esta tentativa não foi encontrada na sua conta. Nenhuma transferência foi enviada por esta consulta.");
+  // Somente uma operação já registrada pode ser consultada; nunca cria outro débito/crédito externo.
+  return (order.direction === "withdraw" ? withdraw : purchase)(store, accountKey,
+    { bundleId: order.bundleId, purchaseId: order.id, feiraToken: body.feiraToken }, save);
+}
+
+module.exports = { catalog, purchase, withdraw, resume };

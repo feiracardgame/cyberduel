@@ -153,6 +153,8 @@ async function apiTest() {
     assert.equal((await api("cybercoins/packages")).body.available, false);
     assert.equal((await api("cybercoins/packages")).body.needsGoogleLogin, true);
     assert.equal((await api("cybercoins/withdraw", body(), null)).status, 401);
+    assert.equal((await api("cybercoins/resume", body(), null)).status, 401);
+    assert.equal((await api("cybercoins/resume", body())).status, 404, "Consulta não cria uma compra quando o ID não existe.");
     assert.equal((await api("cybercoins/withdraw", body())).status, 401, "Token enviado no corpo não substitui o JWT validado no login.");
     assert.equal((await api("cybercoins/buy", body())).status, 503);
     assert.equal((await api("auth/session")).body.currency, 0);
@@ -177,6 +179,12 @@ async function apiTest() {
     assert.equal(cashout.body.currency, 20);
     assert.equal(cashout.body.purchase.tijolinhos, 10);
     assert.equal(cashout.body.purchase.direction, "withdraw");
+    const resumed = await api("cybercoins/resume", { purchaseId: "bank-withdraw-00001", bundleId: "forged" }, seller.token);
+    assert.equal(resumed.status, 200);
+    assert.equal(resumed.body.currency, 20, "Retomar câmbio concluído não altera novamente o saldo.");
+    const missing = await api("cybercoins/resume", { purchaseId: "bank-missing-000001" }, seller.token);
+    assert.equal(missing.status, 404);
+    assert.equal(missing.body.currency, 20, "Mesmo a recusa de consulta atualiza a carteira do cliente.");
     await stop(); await start(false);
     const replay = await api("cybercoins/buy", body(undefined, "cybercoins-100"));
     assert.equal(replay.status, 200); assert.equal(replay.body.currency, 0, "Reiniciar/repetir não credita a compra novamente.");

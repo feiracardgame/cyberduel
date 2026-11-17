@@ -2,21 +2,26 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const vm = require("node:vm");
 const feira = require("../server/feira-payments");
-const { withdraw, purchase } = require("../server/cybercoins");
+const { withdraw, purchase, resume } = require("../server/cybercoins");
 const body = (id = "bank-exchange-00001") => ({ bundleId: "cybercoins-50", purchaseId: id, feiraToken: "google.test.jwt" });
 const store = () => ({ accounts: { player: { currency: 100 }, other: { currency: 100 } } });
 const rejects = (promise, code) => assert.rejects(promise, error => error.code === code);
 
 async function adapter() {
-  let response, call;
+  let response, statementResponse, call;
+  const calls = [];
   const module = { exports: {} };
   vm.runInNewContext(fs.readFileSync("server/feira-payments.js", "utf8"), {
-    module, AbortSignal, fetch: async (url, options) => { call = { url, ...options }; return response; },
+    module, AbortSignal, fetch: async (url, options) => {
+      call = { url, ...options }; calls.push(call);
+      return url.endsWith("/statement") ? statementResponse : response;
+    },
   });
   const api = module.exports;
   assert.equal(api.productId, 86);
   assert.equal(api.available, false, "A API atual não aceita débito de jogos.");
   const reply = (status, value) => ({ ok: status >= 200 && status < 300, status, json: async () => value });
+  statementResponse = reply(200, []);
   response = reply(201, { operation: 123 });
   assert.equal(await api.credit({ tijolinhos: 25, token: "google.test.jwt" }), "123");
   assert.equal(call.url, "https://feira-de-jogos.dev.br/api/v2/credit");
@@ -25,15 +30,25 @@ async function adapter() {
   assert.deepEqual(JSON.parse(call.body), { product: 86, value: 25 });
   assert.equal(call.redirect, "error");
   assert.ok(call.signal);
-  response = reply(200, [{ operation: 123, value: "25", completed: true }]);
+  assert.match(calls[0].url, /\/statement$/, "Verifica acesso ao extrato antes de enviar dinheiro.");
+  statementResponse = reply(200, [{ operation: 123, value: "25", completed: true }]);
   assert.equal(await api.confirmCredit({ receiptId: "123", tijolinhos: 25, token: "google.test.jwt" }), true);
   assert.equal(call.method, "GET");
   assert.match(call.url, /\/statement$/);
-  for (const statement of [[], [{ operation: 124, value: 25, completed: true }],
-    [{ operation: 123, value: 100, completed: true }], [{ operation: 123, value: 25, completed: false }]]) {
-    response = reply(200, statement);
-    assert.equal(await api.confirmCredit({ receiptId: "123", tijolinhos: 25, token: "google.test.jwt" }), false);
+  for (const statement of [[], [{ operation: 124, value: 25, completed: true }]]) {
+    statementResponse = reply(200, statement);
+    await rejects(api.confirmCredit({ receiptId: "123", tijolinhos: 25, token: "google.test.jwt" }), "FEIRA_RECEIPT_NOT_FOUND");
   }
+  statementResponse = reply(200, [{ operation: 123, value: 100, completed: true }]);
+  await rejects(api.confirmCredit({ receiptId: "123", tijolinhos: 25, token: "google.test.jwt" }), "FEIRA_AMOUNT_MISMATCH");
+  statementResponse = reply(200, [{ operation: 123, value: 25, completed: false }]);
+  assert.equal(await api.confirmCredit({ receiptId: "123", tijolinhos: 25, token: "google.test.jwt" }), false);
+  statementResponse = reply(401, {});
+  await rejects(api.confirmCredit({ receiptId: "123", tijolinhos: 25, token: "google.test.jwt" }), "FEIRA_STATEMENT_UNAUTHORIZED");
+  const sent = calls.filter(call => call.method === "POST").length;
+  await rejects(api.credit({ tijolinhos: 25, token: "google.test.jwt" }), "FEIRA_DECLINED");
+  assert.equal(calls.filter(call => call.method === "POST").length, sent, "Sem acesso ao extrato, nenhum crédito é enviado.");
+  statementResponse = reply(200, []);
   for (const status of [400, 401, 402, 403, 429]) {
     response = reply(status, {});
     await rejects(api.credit({ tijolinhos: 25, token: "google.test.jwt" }), "FEIRA_DECLINED");
@@ -90,7 +105,8 @@ async function exchange() {
   const unknown = store(); let timeouts = 0;
   feira.credit = async () => { timeouts++; throw Error("timeout"); };
   await rejects(withdraw(unknown, "player", body(), () => {}), "PAYMENT_PENDING");
-  await rejects(withdraw(JSON.parse(JSON.stringify(unknown)), "player", body(), () => {}), "PAYMENT_PENDING");
+  await rejects(withdraw(JSON.parse(JSON.stringify(unknown)), "player", body(), () => {}), "PAYMENT_REVIEW_REQUIRED");
+  await rejects(resume(unknown, "player", body(), () => {}), "PAYMENT_REVIEW_REQUIRED");
   assert.equal(timeouts, 1);
   assert.equal(unknown.accounts.player.currency, 50);
 
@@ -100,10 +116,16 @@ async function exchange() {
   await rejects(withdraw(waiting, "player", body(), () => {}), "PAYMENT_PENDING");
   const before = calls;
   const restarted = JSON.parse(JSON.stringify(waiting));
+  feira.confirmCredit = async () => { throw Object.assign(Error("Extrato não autorizado"), { code: "FEIRA_STATEMENT_UNAUTHORIZED" }); };
+  await assert.rejects(resume(restarted, "player", body(), () => {}), error => error.code === "FEIRA_STATEMENT_UNAUTHORIZED" && error.message === "Extrato não autorizado");
+  assert.equal(restarted.accounts.player.currency, 50, "Falha no extrato não devolve uma reserva que já pode ter sido creditada no banco.");
   feira.confirmCredit = async () => true;
-  await withdraw(restarted, "player", body(), () => {});
+  await resume(restarted, "player", { ...body(), bundleId: "fake", tijolinhos: 999 }, () => {});
   assert.equal(calls, before, "Com recibo salvo, retomar faz somente consulta ao extrato.");
   assert.equal(restarted.accounts.player.currency, 50);
+  await rejects(resume(restarted, "other", body(), () => {}), "PURCHASE_NOT_FOUND");
+  await rejects(resume(store(), "player", body(), () => {}), "PURCHASE_NOT_FOUND");
+  assert.equal(calls, before, "Consultar tentativa inexistente nunca cria um crédito.");
   for (const failAt of [2, 3]) {
     saves = 0;
     const broken = store();
