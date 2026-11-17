@@ -1,1 +1,0 @@
--- Executar no PostgreSQL da feira, não no servidor do C
