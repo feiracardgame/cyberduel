@@ -2866,6 +2866,7 @@ class CyberduelTitleUI {
   openCybercoinShop(returnTo = null) {
     if (this.modal || !this.account?.user) return;
     const overlay = this.createModal("cybercoins");
+    document.body.append(overlay);
     const dialog = this.element("section", "title-dialog cybercoin-shop");
     dialog.setAttribute("role", "dialog");
     dialog.setAttribute("aria-modal", "true");
@@ -2886,11 +2887,16 @@ class CyberduelTitleUI {
     directions.setAttribute("aria-label", "Sentido do câmbio");
     const googleButton = this.element("div", "cybercoin-shop__google");
     googleButton.hidden = true;
+    const authNote = this.element("p", "cybercoin-shop__auth-note", "Sua sessão do jogo continua ativa. Renove a autorização do banco para transferir; ela tem uma validade menor.");
+    authNote.hidden = true;
+    const pendingNote = this.element("p", "cybercoin-shop__pending");
+    pendingNote.setAttribute("role", "status");
+    pendingNote.hidden = true;
     const status = this.element("p", "profile-note", "Carregando pacotes…");
     status.setAttribute("role", "status");
     const error = this.element("p", "title-dialog__error");
     error.setAttribute("role", "alert");
-    let catalog = null, selected = null, busy = false, completed = false, direction = "buy";
+    let catalog = null, selected = null, busy = false, completed = false, googleMounted = false, direction = "buy";
     for (const [value, label] of [["buy", "Comprar Cybercoins"], ["withdraw", "Enviar ao banco"]]) {
       const button = this.button("cybercoin-shop__direction", label, () => { direction = value; completed = false; refresh(); });
       button.dataset.direction = value;
@@ -2902,39 +2908,50 @@ class CyberduelTitleUI {
       const available = withdrawing ? catalog?.withdrawAvailable : catalog?.available;
       for (const button of directions.children) {
         button.setAttribute("aria-pressed", String(button.dataset.direction === direction));
-        button.disabled = busy || Boolean(pending && button.dataset.direction !== (pending.direction || "buy"));
+        button.disabled = busy;
       }
       for (const button of packages.children) {
         button.setAttribute("aria-pressed", String(button.dataset.bundleId === selected?.id));
-        button.disabled = busy || Boolean(pending && button.dataset.bundleId !== pending.bundleId);
+        button.disabled = busy;
       }
-      buy.disabled = busy || !selected || (!available && !pending) || Boolean(catalog?.needsGoogleLogin) ||
-        Boolean(withdrawing && !pending && this.account.currency < selected?.cybercoins);
-      buy.textContent = busy ? "VERIFICANDO…" : pending ? "VERIFICAR CÂMBIO" : available ? withdrawing ? "CONFIRMAR ENVIO AO BANCO" : "TROCAR TIJOLINHOS" : "DISPONÍVEL EM BREVE";
+      buy.disabled = busy || !selected || !available || Boolean(pending) || Boolean(catalog?.needsGoogleLogin) ||
+        Boolean(withdrawing && this.account.currency < selected?.cybercoins);
+      buy.textContent = busy ? "VERIFICANDO…" : available ? withdrawing ? "CONFIRMAR ENVIO AO BANCO" : "TROCAR TIJOLINHOS" : "DISPONÍVEL EM BREVE";
       buy.setAttribute("aria-label", buy.textContent);
+      pendingNote.hidden = retry.hidden = !pending;
+      retry.disabled = busy || Boolean(catalog?.needsGoogleLogin);
+      if (pending) {
+        const bundle = catalog?.bundles.find(entry => entry.id === pending.bundleId);
+        pendingNote.textContent = `Existe um câmbio${bundle ? ` de ${bundle.cybercoins} Cybercoins por ${bundle.tijolinhos} tijolinhos` : ""} aguardando confirmação. Você pode comparar outros valores e abas, mas precisa resolver essa tentativa antes de confirmar outra transferência.`;
+      }
+      googleButton.hidden = authNote.hidden = !catalog?.needsGoogleLogin || (!available && !pending);
+      if (!googleButton.hidden && !googleMounted) {
+        googleMounted = true;
+        this.account.mountGoogleButton(googleButton,
+          exception => { if (this.modal === overlay) error.textContent = exception.message; }, loadCatalog);
+      }
       summary.textContent = selected ? withdrawing
         ? `Você envia ${selected.cybercoins.toLocaleString("pt-BR")} Cybercoins e recebe ${selected.tijolinhos.toLocaleString("pt-BR")} tijolinhos no banco da sua conta Google.`
         : `Você paga ${selected.tijolinhos.toLocaleString("pt-BR")} tijolinhos da feira e recebe ${selected.cybercoins.toLocaleString("pt-BR")} Cybercoins.` : "";
-      if (pending) status.textContent = `Câmbio ${pending.id}: consulte a confirmação antes de fazer outra operação.`;
-      else if (!completed) status.textContent = !available
+      if (!completed) status.textContent = !available
         ? "A feira precisa habilitar a compra de Cybercoins para o Cyberduel. Você pode usar Enviar ao banco para fazer o câmbio de volta."
         : catalog?.needsGoogleLogin ? "Confirme sua conta Google abaixo para autorizar o banco da feira."
         : withdrawing && this.account.currency < selected?.cybercoins ? "Cybercoins insuficientes para este pacote."
         : "Confira o pacote e confirme a troca abaixo.";
     };
-    const buy = this.button("title-dialog__confirm cybercoin-shop__buy", "CARREGANDO…", async () => {
-      if (buy.disabled || busy || !selected) return;
+    const submit = async (bundleId, exchangeDirection) => {
+      if (busy) return;
       busy = true;
       this.modalRequired = true;
       close.disabled = true;
       error.textContent = "";
       refresh();
       try {
-        const purchase = await this.account.buyCybercoins(selected.id, direction);
+        const purchase = await this.account.buyCybercoins(bundleId, exchangeDirection);
         if (this.modal !== overlay) return;
         completed = true;
         balance.textContent = `Seu saldo: ${this.account.currency.toLocaleString("pt-BR")} Cybercoins`;
-        status.textContent = direction === "withdraw"
+        status.textContent = exchangeDirection === "withdraw"
           ? `Câmbio confirmado! ${purchase.tijolinhos.toLocaleString("pt-BR")} tijolinhos enviados ao banco da feira.`
           : `Compra confirmada! +${purchase.cybercoins.toLocaleString("pt-BR")} Cybercoins para usar em boosters e no mercado.`;
       } catch (exception) {
@@ -2951,12 +2968,20 @@ class CyberduelTitleUI {
           refresh();
         }
       }
+    };
+    const retry = this.button("title-dialog__confirm cybercoin-shop__retry", "RETOMAR CÂMBIO PENDENTE", () => {
+      const pending = this.account.getCybercoinPurchase();
+      if (!retry.disabled && pending) return submit(pending.bundleId, pending.direction || "buy");
+    });
+    retry.hidden = true;
+    const buy = this.button("title-dialog__confirm cybercoin-shop__buy", "CARREGANDO…", () => {
+      if (!buy.disabled && selected) return submit(selected.id, direction);
     });
     buy.disabled = true;
     dialog.append(header,
       this.element("p", "", "Use Cybercoins em boosters e cartas, ou troque suas moedas por tijolinhos no banco da feira."),
       this.element("p", "cybercoin-shop__rate", "1 TIJOLINHO = 2 CYBERCOINS"),
-      balance, directions, packages, summary, googleButton, status, error, buy);
+      balance, directions, packages, summary, pendingNote, retry, authNote, googleButton, status, error, buy);
     overlay.append(dialog);
     this.modalAfterClose = returnTo || (() => this.account.notify());
     this.settings?.applyDomTextScale(overlay);
@@ -2964,12 +2989,14 @@ class CyberduelTitleUI {
     const loadCatalog = () => this.account.request("/api/cybercoins/packages").then(payload => {
       if (this.modal !== overlay) return;
       catalog = payload;
+      if (!catalog.needsGoogleLogin) googleMounted = false;
       balance.textContent = `Seu saldo: ${this.account.currency.toLocaleString("pt-BR")} Cybercoins`;
       if (payload.pendingPurchase) localStorage.setItem(`cyberduel.cybercoins.purchase.v1:${this.account.user}`, JSON.stringify(payload.pendingPurchase));
       const pending = this.account.getCybercoinPurchase();
-      if (pending) direction = pending.direction || "buy";
+      if (pending && !selected) direction = pending.direction || "buy";
       packages.replaceChildren();
-      selected = catalog.bundles.find(bundle => bundle.id === pending?.bundleId) || catalog.bundles[1] || catalog.bundles[0];
+      selected = catalog.bundles.find(bundle => bundle.id === selected?.id) ||
+        catalog.bundles.find(bundle => bundle.id === pending?.bundleId) || catalog.bundles[1] || catalog.bundles[0];
       for (const bundle of catalog.bundles) {
         const button = this.button("cybercoin-shop__package", "", () => {
           if (!busy) { selected = bundle; completed = false; refresh(); }
@@ -2987,9 +3014,6 @@ class CyberduelTitleUI {
       }
       status.textContent = catalog.available ? "Confira o pacote e confirme a troca abaixo." : "A compra de Cybercoins estará disponível quando os pagamentos da feira forem liberados.";
       refresh();
-      googleButton.hidden = !catalog.needsGoogleLogin;
-      if (catalog.needsGoogleLogin) this.account.mountGoogleButton(googleButton,
-        exception => { if (this.modal === overlay) error.textContent = exception.message; }, loadCatalog);
     }).catch(exception => { if (this.modal === overlay) error.textContent = exception.message; });
     loadCatalog();
   }

@@ -125,7 +125,14 @@ async function apiTest() {
     });
     vm.runInContext(fs.readFileSync("server/server.js", "utf8") + `
       globalThis.handleApi = handleApi;
-      if (${credentials}) for (const session of sessions.values()) feiraCredentials.set(session, { token: "feira.test.jwt", expiresAt: Date.now() + 60000 });
+      if (${credentials}) for (const token of ${JSON.stringify([player.token, seller.token, treasury.token])}) {
+        const session = sessions.get(sessionKey(token));
+        sealGoogleCredential(session, token, { token: "feira.test.jwt", expiresAt: Date.now() + 60000 });
+        if (sessionGoogleCredential(session, token) !== "feira.test.jwt") throw Error("JWT cifrado não recuperado");
+        if (sessionGoogleCredential(session, "wrong-session-token")) throw Error("JWT acessível com outra sessão");
+        const damaged = { ...session, googleCredential: session.googleCredential.slice(0, -8) + "AAAAAAAA" };
+        if (sessionGoogleCredential(damaged, token)) throw Error("JWT alterado aceito");
+      }
     `, context);
     handleApi = context.handleApi;
   }

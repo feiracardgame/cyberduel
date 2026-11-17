@@ -10,6 +10,8 @@ const {
 } = require("fs");
 const {
   createHash,
+  createCipheriv,
+  createDecipheriv,
   randomBytes,
   randomInt,
 } = require("crypto");
@@ -56,8 +58,6 @@ const GOOGLE_CLIENT_ID = String(process.env.GOOGLE_CLIENT_ID || "").trim();
 const googleAuth = new OAuth2Client({ clientId: GOOGLE_CLIENT_ID, transporterOptions: { timeout: 10000 } });
 // shortcut: tentativas em memória; usar armazenamento compartilhado ao subir múltiplas instâncias.
 const googleLogins = new Map();
-// O JWT do Google vive somente na memória da sessão e expira com o provedor.
-const feiraCredentials = new WeakMap();
 
 function environmentInteger(name, fallback, minimum = 0, maximum = 100000) {
   const parsed = Number.parseInt(process.env[name], 10);
@@ -328,12 +328,35 @@ function accountByUsername(username) {
   return Object.values(accountStore.accounts).find(account => normalizeUsername(account.username) === key);
 }
 
-function createSession(accountKey) {
+function sealGoogleCredential(session, token, credential) {
+  const key = createHash("sha256").update(`cyberduel.google:${token}`).digest();
+  const iv = randomBytes(12);
+  const cipher = createCipheriv("aes-256-gcm", key, iv);
+  const encrypted = Buffer.concat([cipher.update(JSON.stringify(credential), "utf8"), cipher.final()]);
+  session.googleCredential = Buffer.concat([iv, cipher.getAuthTag(), encrypted]).toString("base64url");
+}
+
+function sessionGoogleCredential(session, token) {
+  if (typeof session?.googleCredential !== "string") return "";
+  try {
+    // A chave depende do Bearer original, que não fica no arquivo de sessões.
+    const key = createHash("sha256").update(`cyberduel.google:${token}`).digest();
+    const data = Buffer.from(session.googleCredential, "base64url");
+    const decipher = createDecipheriv("aes-256-gcm", key, data.subarray(0, 12));
+    decipher.setAuthTag(data.subarray(12, 28));
+    const credential = JSON.parse(Buffer.concat([decipher.update(data.subarray(28)), decipher.final()]).toString("utf8"));
+    return credential.expiresAt > Date.now() && typeof credential.token === "string" ? credential.token : "";
+  } catch { return ""; }
+}
+
+function createSession(accountKey, credential = null) {
   const token = randomBytes(32).toString("hex");
-  sessions.set(sessionKey(token), {
+  const session = {
     accountKey,
     expiresAt: Date.now() + SESSION_DURATION_MS,
-  });
+  };
+  if (credential) sealGoogleCredential(session, token, credential);
+  sessions.set(sessionKey(token), session);
   saveSessions();
   return token;
 }
@@ -425,8 +448,7 @@ async function authenticateGoogle(credential, loginId) {
     entry = [accountKey, account];
   }
   if (entry[1].banned) return { status: 403, payload: banRejection(entry[1]) };
-  const token = createSession(entry[0]);
-  feiraCredentials.set(sessions.get(sessionKey(token)), { token: credential, expiresAt: identity.exp * 1000 });
+  const token = createSession(entry[0], { token: credential, expiresAt: identity.exp * 1000 });
   return { status: 200, payload: { ok: true, token, ...publicAccount(entry[1]) } };
 }
 
@@ -748,8 +770,7 @@ async function handleApi(request, response, pathname) {
 
   if (pathname.startsWith("/api/cybercoins/")) {
     if (!pending) return sendJson(response, 401, { ok: false, error: "Entre na sua conta para comprar Cybercoins." });
-    const credential = feiraCredentials.get(sessions.get(sessionKey(pending.token)));
-    const feiraToken = credential?.expiresAt > Date.now() ? credential.token : "";
+    const feiraToken = sessionGoogleCredential(sessions.get(sessionKey(pending.token)), pending.token);
     if (request.method === "GET" && pathname === "/api/cybercoins/packages") {
       const unfinished = Object.values(accountStore.cybercoinPurchases || {}).find(order =>
         order.accountKey === pending.accountKey && ["pending", "confirmed"].includes(order.status));

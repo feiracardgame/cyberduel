@@ -150,7 +150,9 @@ const saved = user => JSON.parse(fs.readFileSync(file)).accounts[user.accountKey
   const player = () => ({ deck: [], hand: [], field: Array(10).fill(null), discard: [], traps: [], recentlyDrawn: [], victories: 0 });
   const state = { jogador: player(), inimigo: player(), turno: 1, maxTurnos: 7, rodadasParaVencer: 4,
     rodadasJogador: 0, rodadasInimigo: 0, partidaEncerrada: false, historico: [], eventosEfeito: [] };
+  const initial = event(two, 'state-update');
   assert.equal((await emit(one, 'initial-state', { state })).ok, true);
+  await initial;
   one.disconnect();
   const warning = event(extraTab, 'account-banned'), finished = event(two, 'state-update');
   assert.equal((await ban(target, 'Moderação QA')).status, 200);

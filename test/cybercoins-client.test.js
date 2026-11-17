@@ -15,7 +15,7 @@ class Element {
 const storage = new Map();
 const context = vm.createContext({
   crypto: webcrypto, console, requestAnimationFrame: callback => callback(),
-  document: { createElement: tag => new Element(tag) }, window: {},
+  document: { createElement: tag => new Element(tag), body: new Element("body") }, window: {},
   localStorage: { getItem: key => storage.get(key) || null, setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key) },
 });
 vm.runInContext(fs.readFileSync("js/account.js", "utf8") + "\nglobalThis.Account = CyberduelAccount;", context);
@@ -52,8 +52,12 @@ const tick = () => new Promise(setImmediate);
   ui.root = new Element("main");
   const find = (node, cls) => node.className?.split(" ").includes(cls) ? node : node.children.map(child => find(child, cls)).find(Boolean);
   account.request = async () => packages;
-  ui.openCybercoinShop(); await tick();
+  const balanceButton = find(ui.createTopbar(), "title-balance");
+  assert.equal(balanceButton.hidden, false, "O saldo de Cybercoins aparece no menu da conta conectada.");
+  assert.match(balanceButton.textContent, /CYBERCOINS/);
+  balanceButton.click(); await tick();
   const unavailable = ui.modal;
+  assert.ok(context.document.body.children.includes(unavailable), "Loja usa a tela inteira, fora do menu estreito.");
   const bundles = find(unavailable, "cybercoin-shop__packages"), buy = find(unavailable, "cybercoin-shop__buy");
   assert.equal(bundles.children.length, 5);
   assert.ok(fs.existsSync("assets/sprites/cybercoin.png"));
@@ -106,16 +110,43 @@ const tick = () => new Promise(setImmediate);
   assert.match(find(ui.modal, "profile-note").textContent, /25 tijolinhos enviados/);
 
   ui.modal = null;
-  const recovered = { id: "bank-pending-000001", bundleId: "cybercoins-50", direction: "withdraw" };
-  let googleMounts = 0;
-  account.mountGoogleButton = async () => { googleMounts++; };
-  account.request = async () => ({ ...packages, withdrawAvailable: true, needsGoogleLogin: true, pendingPurchase: recovered });
+  const recovered = { id: "bank-pending-000001", bundleId: "cybercoins-500", direction: "withdraw" };
+  let googleMounts = 0, renewGoogle, needsGoogleLogin = true, retried = 0;
+  account.mountGoogleButton = async (container, onError, onSuccess) => { googleMounts++; renewGoogle = onSuccess; };
+  account.request = async (route, options) => {
+    if (route.endsWith("packages")) return { ...packages, withdrawAvailable: true, needsGoogleLogin, pendingPurchase: recovered };
+    assert.equal(route, "/api/cybercoins/withdraw");
+    assert.equal(options.body.bundleId, "cybercoins-500", "A consulta retoma o valor original, sem usar o pacote que está sendo comparado.");
+    assert.equal(options.body.purchaseId, recovered.id);
+    retried++;
+    return { username: "Buyer", currency: 50, purchase: { cybercoins: 500, tijolinhos: 250, direction: "withdraw" } };
+  };
   ui.openCybercoinShop(); await tick();
   assert.equal(account.getCybercoinPurchase().id, recovered.id, "Pendência é recuperada do servidor após perder o armazenamento local.");
   assert.equal(find(ui.modal, "cybercoin-shop__buy").disabled, true);
   assert.equal(googleMounts, 1, "JWT expirado pede autorização pelo botão oficial do Google.");
-  assert.equal(find(ui.modal, "cybercoin-shop__directions").children[0].disabled, true);
-  storage.delete(key);
+  const pendingModal = ui.modal;
+  const pendingPackages = find(pendingModal, "cybercoin-shop__packages");
+  pendingPackages.children[0].click();
+  assert.equal(pendingPackages.children[0].attributes["aria-pressed"], "true", "Pendência de 500 não impede selecionar 20 Cybercoins.");
+  const directionButtons = find(pendingModal, "cybercoin-shop__directions").children;
+  assert.equal(directionButtons[0].disabled, false);
+  directionButtons[0].click();
+  assert.match(find(pendingModal, "cybercoin-shop__summary").textContent, /10 tijolinhos.*20 Cybercoins/);
+  directionButtons[1].click();
+  assert.match(find(pendingModal, "cybercoin-shop__summary").textContent, /20 Cybercoins.*10 tijolinhos/);
+  assert.match(find(pendingModal, "cybercoin-shop__pending").textContent, /500 Cybercoins.*250 tijolinhos/);
+  assert.equal(retried, 0, "Comparar valores e trocar abas não transfere dinheiro.");
+  needsGoogleLogin = false;
+  await renewGoogle();
+  assert.equal(find(pendingModal, "cybercoin-shop__packages").children[0].attributes["aria-pressed"], "true", "Renovar o Google preserva o pacote escolhido.");
+  assert.equal(googleMounts, 1);
+  assert.equal(find(pendingModal, "cybercoin-shop__buy").disabled, true, "Uma pendência continua impedindo outra transferência.");
+  await find(pendingModal, "cybercoin-shop__retry").click();
+  assert.equal(retried, 1);
+  assert.equal(storage.has(key), false);
+  assert.equal(find(pendingModal, "cybercoin-shop__retry").hidden, true);
+  assert.equal(find(pendingModal, "cybercoin-shop__buy").disabled, false);
 
   account.request = async () => { account.clear(); return { username: "Buyer", currency: 100, purchase: { cybercoins: 50 } }; };
   account.token = "session";
