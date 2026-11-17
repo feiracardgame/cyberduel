@@ -2123,6 +2123,10 @@ body.title-terminal-open #game-viewport canvas {
 }
 
 .title-balance {
+  padding: 8px;
+  border: 1px solid #ffd16640;
+  background: #ffd16608;
+  cursor: pointer;
   color: #ffd166;
   font-size: 6px;
   font-weight: 900;
@@ -3710,23 +3714,10 @@ body:has(> .booster-fullscreen) .title-matrix-stream { animation-play-state: pau
 .match-reward > div > span:last-child::after {
   content: "✓ REGISTRADO"; color: #5fe88d; font-size: 8px; letter-spacing: 1px;
 }
-.match-reward__brick {
-  position: relative; flex: 0 0 48px; height: 61px; align-self: center;
-  border: 1px solid #ffd16630; background: #ffd16605;
+.match-reward__coin {
+  flex: 0 0 48px; width: 48px; height: 48px; align-self: center; object-fit: contain;
   animation: reward-icon-lock .45s .7s both;
 }
-.match-reward__brick::before, .match-reward__brick::after {
-  content: ""; position: absolute; width: 9px; height: 9px; border-color: #ffd166;
-}
-.match-reward__brick::before { left: -1px; top: -1px; border-left: 1px solid; border-top: 1px solid; color: #ffd166; }
-.match-reward__brick::after { right: -1px; bottom: -1px; border-right: 1px solid; border-bottom: 1px solid; color: #ffd166; }
-.match-reward__brick i {
-  position: absolute; left: 10px; top: 13px; width: 28px; height: 10px;
-  background: #ffda87; box-shadow: inset -5px -3px #b1803e; transform: skewY(-20deg);
-  animation: reward-build .5s .2s cubic-bezier(.16, 1, .3, 1) both;
-}
-.match-reward__brick i:nth-child(2) { top: 26px; background: #d5af66; animation-delay: .32s; }
-.match-reward__brick i:nth-child(3) { top: 39px; background: #927242; animation-delay: .44s; }
 .match-reward__cipher {
   position: absolute; top: 48px; left: 88px; right: 12px; color: #9fffc5;
   font: 700 25px/1.2 "Courier New", monospace; white-space: nowrap;
@@ -3749,10 +3740,6 @@ body:has(> .booster-fullscreen) .title-matrix-stream { animation-play-state: pau
   40% { opacity: 1; }
   100% { opacity: 1; clip-path: inset(0); transform: translateX(0); }
 }
-@keyframes reward-build {
-  from { opacity: 0; transform: translate(-16px, -12px) skewY(-20deg); }
-  to { opacity: 1; transform: translate(0) skewY(-20deg); }
-}
 @keyframes reward-icon-lock { from { border-color: transparent; box-shadow: 0 0 22px #ffd16630; } to { border-color: #ffd16630; box-shadow: 0 0 0 transparent; } }
 @keyframes reward-cipher {
   0% { opacity: .7; clip-path: inset(0); transform: translateX(0); }
@@ -3767,8 +3754,7 @@ body:has(> .booster-fullscreen) .title-matrix-stream { animation-play-state: pau
 @keyframes reward-dismiss { from { opacity: 1; } to { opacity: 0; } }
 @media (max-width: 360px) {
   .match-reward { gap: 12px; padding: 18px 14px; }
-  .match-reward__brick { flex-basis: 38px; height: 57px; }
-  .match-reward__brick i { left: 6px; width: 26px; }
+  .match-reward__coin { flex-basis: 38px; width: 38px; height: 38px; }
   .match-reward strong { font-size: 28px; }
   .match-reward small { font-size: 8px; letter-spacing: .8px; }
   .match-reward > div > .match-reward__influence { font-size: 13px; }
@@ -3790,4 +3776,40 @@ body:has(> .booster-fullscreen) .title-matrix-stream { animation-play-state: pau
 }
 .cyber-background *, .cyber-background *::before, .cyber-background *::after {
   animation-play-state: paused !important;
+}
+
+.title-balance::before, .title-booster-balance::before,
+.player-market__wallet strong::before, .cybercoin-shop__balance::before {
+  content: ""; display: inline-block; width: max(18px, 1.65em); height: max(18px, 1.65em);
+  margin-right: 6px; vertical-align: middle;
+  background: url("../assets/sprites/cybercoin.png") center / contain no-repeat;
+}
+.title-balance:focus-visible { outline: 2px solid #5fe88d; outline-offset: 3px; }
+.title-modal[data-kind="cybercoins"] { position: fixed; inset: 0; z-index: 10000; place-items: center; padding: 20px; font-family: Arial, sans-serif; }
+.title-dialog.cybercoin-shop { width: min(680px, 100%); max-height: calc(100dvh - 40px); overflow-y: auto; border: 1px solid #46593f; border-radius: 12px; }
+.cybercoin-shop .booster-header h2 { margin: 0; font-size: clamp(22px, 4vw, 32px); }
+.cybercoin-shop > p { line-height: 1.5; font-size: 14px; }
+.cybercoin-shop > .cybercoin-shop__rate { color: #5fe88d; font-size: 13px; letter-spacing: .08em; }
+.cybercoin-shop > .cybercoin-shop__balance { color: #e8f5ee; font-size: 16px; }
+.cybercoin-shop__packages { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin: 20px 0; }
+.cybercoin-shop__package { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0; padding: 18px 8px; border: 1px solid #425149; border-radius: 6px; color: #e6f4eb; background: #101d16; cursor: pointer; font-size: 13px; line-height: 1.2; }
+.cybercoin-shop__package strong { font: bold 26px/1.2 Arial, sans-serif; font-variant-numeric: tabular-nums; }
+.cybercoin-shop__package small { color: #9bdcb0; font-size: 12px; }
+.cybercoin-shop__package[aria-pressed="true"] { border-color: #5fe88d; background: #193322; box-shadow: inset 0 0 0 1px #5fe88d; }
+.cybercoin-shop__package:focus-visible { outline: 2px solid #5fe88d; outline-offset: 3px; }
+.cybercoin-shop__symbol { display: block; width: 48px; height: 48px; margin-bottom: 4px; object-fit: contain; }
+.cybercoin-shop__directions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.cybercoin-shop__direction { flex: 1; min-height: 44px; padding: 10px; border: 1px solid #425149; border-radius: 6px; background: #101d16; color: #e6f4eb; cursor: pointer; }
+.cybercoin-shop__direction[aria-pressed="true"] { border-color: #5fe88d; background: #193322; }
+.cybercoin-shop__direction:focus-visible { outline: 2px solid #5fe88d; outline-offset: 3px; }
+.cybercoin-shop__google { margin: 16px 0; }
+.cybercoin-shop__google[hidden] { display: none; }
+.cybercoin-shop__summary, .cybercoin-shop .profile-note { overflow-wrap: anywhere; }
+.cybercoin-shop__buy { width: 100%; min-height: 48px; margin-top: 8px; cursor: pointer; }
+.cybercoin-shop__buy:disabled { opacity: .55; cursor: default; }
+@media (max-width: 540px) {
+  .title-modal[data-kind="cybercoins"] { padding: 12px; }
+  .title-dialog.cybercoin-shop { padding: 20px 16px; max-height: calc(100dvh - 24px); }
+  .cybercoin-shop__packages { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cybercoin-shop__package:last-child { grid-column: 1 / -1; }
 }

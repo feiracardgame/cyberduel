@@ -324,7 +324,7 @@ class CyberduelTitleUI {
           ],
           [
             "Partida privada",
-            "Crie uma sala ou entre pelo código de um amigo. Não rende tijolinhos.",
+            "Crie uma sala ou entre pelo código de um amigo. Não rende Cybercoins.",
             "partida_privada",
             () => this.openCategoryOptions("privadas"),
             "none",
@@ -365,6 +365,12 @@ class CyberduelTitleUI {
             "Pacotes para sua coleção",
             "comprar_booster",
             () => this.openBoosterShop(),
+          ],
+          [
+            "Comprar Cybercoins",
+            "1 tijolinho da feira = 2 Cybercoins",
+            "comprar_booster",
+            () => this.openCybercoinShop(),
           ],
           [
             "Anunciar cartas",
@@ -413,7 +419,7 @@ class CyberduelTitleUI {
           [
             this.account?.user ? "Minha coleção" : "Entrar ou criar conta",
             this.account?.user
-              ? `${this.account.currency} tijolinhos`
+              ? `${this.account.currency} Cybercoins`
               : "Escolha sua facção e comece a jogar",
             "montar_deck",
             () =>
@@ -1528,11 +1534,13 @@ class CyberduelTitleUI {
       },
       this.account?.user ? "Sair da conta" : "Entrar ou criar conta",
     );
-    const balance = this.element(
-      "span",
+    const balance = this.button(
       "title-balance",
-      this.account?.user ? `▰ ${this.account.currency} TIJOLINHOS` : "",
+      this.account?.user ? `${this.account.currency} CYBERCOINS` : "",
+      () => this.openCybercoinShop(),
+      "Comprar Cybercoins",
     );
+    balance.hidden = !this.account?.user;
     const settingsButton = this.button(
       "title-settings-button",
       "⚙",
@@ -1704,7 +1712,7 @@ class CyberduelTitleUI {
     dialog.append(
       this.element("span", "title-kicker", "ADMIN // CONTAS E COLEÇÃO"),
       this.element("h2", "", "Central administrativa"),
-      this.element("p", "", "Consulte os acessos ao Clube e ao Conselho ou adicione tijolinhos e cartas."),
+      this.element("p", "", "Consulte os acessos ao Clube e ao Conselho ou adicione Cybercoins e cartas."),
     );
 
     const form = this.element("div", "title-admin-grid");
@@ -1793,8 +1801,8 @@ class CyberduelTitleUI {
           const detailsStatus = this.element("p", "title-admin-note");
           details.replaceChildren(this.element("h3", "", `${account.username} · ${account.nickname}`),
             this.element("p", "", `${account.rank} · ${account.rating.toLocaleString("pt-BR")} pontos de influência · ${account.rankingPosition ? `${account.rankingPosition}º no ranking` : "Ainda fora do ranking"}`),
-            this.element("p", "", `Saldo: ${account.currency.toLocaleString("pt-BR")} tijolinhos`),
-            this.element("p", "", `Tijolinhos gastos: ${account.currencySpent.toLocaleString("pt-BR")}`),
+            this.element("p", "", `Saldo: ${account.currency.toLocaleString("pt-BR")} Cybercoins`),
+            this.element("p", "", `Cybercoins gastos: ${account.currencySpent.toLocaleString("pt-BR")}`),
             this.element("p", "", `Cartas liberadas na coleção: ${account.unlockedCards} de ${account.totalCards} tipos (inclui cartas anunciadas)`),
             this.element("p", "", `Vendas concluídas no mercado: ${account.marketSales}`),
             this.element("p", "title-admin-note", `Gastos e vendas registrados desde ${new Date(account.statsTrackedSince).toLocaleString("pt-BR")}. O histórico anterior não foi registrado.`),
@@ -1917,7 +1925,7 @@ class CyberduelTitleUI {
       this.element(
         "p",
         "title-admin-note",
-        "Credita tijolinhos na conta acima, sem alterar sua coleção.",
+        "Credita Cybercoins na conta acima, sem alterar sua coleção.",
       ),
     );
     const currencyAmount = this.element("input", "title-auth-input");
@@ -1926,7 +1934,7 @@ class CyberduelTitleUI {
     currencyAmount.max = "1000000";
     currencyAmount.step = "1";
     currencyAmount.value = "500";
-    currencyAmount.setAttribute("aria-label", "Quantidade de tijolinhos");
+    currencyAmount.setAttribute("aria-label", "Quantidade de Cybercoins");
     const currencyButton = this.button(
       "title-dialog__confirm title-admin-currency",
       "＋ ADICIONAR DINHEIRO",
@@ -1945,7 +1953,7 @@ class CyberduelTitleUI {
         this.modalRequired = true;
         try {
           const payload = await this.account.grantCurrency(target, amount);
-          result.textContent = `+${payload.added.toLocaleString("pt-BR")} tijolinhos para ${payload.account.username}. Saldo: ${payload.account.currency.toLocaleString("pt-BR")}.`;
+          result.textContent = `+${payload.added.toLocaleString("pt-BR")} Cybercoins para ${payload.account.username}. Saldo: ${payload.account.currency.toLocaleString("pt-BR")}.`;
         } catch (exception) {
           error.textContent =
             exception.message || "Falha ao adicionar dinheiro.";
@@ -2377,7 +2385,7 @@ class CyberduelTitleUI {
         kicker: "MERCADO DE CARTAS",
         title: "ABRIR BOOSTERS",
         description: this.account?.user
-          ? `${this.account.currency} tijolinhos disponíveis`
+          ? `${this.account.currency} Cybercoins disponíveis`
           : "Entre em uma conta para acessar",
         icon: "✦",
         disabled: !this.account?.user || !this.account?.faction,
@@ -2705,8 +2713,8 @@ class CyberduelTitleUI {
       ["Cartas de efeito e de terreno", "Cartas de efeito têm ação instantânea: resolvem seu efeito ao serem usadas e depois saem do campo. Cartas de terreno mantêm um efeito duradouro enquanto estiverem em campo; ao serem removidas, esse efeito termina. Confira a descrição de cada carta para conhecer suas condições."],
       ["Tempo de cada turno", "Cada turno tem um tempo máximo de 40 segundos para realizar suas ações. O cronômetro fica pausado durante as animações dos efeitos e volta a contar quando elas terminam."],
       ["Vença as rodadas", "O poder total de cada campo define o vencedor da rodada. Empates não pontuam. A partida termina com 4 rodadas vencidas ou após 7 rodadas; vence quem tiver mais rodadas ganhas. Resultados iguais terminam em empate."],
-      ["Escolha sua partida", "Jogue solo contra o bot, procure um adversário em Partida aleatória ou convide amigos em Partida privada. Partidas privadas não rendem tijolinhos."],
-      ["Tijolinhos nas partidas online", "Se o mesmo jogador desistir novamente contra o mesmo adversário nos três primeiros turnos, os tijolinhos dos dois são reduzidos pela metade a cada repetição, arredondando para baixo até zero. A primeira desistência paga o valor normal. Após o terceiro turno, a recompensa é normal. O histórico continua entre modalidades e após reiniciar."],
+      ["Escolha sua partida", "Jogue solo contra o bot, procure um adversário em Partida aleatória ou convide amigos em Partida privada. Partidas privadas não rendem Cybercoins."],
+      ["Cybercoins nas partidas online", "Se o mesmo jogador desistir novamente contra o mesmo adversário nos três primeiros turnos, os Cybercoins dos dois são reduzidos pela metade a cada repetição, arredondando para baixo até zero. A primeira desistência paga o valor normal. Após o terceiro turno, a recompensa é normal. O histórico continua entre modalidades e após reiniciar."],
       ["Entre no Clube secreto", "O Clube está liberado para contas conectadas. Escolha uma mesa, reserve seu lugar e insira o código exibido na apresentação correspondente."],
       ["Leaderboard e Conselho", "Vença uma partida contra outro jogador para entrar na leaderboard. O top 10 atual forma o Conselho. Na mesa do Conselho, cada canto pode ser reservado por 1 minuto para inserir o código. Partidas contra o bot não contam para o ranking."],
       ["Pratique com a ElenAI", "Use Repetir tutorial para aprender os controles e jogar um treino guiado."],
@@ -2730,7 +2738,7 @@ class CyberduelTitleUI {
     dialog.append(
       this.element("span", "title-kicker", "DUELO COM AMIGOS"),
       this.element("h2", "", mode === "join" ? "Entrar por código" : "Criar ou entrar em sala"),
-      this.element("p", "", "Convide um amigo por código ou QR, ou entre na sala dele. Estas partidas não rendem tijolinhos."),
+      this.element("p", "", "Convide um amigo por código ou QR, ou entre na sala dele. Estas partidas não rendem Cybercoins."),
       ...(mode === "join" ? [] : [this.button("title-dialog__confirm title-room-create", "CRIAR SALA", () => {
         this.closeModal(true);
         this.callbacks.onCreateRoom();
@@ -2855,6 +2863,137 @@ class CyberduelTitleUI {
     return details;
   }
 
+  openCybercoinShop(returnTo = null) {
+    if (this.modal || !this.account?.user) return;
+    const overlay = this.createModal("cybercoins");
+    const dialog = this.element("section", "title-dialog cybercoin-shop");
+    dialog.setAttribute("role", "dialog");
+    dialog.setAttribute("aria-modal", "true");
+    dialog.setAttribute("aria-labelledby", "cybercoin-heading");
+    const header = this.element("header", "booster-header");
+    const heading = this.element("h2", "", "Cybercoins e banco");
+    heading.id = "cybercoin-heading";
+    const close = this.button("booster-close", "×", () => this.closeModal(), "Fechar loja de Cybercoins");
+    header.append(heading, close);
+    const balance = this.element("p", "cybercoin-shop__balance", `Seu saldo: ${this.account.currency.toLocaleString("pt-BR")} Cybercoins`);
+    const packages = this.element("div", "cybercoin-shop__packages");
+    packages.setAttribute("role", "group");
+    packages.setAttribute("aria-label", "Pacotes de Cybercoins");
+    const summary = this.element("p", "cybercoin-shop__summary");
+    summary.setAttribute("aria-live", "polite");
+    const directions = this.element("div", "cybercoin-shop__directions");
+    directions.setAttribute("role", "group");
+    directions.setAttribute("aria-label", "Sentido do câmbio");
+    const googleButton = this.element("div", "cybercoin-shop__google");
+    googleButton.hidden = true;
+    const status = this.element("p", "profile-note", "Carregando pacotes…");
+    status.setAttribute("role", "status");
+    const error = this.element("p", "title-dialog__error");
+    error.setAttribute("role", "alert");
+    let catalog = null, selected = null, busy = false, completed = false, direction = "buy";
+    for (const [value, label] of [["buy", "Comprar Cybercoins"], ["withdraw", "Enviar ao banco"]]) {
+      const button = this.button("cybercoin-shop__direction", label, () => { direction = value; completed = false; refresh(); });
+      button.dataset.direction = value;
+      directions.append(button);
+    }
+    const refresh = () => {
+      const pending = this.account.getCybercoinPurchase();
+      const withdrawing = direction === "withdraw";
+      const available = withdrawing ? catalog?.withdrawAvailable : catalog?.available;
+      for (const button of directions.children) {
+        button.setAttribute("aria-pressed", String(button.dataset.direction === direction));
+        button.disabled = busy || Boolean(pending && button.dataset.direction !== (pending.direction || "buy"));
+      }
+      for (const button of packages.children) {
+        button.setAttribute("aria-pressed", String(button.dataset.bundleId === selected?.id));
+        button.disabled = busy || Boolean(pending && button.dataset.bundleId !== pending.bundleId);
+      }
+      buy.disabled = busy || !selected || (!available && !pending) || Boolean(catalog?.needsGoogleLogin) ||
+        Boolean(withdrawing && !pending && this.account.currency < selected?.cybercoins);
+      buy.textContent = busy ? "VERIFICANDO…" : pending ? "VERIFICAR CÂMBIO" : available ? withdrawing ? "CONFIRMAR ENVIO AO BANCO" : "TROCAR TIJOLINHOS" : "DISPONÍVEL EM BREVE";
+      buy.setAttribute("aria-label", buy.textContent);
+      summary.textContent = selected ? withdrawing
+        ? `Você envia ${selected.cybercoins.toLocaleString("pt-BR")} Cybercoins e recebe ${selected.tijolinhos.toLocaleString("pt-BR")} tijolinhos no banco da sua conta Google.`
+        : `Você paga ${selected.tijolinhos.toLocaleString("pt-BR")} tijolinhos da feira e recebe ${selected.cybercoins.toLocaleString("pt-BR")} Cybercoins.` : "";
+      if (pending) status.textContent = `Câmbio ${pending.id}: consulte a confirmação antes de fazer outra operação.`;
+      else if (!completed) status.textContent = !available
+        ? "A feira precisa habilitar a compra de Cybercoins para o Cyberduel. Você pode usar Enviar ao banco para fazer o câmbio de volta."
+        : catalog?.needsGoogleLogin ? "Confirme sua conta Google abaixo para autorizar o banco da feira."
+        : withdrawing && this.account.currency < selected?.cybercoins ? "Cybercoins insuficientes para este pacote."
+        : "Confira o pacote e confirme a troca abaixo.";
+    };
+    const buy = this.button("title-dialog__confirm cybercoin-shop__buy", "CARREGANDO…", async () => {
+      if (buy.disabled || busy || !selected) return;
+      busy = true;
+      this.modalRequired = true;
+      close.disabled = true;
+      error.textContent = "";
+      refresh();
+      try {
+        const purchase = await this.account.buyCybercoins(selected.id, direction);
+        if (this.modal !== overlay) return;
+        completed = true;
+        balance.textContent = `Seu saldo: ${this.account.currency.toLocaleString("pt-BR")} Cybercoins`;
+        status.textContent = direction === "withdraw"
+          ? `Câmbio confirmado! ${purchase.tijolinhos.toLocaleString("pt-BR")} tijolinhos enviados ao banco da feira.`
+          : `Compra confirmada! +${purchase.cybercoins.toLocaleString("pt-BR")} Cybercoins para usar em boosters e no mercado.`;
+      } catch (exception) {
+        if (this.modal === overlay) {
+          error.textContent = exception.message;
+          if (!this.account.getCybercoinPurchase()) status.textContent = "Nenhuma compra foi concluída.";
+          if (["FEIRA_LOGIN_REQUIRED", "INVALID_FEIRA_TOKEN"].includes(exception.code)) await loadCatalog();
+        }
+      } finally {
+        busy = false;
+        if (this.modal === overlay) {
+          this.modalRequired = false;
+          close.disabled = false;
+          refresh();
+        }
+      }
+    });
+    buy.disabled = true;
+    dialog.append(header,
+      this.element("p", "", "Use Cybercoins em boosters e cartas, ou troque suas moedas por tijolinhos no banco da feira."),
+      this.element("p", "cybercoin-shop__rate", "1 TIJOLINHO = 2 CYBERCOINS"),
+      balance, directions, packages, summary, googleButton, status, error, buy);
+    overlay.append(dialog);
+    this.modalAfterClose = returnTo || (() => this.account.notify());
+    this.settings?.applyDomTextScale(overlay);
+    requestAnimationFrame(() => { overlay.classList.add("is-visible"); close.focus(); });
+    const loadCatalog = () => this.account.request("/api/cybercoins/packages").then(payload => {
+      if (this.modal !== overlay) return;
+      catalog = payload;
+      balance.textContent = `Seu saldo: ${this.account.currency.toLocaleString("pt-BR")} Cybercoins`;
+      if (payload.pendingPurchase) localStorage.setItem(`cyberduel.cybercoins.purchase.v1:${this.account.user}`, JSON.stringify(payload.pendingPurchase));
+      const pending = this.account.getCybercoinPurchase();
+      if (pending) direction = pending.direction || "buy";
+      packages.replaceChildren();
+      selected = catalog.bundles.find(bundle => bundle.id === pending?.bundleId) || catalog.bundles[1] || catalog.bundles[0];
+      for (const bundle of catalog.bundles) {
+        const button = this.button("cybercoin-shop__package", "", () => {
+          if (!busy) { selected = bundle; completed = false; refresh(); }
+        }, `${bundle.cybercoins} Cybercoins por ${bundle.tijolinhos} tijolinhos`);
+        button.dataset.bundleId = bundle.id;
+        const coin = this.element("img", "cybercoin-shop__symbol");
+        coin.src = "assets/sprites/cybercoin.png";
+        coin.alt = "";
+        coin.width = coin.height = 48;
+        button.append(coin,
+          this.element("strong", "", bundle.cybercoins.toLocaleString("pt-BR")),
+          this.element("span", "", "Cybercoins"),
+          this.element("small", "", `${bundle.tijolinhos.toLocaleString("pt-BR")} tijolinhos`));
+        packages.append(button);
+      }
+      status.textContent = catalog.available ? "Confira o pacote e confirme a troca abaixo." : "A compra de Cybercoins estará disponível quando os pagamentos da feira forem liberados.";
+      refresh();
+      googleButton.hidden = !catalog.needsGoogleLogin;
+      if (catalog.needsGoogleLogin) this.account.mountGoogleButton(googleButton,
+        exception => { if (this.modal === overlay) error.textContent = exception.message; }, loadCatalog);
+    }).catch(exception => { if (this.modal === overlay) error.textContent = exception.message; });
+    loadCatalog();
+  }
+
   openPlayerMarket(initialView = "browse") {
     if (this.modal || !this.account?.user) return;
     const overlay = this.createModal("player-market");
@@ -2879,6 +3018,9 @@ class CyberduelTitleUI {
     const balance = this.element("strong", "");
     const wallet = this.element("div", "player-market__wallet");
     wallet.append(this.element("span", "forge-kicker", "SEU SALDO"), balance);
+    wallet.append(this.button("booster-admin", "+ CYBERCOINS", () => {
+      if (!busy) this.switchBoosterView(() => this.openCybercoinShop(() => this.openPlayerMarket(view)));
+    }, "Comprar Cybercoins"));
     header.append(
       this.button(
         "booster-close",
@@ -2947,7 +3089,7 @@ class CyberduelTitleUI {
       }
     };
     const render = () => {
-      balance.textContent = `${this.account.currency.toLocaleString("pt-BR")} tijolinhos`;
+      balance.textContent = `${this.account.currency.toLocaleString("pt-BR")} Cybercoins`;
       tabs.replaceChildren();
       for (const [id, label] of [
         ["browse", "Comprar cartas"],
@@ -3154,12 +3296,12 @@ class CyberduelTitleUI {
             this.element(
               "span",
               "",
-              `Total do anúncio: ${valid ? total.toLocaleString("pt-BR") : "—"} tijolinhos`,
+              `Total do anúncio: ${valid ? total.toLocaleString("pt-BR") : "—"} Cybercoins`,
             ),
             this.element(
               "strong",
               "",
-              `Você recebe: ${valid ? proceeds.toLocaleString("pt-BR") : "—"} tijolinhos (80%)`,
+              `Você recebe: ${valid ? proceeds.toLocaleString("pt-BR") : "—"} Cybercoins (80%)`,
             ),
             this.element(
               "small",
@@ -3170,7 +3312,7 @@ class CyberduelTitleUI {
         };
         for (const [labelText, control] of [
           ["Quantidade", quantity],
-          ["Preço por cópia (tijolinhos)", price],
+          ["Preço por cópia (Cybercoins)", price],
         ]) {
           const label = this.element("label", "", labelText);
           label.htmlFor = control.id;
@@ -3301,7 +3443,7 @@ class CyberduelTitleUI {
             this.element(
               "p",
               "player-market__unit-price",
-              `${listing.preco.toLocaleString("pt-BR")} tijolinhos / cópia`,
+              `${listing.preco.toLocaleString("pt-BR")} Cybercoins / cópia`,
             ),
           );
           const total = listing.preco * listing.quantidade;
@@ -3309,7 +3451,7 @@ class CyberduelTitleUI {
             this.element(
               "strong",
               "player-market__price",
-              `${total.toLocaleString("pt-BR")} tijolinhos`,
+              `${total.toLocaleString("pt-BR")} Cybercoins`,
             ),
           );
           if (listing.mine)
@@ -3317,14 +3459,14 @@ class CyberduelTitleUI {
               this.element(
                 "small",
                 "player-market__unit-price",
-                `Você recebe ${Number((BigInt(total) * 4n) / 5n).toLocaleString("pt-BR")} tijolinhos (80%)`,
+                `Você recebe ${Number((BigInt(total) * 4n) / 5n).toLocaleString("pt-BR")} Cybercoins (80%)`,
               ),
             );
           const button = this.button(
             "title-dialog__confirm",
             listing.mine
               ? "CANCELAR ANÚNCIO"
-              : `COMPRAR · ${total.toLocaleString("pt-BR")} TIJOLINHOS`,
+              : `COMPRAR · ${total.toLocaleString("pt-BR")} CYBERCOINS`,
             () => act(listing.mine ? "cancel" : "buy", { id: listing.id }),
           );
           if (!listing.mine && this.account.currency < total) {
@@ -3545,6 +3687,10 @@ class CyberduelTitleUI {
       this.openAdminGrantDialog(true);
     });
     wallet.append(balance);
+    const recharge = this.button("booster-admin", "+ CYBERCOINS", () => {
+      if (!busy && !this.boosterTraining) this.switchBoosterView(() => this.openCybercoinShop(() => this.openBoosterShop()));
+    }, "Comprar Cybercoins");
+    if (!this.boosterTraining) wallet.append(recharge);
     if (this.account?.isAdmin) wallet.append(admin);
     wallet.hidden = opening;
     const tabs = this.element("div", "booster-factions");
@@ -3750,7 +3896,7 @@ class CyberduelTitleUI {
           this.boosterOpenAudio.play().catch(() => {});
         }
         status.textContent = "Rompendo o lacre…";
-        balance.textContent = `${this.account.currency.toLocaleString("pt-BR")} TIJOLINHOS`;
+        balance.textContent = `${this.account.currency.toLocaleString("pt-BR")} CYBERCOINS`;
         await pause(1600);
         if (this.modal !== overlay) {
           this.account.notify();
@@ -3794,8 +3940,9 @@ class CyberduelTitleUI {
       }
     });
     const refresh = () => {
-      balance.textContent = `${this.account.currency.toLocaleString("pt-BR")} TIJOLINHOS`;
+      balance.textContent = `${this.account.currency.toLocaleString("pt-BR")} CYBERCOINS`;
       close.disabled = admin.disabled = inventory.disabled = busy || revealing;
+      recharge.disabled = busy || revealing;
       for (const button of tabs.children) {
         button.disabled = busy || revealing || button.dataset.locked === "true";
         button.setAttribute(
@@ -3823,7 +3970,7 @@ class CyberduelTitleUI {
               ? "RESGATAR BOOSTER GRÁTIS"
               : this.account.currency < this.account.boosterPrice
                 ? "SALDO INSUFICIENTE"
-                : `COMPRAR PACOTE · ${this.account.boosterPrice} TIJOLINHOS`;
+                : `COMPRAR PACOTE · ${this.account.boosterPrice} CYBERCOINS`;
       buy.setAttribute("aria-label", buy.textContent);
     };
     const reset = () => {
@@ -4061,13 +4208,13 @@ class CyberduelTitleUI {
     const steps = [
       ["Seu deck já vem pronto", "CARTAS → DECK BUILDER", "Troque cartas e salve seu deck: 20 cartas, com pelo menos 6 baixas, 4 médias e 2 altas.",
         [["montar_deck", "Monte e salve seu deck"]]],
-      ["Mais cartas em 2 passos", "CARTAS → BOOSTERS", "Compre um pacote por 50 tijolinhos. Depois abra no inventário: são 5 cartas para sua coleção.",
+      ["Mais cartas em 2 passos", "CARTAS → BOOSTERS", "Compre um pacote por 50 Cybercoins. Depois abra no inventário: são 5 cartas para sua coleção.",
         [["comprar_booster", "1. Comprar boosters"], ["abrir_boosters", "2. Abrir boosters"]]],
-      ["Escolha como jogar", "PARTIDAS", "Solo para praticar. Aleatória para disputar o ranking. Privada para jogar com amigos por código ou QR, sem ganhar tijolinhos.",
+      ["Escolha como jogar", "PARTIDAS", "Solo para praticar. Aleatória para disputar o ranking. Privada para jogar com amigos por código ou QR, sem ganhar Cybercoins.",
         [["jogar_contra_bot", "Solo · contra o bot"], ["partida_aleatoria", "Aleatória · ranqueada"], ["partida_privada", "Privada · com amigos"]]],
       ["Jogue nas mesas", "PARTIDAS → CLUBE / CONSELHO", "Clube: quatro mesas para disputar. Conselho: top 10 do ranking. Reserve seu lugar e digite o código da tela da mesa.",
         [["clube_secreto", "Clube · bônus de 25%"], ["conselho", "Conselho · bônus de 50%"]]],
-      ["Negocie cartas", "CARTAS → MERCADO", "Anuncie suas cartas ou compre as de outros jogadores com tijolinhos. Confira a carta e o preço antes de comprar.",
+      ["Negocie cartas", "CARTAS → MERCADO", "Anuncie suas cartas ou compre as de outros jogadores com Cybercoins. Confira a carta e o preço antes de comprar.",
         [["anunciar_cartas", "Vender suas cartas"], ["visualizar_anuncios", "Comprar de jogadores"]]],
       ["Acompanhe sua evolução", "LEADERBOARD / SEU PERFIL", "Vença partidas ranqueadas para subir no ranking. Toque no seu nome para ver perfil, vitórias e foto.",
         [["leaderboard", "Ranking de duelistas"]]],

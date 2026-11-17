@@ -111,7 +111,7 @@ async function run() {
   assert.equal(await page.evaluate(() => game.scene.getScene('CenaJogo').telaFinalExibida), false, 'Vitória aguarda a animação terminar.');
   await page.waitForFunction(() => game.scene.getScene('CenaJogo').telaFinalExibida);
   await page.waitForFunction(() => cyberduelAccount.currency === 570 && document.querySelector('.match-reward'));
-  assert.match(await page.locator('.match-reward').innerText(), /\+70 tijolinhos/);
+  assert.match(await page.locator('.match-reward').innerText(), /\+70 Cybercoins/);
   assert.equal(JSON.parse(fs.readFileSync(accountsPath)).accounts[fixture.accountKey].currency, 570,
     'Vitória com Segurança X1 paga uma vez e persiste no servidor.');
   assert.equal(await page.evaluate(() => partida.rodadasJogador), 4);

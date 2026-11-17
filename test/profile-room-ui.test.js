@@ -320,7 +320,7 @@ const byLabel = label => find(ui.modal, el => el.attributes['aria-label'] === la
   assert.equal(byLabel('Username da conta').value, 'Bia');
   const details = byClass('title-admin-details');
   assert.equal(details.hidden, false);
-  assert.match(details.children.map(child => child.textContent).join(' '), /Tijolinhos gastos: 300.*8 de 100.*mercado: 2/);
+  assert.match(details.children.map(child => child.textContent).join(' '), /Cybercoins gastos: 300.*8 de 100.*mercado: 2/);
   filter.value = 'all'; filter.events.change();
   order.value = 'ranking'; order.events.change(); assert.equal(list.children[0].children[0].textContent, 'Bia');
   order.value = 'ranking-asc'; order.events.change(); assert.equal(list.children[0].children[0].textContent, 'Caio');

@@ -42,7 +42,7 @@ assert.equal(typeof ui.getMenuSections().partidas.rows.find(([name]) => name ===
 ui.account = null;
 for (const section of Object.values(ui.getMenuSections())) for (const [, , art] of section.rows)
   assert.ok(fs.existsSync(`assets/menus/${art}.png`), `Imagem ausente: ${art}`);
-assert.equal(ui.getMenuSections().cartas.rows.length, 5);
+assert.equal(ui.getMenuSections().cartas.rows.length, 6);
 assert.equal(ui.getMenuSections().privadas.rows.length, 2);
 assert.equal(ui.getMenuSections().tutorial.rows.length, 3);
 

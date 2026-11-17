@@ -198,14 +198,14 @@ class CyberduelAccount {
     }));
   }
 
-  async googleLogin(credential, loginId) {
+  async googleLogin(credential, loginId, shouldNotify = true) {
     const payload = await this.request("/api/auth/google", {
       method: "POST", body: { credential, loginId }, auth: false,
     });
-    return this.applyAuth(payload);
+    return this.applyAuth(payload, shouldNotify);
   }
 
-  async mountGoogleButton(container, onError) {
+  async mountGoogleButton(container, onError, onSuccess = null) {
     try {
       const userAgent = window.navigator?.userAgent || "";
       if (/FBAN|FBAV|Instagram|\bwv\b/i.test(userAgent))
@@ -245,11 +245,12 @@ class CyberduelAccount {
           container.replaceChildren();
           container.textContent = "Entrando…";
           try {
-            await this.googleLogin(credential, login.loginId);
+            await this.googleLogin(credential, login.loginId, !onSuccess);
+            await onSuccess?.();
           } catch (error) {
             if (!container.isConnected) return;
             onError(error);
-            await this.mountGoogleButton(container, onError);
+            await this.mountGoogleButton(container, onError, onSuccess);
           }
         },
       });
@@ -342,6 +343,37 @@ class CyberduelAccount {
     this.pendingBoosterPurchase = null;
     this.applyAuth(payload, false);
     return this.boosters;
+  }
+
+  getCybercoinPurchase() {
+    try {
+      const purchase = JSON.parse(localStorage.getItem(`cyberduel.cybercoins.purchase.v1:${this.user}`));
+      return purchase && typeof purchase.bundleId === "string" && /^[a-zA-Z0-9-]{16,80}$/.test(purchase.id) ? purchase : null;
+    } catch { return null; }
+  }
+
+  async buyCybercoins(bundleId, direction = "buy") {
+    if (!this.user || !this.token) throw new Error("Entre na sua conta para comprar Cybercoins.");
+    const user = this.user, key = `cyberduel.cybercoins.purchase.v1:${user}`;
+    let purchase = this.getCybercoinPurchase();
+    if (!["buy", "withdraw"].includes(direction)) throw new Error("Operação de câmbio inválida.");
+    if (purchase && (purchase.bundleId !== bundleId || (purchase.direction || "buy") !== direction))
+      throw new Error("Consulte a compra pendente antes de escolher outro pacote.");
+    if (!purchase) {
+      purchase = { bundleId, direction, id: Array.from(crypto.getRandomValues(new Uint8Array(16)), byte => byte.toString(16).padStart(2, "0")).join("") };
+      localStorage.setItem(key, JSON.stringify(purchase));
+    }
+    try {
+      const payload = await this.request(`/api/cybercoins/${direction === "withdraw" ? "withdraw" : "buy"}`, { method: "POST",
+        body: { bundleId, purchaseId: purchase.id } });
+      localStorage.removeItem(key);
+      if (this.user === user) this.applyAuth(payload, false);
+      return payload.purchase;
+    } catch (error) {
+      if (["FEIRA_DECLINED", "FEIRA_UNAVAILABLE", "INVALID_FEIRA_TOKEN", "INVALID_PURCHASE", "FEIRA_LOGIN_REQUIRED", "INSUFFICIENT_CYBERCOINS"].includes(error.code))
+        localStorage.removeItem(key);
+      throw error;
+    }
   }
 
   async openBooster(packId) {

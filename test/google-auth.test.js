@@ -352,7 +352,10 @@ async function checkClient(profile) {
   assert.equal(chosen.body.faction, null, "Cadastro, apelido no tutorial e facção são etapas separadas.");
   const faction = await api("account/faction", { faction: "raspcorp" });
   assert.equal(faction.status, 200);
+  assert.equal((await api("cybercoins/packages", undefined, "GET")).body.needsGoogleLogin, false, "JWT validado fica disponível para o banco.");
+  assert.ok(!fs.readFileSync(path.join(directory, "sessions.json"), "utf8").includes(first.body.credential), "JWT não é persistido nas sessões.");
   await stop(); await start();
+  assert.equal((await api("cybercoins/packages", undefined, "GET")).body.needsGoogleLogin, true, "Reiniciar preserva a sessão do jogo, mas exige renovar o JWT do banco.");
   assert.equal((await api("auth/session", undefined, "GET")).body.nickname, "Duelista 🌟");
   const returning = await login({ name: "Outro nome", email: "novo@example.com" });
   assert.equal(returning.result.body.username, chosen.body.username);

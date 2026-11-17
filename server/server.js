@@ -26,6 +26,7 @@ const matchmaking = new Map();
 const redemptionAttempts = new Map();
 const battleAnnouncements = require("../js/battle-announcements");
 const { nameIsBlocked } = require("./name-policy");
+const cybercoins = require("./cybercoins");
 
 const PORT = Number(process.env.PORT) || 3000;
 const LOCAL_LOGIN = process.env.CYBERDUEL_LOCAL_LOGIN === "1" && process.env.CYBERDUEL_DEBUG === "1";
@@ -55,6 +56,8 @@ const GOOGLE_CLIENT_ID = String(process.env.GOOGLE_CLIENT_ID || "").trim();
 const googleAuth = new OAuth2Client({ clientId: GOOGLE_CLIENT_ID, transporterOptions: { timeout: 10000 } });
 // shortcut: tentativas em memória; usar armazenamento compartilhado ao subir múltiplas instâncias.
 const googleLogins = new Map();
+// O JWT do Google vive somente na memória da sessão e expira com o provedor.
+const feiraCredentials = new WeakMap();
 
 function environmentInteger(name, fallback, minimum = 0, maximum = 100000) {
   const parsed = Number.parseInt(process.env[name], 10);
@@ -346,7 +349,7 @@ function authenticatedSession(request) {
     return null;
   }
   const account = accountStore.accounts[session.accountKey];
-  return canAuthenticate(account) ? { token: match[1], account } : null;
+  return canAuthenticate(account) ? { token: match[1], account, accountKey: session.accountKey } : null;
 }
 
 function accountFromToken(token, includeBanned = false) {
@@ -422,7 +425,9 @@ async function authenticateGoogle(credential, loginId) {
     entry = [accountKey, account];
   }
   if (entry[1].banned) return { status: 403, payload: banRejection(entry[1]) };
-  return { status: 200, payload: { ok: true, token: createSession(entry[0]), ...publicAccount(entry[1]) } };
+  const token = createSession(entry[0]);
+  feiraCredentials.set(sessions.get(sessionKey(token)), { token: credential, expiresAt: identity.exp * 1000 });
+  return { status: 200, payload: { ok: true, token, ...publicAccount(entry[1]) } };
 }
 
 function registerCouncilEntries(leaderboard = ranking.leaderboard(Object.values(accountStore.accounts))) {
@@ -741,6 +746,30 @@ async function handleApi(request, response, pathname) {
   ].includes(pathname))
     return sendJson(response, 403, { ok: false, error: "Escolha seu nick único antes de continuar." });
 
+  if (pathname.startsWith("/api/cybercoins/")) {
+    if (!pending) return sendJson(response, 401, { ok: false, error: "Entre na sua conta para comprar Cybercoins." });
+    const credential = feiraCredentials.get(sessions.get(sessionKey(pending.token)));
+    const feiraToken = credential?.expiresAt > Date.now() ? credential.token : "";
+    if (request.method === "GET" && pathname === "/api/cybercoins/packages") {
+      const unfinished = Object.values(accountStore.cybercoinPurchases || {}).find(order =>
+        order.accountKey === pending.accountKey && ["pending", "confirmed"].includes(order.status));
+      return sendJson(response, 200, { ok: true, ...cybercoins.catalog(), needsGoogleLogin: !feiraToken,
+        pendingPurchase: unfinished ? { id: unfinished.id, bundleId: unfinished.bundleId, direction: unfinished.direction || "buy" } : null });
+    }
+    if (request.method === "POST" && ["/api/cybercoins/buy", "/api/cybercoins/withdraw"].includes(pathname)) {
+      const body = await readJson(request);
+      try {
+        const operation = pathname.endsWith("/withdraw") ? cybercoins.withdraw : cybercoins.purchase;
+        const order = await operation(accountStore, pending.accountKey, { ...body, feiraToken }, saveAccounts);
+        return sendJson(response, 200, { ok: true, purchase: { id: order.id, bundleId: order.bundleId,
+          direction: order.direction || "buy", tijolinhos: order.tijolinhos, cybercoins: order.cybercoins, status: order.status }, ...publicAccount(pending.account) });
+      } catch (error) {
+        if (!error.status) throw error;
+        return sendJson(response, error.status, { ok: false, code: error.code, error: error.message });
+      }
+    }
+  }
+
   if (request.method === "POST" && pathname === "/api/account/review") {
     if (!pending) return sendJson(response, 401, { ok: false, error: "Entre na sua conta para receber o booster." });
     const body = await readJson(request);
@@ -828,7 +857,7 @@ async function handleApi(request, response, pathname) {
       const quantity = body.quantidade, price = body.preco;
       if (!card || !Number.isSafeInteger(quantity) || quantity < 1 || quantity > 99 ||
           !Number.isSafeInteger(price) || price < 1 || !Number.isSafeInteger(price * quantity))
-        return sendJson(response, 400, { ok: false, error: "Escolha uma carta, de 1 a 99 cópias e um preço inteiro positivo em tijolinhos." });
+        return sendJson(response, 400, { ok: false, error: "Escolha uma carta, de 1 a 99 cópias e um preço inteiro positivo em Cybercoins." });
       const key = cardKey(card.tipo, card.nome);
       const deckCopies = (account.deck || []).filter(c => cardKey(c.tipo, c.nome) === key).reduce((n, c) => n + c.quantidade, 0);
       const protectedCopies = Math.max(deckCopies, account.starterCollection[key] || 0);
@@ -865,7 +894,7 @@ async function handleApi(request, response, pathname) {
       const total = listing.preco * listing.quantidade;
       const proceeds = Number(BigInt(total) * 4n / 5n);
       if (!Number.isSafeInteger(account.currency) || account.currency < total)
-        return sendJson(response, 409, { ok: false, error: "Tijolinhos insuficientes para esta compra." });
+        return sendJson(response, 409, { ok: false, error: "Cybercoins insuficientes para esta compra." });
       const treasury = accountByUsername("dante");
       const tax = total - proceeds;
       if (!treasury)
@@ -1247,7 +1276,7 @@ async function handleApi(request, response, pathname) {
     if (session.account.currency < price)
       return sendJson(response, 400, {
         ok: false,
-        error: "Tijolinhos insuficientes.",
+        error: "Cybercoins insuficientes.",
       });
     if (!Number.isSafeInteger(session.account.currencySpent + price))
       return sendJson(response, 409, { ok: false, error: "As estatísticas da conta atingiram o limite." });

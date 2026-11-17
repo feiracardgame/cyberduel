@@ -17,7 +17,7 @@ const ELENAI_DIALOGUES = {
     {"sprite": 16, "speaker": "ElenAI", "text": "Você já usou personagem, terreno, efeito e habilidade! Agora vamos ao menu comprar e abrir um booster da outra facção."}
   ],
   "faction": [
-    {"sprite": 4, "speaker": "ElenAI", "text": "Bom, chegou a hora de escolher seu deck inicial. O restante das cartas pode ser comprada na aba de \"mercados\" utilizando qualquer criptomoeda que existir e estiver disponível no seu tempo. Pelo que vejo nas suas transações, é um tal de \"tijolinhos\"."},
+    {"sprite": 4, "speaker": "ElenAI", "text": "Bom, chegou a hora de escolher seu deck inicial. O restante das cartas pode ser comprada na aba de \"mercados\" utilizando qualquer criptomoeda que existir e estiver disponível no seu tempo. Pelo que vejo nas suas transações, é um tal de \"Cybercoins\"."},
     {"sprite": 2, "speaker": "ElenAI", "text": "Você poderá escolher entre 2 grupos: A RaspCorp ou a EchoSsystem"},
     {"sprite": 1, "speaker": "ElenAI", "text": "A RaspCorp foi uma megacorporação que transformou tecnologia, dados e segurança em ferramentas de poder. Para a RaspCorp, crescimento e lucro justificam a expansão contínua, enquanto o controle sobre a sociedade garante a estabilidade do sistema. Seu criador foi o lendário empreendedor e visionário Raspclay Montecorp."},
     {"sprite": 1, "speaker": "ElenAI", "text": "A Echossystem é um grupo de mercenários anarquistas que acreditavam que a sociedade não pode ser reformada apenas destruída para dar lugar a algo melhor. Usando implantes cibernéticos e identidades baseadas em animais, combatem megacorporações, algoritmos e elites que controlam o sistema. Seu criador foi o lendário mercenário Boi."},
@@ -256,7 +256,7 @@ class CyberduelStory {
       if (!account.faction) {
         if (account.tutorial.wantsTutorial) {
           if (!account.tutorial.deckExplained) {
-            await this.say([{ sprite: 4, speaker: "ElenAI", text: "Escolha sua facção para receber um deck pronto. Depois, compre boosters por 50 tijolinhos e teste outras cartas no Deck Builder." }]);
+            await this.say([{ sprite: 4, speaker: "ElenAI", text: "Escolha sua facção para receber um deck pronto. Depois, compre boosters por 50 Cybercoins e teste outras cartas no Deck Builder." }]);
             await account.saveTutorial({ deckExplained: true });
           }
           await this.say(ELENAI_DIALOGUES.faction.slice(4, 5), { choicesAt: 0, factions: true, choices: [
