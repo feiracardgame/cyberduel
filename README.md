@@ -13,6 +13,8 @@ Se o extrato confirmar um crédito menor que o solicitado, o câmbio é concluí
 
 A API da feira usa o preço cadastrado do produto quando ele é maior que zero, substituindo o valor enviado pelo jogo. Para os pacotes variarem conforme a seleção, a organização precisa configurar o preço do produto 86 como **0**, conforme a [implementação de crédito da feira](https://github.com/feira-de-jogos/feira-de-jogos/blob/main/nuvem/rest-api/routes/postCredit.js).
 
+A correção está em [scripts/feira-enable-variable-credit.sql](scripts/feira-enable-variable-credit.sql), para executar no PostgreSQL da **feira**. Ela altera somente o preço do jogo 86 e deve retornar uma linha com `id = 86` e `price = 0`. Não exige alterar o Client ID, reiniciar o Cyberduel nem reenviar câmbios anteriores. Depois da alteração, os novos câmbios respeitam os pacotes: 20 → 10, 50 → 25, 100 → 50, 200 → 100 e 500 → 250. Pendências anteriores continuam usando o próprio comprovante para conciliação; a configuração nova não altera o que já foi creditado.
+
 Tentativas antigas sem recibo exigem conferência da organização: não são reenviadas nem reembolsadas automaticamente, pois o banco pode já ter aplicado o crédito.
 
 A **compra** permanece em **Disponível em breve**: a implementação oficial atual de `/debit` aceita somente produtos de comida e arcade com preço fixo, não jogos. A feira precisa habilitar o produto e definir como cobrar os pacotes antes de liberar esse sentido. O Client ID do Cyberduel também precisa estar autorizado pela feira para crédito e extrato. A configuração do Client ID fornecido pela feira está em [Login com Google](#login-com-google).
@@ -477,6 +479,8 @@ ADMIN_USERNAMES=seu_username,outro_admin
 Use o **username único**, não o apelido/display name; maiúsculas e minúsculas são equivalentes. Vazio desativa todos os acessos administrativos. Para aplicar no Docker após atualizar o código, execute `docker compose --env-file .env up -d --build server nginx`. Para remover um admin, retire seu username e recrie o serviço. No Node, reinicie com `node --env-file=.env server/server.js`.
 
 O botão **ADMIN** nas configurações e no mercado aparece apenas para essas contas. A API exige a sessão Google do administrador; `ADMIN_API_TOKEN` e `window.CYBERDUEL_ADMIN_TOKEN` deixam de liberar acesso. Os atalhos de teste também exigem admin; garantia de lendária e final online continuam exigindo `npm run dev`.
+
+No painel, **RECEBER 500 TIJOLINHOS · GRÁTIS** solicita crédito no banco da própria conta Google do administrador, sem gastar Cybercoins. `GET/POST /api/admin/feira/credit` exige admin em cada pedido; contas locais/offline não podem usar o banco. Valor (500), produto (86) e JWT vêm do servidor, sem aceitar valor, destino ou permissão enviados pelo navegador. A operação e o comprovante são persistidos; se ficar pendente, o botão apenas verifica a mesma tentativa. O painel informa o valor efetivamente confirmado: o preço fixo da feira ainda precisa estar em zero para receber os 500 solicitados.
 
 A central administrativa permite pesquisar contas por username ou apelido, filtrar acesso ao Clube e ao Conselho atual e ordenar por pontos de influência. Clique na conta para ver saldo, ranking, tipos de cartas na coleção em relação ao catálogo (incluindo cartas anunciadas), Cybercoins gastos em boosters e compras no mercado e quantidade de vendas concluídas. Gastos e vendas começam a ser registrados com esta atualização; a data inicial aparece nos detalhes, pois não há histórico dessas transações anteriores.
 

@@ -1968,6 +1968,64 @@ class CyberduelTitleUI {
 
     const error = this.element("span", "title-dialog__error");
     const result = this.element("p", "title-admin-result");
+    const feiraSection = this.element("section", "title-admin-section title-admin-feira");
+    feiraSection.hidden = this.account.authProvider !== "google";
+    const feiraStatus = this.element("p", "title-admin-note", "Carregando autorização da feira…");
+    feiraStatus.setAttribute("role", "status");
+    const feiraGoogle = this.element("div");
+    feiraGoogle.hidden = true;
+    let feiraAuthorized = false, feiraGoogleMounted = false;
+    const feiraButton = this.button("title-dialog__confirm title-admin-feira-credit", "RECEBER 500 TIJOLINHOS · GRÁTIS", async () => {
+      if (feiraButton.disabled) return;
+      toggleBusy(true);
+      this.modalRequired = true;
+      feiraStatus.textContent = "Consultando o banco da feira…";
+      try {
+        const payload = await this.account.grantFeiraCredit();
+        if (this.modal !== overlay) return;
+        feiraStatus.textContent = payload.tijolinhos === 500
+          ? `500 tijolinhos creditados na sua conta da feira. Comprovante: ${payload.receiptId}. Nenhuma Cybercoin foi gasta.`
+          : `A feira confirmou apenas ${payload.tijolinhos} dos 500 tijolinhos solicitados. Comprovante: ${payload.receiptId}. Peça à organização para conferir o preço do produto 86. Nenhuma Cybercoin foi gasta.`;
+      } catch (exception) {
+        if (this.modal !== overlay) return;
+        if (exception.code === "FEIRA_LOGIN_REQUIRED") await loadFeira();
+        feiraStatus.textContent = exception.message;
+      } finally {
+        this.modalRequired = false;
+        if (this.modal === overlay) {
+          toggleBusy(false);
+          feiraButton.textContent = localStorage.getItem(`cyberduel.feira.admin.v1:${this.account.user}`)
+            ? "VERIFICAR CRÉDITO PENDENTE" : "RECEBER 500 TIJOLINHOS · GRÁTIS";
+          feiraButton.setAttribute("aria-label", feiraButton.textContent);
+        }
+      }
+    });
+    feiraButton.disabled = true;
+    const loadFeira = async () => {
+      feiraAuthorized = false;
+      feiraButton.disabled = true;
+      try {
+        const state = await this.account.request("/api/admin/feira/credit");
+        if (this.modal !== overlay) return;
+        if (state.pendingGrant) localStorage.setItem(`cyberduel.feira.admin.v1:${this.account.user}`, state.pendingGrant.id);
+        feiraAuthorized = !state.needsGoogleLogin;
+        feiraButton.disabled = !feiraAuthorized;
+        feiraButton.textContent = localStorage.getItem(`cyberduel.feira.admin.v1:${this.account.user}`)
+          ? "VERIFICAR CRÉDITO PENDENTE" : "RECEBER 500 TIJOLINHOS · GRÁTIS";
+        feiraButton.setAttribute("aria-label", feiraButton.textContent);
+        feiraStatus.textContent = state.needsGoogleLogin ? "Renove sua autorização Google para usar o banco."
+          : state.pendingGrant ? "Existe um crédito pendente. Verificar consulta a tentativa anterior sem enviar outro crédito."
+          : "Receba 500 tijolinhos no banco da sua própria conta Google, sem gastar Cybercoins.";
+        feiraGoogle.hidden = !state.needsGoogleLogin;
+        if (!feiraGoogle.hidden && !feiraGoogleMounted) {
+          feiraGoogleMounted = true;
+          this.account.mountGoogleButton(feiraGoogle, exception => { feiraStatus.textContent = exception.message; }, loadFeira);
+        }
+      } catch (exception) {
+        if (this.modal === overlay) feiraStatus.textContent = exception.message;
+      }
+    };
+    feiraSection.append(this.element("h3", "", "Crédito na feira · admin"), feiraStatus, feiraGoogle, feiraButton);
     const actionButtons = this.element(
       "div",
       "title-dialog__actions title-dialog__actions--triple",
@@ -1983,6 +2041,7 @@ class CyberduelTitleUI {
         currencyAmount,
         currencyButton,
       ].forEach((field) => (field.disabled = busy));
+      feiraButton.disabled = busy || !feiraAuthorized;
       [...actionButtons.children].forEach((button) => (button.disabled = busy));
       [...accountsList.children].forEach((button) => (button.disabled = busy));
     };
@@ -2092,11 +2151,12 @@ class CyberduelTitleUI {
       this.button("title-dialog__cancel", "VOLTAR", () => this.closeModal()),
     );
 
-    form.append(securitySection, accountsSection, username, currencySection, deckSection, cardSection);
+    form.append(securitySection, feiraSection, accountsSection, username, currencySection, deckSection, cardSection);
     dialog.append(form, result, error, actionButtons);
     overlay.append(dialog);
     this.settings?.applyDomTextScale(overlay);
     requestAnimationFrame(() => overlay.classList.add("is-visible"));
+    if (!feiraSection.hidden) loadFeira();
     setTimeout(() => (focusCurrency ? currencyAmount : search).focus(), 50);
     this.account.listAdminAccounts().then(loaded => {
       if (this.modal !== overlay) return;

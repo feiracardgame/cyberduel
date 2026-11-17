@@ -89,17 +89,20 @@ async function purchase(store, accountKey, body, save) {
   return order;
 }
 
-async function withdraw(store, accountKey, body, save) {
-  const bundle = bundles.find(entry => entry.id === body?.bundleId);
-  if (!bundle || typeof body.purchaseId !== "string" || !/^[a-zA-Z0-9-]{16,80}$/.test(body.purchaseId))
+async function withdraw(store, accountKey, body, save, adminGrant = false) {
+  const bundle = adminGrant ? { id: "admin-feira-500", tijolinhos: 500, cybercoins: 0 }
+    : bundles.find(entry => entry.id === body?.bundleId);
+  const direction = adminGrant ? "admin-grant" : "withdraw";
+  if (!bundle || typeof body?.purchaseId !== "string" || !/^[a-zA-Z0-9-]{16,80}$/.test(body.purchaseId))
     fail(400, "INVALID_PURCHASE", "Escolha um pacote e um identificador de câmbio válido.");
   const account = store.accounts[accountKey];
   const orders = store.cybercoinPurchases ||= {};
   let order = Object.hasOwn(orders, body.purchaseId) ? orders[body.purchaseId] : null;
-  if (order && (order.accountKey !== accountKey || order.bundleId !== bundle.id || order.direction !== "withdraw"))
+  if (order && (order.accountKey !== accountKey || order.bundleId !== bundle.id || order.direction !== direction))
     fail(409, "PURCHASE_CONFLICT", "Este câmbio pertence a outra conta, pacote ou operação.");
   if (order?.status === "completed") return order;
-  if (order?.status === "declined") fail(402, "FEIRA_DECLINED", "Câmbio recusado. As Cybercoins foram devolvidas.");
+  if (order?.status === "declined") fail(402, "FEIRA_DECLINED", adminGrant
+    ? "Crédito recusado. Nenhuma Cybercoin foi gasta." : "Câmbio recusado. As Cybercoins foram devolvidas.");
   if (processing.has(body.purchaseId)) fail(409, "PAYMENT_PENDING", "Câmbio em processamento. Consulte este mesmo identificador.");
   if (order && !order.receiptId)
     fail(409, "PAYMENT_REVIEW_REQUIRED", `O câmbio ${order.id} ficou sem recibo do banco. A organização precisa conferir essa tentativa antes de liberar ou devolver o valor. Esta consulta não enviou outra transferência.`);
@@ -111,7 +114,7 @@ async function withdraw(store, accountKey, body, save) {
     if (feira.creditAvailable !== true) fail(503, "FEIRA_UNAVAILABLE", "Câmbio com o banco ainda indisponível.");
     if (!Number.isSafeInteger(account.currency) || account.currency < bundle.cybercoins)
       fail(402, "INSUFFICIENT_CYBERCOINS", "Você não tem Cybercoins suficientes para este câmbio.");
-    order = { id: body.purchaseId, accountKey, bundleId: bundle.id, direction: "withdraw",
+    order = { id: body.purchaseId, accountKey, bundleId: bundle.id, direction,
       tijolinhos: bundle.tijolinhos, cybercoins: bundle.cybercoins, status: "pending", createdAt: new Date().toISOString() };
     account.currency -= order.cybercoins;
     orders[order.id] = order;
@@ -136,9 +139,11 @@ async function withdraw(store, accountKey, body, save) {
             order.status = "pending";
             fail(500, "PAYMENT_STORAGE", "A devolução precisa ser conferida. Guarde o identificador do câmbio.");
           }
-          fail(402, "FEIRA_DECLINED", `${error.message} As Cybercoins foram devolvidas.`);
+          fail(402, "FEIRA_DECLINED", `${error.message} ${adminGrant ? "Nenhuma Cybercoin foi gasta." : "As Cybercoins foram devolvidas."}`);
         }
-        fail(409, "PAYMENT_PENDING", "A feira ainda não confirmou o câmbio. Suas Cybercoins estão reservadas; não transfira novamente.");
+        fail(409, "PAYMENT_PENDING", adminGrant
+          ? "A feira ainda não confirmou o crédito. Verifique esta mesma tentativa; não envie outro crédito."
+          : "A feira ainda não confirmou o câmbio. Suas Cybercoins estão reservadas; não transfira novamente.");
       }
       if (typeof order.receiptId !== "string" || !/^[1-9][0-9]*$/.test(order.receiptId) ||
           Object.values(orders).some(entry => entry !== order && entry.receiptId === order.receiptId)) {
@@ -156,7 +161,7 @@ async function withdraw(store, accountKey, body, save) {
     if (settledTijolinhos === null) fail(409, "PAYMENT_PENDING", "Confira o banco: o valor do câmbio ainda não foi confirmado no extrato da feira.");
     if (!Number.isSafeInteger(settledTijolinhos) || settledTijolinhos <= 0 || settledTijolinhos > order.tijolinhos)
       fail(409, "FEIRA_AMOUNT_MISMATCH", "O valor confirmado pela feira precisa ser conferido. Nenhuma nova transferência foi enviada.");
-    const spentCybercoins = settledTijolinhos * 2;
+    const spentCybercoins = adminGrant ? 0 : settledTijolinhos * 2;
     const refundedCybercoins = order.cybercoins - spentCybercoins;
     if (!Number.isSafeInteger(account.currency) || account.currency < 0 || !Number.isSafeInteger(account.currency + refundedCybercoins))
       fail(409, "BALANCE_LIMIT", "Câmbio confirmado. Libere espaço no saldo e consulte este mesmo câmbio para receber a diferença.");
@@ -186,9 +191,14 @@ async function resume(store, accountKey, body, save) {
   const order = Object.hasOwn(store.cybercoinPurchases || {}, body.purchaseId) ? store.cybercoinPurchases[body.purchaseId] : null;
   if (!order || order.accountKey !== accountKey)
     fail(404, "PURCHASE_NOT_FOUND", "Esta tentativa não foi encontrada na sua conta. Nenhuma transferência foi enviada por esta consulta.");
+  if (order.direction === "admin-grant")
+    fail(403, "ADMIN_REQUIRED", "Consulte este crédito pelo painel administrativo.");
   // Somente uma operação já registrada pode ser consultada; nunca cria outro débito/crédito externo.
   return (order.direction === "withdraw" ? withdraw : purchase)(store, accountKey,
     { bundleId: order.bundleId, purchaseId: order.id, feiraToken: body.feiraToken }, save);
 }
 
-module.exports = { catalog, purchase, withdraw, resume };
+// A autorização administrativa é obrigatória na rota antes de chamar esta função.
+const grant = (store, accountKey, body, save) => withdraw(store, accountKey, body, save, true);
+
+module.exports = { catalog, purchase, withdraw, resume, grant };

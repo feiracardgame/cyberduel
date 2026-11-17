@@ -396,6 +396,26 @@ class CyberduelAccount {
     return payload.accounts;
   }
 
+  async grantFeiraCredit() {
+    if (!this.isAdmin || !this.token || this.authProvider !== "google")
+      throw new Error("Use uma conta Google administradora para creditar no banco da feira.");
+    const key = `cyberduel.feira.admin.v1:${this.user}`;
+    let purchaseId = localStorage.getItem(key);
+    if (!purchaseId) {
+      purchaseId = Array.from(crypto.getRandomValues(new Uint8Array(16)), byte => byte.toString(16).padStart(2, "0")).join("");
+      localStorage.setItem(key, purchaseId);
+    }
+    try {
+      const payload = await this.request("/api/admin/feira/credit", { method: "POST", body: { purchaseId } });
+      localStorage.removeItem(key);
+      return payload;
+    } catch (error) {
+      if (["FEIRA_DECLINED", "FEIRA_UNAVAILABLE", "INVALID_PURCHASE", "FEIRA_LOGIN_REQUIRED"].includes(error.code))
+        localStorage.removeItem(key);
+      throw error;
+    }
+  }
+
   async requireNameChange(username) {
     return this.request("/api/admin/accounts/require-name-change", { method: "POST", body: { username } });
   }

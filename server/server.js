@@ -773,7 +773,7 @@ async function handleApi(request, response, pathname) {
     const feiraToken = sessionGoogleCredential(sessions.get(sessionKey(pending.token)), pending.token);
     if (request.method === "GET" && pathname === "/api/cybercoins/packages") {
       const unfinished = Object.values(accountStore.cybercoinPurchases || {}).find(order =>
-        order.accountKey === pending.accountKey && ["pending", "confirmed"].includes(order.status));
+        order.accountKey === pending.accountKey && order.direction !== "admin-grant" && ["pending", "confirmed"].includes(order.status));
       return sendJson(response, 200, { ok: true, ...cybercoins.catalog(), needsGoogleLogin: !feiraToken,
         pendingPurchase: unfinished ? { id: unfinished.id, bundleId: unfinished.bundleId, direction: unfinished.direction || "buy", receiptId: unfinished.receiptId || null } : null });
     }
@@ -947,6 +947,27 @@ async function handleApi(request, response, pathname) {
     if (!pending) return sendJson(response, 401, { ok: false, error: "Entre na sua conta primeiro." });
     if (!isAdminAccount(pending.account))
       return sendJson(response, 403, { ok: false, error: "Esta conta não é administradora." });
+  }
+
+  if (pathname === "/api/admin/feira/credit" && ["GET", "POST"].includes(request.method)) {
+    if (!pending.account.googleSub || pending.account.localAccount)
+      return sendJson(response, 403, { ok: false, error: "Use uma conta Google administradora para creditar no banco da feira." });
+    const feiraToken = sessionGoogleCredential(sessions.get(sessionKey(pending.token)), pending.token);
+    if (request.method === "GET") {
+      const unfinished = Object.values(accountStore.cybercoinPurchases || {}).find(order =>
+        order.accountKey === pending.accountKey && order.direction === "admin-grant" && ["pending", "confirmed"].includes(order.status));
+      return sendJson(response, 200, { ok: true, needsGoogleLogin: !feiraToken,
+        pendingGrant: unfinished ? { id: unfinished.id, receiptId: unfinished.receiptId || null } : null });
+    }
+    const body = await readJson(request);
+    try {
+      const order = await cybercoins.grant(accountStore, pending.accountKey,
+        { purchaseId: body?.purchaseId, feiraToken }, saveAccounts);
+      return sendJson(response, 200, { ok: true, receiptId: order.receiptId, tijolinhos: order.settledTijolinhos, requestedTijolinhos: order.tijolinhos });
+    } catch (error) {
+      if (!error.status) throw error;
+      return sendJson(response, error.status, { ok: false, code: error.code, error: error.message });
+    }
   }
 
   if (request.method === "POST" && pathname === "/api/admin/rooms/clear") {
