@@ -106,12 +106,12 @@ async function apiTest() {
     faction: "echossystem", currency: 0, starterCollection: {}, collection: { "monstro:O Rato": 3 },
   });
   fs.writeFileSync(file, JSON.stringify(data));
-  let handleApi;
+  let handleApi, confirmedAmount, receipt = 123456;
   async function start(mock, credentials = true) {
     const realRequire = createRequire(path.resolve("server/server.js"));
     const adapter = { available: mock, creditAvailable: true, debit: paid,
-      credit: async order => { assert.equal(order.token, token, "JWT usado é o da sessão Google."); return "123456"; },
-      confirmCredit: async () => true };
+      credit: async order => { assert.equal(order.token, token, "JWT usado é o da sessão Google."); return String(++receipt); },
+      confirmCredit: async ({ tijolinhos }) => confirmedAmount ?? tijolinhos };
     const coinModule = { exports: {} };
     vm.runInNewContext(fs.readFileSync("server/cybercoins.js", "utf8"), {
       require: name => name === "./feira-payments" ? adapter : realRequire(name), module: coinModule,
@@ -185,9 +185,22 @@ async function apiTest() {
     const missing = await api("cybercoins/resume", { purchaseId: "bank-missing-000001" }, seller.token);
     assert.equal(missing.status, 404);
     assert.equal(missing.body.currency, 20, "Mesmo a recusa de consulta atualiza a carteira do cliente.");
+    await api("cybercoins/buy", body("buy-for-partial-0001", "cybercoins-500"));
+    confirmedAmount = 100;
+    const partial = await api("cybercoins/withdraw", body("partial-bank-08041", "cybercoins-500"));
+    assert.equal(partial.status, 200);
+    assert.equal(partial.body.currency, 300);
+    assert.equal(partial.body.purchase.tijolinhos, 250);
+    assert.equal(partial.body.purchase.settledTijolinhos, 100);
+    assert.equal(partial.body.purchase.spentCybercoins, 200);
+    assert.equal(partial.body.purchase.refundedCybercoins, 300);
     await stop(); await start(false);
+    const settledAgain = await api("cybercoins/resume", { purchaseId: "partial-bank-08041" });
+    assert.equal(settledAgain.status, 200);
+    assert.equal(settledAgain.body.currency, 300);
+    assert.equal(settledAgain.body.purchase.refundedCybercoins, 300);
     const replay = await api("cybercoins/buy", body(undefined, "cybercoins-100"));
-    assert.equal(replay.status, 200); assert.equal(replay.body.currency, 0, "Reiniciar/repetir não credita a compra novamente.");
+    assert.equal(replay.status, 200); assert.equal(replay.body.currency, 300, "Reiniciar/repetir não credita a compra novamente.");
     assert.ok(!fs.readFileSync(file, "utf8").includes(token));
   } finally { await stop(); fs.rmSync(dir, { recursive: true, force: true }); }
 }

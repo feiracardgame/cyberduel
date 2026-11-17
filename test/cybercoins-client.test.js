@@ -122,7 +122,8 @@ const tick = () => new Promise(setImmediate);
     if (retried === 1) throw Object.assign(Error("A feira recusou o acesso ao extrato."), {
       code: "FEIRA_STATEMENT_UNAUTHORIZED", payload: { username: "Buyer", currency: 0 },
     });
-    return { username: "Buyer", currency: 50, purchase: { cybercoins: 500, tijolinhos: 250, direction: "withdraw" } };
+    return { username: "Buyer", currency: 300, purchase: { cybercoins: 500, tijolinhos: 250, direction: "withdraw",
+      settledTijolinhos: 100, spentCybercoins: 200, refundedCybercoins: 300 } };
   };
   ui.openCybercoinShop(); await tick();
   assert.equal(account.getCybercoinPurchase().id, recovered.id, "Pendência é recuperada do servidor após perder o armazenamento local.");
@@ -138,6 +139,7 @@ const tick = () => new Promise(setImmediate);
   assert.match(find(pendingModal, "cybercoin-shop__summary").textContent, /10 tijolinhos.*20 Cybercoins/);
   directionButtons[1].click();
   assert.match(find(pendingModal, "cybercoin-shop__summary").textContent, /20 Cybercoins.*10 tijolinhos/);
+  assert.match(find(pendingModal, "cybercoin-shop__summary").textContent, /Se a feira creditar menos, a diferença de Cybercoins será devolvida/);
   assert.match(find(pendingModal, "cybercoin-shop__pending").textContent, /500 Cybercoins.*250 tijolinhos/);
   assert.equal(retried, 0, "Comparar valores e trocar abas não transfere dinheiro.");
   needsGoogleLogin = false;
@@ -155,6 +157,9 @@ const tick = () => new Promise(setImmediate);
   assert.equal(googleMounts, 1, "Recusa do extrato não pede login repetidamente.");
   await find(pendingModal, "cybercoin-shop__retry").click();
   assert.equal(retried, 2);
+  assert.equal(account.currency, 300);
+  assert.match(find(pendingModal, "cybercoin-shop__balance").textContent, /300 Cybercoins/);
+  assert.match(find(pendingModal, "profile-note").textContent, /100 tijolinhos enviados.*Custo: 200 Cybercoins.*300 Cybercoins devolvidas/);
   assert.equal(storage.has(key), false);
   assert.equal(find(pendingModal, "cybercoin-shop__retry").hidden, true);
   assert.equal(find(pendingModal, "cybercoin-shop__buy").disabled, false);

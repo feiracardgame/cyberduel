@@ -2934,7 +2934,7 @@ class CyberduelTitleUI {
           exception => { if (this.modal === overlay) error.textContent = exception.message; }, loadCatalog);
       }
       summary.textContent = selected ? withdrawing
-        ? `Você envia ${selected.cybercoins.toLocaleString("pt-BR")} Cybercoins e recebe ${selected.tijolinhos.toLocaleString("pt-BR")} tijolinhos no banco da sua conta Google.`
+        ? `Você reserva ${selected.cybercoins.toLocaleString("pt-BR")} Cybercoins para receber ${selected.tijolinhos.toLocaleString("pt-BR")} tijolinhos no banco da sua conta Google. Se a feira creditar menos, a diferença de Cybercoins será devolvida.`
         : `Você paga ${selected.tijolinhos.toLocaleString("pt-BR")} tijolinhos da feira e recebe ${selected.cybercoins.toLocaleString("pt-BR")} Cybercoins.` : "";
       if (!hasResult) status.textContent = !available
         ? "A feira precisa habilitar a compra de Cybercoins para o Cyberduel. Você pode usar Enviar ao banco para fazer o câmbio de volta."
@@ -2955,7 +2955,8 @@ class CyberduelTitleUI {
         hasResult = true;
         balance.textContent = `Seu saldo: ${this.account.currency.toLocaleString("pt-BR")} Cybercoins`;
         status.textContent = exchangeDirection === "withdraw"
-          ? `Câmbio confirmado! ${purchase.tijolinhos.toLocaleString("pt-BR")} tijolinhos enviados ao banco da feira.`
+          ? `Câmbio confirmado! ${(purchase.settledTijolinhos ?? purchase.tijolinhos).toLocaleString("pt-BR")} tijolinhos enviados ao banco da feira.` +
+            (purchase.refundedCybercoins > 0 ? ` Custo: ${purchase.spentCybercoins.toLocaleString("pt-BR")} Cybercoins. ${purchase.refundedCybercoins.toLocaleString("pt-BR")} Cybercoins devolvidas ao seu saldo.` : "")
           : `Compra confirmada! +${purchase.cybercoins.toLocaleString("pt-BR")} Cybercoins para usar em boosters e no mercado.`;
       } catch (exception) {
         if (this.modal === overlay) {

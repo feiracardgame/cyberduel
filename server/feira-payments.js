@@ -48,8 +48,9 @@ module.exports = {
     if (!Array.isArray(result.body)) throw Object.assign(new Error("O extrato da feira retornou uma resposta inválida."), { code: "FEIRA_STATEMENT_UNAVAILABLE" });
     const entry = result.body.find(entry => String(entry.operation) === receiptId);
     if (!entry) throw Object.assign(new Error(`A operação ${receiptId} ainda não aparece no extrato da feira. Nenhum novo crédito foi enviado.`), { code: "FEIRA_RECEIPT_NOT_FOUND" });
-    if (Number(entry.value) !== tijolinhos)
+    const value = typeof entry.value === "number" || typeof entry.value === "string" ? Number(entry.value) : NaN;
+    if (!Number.isSafeInteger(value) || value <= 0 || value > tijolinhos)
       throw Object.assign(new Error(`A feira registrou ${entry.value} tijolinhos na operação ${receiptId}, mas o câmbio previa ${tijolinhos}. É preciso conferir o preço do produto 86 com a organização.`), { code: "FEIRA_AMOUNT_MISMATCH" });
-    return entry.completed === true;
+    return entry.completed === true ? value : null;
   },
 };

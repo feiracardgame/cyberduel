@@ -783,7 +783,9 @@ async function handleApi(request, response, pathname) {
         const operation = pathname.endsWith("/resume") ? cybercoins.resume : pathname.endsWith("/withdraw") ? cybercoins.withdraw : cybercoins.purchase;
         const order = await operation(accountStore, pending.accountKey, { ...body, feiraToken }, saveAccounts);
         return sendJson(response, 200, { ok: true, purchase: { id: order.id, bundleId: order.bundleId,
-          direction: order.direction || "buy", tijolinhos: order.tijolinhos, cybercoins: order.cybercoins, status: order.status }, ...publicAccount(pending.account) });
+          direction: order.direction || "buy", tijolinhos: order.tijolinhos, cybercoins: order.cybercoins,
+          settledTijolinhos: order.settledTijolinhos, spentCybercoins: order.spentCybercoins,
+          refundedCybercoins: order.refundedCybercoins, status: order.status }, ...publicAccount(pending.account) });
       } catch (error) {
         if (!error.status) throw error;
         return sendJson(response, error.status, { ok: false, code: error.code, error: error.message, ...publicAccount(pending.account) });

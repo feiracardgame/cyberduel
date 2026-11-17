@@ -148,15 +148,30 @@ async function withdraw(store, accountKey, body, save) {
       // O recibo é salvo antes da consulta, permitindo retomar sem outro POST /credit.
       try { save(); } catch { fail(500, "PAYMENT_STORAGE", "Recibo recebido, mas não salvo. Consulte este mesmo câmbio."); }
     }
-    let confirmed = false;
-    try { confirmed = await feira.confirmCredit({ receiptId: order.receiptId, tijolinhos: order.tijolinhos, token: body.feiraToken }); } catch (error) {
+    let settledTijolinhos;
+    try { settledTijolinhos = await feira.confirmCredit({ receiptId: order.receiptId, tijolinhos: order.tijolinhos, token: body.feiraToken }); } catch (error) {
       const code = ["FEIRA_STATEMENT_UNAUTHORIZED", "FEIRA_STATEMENT_UNAVAILABLE", "FEIRA_RECEIPT_NOT_FOUND", "FEIRA_AMOUNT_MISMATCH"].includes(error.code) ? error.code : "FEIRA_STATEMENT_UNAVAILABLE";
       fail(409, code, error.code === code ? error.message : "Não foi possível consultar o extrato da feira. O valor continua reservado; nenhum novo crédito foi enviado.");
     }
-    if (!confirmed) fail(409, "PAYMENT_PENDING", "Confira o banco: o valor do câmbio ainda não foi confirmado no extrato da feira.");
+    if (settledTijolinhos === null) fail(409, "PAYMENT_PENDING", "Confira o banco: o valor do câmbio ainda não foi confirmado no extrato da feira.");
+    if (!Number.isSafeInteger(settledTijolinhos) || settledTijolinhos <= 0 || settledTijolinhos > order.tijolinhos)
+      fail(409, "FEIRA_AMOUNT_MISMATCH", "O valor confirmado pela feira precisa ser conferido. Nenhuma nova transferência foi enviada.");
+    const spentCybercoins = settledTijolinhos * 2;
+    const refundedCybercoins = order.cybercoins - spentCybercoins;
+    if (!Number.isSafeInteger(account.currency) || account.currency < 0 || !Number.isSafeInteger(account.currency + refundedCybercoins))
+      fail(409, "BALANCE_LIMIT", "Câmbio confirmado. Libere espaço no saldo e consulte este mesmo câmbio para receber a diferença.");
+    // O preço fixo da feira pode reduzir o crédito: devolvemos a diferença junto com a conclusão.
+    account.currency += refundedCybercoins;
+    order.settledTijolinhos = settledTijolinhos;
+    order.spentCybercoins = spentCybercoins;
+    order.refundedCybercoins = refundedCybercoins;
     order.status = "completed";
     order.completedAt = new Date().toISOString();
     try { save(); } catch {
+      account.currency -= refundedCybercoins;
+      delete order.settledTijolinhos;
+      delete order.spentCybercoins;
+      delete order.refundedCybercoins;
       order.status = "pending";
       delete order.completedAt;
       fail(500, "PAYMENT_STORAGE", "Câmbio confirmado, mas não salvo. Consulte este mesmo identificador.");

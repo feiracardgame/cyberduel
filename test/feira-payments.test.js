@@ -32,7 +32,7 @@ async function adapter() {
   assert.ok(call.signal);
   assert.match(calls[0].url, /\/statement$/, "Verifica acesso ao extrato antes de enviar dinheiro.");
   statementResponse = reply(200, [{ operation: 123, value: "25", completed: true }]);
-  assert.equal(await api.confirmCredit({ receiptId: "123", tijolinhos: 25, token: "google.test.jwt" }), true);
+  assert.equal(await api.confirmCredit({ receiptId: "123", tijolinhos: 25, token: "google.test.jwt" }), 25);
   assert.equal(call.method, "GET");
   assert.match(call.url, /\/statement$/);
   for (const statement of [[], [{ operation: 124, value: 25, completed: true }]]) {
@@ -41,8 +41,15 @@ async function adapter() {
   }
   statementResponse = reply(200, [{ operation: 123, value: 100, completed: true }]);
   await rejects(api.confirmCredit({ receiptId: "123", tijolinhos: 25, token: "google.test.jwt" }), "FEIRA_AMOUNT_MISMATCH");
+  assert.equal(await api.confirmCredit({ receiptId: "123", tijolinhos: 250, token: "google.test.jwt" }), 100, "Usa o valor efetivamente confirmado, mesmo com preço fixo menor.");
+  for (const value of [0, -1, 1.5, null, true, {}, "invalid", Number.MAX_SAFE_INTEGER + 1]) {
+    statementResponse = reply(200, [{ operation: 123, value, completed: true }]);
+    await rejects(api.confirmCredit({ receiptId: "123", tijolinhos: 250, token: "google.test.jwt" }), "FEIRA_AMOUNT_MISMATCH");
+  }
   statementResponse = reply(200, [{ operation: 123, value: 25, completed: false }]);
-  assert.equal(await api.confirmCredit({ receiptId: "123", tijolinhos: 25, token: "google.test.jwt" }), false);
+  assert.equal(await api.confirmCredit({ receiptId: "123", tijolinhos: 25, token: "google.test.jwt" }), null);
+  statementResponse = reply(200, [{ operation: 123, value: 100, completed: false }]);
+  assert.equal(await api.confirmCredit({ receiptId: "123", tijolinhos: 250, token: "google.test.jwt" }), null, "Crédito parcial ainda incompleto não libera a reserva.");
   statementResponse = reply(401, {});
   await rejects(api.confirmCredit({ receiptId: "123", tijolinhos: 25, token: "google.test.jwt" }), "FEIRA_STATEMENT_UNAUTHORIZED");
   const sent = calls.filter(call => call.method === "POST").length;
@@ -65,7 +72,7 @@ async function exchange() {
   let calls = 0, serial = 0;
   const credit = async () => { calls++; return String(++serial); };
   feira.credit = credit;
-  feira.confirmCredit = async () => true;
+  feira.confirmCredit = async ({ tijolinhos }) => tijolinhos;
   await rejects(withdraw(store(), "player", { ...body(), bundleId: "fake" }, () => {}), "INVALID_PURCHASE");
   await rejects(withdraw(store(), "player", { ...body(), feiraToken: "forged" }, () => {}), "FEIRA_LOGIN_REQUIRED");
   const insufficient = store(); insufficient.accounts.player.currency = 49;
@@ -112,14 +119,14 @@ async function exchange() {
 
   feira.credit = credit;
   const waiting = store();
-  feira.confirmCredit = async () => false;
+  feira.confirmCredit = async () => null;
   await rejects(withdraw(waiting, "player", body(), () => {}), "PAYMENT_PENDING");
   const before = calls;
   const restarted = JSON.parse(JSON.stringify(waiting));
   feira.confirmCredit = async () => { throw Object.assign(Error("Extrato não autorizado"), { code: "FEIRA_STATEMENT_UNAUTHORIZED" }); };
   await assert.rejects(resume(restarted, "player", body(), () => {}), error => error.code === "FEIRA_STATEMENT_UNAUTHORIZED" && error.message === "Extrato não autorizado");
   assert.equal(restarted.accounts.player.currency, 50, "Falha no extrato não devolve uma reserva que já pode ter sido creditada no banco.");
-  feira.confirmCredit = async () => true;
+  feira.confirmCredit = async ({ tijolinhos }) => tijolinhos;
   await resume(restarted, "player", { ...body(), bundleId: "fake", tijolinhos: 999 }, () => {});
   assert.equal(calls, before, "Com recibo salvo, retomar faz somente consulta ao extrato.");
   assert.equal(restarted.accounts.player.currency, 50);
@@ -140,7 +147,60 @@ async function exchange() {
   await rejects(withdraw(duplicate, "other", body("bank-exchange-00002"), () => {}), "PAYMENT_PENDING");
 }
 
+async function partialSettlement() {
+  const id = "bank-exchange-08041";
+  const pending = () => ({ accounts: { player: { currency: 50 } }, cybercoinPurchases: {
+    [id]: { id, accountKey: "player", bundleId: "cybercoins-500", direction: "withdraw",
+      cybercoins: 500, tijolinhos: 250, receiptId: "8041", status: "pending" },
+  } });
+  feira.credit = async () => { assert.fail("Conciliação nunca reenvia crédito ao banco."); };
+  feira.confirmCredit = async ({ receiptId, tijolinhos }) => {
+    assert.equal(receiptId, "8041"); assert.equal(tijolinhos, 250); return 100;
+  };
+  const s = pending();
+  let persisted;
+  const save = () => { persisted = JSON.parse(JSON.stringify(s)); };
+  const result = await resume(s, "player", { ...body(id), tijolinhos: 999, settledTijolinhos: 1 }, save);
+  assert.equal(result.status, "completed");
+  assert.equal(result.tijolinhos, 250, "Valor solicitado é preservado para auditoria.");
+  assert.equal(result.cybercoins, 500);
+  assert.equal(result.settledTijolinhos, 100);
+  assert.equal(result.spentCybercoins, 200);
+  assert.equal(result.refundedCybercoins, 300);
+  assert.equal(s.accounts.player.currency, 350, "Somente os 100 tijolinhos confirmados são cobrados, a 2:1.");
+  assert.equal(persisted.accounts.player.currency, 350, "Conclusão e devolução são salvas juntas.");
+  await resume(persisted, "player", body(id), () => { assert.fail("Conclusão já salva não é repetida."); });
+  assert.equal(persisted.accounts.player.currency, 350, "Reiniciar e repetir não duplica a devolução.");
+
+  const broken = pending();
+  await rejects(resume(broken, "player", body(id), () => { throw Error("disk"); }), "PAYMENT_STORAGE");
+  assert.equal(broken.accounts.player.currency, 50);
+  assert.deepEqual(broken.cybercoinPurchases[id], pending().cybercoinPurchases[id], "Falha ao salvar desfaz devolução e conclusão.");
+  await resume(broken, "player", body(id), () => {});
+  assert.equal(broken.accounts.player.currency, 350);
+
+  let release;
+  feira.confirmCredit = () => new Promise(resolve => { release = () => resolve(100); });
+  const concurrent = pending(), first = resume(concurrent, "player", body(id), () => {});
+  await rejects(resume(concurrent, "player", body(id), () => {}), "PAYMENT_PENDING");
+  release(); await first;
+  assert.equal(concurrent.accounts.player.currency, 350);
+
+  for (const amount of [0, -1, 1.5, true, undefined, 251]) {
+    feira.confirmCredit = async () => amount;
+    const invalid = pending();
+    await rejects(resume(invalid, "player", body(id), () => {}), "FEIRA_AMOUNT_MISMATCH");
+    assert.equal(invalid.accounts.player.currency, 50);
+    assert.equal(invalid.cybercoinPurchases[id].status, "pending");
+  }
+  feira.confirmCredit = async () => 100;
+  const overflow = pending(); overflow.accounts.player.currency = Number.MAX_SAFE_INTEGER;
+  await rejects(resume(overflow, "player", body(id), () => {}), "BALANCE_LIMIT");
+  assert.equal(overflow.accounts.player.currency, Number.MAX_SAFE_INTEGER);
+  assert.equal(overflow.cybercoinPurchases[id].status, "pending");
+}
+
 (async () => {
-  await adapter(); await exchange();
+  await adapter(); await exchange(); await partialSettlement();
   console.log("Feira: GSI, produto 86, câmbio 2:1, reserva, extrato, recusas, concorrência, falhas e recuperação sem duplicar crédito validados.");
 })().catch(error => { console.error(error); process.exitCode = 1; });
