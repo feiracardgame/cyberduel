@@ -14,6 +14,7 @@ data.accounts[local.accountKey].localAccount = true;
 fs.writeFileSync(file, JSON.stringify(data));
 let handleApi, context, creditCalls = 0, statementCalls = 0, creditBehavior, confirmation;
 const route = "/api/admin/feira/credit";
+const resetRoute = "/api/admin/feira/reset-pending";
 const id = "admin-feira-grant-00001";
 const token = "admin.google.jwt";
 const current = () => JSON.parse(fs.readFileSync(file));
@@ -94,8 +95,10 @@ async function api({ user = admin, method = "POST", body = { purchaseId: id }, u
     assert.equal((await api()).status, 200);
     assert.equal(creditCalls, 1, "Reiniciar/repetir não duplica o crédito.");
     assert.equal((await api({ url: "/api/cybercoins/resume" })).status, 403, "Rota pública de consulta não processa crédito administrativo.");
+    assert.equal((await api({ url: "/api/cybercoins/buy", body: { purchaseId: id, bundleId: "admin-feira-500" } })).status, 409,
+      "Compatibilidade com pacotes antigos não permite tratar crédito administrativo como compra.");
     assert.equal((await api({ user: player, url: "/api/cybercoins/withdraw", body: {
-      purchaseId: "forged-admin-free-001", bundleId: "cybercoins-500", adminGrant: true, direction: "admin-grant", cybercoins: 0,
+      purchaseId: "forged-admin-free-001", bundleId: "cybercoins-250", adminGrant: true, direction: "admin-grant", cybercoins: 0,
     } })).body.code, "INSUFFICIENT_CYBERCOINS", "Campos do navegador não habilitam crédito gratuito.");
 
     let release;
@@ -103,6 +106,8 @@ async function api({ user = admin, method = "POST", body = { purchaseId: id }, u
     const pendingId = "admin-concurrent-0001";
     const first = api({ body: { purchaseId: pendingId } });
     await new Promise(setImmediate);
+    assert.equal((await api({ url: resetRoute, body: { confirm: true } })).body.code, "PAYMENT_PROCESSING",
+      "Reset não disputa com uma chamada ao banco ainda em andamento.");
     assert.equal((await api({ body: { purchaseId: pendingId } })).body.code, "PAYMENT_PENDING");
     assert.equal((await api({ body: { purchaseId: "admin-concurrent-0002" } })).body.code, "PAYMENT_PENDING");
     release(); assert.equal((await first).status, 200);
@@ -133,6 +138,52 @@ async function api({ user = admin, method = "POST", body = { purchaseId: id }, u
     start();
     assert.equal((await api({ body: { purchaseId: unknownId } })).body.code, "PAYMENT_REVIEW_REQUIRED");
     assert.equal(creditCalls, before, "Crédito com resposta perdida não é reenviado após reiniciar.");
+    for (const user of [null, player]) {
+      assert.equal((await api({ user, url: resetRoute, body: { confirm: true, isAdmin: true } })).status, user ? 403 : 401);
+    }
+    for (const confirm of [undefined, false, "true", 1])
+      assert.equal((await api({ url: resetRoute, body: { confirm } })).status, 400);
+    vm.runInContext(`
+      accountStore.cybercoinPurchases["reset-player-pending-01"] = {
+        id: "reset-player-pending-01", accountKey: ${JSON.stringify(player.accountKey)},
+        bundleId: "cybercoins-50", direction: "withdraw", cybercoins: 50, tijolinhos: 50,
+        receiptId: "99901", status: "pending"
+      };
+      accountStore.cybercoinPurchases["reset-player-confirmed"] = {
+        id: "reset-player-confirmed", accountKey: ${JSON.stringify(player.accountKey)},
+        bundleId: "cybercoins-100", cybercoins: 100, tijolinhos: 100, receiptId: "99902", status: "confirmed"
+      };
+      accountStore.feiraMqttPurchases = [{ id: "reset-mqtt", email: "waiting@example.com", cybercoins: 100, status: "pending" },
+        { id: "completed-mqtt", email: "done@example.com", cybercoins: 100, status: "completed" }];
+      saveAccounts();
+    `, context);
+    const beforeReset = current(), sentBeforeReset = creditCalls;
+    vm.runInContext('globalThis.originalSave = saveAccounts; saveAccounts = () => { throw Error("disk"); };', context);
+    assert.equal((await api({ url: resetRoute, body: { confirm: true } })).body.code, "PAYMENT_STORAGE");
+    assert.deepEqual(current(), beforeReset, "Falha de gravação mantém todas as pendências no disco.");
+    assert.equal(vm.runInContext('accountStore.cybercoinPurchases["reset-player-pending-01"].status', context), "pending");
+    vm.runInContext('saveAccounts = globalThis.originalSave;', context);
+    const reset = await api({ url: resetRoute, body: { confirm: true, username: player.username } });
+    assert.equal(reset.status, 200); assert.equal(reset.body.count, 4);
+    const afterReset = current();
+    assert.deepEqual(afterReset.accounts, beforeReset.accounts, "Reset não devolve reservas nem altera saldos de nenhuma conta.");
+    assert.deepEqual(afterReset.cybercoinPurchases[id], beforeReset.cybercoinPurchases[id], "Créditos concluídos são preservados.");
+    assert.equal(afterReset.cybercoinPurchases[unknownId].cancelledBy, admin.username);
+    assert.equal(afterReset.cybercoinPurchases["reset-player-pending-01"].receiptId, "99901");
+    assert.equal(afterReset.feiraMqttPurchases[0].status, "cancelled");
+    assert.equal(afterReset.feiraMqttPurchases[1].status, "completed");
+    require("../server/feira-mqtt").resume(afterReset, "waiting@example.com", () => { assert.fail("Compra cancelada não volta a ser aplicada."); });
+    assert.equal((await api({ url: resetRoute, body: { confirm: true } })).body.count, 0, "Repetir o reset é seguro.");
+    start();
+    assert.equal((await api({ body: { purchaseId: unknownId } })).body.code, "PAYMENT_CANCELLED");
+    assert.equal((await api({ user: player, url: "/api/cybercoins/resume", body: { purchaseId: "reset-player-pending-01" } })).body.code, "PAYMENT_CANCELLED");
+    assert.equal((await api({ user: player, url: "/api/cybercoins/resume", body: { purchaseId: "reset-player-confirmed" } })).body.code, "PAYMENT_CANCELLED");
+    assert.equal((await api({ method: "GET" })).body.pendingGrant, null);
+    assert.equal((await api({ user: player, method: "GET", url: "/api/cybercoins/packages" })).body.pendingPurchase, null);
+    assert.equal(creditCalls, sentBeforeReset, "Reset e consultas canceladas nunca reenviam dinheiro.");
+    creditBehavior = null;
+    assert.equal((await api({ body: { purchaseId: "admin-after-reset-0001" } })).status, 200,
+      "Após o reset o administrador pode iniciar uma nova transferência com outro ID.");
     start({ admins: "" });
     assert.equal((await api()).status, 403, "Lista de administradores vazia bloqueia contas Google.");
     console.log("Crédito admin da feira: autorização no servidor, valor fixo 500, JWT da própria sessão, custo zero, isolamento, revogação, concorrência e consultas sem duplicação validados.");

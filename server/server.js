@@ -781,7 +781,8 @@ async function handleApi(request, response, pathname) {
       const unfinished = Object.values(accountStore.cybercoinPurchases || {}).find(order =>
         order.accountKey === pending.accountKey && order.direction !== "admin-grant" && ["pending", "confirmed"].includes(order.status));
       return sendJson(response, 200, { ok: true, ...cybercoins.catalog(), needsGoogleLogin: !feiraToken,
-        pendingPurchase: unfinished ? { id: unfinished.id, bundleId: unfinished.bundleId, direction: unfinished.direction || "buy", receiptId: unfinished.receiptId || null } : null });
+        pendingPurchase: unfinished ? { id: unfinished.id, bundleId: unfinished.bundleId, direction: unfinished.direction || "buy",
+          cybercoins: unfinished.cybercoins, tijolinhos: unfinished.tijolinhos, receiptId: unfinished.receiptId || null } : null });
     }
     if (request.method === "POST" && ["/api/cybercoins/buy", "/api/cybercoins/withdraw", "/api/cybercoins/resume"].includes(pathname)) {
       const body = await readJson(request);
@@ -953,6 +954,19 @@ async function handleApi(request, response, pathname) {
     if (!pending) return sendJson(response, 401, { ok: false, error: "Entre na sua conta primeiro." });
     if (!isAdminAccount(pending.account))
       return sendJson(response, 403, { ok: false, error: "Esta conta não é administradora." });
+  }
+
+  if (request.method === "POST" && pathname === "/api/admin/feira/reset-pending") {
+    const body = await readJson(request);
+    if (body?.confirm !== true)
+      return sendJson(response, 400, { ok: false, error: "Confirme o reset de todas as transferências pendentes." });
+    try {
+      const count = cybercoins.resetPending(accountStore, pending.account.username, saveAccounts);
+      return sendJson(response, 200, { ok: true, count });
+    } catch (error) {
+      if (!error.status) throw error;
+      return sendJson(response, error.status, { ok: false, code: error.code, error: error.message });
+    }
   }
 
   if (pathname === "/api/admin/feira/credit" && ["GET", "POST"].includes(request.method)) {
@@ -1620,7 +1634,7 @@ async function handleApi(request, response, pathname) {
       return sendJson(response, 409, { ok: false, error: "Esta partida já tem outro resultado." });
     if (!match.result) {
       // ponytail: o motor solo ainda roda no navegador; validar o combate exige levá-lo ao servidor.
-      const reward = body.result === "jogador" ? 70 : 0;
+      const reward = body.result === "jogador" ? 150 : 0;
       if (!Number.isSafeInteger(account.currency + reward))
         return sendJson(response, 400, { ok: false, error: "O saldo atingiu o limite permitido." });
       const updatedAt = account.updatedAt;

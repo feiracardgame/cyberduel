@@ -2,7 +2,7 @@ const feira = require("./feira-payments");
 const feiraMqtt = require("./feira-mqtt");
 
 const bundles = Object.freeze([10, 25, 50, 100, 250].map(tijolinhos =>
-  Object.freeze({ id: `cybercoins-${tijolinhos * 2}`, tijolinhos, cybercoins: tijolinhos * 2 })));
+  Object.freeze({ id: `cybercoins-${tijolinhos}`, tijolinhos, cybercoins: tijolinhos })));
 const processing = new Set();
 
 function fail(status, code, message) {
@@ -10,21 +10,24 @@ function fail(status, code, message) {
 }
 
 function catalog() {
-  return { currencyName: "Cybercoins", rate: 2, available: feira.available === true,
+  return { currencyName: "Cybercoins", rate: 1, available: feira.available === true,
     withdrawAvailable: feira.creditAvailable === true, productId: feira.productId, bundles,
     feiraShopUrl: feiraMqtt.shopUrl, feiraProducts: feiraMqtt.products };
 }
 
 async function purchase(store, accountKey, body, save) {
-  const bundle = bundles.find(entry => entry.id === body?.bundleId);
+  const orders = store.cybercoinPurchases ||= {};
+  let order = typeof body?.purchaseId === "string" && Object.hasOwn(orders, body.purchaseId) ? orders[body.purchaseId] : null;
+  const bundle = order && order.bundleId === body?.bundleId
+    ? { id: order.bundleId, tijolinhos: order.tijolinhos, cybercoins: order.cybercoins }
+    : bundles.find(entry => entry.id === body?.bundleId);
   if (!bundle || typeof body.purchaseId !== "string" || !/^[a-zA-Z0-9-]{16,80}$/.test(body.purchaseId))
     fail(400, "INVALID_PURCHASE", "Escolha um pacote e um identificador de compra válido.");
   const account = store.accounts[accountKey];
-  const orders = store.cybercoinPurchases ||= {};
-  let order = Object.hasOwn(orders, body.purchaseId) ? orders[body.purchaseId] : null;
-  if (order && (order.accountKey !== accountKey || order.bundleId !== bundle.id || order.direction === "withdraw"))
+  if (order && (order.accountKey !== accountKey || order.bundleId !== bundle.id || ["withdraw", "admin-grant"].includes(order.direction)))
     fail(409, "PURCHASE_CONFLICT", "Esta compra pertence a outra conta ou pacote.");
   if (order?.status === "completed") return order;
+  if (order?.status === "cancelled") fail(409, "PAYMENT_CANCELLED", "Esta transferência foi encerrada pelo administrador. Nenhum pagamento foi reenviado.");
   if (processing.has(body.purchaseId))
     fail(409, "PAYMENT_PENDING", "Compra em processamento. Consulte novamente com o mesmo identificador.");
   if (order?.status === "pending")
@@ -92,17 +95,19 @@ async function purchase(store, accountKey, body, save) {
 }
 
 async function withdraw(store, accountKey, body, save, adminGrant = false) {
+  const orders = store.cybercoinPurchases ||= {};
+  let order = typeof body?.purchaseId === "string" && Object.hasOwn(orders, body.purchaseId) ? orders[body.purchaseId] : null;
   const bundle = adminGrant ? { id: "admin-feira-500", tijolinhos: 500, cybercoins: 0 }
+    : order && order.bundleId === body?.bundleId ? { id: order.bundleId, tijolinhos: order.tijolinhos, cybercoins: order.cybercoins }
     : bundles.find(entry => entry.id === body?.bundleId);
   const direction = adminGrant ? "admin-grant" : "withdraw";
   if (!bundle || typeof body?.purchaseId !== "string" || !/^[a-zA-Z0-9-]{16,80}$/.test(body.purchaseId))
     fail(400, "INVALID_PURCHASE", "Escolha um pacote e um identificador de câmbio válido.");
   const account = store.accounts[accountKey];
-  const orders = store.cybercoinPurchases ||= {};
-  let order = Object.hasOwn(orders, body.purchaseId) ? orders[body.purchaseId] : null;
   if (order && (order.accountKey !== accountKey || order.bundleId !== bundle.id || order.direction !== direction))
     fail(409, "PURCHASE_CONFLICT", "Este câmbio pertence a outra conta, pacote ou operação.");
   if (order?.status === "completed") return order;
+  if (order?.status === "cancelled") fail(409, "PAYMENT_CANCELLED", "Esta transferência foi encerrada pelo administrador. Nenhum pagamento foi reenviado.");
   if (order?.status === "declined") fail(402, "FEIRA_DECLINED", adminGrant
     ? "Crédito recusado. Nenhuma Cybercoin foi gasta." : "Câmbio recusado. As Cybercoins foram devolvidas.");
   if (processing.has(body.purchaseId)) fail(409, "PAYMENT_PENDING", "Câmbio em processamento. Consulte este mesmo identificador.");
@@ -163,7 +168,8 @@ async function withdraw(store, accountKey, body, save, adminGrant = false) {
     if (settledTijolinhos === null) fail(409, "PAYMENT_PENDING", "Confira o banco: o valor do câmbio ainda não foi confirmado no extrato da feira.");
     if (!Number.isSafeInteger(settledTijolinhos) || settledTijolinhos <= 0 || settledTijolinhos > order.tijolinhos)
       fail(409, "FEIRA_AMOUNT_MISMATCH", "O valor confirmado pela feira precisa ser conferido. Nenhuma nova transferência foi enviada.");
-    const spentCybercoins = adminGrant ? 0 : settledTijolinhos * 2;
+    // Operações antigas mantêm a proporção registrada quando foram criadas.
+    const spentCybercoins = adminGrant ? 0 : settledTijolinhos * (order.cybercoins / order.tijolinhos);
     const refundedCybercoins = order.cybercoins - spentCybercoins;
     if (!Number.isSafeInteger(account.currency) || account.currency < 0 || !Number.isSafeInteger(account.currency + refundedCybercoins))
       fail(409, "BALANCE_LIMIT", "Câmbio confirmado. Libere espaço no saldo e consulte este mesmo câmbio para receber a diferença.");
@@ -203,4 +209,22 @@ async function resume(store, accountKey, body, save) {
 // A autorização administrativa é obrigatória na rota antes de chamar esta função.
 const grant = (store, accountKey, body, save) => withdraw(store, accountKey, body, save, true);
 
-module.exports = { catalog, purchase, withdraw, resume, grant };
+function resetPending(store, username, save) {
+  if (processing.size) fail(409, "PAYMENT_PROCESSING", "Há uma transferência em processamento. Aguarde terminar e tente novamente.");
+  const orders = [...Object.values(store.cybercoinPurchases || {}), ...(store.feiraMqttPurchases || [])]
+    .filter(order => ["pending", "confirmed"].includes(order.status));
+  const previous = orders.map(order => ({ ...order }));
+  const cancelledAt = new Date().toISOString();
+  for (const order of orders) Object.assign(order, { status: "cancelled", cancelledAt, cancelledBy: username });
+  if (orders.length) try { save(); } catch {
+    orders.forEach((order, index) => {
+      delete order.cancelledAt;
+      delete order.cancelledBy;
+      Object.assign(order, previous[index]);
+    });
+    fail(500, "PAYMENT_STORAGE", "Não foi possível salvar o reset. As pendências foram mantidas.");
+  }
+  return orders.length;
+}
+
+module.exports = { catalog, purchase, withdraw, resume, grant, resetPending };

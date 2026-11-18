@@ -113,8 +113,8 @@ async function run() {
   assert.equal(loser.rating, 984); assert.equal(loser.rankedLosses, 1);
   assert.equal(winner.humanGames, 1); assert.equal(winner.humanWins, 1);
   assert.equal(loser.humanGames, 1); assert.equal(loser.humanWins, 0);
-  assert.equal((await api('auth/session', first.token, null, 'GET')).currency, 510);
-  assert.equal((await api('auth/session', second.token, null, 'GET')).currency, 650);
+  assert.equal((await api('auth/session', first.token, null, 'GET')).currency, 500);
+  assert.equal((await api('auth/session', second.token, null, 'GET')).currency, 850);
   one.emit('surrender'); two.emit('surrender');
   assert.equal((await ack(one, 'decline-match', { room: matchOne.room, accountToken: first.token })).ok, false);
   assert.deepEqual((await api('leaderboard', null, null, 'GET')).entries, board, 'Resultado contabilizado uma única vez.');
@@ -149,7 +149,7 @@ async function run() {
   for (const user of users) {
     const account = await api('auth/session', user.token, null, 'GET');
     assert.equal(account.gamesPlayed, 2, 'Servidor contabiliza online uma vez por partida.');
-    assert.equal(account.currency, 500 + 150 * account.rankedWins + 10 * account.rankedLosses, 'Combate normal e primeira desistência pagam os valores normais.');
+    assert.equal(account.currency, 500 + 350 * account.rankedWins, 'Combate normal e primeira desistência pagam os valores normais.');
   }
   sockets.forEach(socket => socket.disconnect());
   await new Promise(resolve => { server.once('exit', resolve); server.kill(); });
@@ -157,7 +157,7 @@ async function run() {
   assert.deepEqual((await api('leaderboard', null, null, 'GET')).entries, board, 'Leaderboard persiste após reinício.');
   for (const user of users) {
     const account = await api('auth/session', user.token, null, 'GET');
-    assert.equal(account.currency, 500 + 150 * account.rankedWins + 10 * account.rankedLosses, 'Recompensas persistem após reiniciar.');
+    assert.equal(account.currency, 500 + 350 * account.rankedWins, 'Recompensas persistem após reiniciar.');
   }
   assert.equal((await api('auth/session', first.token, null, 'GET')).username, first.username,
     'Sessão continua válida após reiniciar o backend.');

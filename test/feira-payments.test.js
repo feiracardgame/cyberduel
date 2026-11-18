@@ -82,7 +82,7 @@ async function exchange() {
   const s = store();
   await withdraw(s, "player", { ...body(), cybercoins: 1, tijolinhos: 999 }, () => {});
   assert.equal(s.accounts.player.currency, 50);
-  assert.equal(s.cybercoinPurchases[body().purchaseId].tijolinhos, 25);
+  assert.equal(s.cybercoinPurchases[body().purchaseId].tijolinhos, 50);
   assert.ok(!JSON.stringify(s).includes(body().feiraToken));
   await withdraw(JSON.parse(JSON.stringify(s)), "player", body(), () => {});
   assert.equal(calls, 1, "Repetir após reinício não envia outro crédito.");
@@ -198,9 +198,17 @@ async function partialSettlement() {
   await rejects(resume(overflow, "player", body(id), () => {}), "BALANCE_LIMIT");
   assert.equal(overflow.accounts.player.currency, Number.MAX_SAFE_INTEGER);
   assert.equal(overflow.cybercoinPurchases[id].status, "pending");
+
+  const legacy = pending();
+  Object.assign(legacy.cybercoinPurchases[id], { bundleId: "cybercoins-100", cybercoins: 100, tijolinhos: 50 });
+  feira.confirmCredit = async ({ tijolinhos }) => { assert.equal(tijolinhos, 50); return 25; };
+  const legacyResult = await resume(legacy, "player", body(id), () => {});
+  assert.equal(legacyResult.spentCybercoins, 50);
+  assert.equal(legacyResult.refundedCybercoins, 50);
+  assert.equal(legacy.accounts.player.currency, 100, "ID ainda existente no catálogo novo mantém a proporção 2:1 da operação antiga.");
 }
 
 (async () => {
   await adapter(); await exchange(); await partialSettlement();
-  console.log("Feira: GSI, produto 86, câmbio 2:1, reserva, extrato, recusas, concorrência, falhas e recuperação sem duplicar crédito validados.");
+  console.log("Feira: GSI, produto 86, câmbio 1:1 e operações antigas 2:1, reserva, extrato, recusas, concorrência, falhas e recuperação sem duplicar crédito validados.");
 })().catch(error => { console.error(error); process.exitCode = 1; });

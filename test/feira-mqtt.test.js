@@ -17,15 +17,15 @@ for (const value of [null, {}, { ...message, product: 86 }, { ...message, produc
 }
 assert.equal(data.accounts.player.currency, 500);
 assert.equal(feira.receive(data, { ...message, email: " ETorresini@IFSC.edu.br ", cybercoins: 999999 }, save), data.accounts.player);
-assert.equal(data.accounts.player.currency, 700);
+assert.equal(data.accounts.player.currency, 600);
 assert.equal(data.feiraMqttPurchases[0].product, 102);
 assert.equal(data.feiraMqttPurchases[0].status, "completed");
-assert.equal(JSON.parse(durable).accounts.player.currency, 700);
+assert.equal(JSON.parse(durable).accounts.player.currency, 600);
 feira.receive(data, message, save);
-assert.equal(data.accounts.player.currency, 900, "Duas compras iguais são legítimas: o protocolo não fornece ID único.");
+assert.equal(data.accounts.player.currency, 700, "Duas compras iguais são legítimas: o protocolo não fornece ID único.");
 assert.notEqual(data.feiraMqttPurchases[0].id, data.feiraMqttPurchases[1].id);
 feira.resume(data, message.email, save);
-assert.equal(data.accounts.player.currency, 900, "Reprocessar recibos concluídos não duplica crédito.");
+assert.equal(data.accounts.player.currency, 700, "Reprocessar recibos concluídos não duplica crédito.");
 
 data = { accounts: {} };
 assert.equal(feira.receive(data, message, save), null);
@@ -33,9 +33,9 @@ assert.equal(JSON.parse(durable).feiraMqttPurchases[0].status, "pending");
 data = JSON.parse(durable);
 data.accounts.player = store().accounts.player;
 feira.resume(data, message.email, save);
-assert.equal(data.accounts.player.currency, 700, "Compra anterior ao primeiro login sobrevive ao reinício.");
+assert.equal(data.accounts.player.currency, 600, "Compra anterior ao primeiro login sobrevive ao reinício.");
 feira.resume(data, message.email, save);
-assert.equal(data.accounts.player.currency, 700);
+assert.equal(data.accounts.player.currency, 600);
 
 for (const change of [{ googleSub: undefined }, { googleEmail: undefined }, { banned: true },
   { currency: Number.MAX_SAFE_INTEGER }, { currency: -1 }, { currency: 1.5 }]) {
@@ -59,7 +59,7 @@ assert.equal(data.accounts.player.currency, 500);
 assert.equal(data.feiraMqttPurchases[0].status, "pending");
 data = JSON.parse(durable);
 feira.resume(data, message.email, save);
-assert.equal(data.accounts.player.currency, 700, "Falha ao gravar saldo conserva recibo recuperável sem crédito em memória.");
+assert.equal(data.accounts.player.currency, 600, "Falha ao gravar saldo conserva recibo recuperável sem crédito em memória.");
 
 // Exercita o assinante sem publicar mensagens no broker real.
 const client = new EventEmitter(), logs = [], moduleMock = { exports: {} };
@@ -87,7 +87,7 @@ client.emit("message", "vending/comando/cyberduel", Buffer.alloc(8193), {});
 client.emit("message", "vending/comando/outro", Buffer.from(JSON.stringify({ ...message, id: "outro" })), {});
 assert.equal(data.accounts.player.currency, 500);
 client.emit("message", "vending/comando/cyberduel", payload, {});
-assert.equal(data.accounts.player.currency, 700); assert.equal(credits, 1);
+assert.equal(data.accounts.player.currency, 600); assert.equal(credits, 1);
 client.emit("error", Error("offline"));
 assert.equal(logs.length, 3, "Mensagens inválidas e erros de conexão são registrados sem derrubar o jogo.");
 console.log("Feira MQTT: filtro por jogo, produto 102, email Google, persistência, pendências, rollback, retenção e reconexão validados.");

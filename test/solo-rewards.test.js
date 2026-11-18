@@ -49,7 +49,7 @@ const begin = async () => {
   assert.equal((await api("account/match-start", { mode: "online" })).status, 400);
   assert.equal((await api("account/match-complete", { result: "jogador" })).status, 404);
   let games = 0, currency = 500;
-  for (const [result, reward] of [["jogador", 70], ["inimigo", 0], ["empate", 0]]) {
+  for (const [result, reward] of [["jogador", 150], ["inimigo", 0], ["empate", 0]]) {
     const matchId = await begin();
     assert.equal((await api("account/match-complete", { matchId, result }, other.token)).status, 404);
     assert.equal((await api("account/match-complete", { matchId, result: "vitoria" })).status, 400);
@@ -79,7 +79,7 @@ const begin = async () => {
   fs.rmdirSync(blocked);
   const retried = await api("account/match-complete", { matchId: interrupted, result: "jogador" });
   assert.equal(retried.status, 200);
-  currency += 70; games++;
+  currency += 150; games++;
   assert.equal(retried.body.currency, currency);
   await stop(); await start("SoloPlayer");
   assert.equal((await api("auth/session")).body.currency, currency, 'A tentativa após falha grava o crédito de verdade no disco.');

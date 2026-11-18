@@ -73,15 +73,15 @@ async function profile(token) {
   publish({ ...purchase, product: 999 });
   publish({ ...purchase, email: "waiting@example.com" });
   publish(purchase);
-  assert.deepEqual((await update)[0], { username: player.username, currency: 700 });
-  assert.equal((await profile(player.token)).currency, 700);
+  assert.deepEqual((await update)[0], { username: player.username, currency: 600 });
+  assert.equal((await profile(player.token)).currency, 600);
   assert.equal((await profile(other.token)).currency, 500);
   assert.equal(leakedUpdates, 0, "Saldo só é enviado aos sockets autenticados da própria conta.");
   const saved = JSON.parse(fs.readFileSync(accountsFile));
   assert.equal(saved.feiraMqttPurchases.length, 2);
   assert.equal(saved.feiraMqttPurchases[0].status, "pending");
   assert.equal(saved.feiraMqttPurchases[1].status, "completed");
-  assert.equal(saved.accounts[player.accountKey].currency, 700);
+  assert.equal(saved.accounts[player.accountKey].currency, 600);
   assert.equal((await profile(player.token)).googleEmail, undefined);
 
   const events = {}, clientAccount = { user: player.username, currency: 500, notify() { this.notifications++; }, notifications: 0 };
@@ -91,8 +91,8 @@ async function profile(token) {
   events["currency-updated"]({ username: other.username, currency: 999 });
   events["currency-updated"]({ username: player.username, currency: -1 });
   assert.equal(clientAccount.currency, 500);
-  events["currency-updated"]({ username: player.username, currency: 700 });
-  assert.equal(clientAccount.currency, 700); assert.equal(clientAccount.notifications, 1);
+  events["currency-updated"]({ username: player.username, currency: 600 });
+  assert.equal(clientAccount.currency, 600); assert.equal(clientAccount.notifications, 1);
   console.log("Feira MQTT integrado: broker WebSocket local, servidor real, crédito persistido, email privado e saldo ao vivo isolado por conta validados.");
 })().catch(error => { console.error(error); process.exitCode = 1; }).finally(async () => {
   buyer?.disconnect(); spectator?.disconnect();

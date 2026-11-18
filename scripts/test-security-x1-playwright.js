@@ -110,9 +110,9 @@ async function run() {
   await page.screenshot({ path: path.join(output, 'dragao-retorno-explosivo.png') });
   assert.equal(await page.evaluate(() => game.scene.getScene('CenaJogo').telaFinalExibida), false, 'Vitória aguarda a animação terminar.');
   await page.waitForFunction(() => game.scene.getScene('CenaJogo').telaFinalExibida);
-  await page.waitForFunction(() => cyberduelAccount.currency === 570 && document.querySelector('.match-reward'));
-  assert.match(await page.locator('.match-reward').innerText(), /\+70 Cybercoins/);
-  assert.equal(JSON.parse(fs.readFileSync(accountsPath)).accounts[fixture.accountKey].currency, 570,
+  await page.waitForFunction(() => cyberduelAccount.currency === 650 && document.querySelector('.match-reward'));
+  assert.match(await page.locator('.match-reward').innerText(), /\+150 Cybercoins/);
+  assert.equal(JSON.parse(fs.readFileSync(accountsPath)).accounts[fixture.accountKey].currency, 650,
     'Vitória com Segurança X1 paga uma vez e persiste no servidor.');
   assert.equal(await page.evaluate(() => partida.rodadasJogador), 4);
   assert.equal(await page.evaluate(() => game.scene.getScene('CenaEfeitos').children.list.filter(object => object.name?.startsWith('seguranca-x1-')).length), 0);

@@ -1,7 +1,7 @@
 const { randomUUID } = require("node:crypto");
 
 const products = Object.freeze({
-  102: Object.freeze({ tijolinhos: 100, cybercoins: 200 }),
+  102: Object.freeze({ tijolinhos: 100, cybercoins: 100 }),
 });
 const shopUrl = "https://feira-de-jogos.dev.br/";
 const topic = "vending/comando/#";
@@ -9,7 +9,7 @@ const topic = "vending/comando/#";
 function settle(store, receipt, save) {
   const matches = Object.entries(store.accounts).filter(([, account]) =>
     account.googleSub && account.googleEmail === receipt.email);
-  if (receipt.status === "completed" || matches.length !== 1) return null;
+  if (receipt.status !== "pending" || matches.length !== 1) return null;
   const [accountKey, account] = matches[0];
   if (account.banned || !Number.isSafeInteger(account.currency) || account.currency < 0 ||
       !Number.isSafeInteger(account.currency + receipt.cybercoins)) return null;

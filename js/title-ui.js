@@ -2008,6 +2008,7 @@ class CyberduelTitleUI {
         const state = await this.account.request("/api/admin/feira/credit");
         if (this.modal !== overlay) return;
         if (state.pendingGrant) localStorage.setItem(`cyberduel.feira.admin.v1:${this.account.user}`, state.pendingGrant.id);
+        else localStorage.removeItem(`cyberduel.feira.admin.v1:${this.account.user}`);
         feiraAuthorized = !state.needsGoogleLogin;
         feiraButton.disabled = !feiraAuthorized;
         feiraButton.textContent = localStorage.getItem(`cyberduel.feira.admin.v1:${this.account.user}`)
@@ -2026,6 +2027,36 @@ class CyberduelTitleUI {
       }
     };
     feiraSection.append(this.element("h3", "", "Crédito na feira · admin"), feiraStatus, feiraGoogle, feiraButton);
+    const transfersSection = this.element("section", "title-admin-section title-admin-transfers");
+    transfersSection.hidden = !this.account.token;
+    const resetConfirm = this.element("input", "title-admin-transfers-confirm");
+    resetConfirm.type = "checkbox";
+    resetConfirm.setAttribute("aria-label", "Confirmar reset de todas as transferências pendentes");
+    const resetLabel = this.element("label", "title-setting title-setting--toggle");
+    resetLabel.append(resetConfirm, this.element("span", "", "Entendi que os saldos não serão alterados."));
+    const resetStatus = this.element("p", "title-admin-note title-admin-transfers-status",
+      "Cancela pendências de todas as contas, inclusive compras da feira. Mantém saldos e comprovantes; não estorna o banco nem devolve Cybercoins reservadas.");
+    resetStatus.setAttribute("role", "status");
+    const resetTransfers = this.button("title-dialog__cancel title-admin-transfers-reset", "RESETAR TODAS AS TRANSFERÊNCIAS PENDENTES", async () => {
+      if (resetTransfers.disabled || !resetConfirm.checked) return;
+      toggleBusy(true);
+      this.modalRequired = true;
+      try {
+        const payload = await this.account.resetPendingTransfers();
+        if (this.modal !== overlay) return;
+        if (!feiraSection.hidden) await loadFeira();
+        resetStatus.textContent = `${payload.count} pendências encerradas. Saldos e comprovantes preservados.`;
+        resetConfirm.checked = false;
+      } catch (exception) {
+        if (this.modal === overlay) resetStatus.textContent = exception.message;
+      } finally {
+        this.modalRequired = false;
+        if (this.modal === overlay) toggleBusy(false);
+      }
+    });
+    resetTransfers.disabled = true;
+    resetConfirm.addEventListener("change", () => { resetTransfers.disabled = !resetConfirm.checked; });
+    transfersSection.append(this.element("h3", "", "Transferências pendentes · todas as contas"), resetStatus, resetLabel, resetTransfers);
     const actionButtons = this.element(
       "div",
       "title-dialog__actions title-dialog__actions--triple",
@@ -2042,6 +2073,8 @@ class CyberduelTitleUI {
         currencyButton,
       ].forEach((field) => (field.disabled = busy));
       feiraButton.disabled = busy || !feiraAuthorized;
+      resetConfirm.disabled = busy;
+      resetTransfers.disabled = busy || !resetConfirm.checked;
       [...actionButtons.children].forEach((button) => (button.disabled = busy));
       [...accountsList.children].forEach((button) => (button.disabled = busy));
     };
@@ -2151,7 +2184,7 @@ class CyberduelTitleUI {
       this.button("title-dialog__cancel", "VOLTAR", () => this.closeModal()),
     );
 
-    form.append(securitySection, feiraSection, accountsSection, username, currencySection, deckSection, cardSection);
+    form.append(securitySection, feiraSection, transfersSection, accountsSection, username, currencySection, deckSection, cardSection);
     dialog.append(form, result, error, actionButtons);
     overlay.append(dialog);
     this.settings?.applyDomTextScale(overlay);
@@ -2986,7 +3019,8 @@ class CyberduelTitleUI {
       retry.textContent = busy ? "CONSULTANDO…" : "VERIFICAR CÂMBIO PENDENTE";
       retry.setAttribute("aria-label", retry.textContent);
       if (pending) {
-        const bundle = catalog?.bundles.find(entry => entry.id === pending.bundleId);
+        const bundle = Number.isSafeInteger(pending.cybercoins) && Number.isSafeInteger(pending.tijolinhos)
+          ? pending : catalog?.bundles.find(entry => entry.id === pending.bundleId);
         pendingNote.textContent = `Existe um câmbio${bundle ? ` de ${bundle.cybercoins} Cybercoins por ${bundle.tijolinhos} tijolinhos` : ""} aguardando confirmação. Você pode comparar outros valores e abas, mas precisa resolver essa tentativa antes de confirmar outra transferência.`;
         if (pending.receiptId) pendingNote.textContent += ` Comprovante da feira: ${pending.receiptId}.`;
       }
@@ -3058,7 +3092,7 @@ class CyberduelTitleUI {
     buy.disabled = true;
     dialog.append(header,
       this.element("p", "", "Use Cybercoins em boosters e cartas, ou troque suas moedas por tijolinhos no banco da feira."),
-      this.element("p", "cybercoin-shop__rate", "1 TIJOLINHO = 2 CYBERCOINS"),
+      this.element("p", "cybercoin-shop__rate", "1 TIJOLINHO = 1 CYBERCOIN"),
       balance, directions, packages, summary, pendingNote, retry, authNote, googleButton, status, error, buy);
     overlay.append(dialog);
     this.modalAfterClose = returnTo || (() => this.account.notify());
@@ -3070,11 +3104,12 @@ class CyberduelTitleUI {
       if (!catalog.needsGoogleLogin) googleMounted = false;
       balance.textContent = `Seu saldo: ${this.account.currency.toLocaleString("pt-BR")} Cybercoins`;
       if (payload.pendingPurchase) localStorage.setItem(`cyberduel.cybercoins.purchase.v1:${this.account.user}`, JSON.stringify(payload.pendingPurchase));
+      else localStorage.removeItem(`cyberduel.cybercoins.purchase.v1:${this.account.user}`);
       const pending = this.account.getCybercoinPurchase();
       if (pending && !selected) direction = pending.direction || "buy";
       packages.replaceChildren();
       selected = catalog.bundles.find(bundle => bundle.id === selected?.id) ||
-        catalog.bundles.find(bundle => bundle.id === pending?.bundleId) || catalog.bundles[1] || catalog.bundles[0];
+        catalog.bundles.find(bundle => bundle.id === pending?.bundleId) || catalog.bundles.find(bundle => bundle.id === "cybercoins-50") || catalog.bundles[0];
       for (const bundle of catalog.bundles) {
         const button = this.button("cybercoin-shop__package", "", () => {
           if (!busy) { selected = bundle; hasResult = false; refresh(); }

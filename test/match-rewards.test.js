@@ -11,10 +11,10 @@ function match(players = accounts(), patch = {}) {
 }
 
 for (const [mode, expected] of [
-  [{}, [150, 10]],
-  [{ ranked: false, presentation: true }, [320, 25]],
-  [{ ranked: true, presentation: true, table: 1 }, [320, 25]],
-  [{ ranked: true, presentation: true, table: 5 }, [450, 50]],
+  [{}, [350, 0]],
+  [{ ranked: false, presentation: true }, [450, 0]],
+  [{ ranked: true, presentation: true, table: 1 }, [450, 0]],
+  [{ ranked: true, presentation: true, table: 5 }, [550, 0]],
 ]) {
   const players = accounts();
   for (let repetition = 0; repetition < 9; repetition++) {
@@ -28,8 +28,8 @@ for (const [mode, expected] of [
 
 for (const round of [1, 2, 3]) {
   const players = accounts();
-  assert.deepEqual(onlineRewards(match(players, { round, surrenderedBy: 2 })), [150, 10]);
-  assert.deepEqual(onlineRewards(match(players, { round, surrenderedBy: 2 })), [75, 5], 'Os três primeiros turnos incluem o terceiro.');
+  assert.deepEqual(onlineRewards(match(players, { round, surrenderedBy: 2 })), [350, 0]);
+  assert.deepEqual(onlineRewards(match(players, { round, surrenderedBy: 2 })), [175, 0], 'Os três primeiros turnos incluem o terceiro.');
 }
 for (const patch of [
   { debugFinal: true, surrenderedBy: 2 }, { ranked: false, surrenderedBy: 2 },
@@ -46,33 +46,33 @@ assert.deepEqual(onlineRewards(match([{ ...one }, { ...one }])), [0, 0]);
 assert.deepEqual(onlineRewards(match([one, undefined])), [0, 0]);
 
 let players = accounts();
-assert.deepEqual(onlineRewards(match(players, { surrenderedBy: 2, round: 4 })), [150, 10]);
-assert.deepEqual(onlineRewards(match(players, { surrenderedBy: 2 })), [150, 10], 'Desistência tardia anterior não conta como repetição precoce.');
+assert.deepEqual(onlineRewards(match(players, { surrenderedBy: 2, round: 4 })), [350, 0]);
+assert.deepEqual(onlineRewards(match(players, { surrenderedBy: 2 })), [350, 0], 'Desistência tardia anterior não conta como repetição precoce.');
 players = JSON.parse(JSON.stringify(players));
 players[1].username = 'Renamed';
 const reversed = match([...players].reverse(), { surrenderedBy: 1, presentation: true, table: 5 });
 reversed.result.resultadoCombate.resultado = 'inimigo';
-assert.deepEqual(onlineRewards(reversed), [25, 225], 'Repetição persiste entre modalidades, lugares, nomes e reinício.');
-assert.deepEqual(onlineRewards(match(players, { surrenderedBy: 2 })), [37, 2], 'Cada repetição divide novamente, inclusive após trocar modalidade.');
-assert.deepEqual(onlineRewards(match([players[0], { username: 'Three', googleSub: 'google-three' }], { surrenderedBy: 2 })), [150, 10], 'Outro adversário tem contador separado.');
+assert.deepEqual(onlineRewards(reversed), [0, 275], 'Repetição persiste entre modalidades, lugares, nomes e reinício.');
+assert.deepEqual(onlineRewards(match(players, { surrenderedBy: 2 })), [87, 0], 'Cada repetição divide novamente, inclusive após trocar modalidade.');
+assert.deepEqual(onlineRewards(match([players[0], { username: 'Three', googleSub: 'google-three' }], { surrenderedBy: 2 })), [350, 0], 'Outro adversário tem contador separado.');
 const opposite = match(players, { surrenderedBy: 1 });
 opposite.result.resultadoCombate.resultado = 'inimigo';
-assert.deepEqual(onlineRewards(opposite), [10, 150], 'A primeira desistência da outra conta tem contador próprio.');
+assert.deepEqual(onlineRewards(opposite), [0, 350], 'A primeira desistência da outra conta tem contador próprio.');
 const realNow = Date.now;
 let now = realNow();
 Date.now = () => now;
 try {
   const timedPlayers = accounts();
   const surrender = () => onlineRewards(match(timedPlayers, { surrenderedBy: 2 }));
-  assert.deepEqual(surrender(), [150, 10]);
+  assert.deepEqual(surrender(), [350, 0]);
   now += 30 * 60 * 1000 - 1;
-  assert.deepEqual(surrender(), [75, 5], 'Antes de 30 minutos a punição continua e renova o prazo.');
+  assert.deepEqual(surrender(), [175, 0], 'Antes de 30 minutos a punição continua e renova o prazo.');
   const restored = JSON.parse(JSON.stringify(timedPlayers));
   now += 30 * 60 * 1000;
-  assert.deepEqual(onlineRewards(match(restored, { surrenderedBy: 2 })), [150, 10], 'Após 30 minutos da última desistência a punição expira, inclusive depois de reiniciar.');
+  assert.deepEqual(onlineRewards(match(restored, { surrenderedBy: 2 })), [350, 0], 'Após 30 minutos da última desistência a punição expira, inclusive depois de reiniciar.');
   assert.equal(restored[1].earlySurrenders[0].count, 1);
   restored[1].earlySurrenders = [{ opponent: restored[0].googleSub, count: 99 }];
-  assert.deepEqual(onlineRewards(match(restored, { surrenderedBy: 2 })), [150, 10], 'Histórico antigo sem data não mantém punição permanente.');
+  assert.deepEqual(onlineRewards(match(restored, { surrenderedBy: 2 })), [350, 0], 'Histórico antigo sem data não mantém punição permanente.');
 } finally {
   Date.now = realNow;
 }

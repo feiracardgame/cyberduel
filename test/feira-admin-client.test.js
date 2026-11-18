@@ -29,6 +29,7 @@ const key = "cyberduel.feira.admin.v1:GestorQA";
   account.applyAuth({ username: "DuelistaQA", token: "normal-session", authProvider: "google", currency: 123 });
   account.request = () => { assert.fail("Conta comum não envia pedidos pelo botão."); };
   await assert.rejects(account.grantFeiraCredit(), /administradora/);
+  await assert.rejects(account.resetPendingTransfers(), /administradora/);
   const ui = new context.UI({ account, callbacks: {}, deckBuilder: { getCatalog: () => [] } });
   ui.root = new Element("main");
   ui.openAdminGrantDialog();
@@ -86,6 +87,37 @@ const key = "cyberduel.feira.admin.v1:GestorQA";
   await button.click();
   assert.match(find(section, "title-admin-note").textContent, /apenas 100 dos 500.*9002.*produto 86/);
   assert.equal(posts, 3, "Crédito menor não dispara pagamentos para completar a diferença.");
+
+  let resetPosts = 0, resetRelease;
+  const transferKey = "cyberduel.cybercoins.purchase.v1:GestorQA";
+  storage.set(key, "stale-admin-0000001"); storage.set(transferKey, "stale-transfer");
+  account.request = async (route, options) => {
+    if (route === "/api/admin/feira/credit") return { needsGoogleLogin: false, pendingGrant: null };
+    assert.equal(route, "/api/admin/feira/reset-pending");
+    assert.equal(options.method, "POST"); assert.equal(options.body.confirm, true); resetPosts++;
+    return new Promise(resolve => { resetRelease = () => resolve({ count: 4 }); });
+  };
+  const resetButton = find(renewalModal, "title-admin-transfers-reset");
+  const resetConfirm = find(renewalModal, "title-admin-transfers-confirm");
+  assert.equal(resetButton.disabled, true, "Reset global exige confirmação explícita.");
+  resetConfirm.checked = true; resetConfirm.events.change();
+  const resetting = resetButton.click();
+  await resetButton.click();
+  assert.equal(resetPosts, 1, "Clique duplo não repete o reset.");
+  assert.equal(resetConfirm.disabled, true);
+  resetRelease(); await resetting;
+  assert.equal(storage.has(key), false); assert.equal(storage.has(transferKey), false);
+  assert.equal(resetButton.disabled, true); assert.equal(resetConfirm.checked, false);
+  assert.equal(account.currency, 123);
+  assert.match(find(renewalModal, "title-admin-transfers-status").textContent, /4 pendências encerradas/);
+  assert.equal(find(renewalModal, "title-admin-feira-credit").textContent, "RECEBER 500 TIJOLINHOS · GRÁTIS");
+
+  storage.set(key, "keep-after-failure");
+  account.request = async () => { throw Error("Falha ao salvar reset"); };
+  resetConfirm.checked = true; resetConfirm.events.change();
+  await resetButton.click();
+  assert.equal(storage.get(key), "keep-after-failure", "Falha mantém a tentativa local para conferência.");
+  assert.match(find(renewalModal, "title-admin-transfers-status").textContent, /Falha ao salvar/);
 
   ui.modal = null;
   account.authProvider = "local";

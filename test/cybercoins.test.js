@@ -15,8 +15,9 @@ const rejects = (promise, code) => assert.rejects(promise, error => error.code =
 
 async function unit() {
   assert.equal(catalog().available, false);
-  assert.deepEqual(catalog().bundles.map(bundle => [bundle.tijolinhos, bundle.cybercoins]), [[10, 20], [25, 50], [50, 100], [100, 200], [250, 500]]);
-  for (const bundle of catalog().bundles) assert.equal(bundle.cybercoins, bundle.tijolinhos * 2);
+  assert.equal(catalog().rate, 1);
+  assert.deepEqual(catalog().bundles.map(bundle => [bundle.tijolinhos, bundle.cybercoins]), [[10, 10], [25, 25], [50, 50], [100, 100], [250, 250]]);
+  for (const bundle of catalog().bundles) assert.equal(bundle.cybercoins, bundle.tijolinhos);
   await rejects(purchase(store(), "player", body(), () => {}), "FEIRA_UNAVAILABLE");
   let calls = 0;
   feira.available = true;
@@ -26,7 +27,7 @@ async function unit() {
   await rejects(purchase(store(), "player", { ...body(), feiraToken: "not-a-jwt" }, () => {}), "INVALID_FEIRA_TOKEN");
   const s = store();
   const order = await purchase(s, "player", { ...body(), cybercoins: 99999, tijolinhos: 0, status: "completed" }, () => {});
-  assert.equal(order.cybercoins, 50); assert.equal(order.tijolinhos, 25);
+  assert.equal(order.cybercoins, 50); assert.equal(order.tijolinhos, 50);
   assert.equal(s.accounts.player.currency, 50); assert.equal(calls, 1);
   assert.ok(!JSON.stringify(s).includes(token), "JWT nunca é salvo no registro da compra.");
   feira.available = false;
@@ -59,8 +60,8 @@ async function unit() {
   await rejects(purchase(unknown, "player", body("purchase-test-0002"), () => {}), "PAYMENT_PENDING");
   assert.equal(timeouts, 1); assert.equal(unknown.accounts.player.currency, 0);
 
-  for (const receipt of [null, {}, { id: "abc", purchaseId: "wrong", tijolinhos: 25 },
-    { id: "abc", purchaseId: body().purchaseId, tijolinhos: 24 }]) {
+  for (const receipt of [null, {}, { id: "abc", purchaseId: "wrong", tijolinhos: 50 },
+    { id: "abc", purchaseId: body().purchaseId, tijolinhos: 49 }]) {
     const invalid = store(); feira.debit = async () => receipt;
     await rejects(purchase(invalid, "player", body(), () => {}), "PAYMENT_PENDING");
     assert.equal(invalid.accounts.player.currency, 0);
@@ -163,7 +164,7 @@ async function apiTest() {
     const bought = await api("cybercoins/buy", { ...body(undefined, "cybercoins-100"), cybercoins: 99999, tijolinhos: 0 });
     assert.equal(bought.status, 200); assert.equal(bought.body.currency, 100);
     assert.equal(bought.body.purchase.cybercoins, 100);
-    assert.equal(bought.body.purchase.tijolinhos, 50);
+    assert.equal(bought.body.purchase.tijolinhos, 100);
     assert.equal((await api("cybercoins/buy", body(undefined, "cybercoins-100"), seller.token)).status, 409);
     const pack = await api("boosters/buy", { faction: "echossystem", purchaseId: "paid-with-cybercoins" });
     assert.equal(pack.status, 200); assert.equal(pack.body.currency, 50); assert.equal(pack.body.boosters.length, 1);
@@ -174,38 +175,38 @@ async function apiTest() {
     assert.equal(trade.status, 200); assert.equal(trade.body.currency, 0);
     assert.equal((await api("auth/session", null, seller.token)).body.currency, 40);
     assert.equal((await api("auth/session", null, treasury.token)).body.currency, 10);
-    const cashout = await api("cybercoins/withdraw", body("bank-withdraw-00001", "cybercoins-20"), seller.token);
+    const cashout = await api("cybercoins/withdraw", body("bank-withdraw-00001", "cybercoins-25"), seller.token);
     assert.equal(cashout.status, 200);
-    assert.equal(cashout.body.currency, 20);
-    assert.equal(cashout.body.purchase.tijolinhos, 10);
+    assert.equal(cashout.body.currency, 15);
+    assert.equal(cashout.body.purchase.tijolinhos, 25);
     assert.equal(cashout.body.purchase.direction, "withdraw");
     const resumed = await api("cybercoins/resume", { purchaseId: "bank-withdraw-00001", bundleId: "forged" }, seller.token);
     assert.equal(resumed.status, 200);
-    assert.equal(resumed.body.currency, 20, "Retomar câmbio concluído não altera novamente o saldo.");
+    assert.equal(resumed.body.currency, 15, "Retomar câmbio concluído não altera novamente o saldo.");
     const missing = await api("cybercoins/resume", { purchaseId: "bank-missing-000001" }, seller.token);
     assert.equal(missing.status, 404);
-    assert.equal(missing.body.currency, 20, "Mesmo a recusa de consulta atualiza a carteira do cliente.");
-    await api("cybercoins/buy", body("buy-for-partial-0001", "cybercoins-500"));
+    assert.equal(missing.body.currency, 15, "Mesmo a recusa de consulta atualiza a carteira do cliente.");
+    await api("cybercoins/buy", body("buy-for-partial-0001", "cybercoins-250"));
     confirmedAmount = 100;
-    const partial = await api("cybercoins/withdraw", body("partial-bank-08041", "cybercoins-500"));
+    const partial = await api("cybercoins/withdraw", body("partial-bank-08041", "cybercoins-250"));
     assert.equal(partial.status, 200);
-    assert.equal(partial.body.currency, 300);
+    assert.equal(partial.body.currency, 150);
     assert.equal(partial.body.purchase.tijolinhos, 250);
     assert.equal(partial.body.purchase.settledTijolinhos, 100);
-    assert.equal(partial.body.purchase.spentCybercoins, 200);
-    assert.equal(partial.body.purchase.refundedCybercoins, 300);
+    assert.equal(partial.body.purchase.spentCybercoins, 100);
+    assert.equal(partial.body.purchase.refundedCybercoins, 150);
     await stop(); await start(false);
     const settledAgain = await api("cybercoins/resume", { purchaseId: "partial-bank-08041" });
     assert.equal(settledAgain.status, 200);
-    assert.equal(settledAgain.body.currency, 300);
-    assert.equal(settledAgain.body.purchase.refundedCybercoins, 300);
+    assert.equal(settledAgain.body.currency, 150);
+    assert.equal(settledAgain.body.purchase.refundedCybercoins, 150);
     const replay = await api("cybercoins/buy", body(undefined, "cybercoins-100"));
-    assert.equal(replay.status, 200); assert.equal(replay.body.currency, 300, "Reiniciar/repetir não credita a compra novamente.");
+    assert.equal(replay.status, 200); assert.equal(replay.body.currency, 150, "Reiniciar/repetir não credita a compra novamente.");
     assert.ok(!fs.readFileSync(file, "utf8").includes(token));
   } finally { await stop(); fs.rmSync(dir, { recursive: true, force: true }); }
 }
 
 (async () => {
   await unit(); await apiTest();
-  console.log("Cybercoins: proporção 1:2, pacotes fixos, autenticação, crédito confirmado, repetição, concorrência, falhas, persistência, booster e mercado validados.");
+  console.log("Cybercoins: proporção 1:1, pacotes fixos, autenticação, crédito confirmado, repetição, concorrência, falhas, persistência, booster e mercado validados.");
 })().catch(error => { console.error(error); process.exitCode = 1; });

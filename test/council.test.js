@@ -105,18 +105,18 @@ async function run() {
   const observedFinal = new Promise(resolve => outsider.once('state-update', resolve));
   assert.equal((await ack(one, 'decline-match', { room: code, accountToken: first.accountToken })).ok, true);
   const [loser, winner, observed] = await Promise.all([firstPaid, secondPaid, observedFinal]);
-  assert.equal(loser.reward, 50); assert.equal(winner.reward, 450);
+  assert.equal(loser.reward, 0); assert.equal(winner.reward, 550);
   assert.equal(loser.influenceReward, -16); assert.equal(winner.influenceReward, 24);
   assert.equal(loser.account.username, fixtures[0].username);
   assert.equal(winner.account.username, fixtures[1].username);
-  assert.equal(loser.account.currency, 550); assert.equal(winner.account.currency, 950);
+  assert.equal(loser.account.currency, 500); assert.equal(winner.account.currency, 1050);
   assert.equal(observed.account, undefined, 'Espectadores não recebem saldo nem coleção privados.');
   assert.equal(observed.reward, undefined);
   assert.equal(observed.influenceReward, undefined);
   for (const [index, fixture] of fixtures.slice(0, 2).entries()) {
     const response = await fetch(url + '/api/auth/session', { headers: { Authorization: `Bearer ${fixture.token}` } });
     const account = await response.json();
-    assert.equal(account.currency, index === 0 ? 550 : 950, 'Primeira desistência no Conselho paga os valores normais.');
+    assert.equal(account.currency, index === 0 ? 500 : 1050, 'Primeira desistência no Conselho paga os valores normais.');
     assert.equal(account.rating, index === 0 ? 2184 : 2214, 'Conselho aumenta o ganho de 16 para 24 pontos.');
     assert.equal(account.rankedGames, 6);
     assert.equal(account.rankedWins, index === 0 ? 3 : 4);
@@ -124,11 +124,11 @@ async function run() {
   }
   assert.equal((await ack(one, 'decline-match', { room: code, accountToken: first.accountToken })).ok, false);
   const saved = JSON.parse(fs.readFileSync(file)).accounts;
-  assert.equal(saved[fixtures[0].accountKey].currency, 550);
-  assert.equal(saved[fixtures[1].accountKey].currency, 950, 'Primeira desistência no Conselho paga uma única vez.');
+  assert.equal(saved[fixtures[0].accountKey].currency, 500);
+  assert.equal(saved[fixtures[1].accountKey].currency, 1050, 'Primeira desistência no Conselho paga uma única vez.');
   assert.equal(saved[fixtures[0].accountKey].rating, 2184);
   assert.equal(saved[fixtures[1].accountKey].rating, 2214, 'Bônus de rank é persistido uma única vez.');
-  let loserBalance = 550, winnerBalance = 950;
+  let loserBalance = 500, winnerBalance = 1050;
   for (let repetition = 1; repetition <= 7; repetition++) {
     one.emit('leave-room'); two.emit('leave-room'); screen.emit('leave-room');
     const next = await ack(screen, 'create-presentation', { table: 5 });
@@ -139,8 +139,8 @@ async function run() {
     assert.equal((await ack(two, 'reserve-council-seat', second)).ok, true);
     assert.equal((await ack(two, 'join-room', { ...second, code: nextCode, table: 5 })).ok, true);
     assert.equal((await ack(one, 'decline-match', { room: nextCode, accountToken: first.accountToken })).ok, true);
-    loserBalance += Math.floor(50 / 2 ** repetition);
-    winnerBalance += Math.floor(450 / 2 ** repetition);
+    loserBalance += Math.floor(0 / 2 ** repetition);
+    winnerBalance += Math.floor(550 / 2 ** repetition);
     const persisted = JSON.parse(fs.readFileSync(file)).accounts;
     assert.equal(persisted[fixtures[0].accountKey].currency, loserBalance);
     assert.equal(persisted[fixtures[1].accountKey].currency, winnerBalance, 'Repetir desistências corta o pagamento até zero.');

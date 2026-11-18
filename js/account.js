@@ -373,7 +373,7 @@ class CyberduelAccount {
       return payload.purchase;
     } catch (error) {
       if (this.user === user && error.payload?.username === user) this.applyAuth(error.payload, false);
-      if (["FEIRA_DECLINED", "FEIRA_UNAVAILABLE", "INVALID_FEIRA_TOKEN", "INVALID_PURCHASE", "FEIRA_LOGIN_REQUIRED", "INSUFFICIENT_CYBERCOINS"].includes(error.code))
+      if (["FEIRA_DECLINED", "FEIRA_UNAVAILABLE", "INVALID_FEIRA_TOKEN", "INVALID_PURCHASE", "FEIRA_LOGIN_REQUIRED", "INSUFFICIENT_CYBERCOINS", "PAYMENT_CANCELLED"].includes(error.code))
         localStorage.removeItem(key);
       throw error;
     }
@@ -410,10 +410,19 @@ class CyberduelAccount {
       localStorage.removeItem(key);
       return payload;
     } catch (error) {
-      if (["FEIRA_DECLINED", "FEIRA_UNAVAILABLE", "INVALID_PURCHASE", "FEIRA_LOGIN_REQUIRED"].includes(error.code))
+      if (["FEIRA_DECLINED", "FEIRA_UNAVAILABLE", "INVALID_PURCHASE", "FEIRA_LOGIN_REQUIRED", "PAYMENT_CANCELLED"].includes(error.code))
         localStorage.removeItem(key);
       throw error;
     }
+  }
+
+  async resetPendingTransfers() {
+    if (!this.isAdmin || !this.token) throw new Error("Entre em uma conta administradora para resetar as pendências.");
+    const user = this.user;
+    const payload = await this.request("/api/admin/feira/reset-pending", { method: "POST", body: { confirm: true } });
+    localStorage.removeItem(`cyberduel.feira.admin.v1:${user}`);
+    localStorage.removeItem(`cyberduel.cybercoins.purchase.v1:${user}`);
+    return payload;
   }
 
   async requireNameChange(username) {
