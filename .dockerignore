@@ -1,6 +1,10 @@
 .git
 .gitignore
 node_modules
+.env
+server/data
+server/data-dev
+output
 npm-debug.log*
 test
 scripts

@@ -1,4 +1,5 @@
 const feira = require("./feira-payments");
+const feiraMqtt = require("./feira-mqtt");
 
 const bundles = Object.freeze([10, 25, 50, 100, 250].map(tijolinhos =>
   Object.freeze({ id: `cybercoins-${tijolinhos * 2}`, tijolinhos, cybercoins: tijolinhos * 2 })));
@@ -10,7 +11,8 @@ function fail(status, code, message) {
 
 function catalog() {
   return { currencyName: "Cybercoins", rate: 2, available: feira.available === true,
-    withdrawAvailable: feira.creditAvailable === true, productId: feira.productId, bundles };
+    withdrawAvailable: feira.creditAvailable === true, productId: feira.productId, bundles,
+    feiraShopUrl: feiraMqtt.shopUrl, feiraProducts: feiraMqtt.products };
 }
 
 async function purchase(store, accountKey, body, save) {

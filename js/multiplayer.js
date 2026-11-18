@@ -60,6 +60,12 @@ class CyberduelMultiplayer {
     this.socket.on("matchmaking-stopped", (payload) => this.onMatchmakingStopped?.(payload.error));
     this.socket.on("game-config", config => window.cyberduelAccount.applyDemoMode(config.demoMode === true));
     this.socket.on("account-banned", payload => window.cyberduelAccount.handleBan(payload));
+    this.socket.on("currency-updated", payload => {
+      const account = window.cyberduelAccount;
+      if (account?.user !== payload.username || !Number.isSafeInteger(payload.currency) || payload.currency < 0) return;
+      account.currency = payload.currency;
+      account.notify();
+    });
     this.socket.on("name-restricted", payload => {
       window.cyberduelAccount.nameRestriction = payload.nameRestriction;
       window.cyberduelNameGuard?.sync(payload.nameRestriction);

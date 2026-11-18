@@ -29,6 +29,7 @@ const redemptionAttempts = new Map();
 const battleAnnouncements = require("../js/battle-announcements");
 const { nameIsBlocked } = require("./name-policy");
 const cybercoins = require("./cybercoins");
+const feiraMqtt = require("./feira-mqtt");
 
 const PORT = Number(process.env.PORT) || 3000;
 const LOCAL_LOGIN = process.env.CYBERDUEL_LOCAL_LOGIN === "1" && process.env.CYBERDUEL_DEBUG === "1";
@@ -448,6 +449,11 @@ async function authenticateGoogle(credential, loginId) {
     entry = [accountKey, account];
   }
   if (entry[1].banned) return { status: 403, payload: banRejection(entry[1]) };
+  if (identity.email_verified === true && typeof identity.email === "string") {
+    entry[1].googleEmail = identity.email.trim().toLowerCase();
+  } else delete entry[1].googleEmail;
+  saveAccounts();
+  if (entry[1].googleEmail) feiraMqtt.resume(accountStore, entry[1].googleEmail, saveAccounts);
   const token = createSession(entry[0], { token: credential, expiresAt: identity.exp * 1000 });
   return { status: 200, payload: { ok: true, token, ...publicAccount(entry[1]) } };
 }
@@ -2747,4 +2753,11 @@ io.on("connection", (socket) => {
 
 httpServer.listen(PORT, LOCAL_LOGIN ? "127.0.0.1" : undefined, () => {
   console.log(`Cyberduel multiplayer ouvindo na porta ${PORT}`);
+  if (process.env.FEIRA_MQTT_ENABLED === "1" && !LOCAL_LOGIN) {
+    feiraMqtt.start(accountStore, saveAccounts, account => {
+      for (const socket of io.sockets.sockets.values())
+        if (accountFromToken(socket.data.accountToken) === account)
+          socket.emit("currency-updated", { username: account.username, currency: account.currency });
+    });
+  }
 });

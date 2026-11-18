@@ -2965,7 +2965,10 @@ class CyberduelTitleUI {
     const refresh = () => {
       const pending = this.account.getCybercoinPurchase();
       const withdrawing = direction === "withdraw";
+      const externalShop = !withdrawing && !catalog?.available && Boolean(catalog?.feiraShopUrl);
       const available = withdrawing ? catalog?.withdrawAvailable : catalog?.available;
+      packages.hidden = externalShop;
+      balance.textContent = `Seu saldo: ${this.account.currency.toLocaleString("pt-BR")} Cybercoins`;
       for (const button of directions.children) {
         button.setAttribute("aria-pressed", String(button.dataset.direction === direction));
         button.disabled = busy;
@@ -2974,9 +2977,9 @@ class CyberduelTitleUI {
         button.setAttribute("aria-pressed", String(button.dataset.bundleId === selected?.id));
         button.disabled = busy;
       }
-      buy.disabled = busy || !selected || !available || Boolean(pending) || Boolean(catalog?.needsGoogleLogin) ||
-        Boolean(withdrawing && this.account.currency < selected?.cybercoins);
-      buy.textContent = busy ? "VERIFICANDO…" : available ? withdrawing ? "CONFIRMAR ENVIO AO BANCO" : "TROCAR TIJOLINHOS" : "DISPONÍVEL EM BREVE";
+      buy.disabled = !externalShop && (busy || !selected || !available || Boolean(pending) || Boolean(catalog?.needsGoogleLogin) ||
+        Boolean(withdrawing && this.account.currency < selected?.cybercoins));
+      buy.textContent = externalShop ? "COMPRAR NO SITE DA FEIRA" : busy ? "VERIFICANDO…" : available ? withdrawing ? "CONFIRMAR ENVIO AO BANCO" : "TROCAR TIJOLINHOS" : "DISPONÍVEL EM BREVE";
       buy.setAttribute("aria-label", buy.textContent);
       pendingNote.hidden = retry.hidden = !pending;
       retry.disabled = busy;
@@ -2993,10 +2996,14 @@ class CyberduelTitleUI {
         this.account.mountGoogleButton(googleButton,
           exception => { if (this.modal === overlay) error.textContent = exception.message; }, loadCatalog);
       }
-      summary.textContent = selected ? withdrawing
+      summary.textContent = externalShop
+        ? Object.values(catalog.feiraProducts).map(product => `${product.tijolinhos} tijolinhos → ${product.cybercoins} Cybercoins.`).join(" ")
+        : selected ? withdrawing
         ? `Você reserva ${selected.cybercoins.toLocaleString("pt-BR")} Cybercoins para receber ${selected.tijolinhos.toLocaleString("pt-BR")} tijolinhos no banco da sua conta Google. Se a feira creditar menos, a diferença de Cybercoins será devolvida.`
         : `Você paga ${selected.tijolinhos.toLocaleString("pt-BR")} tijolinhos da feira e recebe ${selected.cybercoins.toLocaleString("pt-BR")} Cybercoins.` : "";
-      if (!hasResult) status.textContent = !available
+      if (!hasResult) status.textContent = externalShop
+        ? "Na loja de produtos da feira, compre Cyberduel: moeda usando o mesmo email da sua conta Google no jogo. O saldo será creditado automaticamente."
+        : !available
         ? "A feira precisa habilitar a compra de Cybercoins para o Cyberduel. Você pode usar Enviar ao banco para fazer o câmbio de volta."
         : catalog?.needsGoogleLogin ? "Confirme sua conta Google abaixo para autorizar o banco da feira."
         : withdrawing && this.account.currency < selected?.cybercoins ? "Cybercoins insuficientes para este pacote."
@@ -3044,6 +3051,8 @@ class CyberduelTitleUI {
     });
     retry.hidden = true;
     const buy = this.button("title-dialog__confirm cybercoin-shop__buy", "CARREGANDO…", () => {
+      if (!buy.disabled && direction === "buy" && !catalog?.available && catalog?.feiraShopUrl)
+        return window.open(catalog.feiraShopUrl, "_blank", "noopener,noreferrer");
       if (!buy.disabled && selected) return submit(selected.id, direction);
     });
     buy.disabled = true;

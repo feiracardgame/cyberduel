@@ -23,6 +23,8 @@ legacyStore.accounts[previousKey] = {
   currency: 765, rating: 1250, collection: { "monstro:O Rato": 3 },
   faction: "echossystem", deck: [{ tipo: "monstro", nome: "O Rato", quantidade: 3 }],
 };
+legacyStore.feiraMqttPurchases = [{ id: "pending-before-login", email: "waiting@example.com", product: 102,
+  cybercoins: 200, tijolinhos: 100, status: "pending", createdAt: new Date().toISOString() }];
 fs.writeFileSync(path.join(directory, "accounts.json"), JSON.stringify(legacyStore));
 const origin = "http://localhost:5500";
 const base = "http://127.0.0.1:32042";
@@ -79,7 +81,7 @@ function credential(nonce, claims = {}, signingKey = keys.privateKey) {
   const header = Buffer.from(JSON.stringify({ alg: "RS256", kid: "test" })).toString("base64url");
   const payload = Buffer.from(JSON.stringify({
     iss: "https://accounts.google.com", aud: clientId, sub: "google-player-123",
-    iat: now, exp: now + 3600, nonce, name: "Nome do Google", email: "player@example.com", ...claims,
+    iat: now, exp: now + 3600, nonce, name: "Nome do Google", email: "player@example.com", email_verified: true, ...claims,
   })).toString("base64url");
   const signed = `${header}.${payload}`;
   return `${signed}.${sign("RSA-SHA256", Buffer.from(signed), signingKey).toString("base64url")}`;
@@ -271,6 +273,12 @@ async function checkClient(profile) {
   token = null;
   await stop();
   await start();
+  const waitingClaims = { sub: "waiting-player", email: " Waiting@Example.com " };
+  assert.equal((await login({ ...waitingClaims, email_verified: false })).result.body.currency, 500,
+    "Email não verificado não libera compra pendente.");
+  const waiting = (await login(waitingClaims)).result;
+  assert.equal(waiting.body.currency, 700, "Login com email verificado recupera compra anterior ao cadastro.");
+  assert.equal((await login(waitingClaims)).result.body.currency, 700, "Novo login não repete crédito concluído.");
   assert.equal((await api("auth/google/start", undefined, "POST", "https://attacker.example")).status, 403);
   assert.equal((await api("auth/google", { loginId: "inexistente", credential: "forjado" })).status, 401);
   for (const claims of [{ aud: "outro-cliente" }, { iss: "https://attacker.example" }, { nonce: "outro-nonce" }, { sub: "" }, { exp: Math.floor(Date.now() / 1000) - 600 }]) {
@@ -407,7 +415,11 @@ async function checkClient(profile) {
   assert.equal(savedAccounts.accounts[legacy.accountKey].currency, oldAccount.currency);
   assert.equal(savedAccounts.accounts.novasenha, undefined, "A rota antiga não cria uma conta.");
   const store = JSON.stringify(Object.values(savedAccounts.accounts).filter(account => account.googleSub));
-  assert.doesNotMatch(store, /player@example.com|Nome do Google|passwordHash|credential/);
+  assert.doesNotMatch(store, /Nome do Google|passwordHash|credential/);
+  const primaryAccount = Object.values(savedAccounts.accounts).find(account => account.googleSub === "google-player-123");
+  assert.equal(primaryAccount.googleEmail, "novo@example.com", "Email verificado atualizado é privado e permite receber compras da feira.");
+  assert.equal(chosen.body.googleEmail, undefined, "Email não aparece na resposta pública da conta.");
+  assert.equal(chosen.body.email, undefined);
   assert.ok(!store.includes(first.body.credential));
   assert.ok(!fs.readFileSync(path.join(directory, "sessions.json"), "utf8").includes(token));
   await checkClient(chosen.body);
