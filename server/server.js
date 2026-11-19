@@ -54,7 +54,7 @@ const sessions = new Map();
 const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
 const BOOSTER_PRICE = 50;
 const TUTORIAL_BOOSTER_ID = "tutorial-opposite-booster-v1";
-const INITIAL_CURRENCY = 500;
+const INITIAL_CURRENCY = 0;
 const GOOGLE_CLIENT_ID = String(process.env.GOOGLE_CLIENT_ID || "").trim();
 const googleAuth = new OAuth2Client({ clientId: GOOGLE_CLIENT_ID, transporterOptions: { timeout: 10000 } });
 // shortcut: tentativas em memória; usar armazenamento compartilhado ao subir múltiplas instâncias.

@@ -51,6 +51,7 @@ async function api(route, body, token, headers = {}) {
   assert.equal((await api('auth/local', { username: 'reserved' })).status, 409, 'Não vincular nem sobrescrever conta Google.');
   const login = await api('auth/local', { username: 'Dante' });
   assert.equal(login.status, 200);
+  assert.equal(login.body.currency, 0, 'Conta local nova começa sem Cybercoins.');
   assert.equal(login.body.authProvider, 'local');
   assert.equal(login.body.isAdmin, true);
   assert.equal(login.body.username, 'local_Dante');

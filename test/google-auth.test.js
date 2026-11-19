@@ -274,11 +274,11 @@ async function checkClient(profile) {
   await stop();
   await start();
   const waitingClaims = { sub: "waiting-player", email: " Waiting@Example.com " };
-  assert.equal((await login({ ...waitingClaims, email_verified: false })).result.body.currency, 500,
+  assert.equal((await login({ ...waitingClaims, email_verified: false })).result.body.currency, 0,
     "Email não verificado não libera compra pendente.");
   const waiting = (await login(waitingClaims)).result;
-  assert.equal(waiting.body.currency, 700, "Login com email verificado recupera compra anterior ao cadastro.");
-  assert.equal((await login(waitingClaims)).result.body.currency, 700, "Novo login não repete crédito concluído.");
+  assert.equal(waiting.body.currency, 200, "Login com email verificado recupera compra anterior ao cadastro.");
+  assert.equal((await login(waitingClaims)).result.body.currency, 200, "Novo login não repete crédito concluído.");
   assert.equal((await api("auth/google/start", undefined, "POST", "https://attacker.example")).status, 403);
   assert.equal((await api("auth/google", { loginId: "inexistente", credential: "forjado" })).status, 401);
   for (const claims of [{ aud: "outro-cliente" }, { iss: "https://attacker.example" }, { nonce: "outro-nonce" }, { sub: "" }, { exp: Math.floor(Date.now() / 1000) - 600 }]) {
@@ -332,6 +332,7 @@ async function checkClient(profile) {
   assert.equal(first.result.body.needsUsername, true);
   assert.equal(first.result.body.authProvider, "google");
   assert.equal(first.result.body.faction, null);
+  assert.equal(first.result.body.currency, 0, "Conta Google nova começa sem Cybercoins.");
   assert.equal((await api("auth/google", first.body)).status, 401, "A tentativa não pode ser reutilizada.");
   assert.equal((await api("auth/session", undefined, "GET")).body.needsRegistration, true);
   assert.equal((await api("account/faction", { faction: "raspcorp" })).status, 403);
@@ -417,6 +418,8 @@ async function checkClient(profile) {
   const store = JSON.stringify(Object.values(savedAccounts.accounts).filter(account => account.googleSub));
   assert.doesNotMatch(store, /Nome do Google|passwordHash|credential/);
   const primaryAccount = Object.values(savedAccounts.accounts).find(account => account.googleSub === "google-player-123");
+  assert.equal(primaryAccount.currency, 0, "O saldo inicial zero persiste após reiniciar e entrar novamente.");
+  assert.equal(savedAccounts.accounts[previousKey].currency, 765, "Saldos de contas existentes são preservados.");
   assert.equal(primaryAccount.googleEmail, "novo@example.com", "Email verificado atualizado é privado e permite receber compras da feira.");
   assert.equal(chosen.body.googleEmail, undefined, "Email não aparece na resposta pública da conta.");
   assert.equal(chosen.body.email, undefined);

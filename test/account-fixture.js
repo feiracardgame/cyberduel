@@ -8,7 +8,7 @@ module.exports = function seedAccounts(directory, usernames) {
   const users = usernames.map(username => {
     const token = randomBytes(32).toString('hex');
     const accountKey = `fixture_${username.toLocaleLowerCase('pt-BR')}`;
-    accounts[accountKey] = { username, nickname: username, googleSub: `test-${accountKey}` };
+    accounts[accountKey] = { username, nickname: username, googleSub: `test-${accountKey}`, currency: 500 };
     sessions[createHash('sha256').update(token).digest('hex')] = {
       accountKey, expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
     };
