@@ -186,6 +186,10 @@ async function apiTest() {
     const missing = await api("cybercoins/resume", { purchaseId: "bank-missing-000001" }, seller.token);
     assert.equal(missing.status, 404);
     assert.equal(missing.body.currency, 15, "Mesmo a recusa de consulta atualiza a carteira do cliente.");
+    const custom = await api("cybercoins/withdraw", body("custom-bank-000001", "cybercoins-13"), seller.token);
+    assert.equal(custom.status, 200);
+    assert.equal(custom.body.currency, 2);
+    assert.equal(custom.body.purchase.tijolinhos, 13, "A rota aceita valor livre com a mesma autenticação dos pacotes.");
     await api("cybercoins/buy", body("buy-for-partial-0001", "cybercoins-250"));
     confirmedAmount = 100;
     const partial = await api("cybercoins/withdraw", body("partial-bank-08041", "cybercoins-250"));

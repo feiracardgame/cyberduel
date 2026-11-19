@@ -97,9 +97,11 @@ async function purchase(store, accountKey, body, save) {
 async function withdraw(store, accountKey, body, save, adminGrant = false) {
   const orders = store.cybercoinPurchases ||= {};
   let order = typeof body?.purchaseId === "string" && Object.hasOwn(orders, body.purchaseId) ? orders[body.purchaseId] : null;
+  const amount = typeof body?.bundleId === "string" && /^cybercoins-[1-9][0-9]{0,15}$/.test(body.bundleId)
+    ? Number(body.bundleId.slice("cybercoins-".length)) : NaN;
   const bundle = adminGrant ? { id: "admin-feira-500", tijolinhos: 500, cybercoins: 0 }
     : order && order.bundleId === body?.bundleId ? { id: order.bundleId, tijolinhos: order.tijolinhos, cybercoins: order.cybercoins }
-    : bundles.find(entry => entry.id === body?.bundleId);
+    : Number.isSafeInteger(amount) ? { id: body.bundleId, tijolinhos: amount, cybercoins: amount } : null;
   const direction = adminGrant ? "admin-grant" : "withdraw";
   if (!bundle || typeof body?.purchaseId !== "string" || !/^[a-zA-Z0-9-]{16,80}$/.test(body.purchaseId))
     fail(400, "INVALID_PURCHASE", "Escolha um pacote e um identificador de câmbio válido.");

@@ -3788,34 +3788,52 @@ body:has(> .booster-fullscreen) .title-matrix-stream { animation-play-state: pau
   background: url("../assets/sprites/cybercoin.png") center / contain no-repeat;
 }
 .title-balance:focus-visible { outline: 2px solid #5fe88d; outline-offset: 3px; }
-.title-modal[data-kind="cybercoins"] { position: fixed; inset: 0; z-index: 10000; place-items: center; padding: 20px; box-sizing: border-box; font-family: Arial, sans-serif; }
-.title-dialog.cybercoin-shop { width: min(680px, 100%); max-height: calc(100dvh - 40px); box-sizing: border-box; overflow-y: auto; border: 1px solid #46593f; border-radius: 12px; color: #dcebe2; }
-.cybercoin-shop .booster-header h2 { margin: 0; font-size: clamp(22px, 4vw, 32px); }
-.cybercoin-shop > p { line-height: 1.5; font-size: 14px; }
-.cybercoin-shop > .cybercoin-shop__rate { color: #5fe88d; font-size: 13px; letter-spacing: .08em; }
-.cybercoin-shop > .cybercoin-shop__balance { color: #e8f5ee; font-size: 16px; }
-.cybercoin-shop__packages { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin: 20px 0; }
-.cybercoin-shop__package { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0; padding: 18px 8px; border: 1px solid #425149; border-radius: 6px; color: #e6f4eb; background: #101d16; cursor: pointer; font-size: 13px; line-height: 1.2; }
-.cybercoin-shop__package strong { font: bold 26px/1.2 Arial, sans-serif; font-variant-numeric: tabular-nums; }
-.cybercoin-shop__package small { color: #9bdcb0; font-size: 12px; }
-.cybercoin-shop__package[aria-pressed="true"] { border-color: #5fe88d; background: #193322; box-shadow: inset 0 0 0 1px #5fe88d; }
-.cybercoin-shop__package:focus-visible { outline: 2px solid #5fe88d; outline-offset: 3px; }
-.cybercoin-shop__symbol { display: block; width: 48px; height: 48px; margin-bottom: 4px; object-fit: contain; }
-.cybercoin-shop__directions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
-.cybercoin-shop__direction { flex: 1; min-height: 44px; padding: 10px; border: 1px solid #425149; border-radius: 6px; background: #101d16; color: #e6f4eb; cursor: pointer; }
-.cybercoin-shop__direction[aria-pressed="true"] { border-color: #5fe88d; background: #193322; }
-.cybercoin-shop__direction:focus-visible { outline: 2px solid #5fe88d; outline-offset: 3px; }
-.cybercoin-shop__google { margin: 16px 0; }
-.cybercoin-shop__google[hidden] { display: none; }
-.cybercoin-shop__pending { padding: 12px; border-left: 2px solid #ffd166; color: #f3dfac; }
-.cybercoin-shop .title-dialog__error { font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; text-align: left; }
-.cybercoin-shop__pending[hidden], .cybercoin-shop__retry[hidden], .cybercoin-shop__auth-note[hidden] { display: none; }
-.cybercoin-shop__summary, .cybercoin-shop .profile-note { overflow-wrap: anywhere; }
-.cybercoin-shop__buy { width: 100%; min-height: 48px; margin-top: 8px; cursor: pointer; }
-.cybercoin-shop__buy:disabled { opacity: .55; cursor: default; }
+.title-modal[data-kind="cybercoins"] { position: fixed; inset: 0; z-index: 10000; place-items: center; padding: 20px; box-sizing: border-box; font-family: Arial, sans-serif; background: rgba(4, 12, 10, .9); }
+.title-dialog.cybercoin-shop { width: min(640px, 100%); max-height: calc(100dvh - 40px); box-sizing: border-box; overflow-y: auto; padding: 28px; border: 1px solid #344b41; border-radius: 20px; color: #e4efe9; background: radial-gradient(ellipse at top right, #1b342b, transparent 65%), #101c18; box-shadow: 0 24px 100px #030c0999; }
+.cybercoin-shop [hidden] { display: none !important; }
+.cybercoin-shop .booster-header { margin-bottom: 24px; }
+.cybercoin-shop .booster-header h2 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -.03em; }
+.cybercoin-shop .booster-close { flex-shrink: 0; width: 36px; height: 36px; border: 1px solid #435c4e; border-radius: 50%; background: #14251d; color: #d3e8db; font: 24px/1 Arial, sans-serif; cursor: pointer; }
+.cybercoin-shop__wallet { padding-bottom: 28px; }
+.cybercoin-shop__eyebrow { display: block; margin-bottom: 10px; font: 11px/1.4 "Courier New", monospace; letter-spacing: .15em; color: #a4b9ae; }
+.cybercoin-shop__balance { display: block; font-size: clamp(24px, 6vw, 38px); font-variant-numeric: tabular-nums; letter-spacing: -.045em; }
+.cybercoin-shop__directions { display: flex; gap: 4px; padding: 4px; margin-bottom: 28px; border-radius: 10px; background: #09130f; }
+.cybercoin-shop__direction { flex: 1; min-height: 44px; padding: 10px; border: 0; border-radius: 7px; background: transparent; color: #a4b9ae; cursor: pointer; font-size: 14px; font-weight: 600; }
+.cybercoin-shop__direction[aria-pressed="true"] { background: #294437; color: #e7f9ed; }
+.cybercoin-shop h3 { margin: 0 0 16px; font-size: 22px; line-height: 1.25; letter-spacing: -.035em; text-wrap: balance; }
+.cybercoin-shop__packages { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-bottom: 24px; }
+.cybercoin-shop__package { display: flex; flex-direction: column; align-items: center; gap: 7px; min-width: 0; padding: 16px 4px; border: 1px solid #34483e; border-radius: 10px; color: #e4efe9; background: #14251d; cursor: pointer; font-size: 10px; line-height: 1.2; }
+.cybercoin-shop__package strong { font: 600 24px/1.2 Arial, sans-serif; font-variant-numeric: tabular-nums; }
+.cybercoin-shop__package span { color: #a4b9ae; }
+.cybercoin-shop__package[aria-pressed="true"] { border-color: #79dba0; background: #263e2f; box-shadow: inset 0 0 0 1px #79dba0; }
+.cybercoin-shop__symbol { display: block; width: 32px; height: 32px; object-fit: contain; }
+.cybercoin-shop__custom { display: grid; gap: 10px; font-size: 14px; font-weight: 600; }
+.cybercoin-shop__amount { width: 100%; min-height: 56px; padding: 12px 16px; box-sizing: border-box; border: 1px solid #435c4e; border-radius: 8px; background: #0a1611; color: #e7f9ed; font: 500 22px/1.3 Arial, sans-serif; font-variant-numeric: tabular-nums; }
+.cybercoin-shop__amount::placeholder { color: #8fa398; font-size: 16px; }
+.cybercoin-shop__amount[aria-invalid="true"] { border-color: #e9a7a7; }
+.cybercoin-shop__custom small { color: #a4b9ae; font-size: 12px; font-weight: 400; }
+.cybercoin-shop__summary { margin: 24px 0 12px; padding-top: 20px; border-top: 1px solid #34483e; color: #d3e8db; font-size: 14px; line-height: 1.6; }
+.cybercoin-shop .profile-note { margin: 12px 0; color: #b9d0c1; font-size: 14px; line-height: 1.6; }
+.cybercoin-shop .profile-note:empty, .cybercoin-shop .title-dialog__error:empty { display: none; }
+.cybercoin-shop__pending { padding: 12px; border-left: 2px solid #d7be7c; color: #e2d0a5; font-size: 14px; line-height: 1.5; }
+.cybercoin-shop .title-dialog__confirm { width: 100%; min-height: 52px; margin-top: 12px; border: 0; border-radius: 8px; background: #8adcaa; color: #0b2114; box-shadow: none; font-size: 13px; letter-spacing: .04em; cursor: pointer; }
+.cybercoin-shop .cybercoin-shop__retry { background: #294437; color: #e7f9ed; }
+.cybercoin-shop button, .cybercoin-shop__amount { transition: background .2s, border-color .2s, transform .2s; }
+.cybercoin-shop button:hover:not(:disabled) { filter: brightness(1.12); }
+.cybercoin-shop button:active:not(:disabled) { transform: translateY(1px); }
+.cybercoin-shop button:focus-visible, .cybercoin-shop__amount:focus-visible { outline: 2px solid #8adcaa; outline-offset: 3px; }
+.cybercoin-shop button:disabled { opacity: .5; cursor: default; }
+.cybercoin-shop .title-dialog__error { margin: 16px 0 0; font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; text-align: left; }
+.cybercoin-shop__auth { padding: 28px 0 36px; }
+.cybercoin-shop__auth h3 { max-width: 360px; font-size: clamp(28px, 6vw, 38px); }
+.cybercoin-shop__auth p { max-width: 300px; color: #a4b9ae; font-size: 15px; line-height: 1.6; }
+.cybercoin-shop__google { min-height: 44px; margin-top: 28px; }
 @media (max-width: 540px) {
   .title-modal[data-kind="cybercoins"] { padding: 12px; }
-  .title-dialog.cybercoin-shop { padding: 20px 16px; max-height: calc(100dvh - 24px); }
-  .cybercoin-shop__packages { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .cybercoin-shop__package:last-child { grid-column: 1 / -1; }
+  .title-dialog.cybercoin-shop { padding: 22px 16px; max-height: calc(100dvh - 24px); border-radius: 16px; }
+  .cybercoin-shop__packages { gap: 5px; }
+  .cybercoin-shop__package { padding: 12px 2px; font-size: 9px; }
+  .cybercoin-shop__package strong { font-size: 21px; }
+  .cybercoin-shop__symbol { width: 26px; height: 26px; }
+  .cybercoin-shop__wallet { padding-bottom: 22px; }
 }

@@ -51,127 +51,143 @@ const tick = () => new Promise(setImmediate);
   const ui = new context.UI({ account, callbacks: {} });
   ui.root = new Element("main");
   const find = (node, cls) => node.className?.split(" ").includes(cls) ? node : node.children.map(child => find(child, cls)).find(Boolean);
+  const node = cls => find(ui.modal, cls);
+  const enterAmount = value => { node("cybercoin-shop__amount").value = value; node("cybercoin-shop__amount").events.input(); };
   account.request = async () => packages;
   const balanceButton = find(ui.createTopbar(), "title-balance");
-  assert.equal(balanceButton.hidden, false, "O saldo de Cybercoins aparece no menu da conta conectada.");
-  assert.match(balanceButton.textContent, /CYBERCOINS/);
+  assert.equal(balanceButton.hidden, false);
   balanceButton.click(); await tick();
-  const unavailable = ui.modal;
-  assert.ok(context.document.body.children.includes(unavailable), "Loja usa a tela inteira, fora do menu estreito.");
-  const bundles = find(unavailable, "cybercoin-shop__packages"), buy = find(unavailable, "cybercoin-shop__buy");
-  assert.equal(bundles.children.length, 5);
-  assert.ok(fs.existsSync("assets/sprites/cybercoin.png"));
-  for (const bundle of bundles.children) assert.equal(find(bundle, "cybercoin-shop__symbol").src, "assets/sprites/cybercoin.png");
-  assert.equal(buy.disabled, false); assert.equal(buy.textContent, "COMPRAR NO SITE DA FEIRA");
-  assert.equal(bundles.hidden, true, "Compra externa exibe somente os produtos cadastrados na feira.");
-  assert.equal(find(unavailable, "cybercoin-shop__token"), undefined, "Nenhum token precisa ser copiado pelo jogador.");
-  bundles.children[4].click();
-  assert.match(find(unavailable, "cybercoin-shop__summary").textContent, /100 tijolinhos.*100 Cybercoins/);
-  assert.match(find(unavailable, "profile-note").textContent, /mesmo email/);
+  assert.ok(context.document.body.children.includes(ui.modal), "Loja fica fora do menu estreito.");
+  assert.equal(node("cybercoin-shop__packages").children.length, 5, "Mantém todos os valores prontos.");
+  for (const bundle of node("cybercoin-shop__packages").children)
+    assert.equal(find(bundle, "cybercoin-shop__symbol").src, "assets/sprites/cybercoin.png");
   let opened = 0;
   context.window.open = (url, target, features) => {
     assert.equal(url, "https://feira-de-jogos.dev.br/");
     assert.equal(target, "_blank"); assert.equal(features, "noopener,noreferrer"); opened++;
   };
-  await buy.click();
-  assert.equal(opened, 1, "Compra abre a loja sem enviar outro débito ao banco.");
-  account.currency = 200; account.notify();
-  assert.match(find(ui.createTopbar(), "title-balance").textContent, /200/);
-
+  node("cybercoin-shop__directions").children[1].click();
+  assert.equal(node("cybercoin-shop__withdraw").hidden, true);
+  assert.equal(node("cybercoin-shop__buy").textContent, "ACESSAR LOJA DA FEIRA");
+  await node("cybercoin-shop__buy").click();
+  assert.equal(opened, 1);
+  // Mesmo se o backend habilitar compra direta, esta tela continua abrindo somente a loja.
   ui.modal = null;
-  account.request = async (route, options) => {
-    if (route.endsWith("packages")) return { ...packages, available: true };
-    assert.equal(route, "/api/cybercoins/buy");
-    assert.equal(options.body.bundleId, "cybercoins-50");
-    assert.equal(options.body.feiraToken, undefined, "O JWT vem da sessão validada no servidor.");
-    return { username: "Buyer", currency: 50, purchase: { cybercoins: 50, status: "completed" } };
+  account.request = async route => {
+    assert.equal(route, "/api/cybercoins/packages");
+    return { ...packages, available: true };
   };
   ui.openCybercoinShop(); await tick();
-  const enabled = ui.modal, confirm = find(enabled, "cybercoin-shop__buy");
-  await confirm.click();
-  assert.equal(account.currency, 50); assert.equal(storage.has(key), false);
-  assert.match(find(enabled, "cybercoin-shop__balance").textContent, /50 Cybercoins/);
-  assert.match(find(enabled, "profile-note").textContent, /Compra confirmada/);
+  node("cybercoin-shop__directions").children[1].click();
+  await node("cybercoin-shop__buy").click();
+  assert.equal(opened, 2);
+
+  ui.modal = null;
+  account.currency = 100;
+  let withdrawals = 0, expectedAmount = 37;
+  account.request = async (route, options) => {
+    if (route.endsWith("packages")) return { ...packages, withdrawAvailable: true, needsGoogleLogin: false };
+    assert.equal(route, "/api/cybercoins/withdraw");
+    assert.equal(options.body.bundleId, `cybercoins-${expectedAmount}`);
+    assert.equal(options.body.feiraToken, undefined);
+    withdrawals++;
+    return { username: "Buyer", currency: account.currency - expectedAmount,
+      purchase: { cybercoins: expectedAmount, tijolinhos: expectedAmount, direction: "withdraw" } };
+  };
+  ui.openCybercoinShop(); await tick();
+  assert.equal(node("cybercoin-shop__withdraw").hidden, false);
+  for (const invalid of ["", "0", "-1", "1.5", "1,5", "1e2", "Infinity", "9007199254740992", "abc"]) {
+    enterAmount(invalid);
+    assert.equal(node("cybercoin-shop__buy").disabled, true, `Rejeita ${invalid}`);
+  }
+  enterAmount("101");
+  assert.equal(node("cybercoin-shop__buy").disabled, true);
+  assert.match(node("profile-note").textContent, /insuficiente/);
+  enterAmount("37");
+  assert.equal(node("cybercoin-shop__buy").disabled, false);
+  assert.match(node("cybercoin-shop__summary").textContent, /37 tijolinhos.*37 Cybercoins/);
+  await node("cybercoin-shop__buy").click();
+  assert.equal(account.currency, 63);
+  assert.equal(withdrawals, 1);
+  assert.equal(storage.has(key), false);
+  assert.match(node("profile-note").textContent, /Resgate concluído.*37 tijolinhos/);
   assert.equal(ui.modalRequired, false);
+  expectedAmount = 25;
+  node("cybercoin-shop__packages").children[1].click();
+  assert.equal(node("cybercoin-shop__amount").value, "");
+  await node("cybercoin-shop__buy").click();
+  assert.equal(account.currency, 38, "Os valores prontos continuam funcionando.");
 
   ui.modal = null;
   let returned = 0, notified = 0;
   const unsubscribe = account.onChange(() => notified++);
   ui.openCybercoinShop(() => returned++); await tick();
   ui.modalAfterClose();
-  assert.equal(returned, 1);
-  assert.equal(notified, 0, "Retorno à loja mantém a interface montada até fechar a loja de origem.");
+  assert.equal(returned, 1); assert.equal(notified, 0);
   unsubscribe();
 
   ui.modal = null;
-  account.currency = 100;
-  account.request = async (route, options) => {
-    if (route.endsWith("packages")) return { ...packages, withdrawAvailable: true, needsGoogleLogin: false };
-    assert.equal(route, "/api/cybercoins/withdraw");
-    assert.equal(options.body.bundleId, "cybercoins-50");
-    return { username: "Buyer", currency: 50, purchase: { cybercoins: 50, tijolinhos: 50, direction: "withdraw" } };
-  };
-  ui.openCybercoinShop(); await tick();
-  find(ui.modal, "cybercoin-shop__directions").children[1].click();
-  assert.match(find(ui.modal, "cybercoin-shop__summary").textContent, /50 Cybercoins.*50 tijolinhos/);
-  await find(ui.modal, "cybercoin-shop__buy").click();
-  assert.equal(account.currency, 50);
-  assert.match(find(ui.modal, "profile-note").textContent, /50 tijolinhos enviados/);
-
-  ui.modal = null;
-  const recovered = { id: "bank-pending-000001", bundleId: "cybercoins-500", direction: "withdraw", cybercoins: 500, tijolinhos: 250 };
+  const recovered = { id: "bank-pending-000001", bundleId: "cybercoins-37", direction: "withdraw", cybercoins: 37, tijolinhos: 37 };
   let googleMounts = 0, renewGoogle, needsGoogleLogin = true, retried = 0;
   account.mountGoogleButton = async (container, onError, onSuccess) => { googleMounts++; renewGoogle = onSuccess; };
   account.request = async (route, options) => {
     if (route.endsWith("packages")) return { ...packages, withdrawAvailable: true, needsGoogleLogin, pendingPurchase: recovered };
     assert.equal(route, "/api/cybercoins/resume");
-    assert.equal(options.body.bundleId, "cybercoins-500", "A consulta retoma o valor original, sem usar o pacote que está sendo comparado.");
+    assert.equal(options.body.bundleId, recovered.bundleId);
     assert.equal(options.body.purchaseId, recovered.id);
     retried++;
-    if (retried === 1) throw Object.assign(Error("A feira recusou o acesso ao extrato."), {
+    if (retried === 1) throw Object.assign(Error("Detalhe técnico do banco"), {
       code: "FEIRA_STATEMENT_UNAUTHORIZED", payload: { username: "Buyer", currency: 0 },
     });
-    return { username: "Buyer", currency: 300, purchase: { cybercoins: 500, tijolinhos: 250, direction: "withdraw",
-      settledTijolinhos: 100, spentCybercoins: 200, refundedCybercoins: 300 } };
+    return { username: "Buyer", currency: 27, purchase: { cybercoins: 37, tijolinhos: 37, direction: "withdraw",
+      settledTijolinhos: 10, spentCybercoins: 10, refundedCybercoins: 27 } };
   };
   ui.openCybercoinShop(); await tick();
-  assert.equal(account.getCybercoinPurchase().id, recovered.id, "Pendência é recuperada do servidor após perder o armazenamento local.");
-  assert.equal(find(ui.modal, "cybercoin-shop__buy").disabled, true);
-  assert.equal(googleMounts, 1, "JWT expirado pede autorização pelo botão oficial do Google.");
-  const pendingModal = ui.modal;
-  const pendingPackages = find(pendingModal, "cybercoin-shop__packages");
-  pendingPackages.children[0].click();
-  assert.equal(pendingPackages.children[0].attributes["aria-pressed"], "true", "Pendência de 500 não impede selecionar 20 Cybercoins.");
-  const directionButtons = find(pendingModal, "cybercoin-shop__directions").children;
-  assert.equal(directionButtons[0].disabled, false);
-  directionButtons[0].click();
-  assert.match(find(pendingModal, "cybercoin-shop__summary").textContent, /100 tijolinhos.*100 Cybercoins/);
-  directionButtons[1].click();
-  assert.match(find(pendingModal, "cybercoin-shop__summary").textContent, /10 Cybercoins.*10 tijolinhos/);
-  assert.match(find(pendingModal, "cybercoin-shop__summary").textContent, /Se a feira creditar menos, a diferença de Cybercoins será devolvida/);
-  assert.match(find(pendingModal, "cybercoin-shop__pending").textContent, /500 Cybercoins.*250 tijolinhos/);
-  assert.equal(retried, 0, "Comparar valores e trocar abas não transfere dinheiro.");
+  assert.equal(account.getCybercoinPurchase().id, recovered.id);
+  assert.equal(googleMounts, 1);
+  assert.equal(ui.modalRequired, true);
+  assert.equal(ui.root.inert, true, "O menu ao fundo não oferece outras ações durante o login.");
+  assert.equal(node("cybercoin-shop__content").hidden, true);
+  assert.equal(node("booster-close").hidden, true, "A única ação visível é o login.");
+  assert.equal(node("cybercoin-shop__auth").hidden, false);
+  const authModal = ui.modal;
+  ui.closeModal();
+  assert.equal(ui.modal, authModal, "Escape e fechamento comum não ignoram o login.");
   needsGoogleLogin = false;
   await renewGoogle();
-  assert.equal(find(pendingModal, "cybercoin-shop__packages").children[0].attributes["aria-pressed"], "true", "Renovar o Google preserva o pacote escolhido.");
-  assert.equal(googleMounts, 1);
-  assert.equal(find(pendingModal, "cybercoin-shop__buy").disabled, true, "Uma pendência continua impedindo outra transferência.");
-  await find(pendingModal, "cybercoin-shop__retry").click();
+  assert.equal(ui.modalRequired, false);
+  assert.equal(ui.root.inert, false);
+  assert.equal(node("cybercoin-shop__content").hidden, false);
+  assert.equal(node("cybercoin-shop__auth").hidden, true);
+  enterAmount("17");
+  assert.equal(node("cybercoin-shop__buy").disabled, true, "Pendência impede outro resgate.");
+  await node("cybercoin-shop__retry").click();
   assert.equal(retried, 1);
-  assert.equal(account.currency, 0, "Saldo reservado no servidor é sincronizado mesmo quando o banco retorna erro.");
-  assert.match(find(pendingModal, "cybercoin-shop__balance").textContent, /0 Cybercoins/);
-  assert.match(find(pendingModal, "title-dialog__error").textContent, /recusou o acesso ao extrato/);
-  assert.match(find(pendingModal, "profile-note").textContent, /continua pendente/);
+  assert.equal(account.currency, 0);
+  assert.doesNotMatch(node("title-dialog__error").textContent, /Detalhe técnico/);
   assert.equal(storage.has(key), true);
-  assert.equal(googleMounts, 1, "Recusa do extrato não pede login repetidamente.");
-  await find(pendingModal, "cybercoin-shop__retry").click();
+  assert.equal(googleMounts, 1, "Erro de permissão não cria um ciclo de login.");
+  await node("cybercoin-shop__retry").click();
   assert.equal(retried, 2);
-  assert.equal(account.currency, 300);
-  assert.match(find(pendingModal, "cybercoin-shop__balance").textContent, /300 Cybercoins/);
-  assert.match(find(pendingModal, "profile-note").textContent, /100 tijolinhos enviados.*Custo: 200 Cybercoins.*300 Cybercoins devolvidas/);
+  assert.equal(account.currency, 27);
+  assert.match(node("profile-note").textContent, /10 tijolinhos.*27 Cybercoins devolvidas/);
   assert.equal(storage.has(key), false);
-  assert.equal(find(pendingModal, "cybercoin-shop__retry").hidden, true);
-  assert.equal(find(pendingModal, "cybercoin-shop__buy").disabled, false);
+  assert.equal(node("cybercoin-shop__retry").hidden, true);
+
+  // Expiração entre abrir a tela e confirmar leva diretamente ao login, sem reenviar.
+  account.request = async route => {
+    if (route.endsWith("packages")) return { ...packages, withdrawAvailable: true, needsGoogleLogin };
+    throw Object.assign(Error("JWT expirado"), { code: "FEIRA_LOGIN_REQUIRED" });
+  };
+  enterAmount("17");
+  await node("cybercoin-shop__buy").click();
+  assert.equal(ui.modalRequired, true);
+  assert.equal(node("cybercoin-shop__content").hidden, true);
+  assert.equal(googleMounts, 2);
+  await renewGoogle();
+  assert.equal(ui.modalRequired, false);
+  assert.equal(node("cybercoin-shop__amount").value, "17", "Login preserva o valor digitado.");
+  assert.match(node("cybercoin-shop__summary").textContent, /17 tijolinhos.*17 Cybercoins/);
 
   account.request = async () => { account.clear(); return { username: "Buyer", currency: 100, purchase: { cybercoins: 50 } }; };
   account.token = "session";

@@ -86,6 +86,22 @@ async function exchange() {
   assert.ok(!JSON.stringify(s).includes(body().feiraToken));
   await withdraw(JSON.parse(JSON.stringify(s)), "player", body(), () => {});
   assert.equal(calls, 1, "Repetir após reinício não envia outro crédito.");
+  const custom = store();
+  const customBody = { ...body("custom-withdraw-0001"), bundleId: "cybercoins-37" };
+  const customOrder = await withdraw(custom, "player", { ...customBody, tijolinhos: 999, cybercoins: 1 }, () => {});
+  assert.equal(customOrder.tijolinhos, 37);
+  assert.equal(customOrder.cybercoins, 37);
+  assert.equal(custom.accounts.player.currency, 63);
+  const customCalls = calls;
+  await resume(JSON.parse(JSON.stringify(custom)), "player", { ...customBody, bundleId: "cybercoins-99" }, () => {});
+  assert.equal(calls, customCalls, "Retomar valor livre mantém o resgate original sem duplicar crédito.");
+  for (const amount of ["0", "-1", "1.5", "1e2", "01", "NaN", "Infinity", "9007199254740992"]) {
+    const invalid = store();
+    await rejects(withdraw(invalid, "player", { ...body(), bundleId: `cybercoins-${amount}` }, () => {}), "INVALID_PURCHASE");
+    assert.equal(invalid.accounts.player.currency, 100);
+  }
+  await rejects(withdraw(store(), "player", { ...body(), bundleId: "cybercoins-101" }, () => {}), "INSUFFICIENT_CYBERCOINS");
+  assert.equal(calls, customCalls, "Valores inválidos não enviam crédito.");
   await rejects(withdraw(s, "other", body(), () => {}), "PURCHASE_CONFLICT");
   await rejects(purchase(s, "player", body(), () => {}), "PURCHASE_CONFLICT");
 
